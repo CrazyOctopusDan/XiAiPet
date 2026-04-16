@@ -31,12 +31,18 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. 双端工程、共享模型与基础发布链路具备继续开发的稳定起点。
   4. 敏感配置不再写入业务代码或规划文档。
 **UI hint**: yes
-**Plans**: 3 plans
+**Plans**: 9 plans
 
 Plans:
-- [ ] 01-01: 搭建 `customerFrontend/`、`merchantFrontend/`、`backend/` 基础工程和共享模型结构
-- [ ] 01-02: 设计 CloudBase 集合、索引、权限规则和敏感写操作云函数边界
-- [ ] 01-03: 实现用户身份引导、基础页面壳层和安全配置/发布链路约束
+- [ ] 01-01: 搭建根 workspace、敏感文件忽略规则与 shared Wave 0 测试脚手架
+- [ ] 01-02: 显式建立客户端、商户端与云函数子工程壳层配置和 workspace manifests
+- [ ] 01-03: 建立 `packages/shared` 的类型、schema、纯规则和导出边界
+- [ ] 01-04: 定义 CloudBase `dev/prod` 环境、集合、索引与安全规则
+- [ ] 01-05: 实现 `bootstrapUser`、`bindPhone`、`assertMerchantAccess` 云函数边界
+- [ ] 01-06: 实现客户端启动壳层、身份引导与客户页面路由注册
+- [ ] 01-07: 实现客户端手机号绑定页面与安全持久化链路
+- [ ] 01-08: 实现商户端白名单入口与商户页面路由注册
+- [ ] 01-09: 实现手动 `prod` 发布脚本、发布文档与敏感文件忽略规则
 
 ### Phase 2: Catalog and Product Discovery
 **Goal**: 打通客户端商品发现链路，让用户能从首页进入分类、搜索和商品详情。

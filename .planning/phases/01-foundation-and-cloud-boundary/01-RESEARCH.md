@@ -219,17 +219,15 @@ Planner should assume Phase 1 needs Wave 0 verification scaffolding before meani
 </sota_updates>
 
 <open_questions>
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **白名单数据载体落在哪里最顺手**
-   - What we know: 需要首版纯白名单入口，且后续要能升级。
-   - What's unclear: 用独立 `merchant_users` 集合，还是先作为 `store_configs` 子结构。
-   - Recommendation: 规划时优先独立集合，因为更利于后续升级角色字段和审计字段。
+1. **白名单数据载体落在哪里最顺手** — RESOLVED
+   - Resolution: Phase 1 采用独立 `merchant_users` 集合承载商户白名单，而不是挂在 `store_configs` 子结构下。
+   - Why: 这样更利于后续补充角色字段、启停状态、审计字段和权限升级，不会把配置文档与身份列表混在一起。
 
-2. **Cloud functions 工程组织粒度**
-   - What we know: Phase 1 需要用户 bootstrap、商户入口判定、环境边界与安全配置。
-   - What's unclear: 是每个能力一个函数目录，还是先集中到少量入口。
-   - Recommendation: 规划时至少拆成 `bootstrapUser` 与 `assertMerchantAccess` 两个显式入口，避免“万能函数”。
+2. **Cloud functions 工程组织粒度** — RESOLVED
+   - Resolution: Phase 1 至少拆成 `bootstrapUser` 与 `assertMerchantAccess` 两个显式函数入口；若需要环境守卫，可增加独立公共工具模块，但不做“万能函数”。
+   - Why: 这样能把客户端身份初始化和商户白名单校验明确解耦，便于后续扩展支付、订单、配置等敏感写操作边界。
 </open_questions>
 
 <sources>
