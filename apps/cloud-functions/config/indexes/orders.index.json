@@ -1,0 +1,54 @@
+[
+  {
+    "collectionName": "orders",
+    "fields": [
+      {
+        "field": "openid",
+        "order": "asc"
+      },
+      {
+        "field": "createdAt",
+        "order": "desc"
+      }
+    ]
+  },
+  {
+    "collectionName": "orders",
+    "fields": [
+      {
+        "field": "status",
+        "order": "asc"
+      },
+      {
+        "field": "updatedAt",
+        "order": "desc"
+      }
+    ]
+  },
+  {
+    "collectionName": "orders",
+    "fields": [
+      {
+        "field": "openid",
+        "order": "asc"
+      },
+      {
+        "field": "idempotencyKey",
+        "order": "asc"
+      }
+    ]
+  },
+  {
+    "collectionName": "orders",
+    "fields": [
+      {
+        "field": "snapshot.fulfillment.mode",
+        "order": "asc"
+      },
+      {
+        "field": "updatedAt",
+        "order": "desc"
+      }
+    ]
+  }
+]
