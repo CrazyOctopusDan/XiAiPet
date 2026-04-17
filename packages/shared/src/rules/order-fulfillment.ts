@@ -137,8 +137,16 @@ export function getOrderStatusDescriptor(
     return UNPAID_STATUS_LABELS[order.status];
   }
 
-  const mode = order.fulfillmentState?.mode ?? order.snapshot.fulfillment.mode;
-  const status = order.fulfillmentState?.status ?? getDefaultFulfillmentState(mode).status;
+  if (!order.fulfillmentState) {
+    return {
+      code: 'paid',
+      label: '已支付',
+      groupLabel: '已支付'
+    };
+  }
+
+  const mode = order.fulfillmentState.mode;
+  const status = order.fulfillmentState.status ?? getDefaultFulfillmentState(mode).status;
 
   return {
     code: status,

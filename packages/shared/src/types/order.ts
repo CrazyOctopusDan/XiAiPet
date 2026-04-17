@@ -147,3 +147,5 @@ export interface QueryMyOrdersResult {
 export interface GetMyOrderDetailResult {
   order: OrderRecord;
 }
+
+export { getOrderStatusDescriptor, getOrderStatusLabel } from '../rules/order-fulfillment';
