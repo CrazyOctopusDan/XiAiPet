@@ -1,0 +1,10 @@
+{
+  "collectionName": "runtime_configs",
+  "description": "Section-scoped merchant runtime configuration documents",
+  "fields": [
+    "sectionId",
+    "updatedAt",
+    "updatedBy",
+    "value"
+  ]
+}

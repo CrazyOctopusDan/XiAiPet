@@ -1,0 +1,11 @@
+[
+  {
+    "collectionName": "runtime_configs",
+    "fields": [
+      {
+        "field": "sectionId",
+        "order": "asc"
+      }
+    ]
+  }
+]
