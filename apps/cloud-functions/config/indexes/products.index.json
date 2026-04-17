@@ -1,0 +1,28 @@
+[
+  {
+    "collectionName": "products",
+    "fields": [
+      {
+        "field": "categoryId",
+        "order": "asc"
+      },
+      {
+        "field": "updatedAt",
+        "order": "desc"
+      }
+    ]
+  },
+  {
+    "collectionName": "products",
+    "fields": [
+      {
+        "field": "status",
+        "order": "asc"
+      },
+      {
+        "field": "updatedAt",
+        "order": "desc"
+      }
+    ]
+  }
+]

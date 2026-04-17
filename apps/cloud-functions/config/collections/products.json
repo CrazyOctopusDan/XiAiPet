@@ -1,0 +1,25 @@
+{
+  "collectionName": "products",
+  "description": "Merchant-managed product records persisted through backend catalog handlers",
+  "fields": [
+    "id",
+    "name",
+    "description",
+    "categoryId",
+    "imageFileId",
+    "imagePreviewUrl",
+    "memberLevelId",
+    "status",
+    "stock",
+    "trackInventory",
+    "fulfillmentModes",
+    "basePrice",
+    "specs",
+    "formulas",
+    "priceOverrides",
+    "purchaseLimit",
+    "detailContent",
+    "createdAt",
+    "updatedAt"
+  ]
+}

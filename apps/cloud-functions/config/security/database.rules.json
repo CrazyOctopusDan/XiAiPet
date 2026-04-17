@@ -1,0 +1,39 @@
+{
+  "users": {
+    "read": "auth != null",
+    "write": false
+  },
+  "merchant_users": {
+    "read": false,
+    "write": false
+  },
+  "categories": {
+    "read": false,
+    "write": false
+  },
+  "runtime_configs": {
+    "read": false,
+    "write": false
+  },
+  "orders": {
+    "read": false,
+    "write": false
+  },
+  "balance_accounts": {
+    "read": false,
+    "write": false
+  },
+  "balance_ledgers": {
+    "read": false,
+    "write": false
+  },
+  "products": {
+    "read": false,
+    "write": false
+  },
+  "notes": [
+    "Sensitive writes must go through bootstrapUser, bindPhone, or assertMerchantAccess.",
+    "Clients cannot write users or merchant_users directly.",
+    "Orders, balance, and inventory collections are backend-only and must be accessed through cloud functions."
+  ]
+}

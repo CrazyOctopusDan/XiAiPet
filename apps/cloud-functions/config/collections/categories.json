@@ -1,0 +1,11 @@
+{
+  "collectionName": "categories",
+  "description": "Merchant-managed first-level product categories",
+  "fields": [
+    "id",
+    "name",
+    "iconToken",
+    "createdAt",
+    "updatedAt"
+  ]
+}

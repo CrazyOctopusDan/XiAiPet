@@ -1,0 +1,11 @@
+[
+  {
+    "collectionName": "categories",
+    "fields": [
+      {
+        "field": "updatedAt",
+        "order": "desc"
+      }
+    ]
+  }
+]
