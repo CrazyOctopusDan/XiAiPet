@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Phase 5 is now corrected to a cloud-backed transaction boundary; merchant operations are next
-stopped_at: Phase 6 context gathered
-last_updated: "2026-04-17T03:28:20.249Z"
+stopped_at: Phase 6 UI-SPEC approved
+last_updated: "2026-04-17T07:34:06.848Z"
 last_activity: 2026-04-17 — `05-04-SUMMARY.md` captured after cloud-backed transaction closure implementation
 progress:
   total_phases: 6
@@ -94,6 +94,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-17T03:28:20.243Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-merchant-operations-and-runtime-config/06-CONTEXT.md
+Last session: 2026-04-17T07:34:06.841Z
+Stopped at: Phase 6 UI-SPEC approved
+Resume file: .planning/phases/06-merchant-operations-and-runtime-config/06-UI-SPEC.md
