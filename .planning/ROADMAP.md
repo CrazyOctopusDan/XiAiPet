@@ -125,7 +125,7 @@ Plans:
   3. 商户可以搜索用户、调整余额并留下可追踪流水。
   4. 店铺位置、Banner、配送费规则、会员阈值和定制提示可以在运行时调整。
 **UI hint**: yes
-**Plans**: 11 plans
+**Plans**: 12 plans
 
 Plans:
 - [ ] 06-01-PLAN.md — 建立商户订单履约 contract、手工结算审计模型与 merchant miniapp 测试基线
@@ -137,8 +137,9 @@ Plans:
 - [ ] 06-07-PLAN.md — 实现商户订单列表/详情 UI
 - [ ] 06-08-PLAN.md — 实现品类管理、商品列表与三步商品编辑 UI
 - [ ] 06-09-PLAN.md — 实现用户搜索与余额调整 UI
-- [ ] 06-10-PLAN.md — 实现运营配置 UI 并把保存结果接入前台首页/结算
-- [ ] 06-11-PLAN.md — 完成商户工作台入口、页面注册与云函数注册整合
+- [ ] 06-10-PLAN.md — 实现商户运营配置管理页与分区保存 UI
+- [ ] 06-11-PLAN.md — 把保存的运营配置与余额调整文案接入客户端展示
+- [ ] 06-12-PLAN.md — 完成商户工作台入口、页面注册与云函数注册整合
 
 ## Progress
 
@@ -152,4 +153,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Cart State and Product Selection | 0/3 | Not started | - |
 | 4. Account, Pets and Address Context | 0/3 | Not started | - |
 | 5. Checkout, Payment and Orders | 0/3 | Not started | - |
-| 6. Merchant Operations and Runtime Config | 0/11 | Not started | - |
+| 6. Merchant Operations and Runtime Config | 0/12 | Not started | - |
