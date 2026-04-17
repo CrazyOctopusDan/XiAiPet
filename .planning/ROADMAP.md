@@ -12,7 +12,7 @@
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation and Cloud Boundary** - 建立双端小程序基础骨架、CloudBase 环境边界与用户身份入口
+- [x] **Phase 1: Foundation and Cloud Boundary** - 建立双端小程序基础骨架、CloudBase 环境边界与用户身份入口
 - [ ] **Phase 2: Catalog and Product Discovery** - 实现首页、分类浏览、搜索、详情和会员/库存展示
 - [ ] **Phase 3: Cart State and Product Selection** - 实现购物车、规格加购与跨页面状态同步
 - [ ] **Phase 4: Account, Pets and Address Context** - 实现个人中心、资料编辑、宠物、地址与余额流水
@@ -34,15 +34,15 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 9 plans
 
 Plans:
-- [ ] 01-01: 搭建根 workspace、敏感文件忽略规则与 shared Wave 0 测试脚手架
-- [ ] 01-02: 显式建立客户端、商户端与云函数子工程壳层配置和 workspace manifests
-- [ ] 01-03: 建立 `packages/shared` 的类型、schema、纯规则和导出边界
-- [ ] 01-04: 定义 CloudBase `dev/prod` 环境、集合、索引与安全规则
-- [ ] 01-05: 实现 `bootstrapUser`、`bindPhone`、`assertMerchantAccess` 云函数边界
-- [ ] 01-06: 实现客户端启动壳层、身份引导与客户页面路由注册
-- [ ] 01-07: 实现客户端手机号绑定页面与安全持久化链路
-- [ ] 01-08: 实现商户端白名单入口与商户页面路由注册
-- [ ] 01-09: 实现手动 `prod` 发布脚本、发布文档与敏感文件忽略规则
+- [x] 01-01: 搭建根 workspace、敏感文件忽略规则与 shared Wave 0 测试脚手架
+- [x] 01-02: 显式建立客户端、商户端与云函数子工程壳层配置和 workspace manifests
+- [x] 01-03: 建立 `packages/shared` 的类型、schema、纯规则和导出边界
+- [x] 01-04: 定义 CloudBase `dev/prod` 环境、集合、索引与安全规则
+- [x] 01-05: 实现 `bootstrapUser`、`bindPhone`、`assertMerchantAccess` 云函数边界
+- [x] 01-06: 实现客户端启动壳层、身份引导与客户页面路由注册
+- [x] 01-07: 实现客户端手机号绑定页面与安全持久化链路
+- [x] 01-08: 实现商户端白名单入口与商户页面路由注册
+- [x] 01-09: 实现手动 `prod` 发布脚本、发布文档与敏感文件忽略规则
 
 ### Phase 2: Catalog and Product Discovery
 **Goal**: 打通客户端商品发现链路，让用户能从首页进入分类、搜索和商品详情。
@@ -54,12 +54,14 @@ Plans:
   3. 用户可以搜索商品并在无结果时看到明确空状态。
   4. 商品详情完整展示图片、规格配方、等级限制和分享能力。
 **UI hint**: yes
-**Plans**: 3 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 02-01: 实现首页、Banner、提前预定入口和列表页分类联动
-- [ ] 02-02: 实现搜索、商品详情、分享和商品长图展示
-- [ ] 02-03: 实现库存售罄、会员门槛、规格摘要等浏览态规则
+- [x] 02-01: 实现首页、Banner、提前预定入口和列表页分类联动
+- [x] 02-02: 实现搜索、商品详情、分享和商品长图展示
+- [x] 02-03: 实现库存售罄、会员门槛、规格摘要等浏览态规则
+- [ ] 02-04: 恢复微信原生透明导航，并修复 catalog 尾部分类跳转导致的整页位移
+- [ ] 02-05: 统一 discovery 卡片 CTA、售罄视觉和详情页底部操作栏表现
 
 ### Phase 3: Cart State and Product Selection
 **Goal**: 建立可靠的购物车状态中心，支持规格商品快速加购和库存约束。
@@ -105,12 +107,13 @@ Plans:
   3. 用户可以通过微信支付或余额支付完成下单，并在支付后进入订单列表。
   4. 订单列表与订单详情能准确反映订单状态、商品和金额信息。
 **UI hint**: yes
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
 - [ ] 05-01: 实现确认订单页的三种履约模式、预约时间、地址/电话/宠物/备注交互
 - [ ] 05-02: 实现配送费计算、订单快照、微信支付/余额支付和支付回调链路
 - [ ] 05-03: 实现我的订单页、订单详情页和支付后跳转闭环
+- [ ] 05-04: 把 mock 订单/支付闭环修正为云端订单持久化、后端余额支付事务和微信支付正式骨架
 
 ### Phase 6: Merchant Operations and Runtime Config
 **Goal**: 完成商户端订单、商品、用户和运营配置管理，使店主可以独立运营业务。
@@ -125,9 +128,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: 实现商户订单管理与状态流转
-- [ ] 06-02: 实现品类、商品和规格定价管理表单
-- [ ] 06-03: 实现用户搜索、余额调整与运营配置管理
+- [ ] 06-01-PLAN.md — 实现商户订单管理、履约状态流转、工作台入口与客户订单状态文案对齐
+- [ ] 06-02-PLAN.md — 实现独立品类集合、商品 CRUD 与三步商品编辑流
+- [ ] 06-03-PLAN.md — 实现用户搜索、余额调整、运行时配置分区保存与前台消费链路
 
 ## Progress
 
@@ -136,8 +139,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Cloud Boundary | 0/3 | Not started | - |
-| 2. Catalog and Product Discovery | 0/3 | Not started | - |
+| 1. Foundation and Cloud Boundary | 9/9 | Complete | 2026-04-16 |
+| 2. Catalog and Product Discovery | 3/5 | Gap fixes planned | - |
 | 3. Cart State and Product Selection | 0/3 | Not started | - |
 | 4. Account, Pets and Address Context | 0/3 | Not started | - |
 | 5. Checkout, Payment and Orders | 0/3 | Not started | - |
