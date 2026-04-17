@@ -2,8 +2,8 @@
 phase: 6
 slug: merchant-operations-and-runtime-config
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-17
 ---
 
@@ -18,19 +18,19 @@ created: 2026-04-17
 | Property | Value |
 |----------|-------|
 | **Framework** | Vitest 3.1.2 |
-| **Config file** | `apps/customer-miniapp/vitest.config.ts`, `apps/cloud-functions/vitest.config.ts`, `packages/shared/vitest.config.ts`, `none — Wave 0 installs for merchant-miniapp` |
-| **Quick run command** | `pnpm --filter @xiaipet/cloud-functions test` |
+| **Config file** | `apps/customer-miniapp/vitest.config.ts`, `apps/cloud-functions/vitest.config.ts`, `packages/shared/vitest.config.ts`, `apps/merchant-miniapp/vitest.config.ts` |
+| **Quick run command** | Use the narrowest plan-local command from the verification map below |
 | **Full suite command** | `pnpm test` |
-| **Estimated runtime** | ~45 seconds |
+| **Estimated runtime** | ~20-25 seconds for a plan-local verify |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `pnpm --filter @xiaipet/shared test` or `pnpm --filter @xiaipet/cloud-functions test`, whichever package changed
+- **After every task commit:** Run the exact plan-local command from the verification map, not the whole package suite.
 - **After every plan wave:** Run `pnpm test`
 - **Before `$gsd-verify-work`:** Full suite must be green, plus manual merchant-miniapp verification in WeChat DevTools
-- **Max feedback latency:** 60 seconds
+- **Max feedback latency:** 25 seconds
 
 ---
 
@@ -38,14 +38,24 @@ created: 2026-04-17
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 06-01-01 | 01 | 1 | MORD-01 | T-06-01 | Merchant order query stays behind Cloud Functions and returns grouped merchant-safe order view | integration | `pnpm --filter @xiaipet/cloud-functions test` | ❌ W0 | ⬜ pending |
-| 06-01-02 | 01 | 1 | MORD-02 | T-06-02 | Fulfillment transitions enforce terminal locks and append audit timeline entries | integration | `pnpm --filter @xiaipet/cloud-functions test` | ❌ W0 | ⬜ pending |
-| 06-02-01 | 02 | 1 | MCAT-01 | T-06-03 | Category delete is blocked while products still reference the category | unit + integration | `pnpm --filter @xiaipet/cloud-functions test` | ❌ W0 | ⬜ pending |
-| 06-02-02 | 02 | 1 | MPRD-01 | T-06-04 | Product base info validates fields, assets, and fulfillment modes before persistence | unit + integration | `pnpm --filter @xiaipet/shared test` | ❌ W0 | ⬜ pending |
-| 06-02-03 | 02 | 1 | MPRD-02 | T-06-05 | Spec/formula pricing rules validate auto-sum and manual override paths | unit + integration | `pnpm --filter @xiaipet/shared test` | ❌ W0 | ⬜ pending |
-| 06-03-01 | 03 | 1 | MUSR-01 | T-06-06 | Merchant user search remains backend-only and only returns whitelisted fields | integration | `pnpm --filter @xiaipet/cloud-functions test` | ❌ W0 | ⬜ pending |
-| 06-03-02 | 03 | 1 | MUSR-02 | T-06-07 | Balance adjustment updates account and ledger atomically with operator metadata | integration | `pnpm --filter @xiaipet/cloud-functions test` | ❌ W0 | ⬜ pending |
-| 06-03-03 | 03 | 1 | OPS-01 | T-06-08 | Runtime config section saves are isolated, auditable, and storefront-consumable | integration + view-model | `pnpm --filter @xiaipet/shared test` | ❌ W0 | ⬜ pending |
+| 06-01-01 | 01 | 1 | MORD-01 / MORD-02 | T-06-01-01 | Shared fulfillment contract preserves payment semantics while adding audited manual settlement | unit | `pnpm --filter @xiaipet/shared test -- order-fulfillment` | ✅ | ⬜ pending |
+| 06-01-02 | 01 | 1 | MORD-01 | T-06-01-02 | Merchant harness and customer order labels share one status helper | unit | `pnpm --filter @xiaipet/merchant-miniapp test -- harness-smoke && pnpm --filter @xiaipet/customer-miniapp test -- orders` | ✅ | ⬜ pending |
+| 06-02-01 | 02 | 1 | MCAT-01 | T-06-02-01 | Category schema requires name + icon token and delete-preflight metadata | unit | `pnpm --filter @xiaipet/shared test -- catalog-admin` | ✅ | ⬜ pending |
+| 06-02-02 | 02 | 1 | MPRD-01 / MPRD-02 | T-06-02-02 | Product pricing helper enforces auto-sum and override rules | unit | `pnpm --filter @xiaipet/shared test -- product-pricing` | ✅ | ⬜ pending |
+| 06-03-01 | 03 | 1 | MUSR-01 / MUSR-02 | T-06-03-01 | User-admin schema enforces audited balance payloads and non-negative outcomes | unit | `pnpm --filter @xiaipet/shared test -- user-admin` | ✅ | ⬜ pending |
+| 06-03-02 | 03 | 1 | OPS-01 | T-06-03-02 | Runtime config schema locks fixed-key sections and delivery tiers | unit | `pnpm --filter @xiaipet/shared test -- runtime-config` | ✅ | ⬜ pending |
+| 06-04-01 | 04 | 2 | MORD-01 | T-06-04-01 | Merchant order list/detail remain backend-only and grouped by fulfillment progress | integration | `pnpm --filter @xiaipet/cloud-functions test -- queryMerchantOrders getMerchantOrderDetail` | ✅ | ⬜ pending |
+| 06-04-02 | 04 | 2 | MORD-02 | T-06-04-02 | Status mutation enforces transition rules and terminal locks | integration | `pnpm --filter @xiaipet/cloud-functions test -- updateMerchantOrderStatus` | ✅ | ⬜ pending |
+| 06-05-01 | 05 | 2 | MCAT-01 | T-06-05-01 | Category CRUD persists icon token and blocks delete with linked products | integration | `pnpm --filter @xiaipet/cloud-functions test -- queryCategories upsertCategory` | ✅ | ⬜ pending |
+| 06-05-02 | 05 | 2 | MPRD-01 / MPRD-02 | T-06-05-02 | Product CRUD validates base info, pricing, and publish settings | integration | `pnpm --filter @xiaipet/cloud-functions test -- queryProducts upsertProduct` | ✅ | ⬜ pending |
+| 06-06-01 | 06 | 2 | MUSR-01 / MUSR-02 | T-06-06-01 | User search and balance adjustment stay backend-only and ledger-safe | integration | `pnpm --filter @xiaipet/cloud-functions test -- searchMerchantUsers adjustUserBalance` | ✅ | ⬜ pending |
+| 06-06-02 | 06 | 2 | OPS-01 | T-06-06-03 | Runtime config reads and section saves remain fixed-key and fileID-safe | integration | `pnpm --filter @xiaipet/cloud-functions test -- getRuntimeConfigSections upsertRuntimeConfigSection` | ✅ | ⬜ pending |
+| 06-07-01 | 07 | 3 | MORD-01 / MORD-02 | T-06-07-01 | Merchant order pages consume Cloud Function data and shared status labels | view-model + page | `pnpm --filter @xiaipet/merchant-miniapp test -- merchant-orders` | ✅ | ⬜ pending |
+| 06-08-01 | 08 | 3 | MCAT-01 / MPRD-01 / MPRD-02 | T-06-08-01 | Category/product merchant UI keeps icon token and three-step editor rules visible | view-model + page | `pnpm --filter @xiaipet/merchant-miniapp test -- catalog-admin` | ✅ | ⬜ pending |
+| 06-09-01 | 09 | 3 | MUSR-01 / MUSR-02 | T-06-09-01 | Merchant user pages keep search lightweight and adjustment flow confirmed | view-model + page | `pnpm --filter @xiaipet/merchant-miniapp test -- user-admin` | ✅ | ⬜ pending |
+| 06-10-01 | 10 | 3 | OPS-01 | T-06-10-01 | Merchant runtime-config page keeps section saves isolated | view-model + page | `pnpm --filter @xiaipet/merchant-miniapp test -- runtime-config-admin` | ✅ | ⬜ pending |
+| 06-10-02 | 10 | 3 | OPS-01 | T-06-10-02 | Customer home/checkout consume saved runtime config | integration + view-model | `pnpm --filter @xiaipet/customer-miniapp test -- runtime-config cart-checkout` | ✅ | ⬜ pending |
+| 06-11-01 | 11 | 4 | MORD-01 / MCAT-01 / MUSR-01 / OPS-01 | T-06-11-01 | Merchant workspace and registration shell expose all Phase 06 modules | page + config | `pnpm --filter @xiaipet/merchant-miniapp test -- workspace` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -53,16 +63,10 @@ created: 2026-04-17
 
 ## Wave 0 Requirements
 
-- [ ] `apps/merchant-miniapp/vitest.config.ts` — merchant view-model/page test harness
-- [ ] `apps/cloud-functions/src/queryMerchantOrders/index.test.ts` — MORD-01 coverage
-- [ ] `apps/cloud-functions/src/updateMerchantOrderStatus/index.test.ts` — MORD-02 coverage
-- [ ] `apps/cloud-functions/src/queryCategories/index.test.ts` and `upsertCategory/index.test.ts` — MCAT-01 coverage
-- [ ] `apps/cloud-functions/src/queryProducts/index.test.ts` and `upsertProduct/index.test.ts` — MPRD-01 / MPRD-02 coverage
-- [ ] `apps/cloud-functions/src/searchMerchantUsers/index.test.ts` — MUSR-01 coverage
-- [ ] `apps/cloud-functions/src/adjustUserBalance/index.test.ts` — MUSR-02 coverage
-- [ ] `apps/cloud-functions/src/getRuntimeConfigSections/index.test.ts` and `upsertRuntimeConfigSection/index.test.ts` — OPS-01 coverage
-- [ ] `packages/shared/src/schema/merchant-order.test.ts`, `product-admin.test.ts`, `runtime-config-section.test.ts` — new shared contract coverage
-- [ ] `apps/customer-miniapp/src/services/orders.test.ts` extension — customer-facing labels reflect merchant fulfillment state
+- [x] `apps/merchant-miniapp/vitest.config.ts` planned in 06-01 so later merchant UI plans have a real targeted runner
+- [x] Shared contract coverage is split into focused suites: `order-fulfillment`, `catalog-admin`, `product-pricing`, `user-admin`, `runtime-config`
+- [x] Cloud-function coverage is created in the same plans that modify those handlers, so no plan relies on a later green-status task
+- [x] Customer parity/runtime wiring tests are attached to the plans that change those surfaces
 
 ---
 
@@ -78,11 +82,11 @@ created: 2026-04-17
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all required test harness/setup work
+- [x] No watch-mode flags
+- [x] Feedback latency <= 25 seconds for task-level verifies
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending

@@ -452,17 +452,17 @@ await db.collection('balance_accounts').doc(openid).update({
 
 All recommendations in this research are grounded in the current repo, locked decisions, or official documentation. No factual claim is intentionally left as `[ASSUMED]`. [VERIFIED: this document]
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **How should manual payment settlement be represented without corrupting checkout payment semantics?**
-   - What we know: Customer checkout only offers `wechat` and `balance`, but Phase 6 requires merchant-side manual “已支付/已处理” handling with method and reason audit. [VERIFIED: .planning/REQUIREMENTS.md][VERIFIED: .planning/phases/06-merchant-operations-and-runtime-config/06-CONTEXT.md][VERIFIED: packages/shared/src/types/order.ts]
-   - What's unclear: Whether reports should keep the original customer-selected `paymentMethod` untouched and store merchant override data separately, or whether a new settlement enum should be first-class. [VERIFIED: packages/shared/src/types/order.ts]
-   - Recommendation: Keep `paymentMethod` as the original checkout intent and add a dedicated `manualSettlement` / `merchantOverride` subrecord with method, note, operator, and timestamp. [VERIFIED: packages/shared/src/types/order.ts][VERIFIED: .planning/phases/06-merchant-operations-and-runtime-config/06-CONTEXT.md]
+   - Resolved decision: Keep `paymentMethod` as the original checkout intent and add a dedicated `manualSettlement` / `merchantOverride` subrecord with method, note, operator, timestamp, and before/after state. [VERIFIED: packages/shared/src/types/order.ts][VERIFIED: .planning/phases/06-merchant-operations-and-runtime-config/06-CONTEXT.md]
+   - Why: Customer checkout only offers `wechat` and `balance`, while Phase 6 adds merchant-side manual “已支付/已处理” handling with audit. Overwriting the original checkout field would blur payment intent and merchant override history. [VERIFIED: .planning/REQUIREMENTS.md][VERIFIED: .planning/phases/05-checkout-payment-and-orders/05-04-SUMMARY.md]
+   - Planning implication: Order contracts, cloud functions, and merchant detail UI must carry the override subrecord separately and never repurpose the checkout payment field. [VERIFIED: .planning/phases/06-merchant-operations-and-runtime-config/06-CONTEXT.md]
 
 2. **Should category icon remain text-based in v1?**
-   - What we know: The existing customer catalog model uses `iconText`, while the requirement only says “icon”. [VERIFIED: apps/customer-miniapp/src/types/catalog.ts][VERIFIED: req/需求文档.md]
-   - What's unclear: Whether the merchant should upload image icons now or stay compatible with the current text/emoji-style customer category rail. [VERIFIED: apps/customer-miniapp/src/types/catalog.ts]
-   - Recommendation: Keep category icon as short text/emoji token in Phase 6 unless the planner explicitly adds a customer-side icon asset migration task. [VERIFIED: apps/customer-miniapp/src/types/catalog.ts]
+   - Resolved decision: Keep category icon as a short text/emoji token in Phase 6 unless the planner explicitly adds a customer-side icon asset migration task. [VERIFIED: apps/customer-miniapp/src/types/catalog.ts]
+   - Why: The existing customer catalog model already uses `iconText`, while Phase 6 scope does not include a customer asset migration. [VERIFIED: apps/customer-miniapp/src/types/catalog.ts][VERIFIED: req/需求文档.md]
+   - Planning implication: Shared contracts, collection schema, cloud functions, and merchant forms must explicitly model, validate, save, and edit an `iconToken` field to satisfy MCAT-01 end-to-end. [VERIFIED: .planning/REQUIREMENTS.md]
 
 ## Environment Availability
 
