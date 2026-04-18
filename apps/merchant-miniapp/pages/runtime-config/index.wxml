@@ -1,0 +1,63 @@
+<view class="page">
+  <view class="hero-card">
+    <text class="page-title">运营配置</text>
+    <text class="page-subtitle">一个入口页，五个分区，各自保存。</text>
+  </view>
+
+  <view class="loading-card" wx:if="{{loading}}">
+    <text class="page-title">正在加载运营配置</text>
+  </view>
+
+  <view wx:else>
+    <view class="section-card" wx:for="{{view.sections}}" wx:key="sectionId">
+      <view class="section-head">
+        <view>
+          <text class="section-title">{{item.title}}</text>
+          <text class="section-meta">{{item.updatedLabel}}</text>
+        </view>
+        <text class="dirty-badge" wx:if="{{item.dirtyLabel}}">{{item.dirtyLabel}}</text>
+      </view>
+
+      <view wx:if="{{item.sectionId === 'store-profile'}}">
+        <input class="field-input" data-field="address" value="{{item.storeFields.address}}" placeholder="店铺地址" bindinput="handleStoreInput" />
+        <input class="field-input" data-field="latitude" value="{{item.storeFields.latitude}}" placeholder="纬度" bindinput="handleStoreInput" />
+        <input class="field-input" data-field="longitude" value="{{item.storeFields.longitude}}" placeholder="经度" bindinput="handleStoreInput" />
+        <input class="field-input" data-field="contactPhone" value="{{item.storeFields.contactPhone}}" placeholder="联系电话" bindinput="handleStoreInput" />
+      </view>
+
+      <view wx:if="{{item.sectionId === 'delivery-rules'}}">
+        <view class="section-row">
+          <text class="section-meta">配送费说明</text>
+          <text class="link-copy" bindtap="handleOpenDeliveryNotice">说明弹层</text>
+        </view>
+        <view class="delivery-row" wx:for="{{item.deliveryRows}}" wx:key="explainer">
+          <text class="delivery-copy">{{row.explainer}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{item.sectionId === 'membership-tiers'}}">
+        <view class="tier-card" wx:for="{{item.membershipRows}}" wx:key="tierId">
+          <input class="field-input" data-index="{{index}}" data-field="threshold" value="{{row.threshold}}" placeholder="累计消费门槛" bindinput="handleMembershipInput" />
+          <input class="field-input" data-index="{{index}}" data-field="name" value="{{row.name}}" placeholder="等级名称" bindinput="handleMembershipInput" />
+          <input class="field-input" data-index="{{index}}" data-field="description" value="{{row.description}}" placeholder="等级说明" bindinput="handleMembershipInput" />
+        </view>
+        <button class="ghost-button" bindtap="handleAddTier">新增等级</button>
+      </view>
+
+      <view wx:if="{{item.sectionId === 'banner'}}">
+        <input class="field-input" data-field="fileId" value="{{item.bannerFields.fileId}}" placeholder="Banner fileId" bindinput="handleBannerInput" />
+        <input class="field-input" data-field="altText" value="{{item.bannerFields.altText}}" placeholder="Banner 文案" bindinput="handleBannerInput" />
+      </view>
+
+      <view wx:if="{{item.sectionId === 'custom-notice'}}">
+        <view class="section-row">
+          <text class="section-meta">启用状态</text>
+          <text class="link-copy" bindtap="handleNoticeToggle">{{item.customNoticeFields.enabled ? '已开启' : '已关闭'}}</text>
+        </view>
+        <textarea class="field-area" data-field="content" value="{{item.customNoticeFields.content}}" placeholder="定制提示" bindinput="handleNoticeInput"></textarea>
+      </view>
+
+      <button class="save-button" data-section-id="{{item.sectionId}}" bindtap="handleSaveSection">保存{{item.title}}</button>
+    </view>
+  </view>
+</view>

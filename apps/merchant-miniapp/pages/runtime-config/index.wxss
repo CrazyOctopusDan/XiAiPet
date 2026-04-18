@@ -1,0 +1,108 @@
+.page {
+  min-height: 100vh;
+  padding: 32rpx 24rpx 120rpx;
+  background: linear-gradient(180deg, #F6EFE4 0%, #FCFAF5 100%);
+  color: #1F2A33;
+}
+
+.hero-card,
+.loading-card,
+.section-card {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18rpx 40rpx rgba(46, 91, 115, 0.08);
+}
+
+.loading-card,
+.section-card {
+  margin-top: 24rpx;
+}
+
+.page-title,
+.page-subtitle,
+.section-title,
+.section-meta,
+.dirty-badge,
+.delivery-copy,
+.link-copy {
+  display: block;
+}
+
+.page-title,
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.page-subtitle,
+.section-meta,
+.delivery-copy {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #7E8B95;
+}
+
+.section-head,
+.section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dirty-badge {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(182, 70, 58, 0.1);
+  color: #B6463A;
+  font-size: 20rpx;
+}
+
+.field-input,
+.field-area {
+  width: 100%;
+  margin-top: 16rpx;
+  padding: 0 24rpx;
+  border-radius: 22rpx;
+  background: #F4F6F8;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.field-input {
+  min-height: 88rpx;
+}
+
+.field-area {
+  min-height: 160rpx;
+  padding-top: 20rpx;
+}
+
+.tier-card,
+.delivery-row {
+  margin-top: 18rpx;
+}
+
+.link-copy {
+  font-size: 24rpx;
+  color: #2E5B73;
+}
+
+.ghost-button,
+.save-button {
+  margin-top: 20rpx;
+  border: none;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.ghost-button {
+  background: #EEF2F5;
+  color: #4C5A65;
+}
+
+.save-button {
+  background: #2E5B73;
+  color: #FFFFFF;
+}
