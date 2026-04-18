@@ -1,0 +1,33 @@
+<view class="page">
+  <view class="hero-card">
+    <text class="page-title">商户工作台</text>
+    <text class="page-subtitle">把订单、品类、商品、用户和运营配置统一收在一个 2x2 管理入口里，先做日常运营最常用的四件事。</text>
+  </view>
+
+  <view class="workspace-grid">
+    <view class="workspace-card" wx:for="{{cards}}" wx:key="id">
+      <view class="card-accent" style="background: {{item.accent}};"></view>
+      <view class="card-head">
+        <view class="icon-badge">{{item.iconToken}}</view>
+        <view class="card-meta">
+          <text class="card-title">{{item.title}}</text>
+          <text class="card-badge">{{item.badge}}</text>
+        </view>
+      </view>
+      <text class="card-subtitle">{{item.subtitle}}</text>
+      <text class="card-description">{{item.description}}</text>
+
+      <view class="card-actions">
+        <button
+          wx:for="{{item.actions}}"
+          wx:key="url"
+          class="{{subItem.tone === 'primary' ? 'primary-button' : 'secondary-button'}}"
+          data-url="{{subItem.url}}"
+          bindtap="handleActionTap"
+        >
+          {{subItem.label}}
+        </button>
+      </view>
+    </view>
+  </view>
+</view>

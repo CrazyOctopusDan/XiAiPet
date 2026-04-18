@@ -1,0 +1,92 @@
+{
+  "functions": [
+    {
+      "name": "bootstrapUser",
+      "source": "src/bootstrapUser"
+    },
+    {
+      "name": "bindPhone",
+      "source": "src/bindPhone"
+    },
+    {
+      "name": "assertMerchantAccess",
+      "source": "src/assertMerchantAccess"
+    },
+    {
+      "name": "createOrder",
+      "source": "src/createOrder"
+    },
+    {
+      "name": "createPayment",
+      "source": "src/createPayment"
+    },
+    {
+      "name": "confirmPayment",
+      "source": "src/confirmPayment"
+    },
+    {
+      "name": "payOrder",
+      "source": "src/payOrder"
+    },
+    {
+      "name": "queryMyOrders",
+      "source": "src/queryMyOrders"
+    },
+    {
+      "name": "getMyOrderDetail",
+      "source": "src/getMyOrderDetail"
+    },
+    {
+      "name": "syncOrderPayment",
+      "source": "src/syncOrderPayment"
+    },
+    {
+      "name": "queryMerchantOrders",
+      "source": "src/queryMerchantOrders"
+    },
+    {
+      "name": "getMerchantOrderDetail",
+      "source": "src/getMerchantOrderDetail"
+    },
+    {
+      "name": "updateMerchantOrderStatus",
+      "source": "src/updateMerchantOrderStatus"
+    },
+    {
+      "name": "queryCategories",
+      "source": "src/queryCategories"
+    },
+    {
+      "name": "upsertCategory",
+      "source": "src/upsertCategory"
+    },
+    {
+      "name": "queryProducts",
+      "source": "src/queryProducts"
+    },
+    {
+      "name": "upsertProduct",
+      "source": "src/upsertProduct"
+    },
+    {
+      "name": "searchMerchantUsers",
+      "source": "src/searchMerchantUsers"
+    },
+    {
+      "name": "adjustUserBalance",
+      "source": "src/adjustUserBalance"
+    },
+    {
+      "name": "getRuntimeConfigSections",
+      "source": "src/getRuntimeConfigSections"
+    },
+    {
+      "name": "readRuntimeConfig",
+      "source": "src/readRuntimeConfig"
+    },
+    {
+      "name": "upsertRuntimeConfigSection",
+      "source": "src/upsertRuntimeConfigSection"
+    }
+  ]
+}

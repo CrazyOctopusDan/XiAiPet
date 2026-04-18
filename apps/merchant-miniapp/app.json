@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "pages/access-gate/index",
+    "pages/workspace/index",
+    "pages/orders/index",
+    "pages/order-detail/index",
+    "pages/categories/index",
+    "pages/products/index",
+    "pages/product-editor/index",
+    "pages/users/index",
+    "pages/user-detail/index",
+    "pages/runtime-config/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "虾衣宠商户端"
+  }
+}
