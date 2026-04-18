@@ -1,0 +1,114 @@
+.page {
+  min-height: 100vh;
+  padding: 32rpx 24rpx 120rpx;
+  background: linear-gradient(180deg, #F6EFE4 0%, #FCFAF5 100%);
+  color: #1F2A33;
+}
+
+.hero-card,
+.toolbar-card,
+.user-card,
+.empty-card {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18rpx 40rpx rgba(46, 91, 115, 0.08);
+}
+
+.page-title,
+.page-subtitle,
+.user-name,
+.user-copy,
+.user-balance {
+  display: block;
+}
+
+.page-title,
+.user-name {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.page-subtitle,
+.user-copy {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #7E8B95;
+}
+
+.toolbar-card,
+.card-list,
+.empty-card {
+  margin-top: 24rpx;
+}
+
+.pill-row {
+  display: flex;
+  gap: 14rpx;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 14rpx 22rpx;
+  border-radius: 999rpx;
+  background: #EEF2F5;
+  color: #5D6B75;
+  font-size: 24rpx;
+}
+
+.pill.active {
+  background: rgba(46, 91, 115, 0.14);
+  color: #2E5B73;
+  font-weight: 600;
+}
+
+.field-input {
+  width: 100%;
+  min-height: 88rpx;
+  margin-top: 18rpx;
+  padding: 0 24rpx;
+  border-radius: 22rpx;
+  background: #F4F6F8;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.search-button {
+  margin-top: 18rpx;
+  border: none;
+  border-radius: 999rpx;
+  background: #2E5B73;
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.user-card {
+  display: flex;
+  gap: 18rpx;
+  align-items: center;
+}
+
+.avatar {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 56rpx;
+  background: #EEF2F5;
+}
+
+.user-body {
+  flex: 1;
+}
+
+.user-balance {
+  margin-top: 12rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #2E5B73;
+}

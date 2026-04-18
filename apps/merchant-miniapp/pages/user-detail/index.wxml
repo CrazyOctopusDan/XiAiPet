@@ -1,0 +1,60 @@
+<view class="page">
+  <view class="empty-card" wx:if="{{!detail}}">
+    <text class="page-title">未找到用户</text>
+  </view>
+
+  <view wx:else>
+    <view class="hero-card">
+      <view class="hero-head">
+        <image class="avatar" src="{{detail.avatarUrl}}" mode="aspectFill"></image>
+        <view class="hero-copy">
+          <text class="page-title">{{detail.nickname}}</text>
+          <text class="page-subtitle">{{detail.contactPhoneMasked}}</text>
+          <text class="page-subtitle">{{detail.membershipTierLabel}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="balance-card">
+      <text class="balance-label">当前余额</text>
+      <text class="balance-value">{{detail.currentBalanceLabel}}</text>
+      <text class="page-subtitle">会员等级 {{detail.membershipTierLabel}}</text>
+    </view>
+
+    <view class="history-card">
+      <text class="section-title">最近操作</text>
+      <text class="history-title">{{detail.latestOperationTitle}}</text>
+      <text class="page-subtitle">{{detail.latestOperationNote}}</text>
+      <text class="page-subtitle">{{detail.latestOperationMeta}}</text>
+    </view>
+  </view>
+
+  <view class="action-bar" wx:if="{{detail}}">
+    <button class="action-button" bindtap="handleOpenDrawer">调整余额</button>
+  </view>
+
+  <view class="drawer-mask" wx:if="{{drawerOpen}}" bindtap="handleCloseDrawer"></view>
+  <view class="drawer" wx:if="{{drawerOpen}}">
+    <text class="section-title">确认余额调整</text>
+    <view class="pill-row">
+      <view class="pill {{action === 'add' ? 'active' : ''}}" data-action="add" bindtap="handleActionTap">增加余额</view>
+      <view class="pill {{action === 'deduct' ? 'active' : ''}}" data-action="deduct" bindtap="handleActionTap">扣减余额</view>
+      <view class="pill {{action === 'set' ? 'active' : ''}}" data-action="set" bindtap="handleActionTap">改为指定余额</view>
+    </view>
+
+    <input class="field-input" type="number" placeholder="{{action === 'set' ? '目标余额' : '调整金额'}}" value="{{amountText}}" bindinput="handleAmountInput" />
+
+    <view class="pill-row">
+      <view class="pill {{reasonType === '充值' ? 'active' : ''}}" data-reason="充值" bindtap="handleReasonTap">充值</view>
+      <view class="pill {{reasonType === '补偿' ? 'active' : ''}}" data-reason="补偿" bindtap="handleReasonTap">补偿</view>
+      <view class="pill {{reasonType === '人工纠错' ? 'active' : ''}}" data-reason="人工纠错" bindtap="handleReasonTap">人工纠错</view>
+      <view class="pill {{reasonType === '线下收款' ? 'active' : ''}}" data-reason="线下收款" bindtap="handleReasonTap">线下收款</view>
+      <view class="pill {{reasonType === '其他' ? 'active' : ''}}" data-reason="其他" bindtap="handleReasonTap">其他</view>
+    </view>
+
+    <textarea class="field-area" placeholder="备注" value="{{note}}" bindinput="handleNoteInput"></textarea>
+    <text class="page-subtitle" wx:if="{{action === 'deduct' || action === 'set'}}">调整后余额 {{resultingBalanceLabel}}</text>
+    <text class="error-copy" wx:if="{{disableSubmitReason}}">{{disableSubmitReason}}</text>
+    <button class="action-button" loading="{{submitting}}" disabled="{{!!disableSubmitReason}}" bindtap="handleConfirmAdjust">确认余额调整</button>
+  </view>
+</view>
