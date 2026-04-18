@@ -1,0 +1,249 @@
+.orders-page {
+  min-height: 100vh;
+  padding: 32rpx 24rpx 48rpx;
+  background: linear-gradient(180deg, #F6EFE4 0%, #FCFAF5 100%);
+  color: #1F2A33;
+}
+
+.hero-card,
+.toolbar-card,
+.group-card,
+.empty-card,
+.loading-card {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18rpx 40rpx rgba(46, 91, 115, 0.08);
+}
+
+.hero-card {
+  border: 2rpx solid rgba(46, 91, 115, 0.12);
+}
+
+.page-title,
+.page-subtitle,
+.group-title,
+.group-count,
+.order-status,
+.payment-badge,
+.order-time,
+.order-id,
+.order-summary,
+.meta-label,
+.meta-value,
+.order-total,
+.order-link,
+.empty-title,
+.empty-body,
+.loading-title,
+.loading-body,
+.clear-link {
+  display: block;
+}
+
+.page-title {
+  font-size: 46rpx;
+  font-weight: 700;
+}
+
+.page-subtitle {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #60707C;
+}
+
+.toolbar-card,
+.group-list,
+.group-card {
+  margin-top: 24rpx;
+}
+
+.search-row,
+.filter-row,
+.group-head,
+.order-head,
+.meta-row,
+.order-foot,
+.order-status-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.search-row,
+.group-card {
+  flex-direction: column;
+}
+
+.search-row {
+  gap: 16rpx;
+}
+
+.search-input {
+  width: 100%;
+  min-height: 88rpx;
+  padding: 0 24rpx;
+  border-radius: 22rpx;
+  background: #F4F6F8;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.search-button {
+  width: 100%;
+  border: none;
+  border-radius: 999rpx;
+  background: #2E5B73;
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.filter-row {
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.filter-pill {
+  padding: 14rpx 22rpx;
+  border-radius: 999rpx;
+  background: #EEF2F5;
+  color: #5D6B75;
+  font-size: 24rpx;
+}
+
+.filter-pill.active {
+  background: rgba(46, 91, 115, 0.14);
+  color: #2E5B73;
+  font-weight: 600;
+}
+
+.clear-link {
+  margin-left: auto;
+  font-size: 24rpx;
+  color: #8A5A38;
+}
+
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.group-card {
+  gap: 20rpx;
+}
+
+.group-head,
+.meta-row,
+.order-foot {
+  justify-content: space-between;
+}
+
+.group-title {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.group-count {
+  font-size: 22rpx;
+  color: #8A96A0;
+}
+
+.order-card {
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #F9FBFC;
+  border: 2rpx solid rgba(46, 91, 115, 0.08);
+}
+
+.order-card + .order-card {
+  margin-top: 16rpx;
+}
+
+.order-status-wrap {
+  gap: 12rpx;
+}
+
+.order-status {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(230, 197, 107, 0.28);
+  color: #725625;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.payment-badge {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(182, 70, 58, 0.1);
+  color: #B6463A;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.order-time,
+.meta-label,
+.empty-body,
+.loading-body {
+  font-size: 22rpx;
+  color: #7E8B95;
+}
+
+.order-id {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #58656F;
+}
+
+.order-summary {
+  margin-top: 14rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.meta-row {
+  gap: 16rpx;
+  margin-top: 14rpx;
+}
+
+.meta-value {
+  flex: 1;
+  text-align: right;
+  font-size: 24rpx;
+  color: #31414D;
+}
+
+.order-foot {
+  margin-top: 18rpx;
+}
+
+.order-total {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.order-link {
+  font-size: 24rpx;
+  color: #2E5B73;
+}
+
+.empty-card,
+.loading-card {
+  margin-top: 24rpx;
+  text-align: center;
+}
+
+.empty-title,
+.loading-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.empty-body,
+.loading-body {
+  margin-top: 14rpx;
+  line-height: 1.6;
+}

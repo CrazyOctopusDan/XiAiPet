@@ -1,0 +1,278 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import type { OrderFulfillmentStatus, OrderRecord } from '@xiaipet/shared';
+
+import {
+  getMerchantOrderDetailViewModel,
+  getMerchantOrdersPageViewModel,
+  queryMerchantOrders,
+  updateMerchantOrderStatus
+} from './orders';
+
+type MerchantTimelineEntry = {
+  type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled';
+  label: string;
+  at: string;
+  detail?: string;
+  operator?: {
+    id: string;
+    name: string;
+  };
+  fromStatus?: string;
+  toStatus?: string;
+};
+
+function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
+  return {
+    id: 'order-001',
+    openid: 'customer-openid',
+    status: 'paid',
+    paymentMethod: 'wechat',
+    payment: {
+      method: 'wechat',
+      status: 'paid'
+    },
+    fulfillmentState: {
+      mode: 'delivery',
+      status: 'pending',
+      updatedAt: '2026-04-18T10:00:00.000Z'
+    },
+    pricing: {
+      itemsSubtotal: 98,
+      deliveryFee: 10,
+      payableTotal: 108
+    },
+    snapshot: {
+      fulfillment: {
+        mode: 'delivery',
+        address: {
+          id: 'address-001',
+          recipientName: '虾衣妈妈',
+          phoneNumber: '13800001234',
+          regionLabel: '上海市 静安区',
+          detailAddress: '南京西路 1266 号 8 楼',
+          tag: '家'
+        },
+        reservation: {
+          dateValue: '2026-04-18',
+          dateLabel: '今天 04-18',
+          timeValue: '18:00',
+          timeLabel: '18:00'
+        },
+        store: {
+          name: '虾衣宠物烘焙工作室',
+          address: '上海市静安区南京西路 1266 号 8 楼'
+        }
+      },
+      items: [
+        {
+          productId: 'cake-001',
+          name: '海洋派对蛋糕',
+          quantity: 2,
+          unitPrice: 49,
+          specId: 'spec-4inch',
+          specLabel: '4 寸',
+          lineTotal: 98
+        }
+      ],
+      pets: [
+        {
+          id: 'pet-001',
+          name: '奶油'
+        }
+      ],
+      remark: '请提前 10 分钟联系'
+    },
+    createdAt: '2026-04-18T09:30:00.000Z',
+    updatedAt: '2026-04-18T10:00:00.000Z',
+    ...overrides
+  };
+}
+
+function createQueryGroup(status: OrderRecord['status'], fulfillmentStatus?: OrderFulfillmentStatus) {
+  return {
+    groupLabel: '待处理',
+    orders: [
+      createOrder({
+        id: `order-${status}`,
+        status,
+        payment:
+          status === 'paid'
+            ? {
+                method: 'wechat',
+                status: 'paid'
+              }
+            : {
+                method: 'wechat',
+                status: 'pending'
+              },
+        fulfillmentState: fulfillmentStatus
+          ? {
+              mode: 'delivery',
+              status: fulfillmentStatus,
+              updatedAt: '2026-04-18T10:00:00.000Z'
+            }
+          : undefined,
+        updatedAt: status === 'paid' ? '2026-04-18T10:00:00.000Z' : '2026-04-18T10:30:00.000Z'
+      })
+    ]
+  };
+}
+
+describe('merchant orders service', () => {
+  it('queries merchant order groups from the cloud function surface', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        ok: true,
+        groups: [createQueryGroup('paid', 'pending')]
+      }
+    });
+
+    const groups = await queryMerchantOrders(callFunction);
+
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'queryMerchantOrders',
+      data: {}
+    });
+    expect(groups).toHaveLength(1);
+  });
+
+  it('maps unpaid merchant orders into fulfillment-progress groups with a pending-payment badge', () => {
+    const view = getMerchantOrdersPageViewModel([
+      {
+        groupLabel: '待付款',
+        orders: [
+          createOrder({
+            id: 'order-unpaid',
+            status: 'pending_payment',
+            payment: {
+              method: 'wechat',
+              status: 'pending'
+            },
+            fulfillmentState: undefined,
+            updatedAt: '2026-04-18T10:30:00.000Z'
+          })
+        ]
+      },
+      {
+        groupLabel: '待处理',
+        orders: [
+          createOrder({
+            id: 'order-paid',
+            updatedAt: '2026-04-18T10:00:00.000Z'
+          })
+        ]
+      }
+    ]);
+
+    expect(view.isEmpty).toBe(false);
+    expect(view.groups).toHaveLength(1);
+    expect(view.groups[0]).toMatchObject({
+      groupLabel: '待处理',
+      countLabel: '2 单'
+    });
+    expect(view.groups[0].orders[0]).toMatchObject({
+      id: 'order-unpaid',
+      statusLabel: '待处理',
+      secondaryBadgeLabel: '待支付'
+    });
+    expect(view.groups[0].orders[1]).toMatchObject({
+      id: 'order-paid',
+      statusLabel: '待处理',
+      secondaryBadgeLabel: null
+    });
+  });
+
+  it('builds a detail view model with audit summary and mutable status options', () => {
+    const detail = getMerchantOrderDetailViewModel({
+      order: createOrder({
+        id: 'order-unpaid',
+        status: 'pending_payment',
+        payment: {
+          method: 'wechat',
+          status: 'pending'
+        },
+        fulfillmentState: undefined
+      }),
+      timeline: [
+        {
+          type: 'created',
+          label: '订单创建',
+          at: '2026-04-18T09:30:00.000Z'
+        }
+      ] satisfies MerchantTimelineEntry[]
+    });
+
+    expect(detail).toMatchObject({
+      id: 'order-unpaid',
+      statusLabel: '待处理',
+      paymentBadgeLabel: '待支付',
+      actionLabel: '标记已支付/已处理',
+      canUpdateStatus: true
+    });
+    expect(detail?.auditSummary).toMatchObject({
+      latestActionLabel: '订单创建'
+    });
+    expect(detail?.statusOptions.map((item) => item.label)).toEqual(['待处理', '制作中', '配送中', '已完成', '已取消']);
+  });
+
+  it('submits a merchant status update with operator identity and manual settlement metadata', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        ok: true,
+        order: createOrder({
+          status: 'paid',
+          fulfillmentState: {
+            mode: 'delivery',
+            status: 'in_production',
+            updatedAt: '2026-04-18T11:00:00.000Z'
+          }
+        })
+      }
+    });
+    const verifyAccess = vi.fn().mockResolvedValue({
+      result: {
+        ok: true,
+        allowed: true,
+        merchant: {
+          merchantId: 'merchant-001',
+          storeName: '虾衣宠物烘焙工作室'
+        }
+      }
+    });
+
+    await updateMerchantOrderStatus(
+      {
+        order: createOrder({
+          id: 'order-unpaid',
+          status: 'pending_payment',
+          payment: {
+            method: 'wechat',
+            status: 'pending'
+          },
+          fulfillmentState: undefined
+        }),
+        nextStatus: 'in_production',
+        adjustmentMethod: 'manual_override',
+        reasonNote: '线下已收款，继续制作'
+      },
+      callFunction,
+      verifyAccess
+    );
+
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'updateMerchantOrderStatus',
+      data: {
+        orderId: 'order-unpaid',
+        nextOrderStatus: 'paid',
+        nextFulfillmentStatus: 'in_production',
+        adjustmentMethod: 'manual_override',
+        reasonNote: '线下已收款，继续制作',
+        operator: {
+          id: 'merchant-001',
+          name: '虾衣宠物烘焙工作室'
+        }
+      }
+    });
+  });
+});

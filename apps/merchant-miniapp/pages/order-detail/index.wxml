@@ -1,0 +1,186 @@
+<view class="detail-page">
+  <view class="hero-card" wx:if="{{!loading && !isEmpty}}">
+    <view class="hero-head">
+      <view>
+        <text class="page-title">订单详情</text>
+        <text class="page-subtitle">{{detail.orderIdLabel}}</text>
+      </view>
+      <view class="status-wrap">
+        <text class="status-pill">{{detail.statusLabel}}</text>
+        <text class="payment-badge" wx:if="{{detail.paymentBadgeLabel}}">{{detail.paymentBadgeLabel}}</text>
+      </view>
+    </view>
+    <view class="meta-row">
+      <text class="meta-label">履约方式</text>
+      <text class="meta-value">{{detail.fulfillmentLabel}}</text>
+    </view>
+    <view class="meta-row">
+      <text class="meta-label">预约时间</text>
+      <text class="meta-value">{{detail.scheduleLabel}}</text>
+    </view>
+    <view class="meta-row">
+      <text class="meta-label">支付方式</text>
+      <text class="meta-value">{{detail.paymentMethodLabel}}</text>
+    </view>
+  </view>
+
+  <view class="empty-card" wx:if="{{isEmpty && !loading}}">
+    <text class="empty-title">订单不存在</text>
+    <text class="empty-body">请返回订单列表重新选择。</text>
+  </view>
+
+  <view class="loading-card" wx:elif="{{loading}}">
+    <text class="loading-title">正在加载订单详情</text>
+    <text class="loading-body">稍后会展示状态、审计和时间线。</text>
+  </view>
+
+  <view wx:else>
+    <view class="content-card">
+      <text class="section-title">履约信息</text>
+      <view class="meta-row">
+        <text class="meta-label">用户</text>
+        <text class="meta-value">{{detail.customerLabel}}</text>
+      </view>
+      <view class="meta-row">
+        <text class="meta-label">联系信息</text>
+        <text class="meta-value">{{detail.contactLabel}}</text>
+      </view>
+      <view class="meta-row">
+        <text class="meta-label">履约地址</text>
+        <text class="meta-value">{{detail.addressLabel}}</text>
+      </view>
+    </view>
+
+    <view class="content-card">
+      <text class="section-title">审计摘要</text>
+      <view class="meta-row">
+        <text class="meta-label">最近操作</text>
+        <text class="meta-value">{{detail.auditSummary.latestActionLabel}}</text>
+      </view>
+      <view class="meta-row">
+        <text class="meta-label">操作人</text>
+        <text class="meta-value">{{detail.auditSummary.latestOperatorLabel}}</text>
+      </view>
+      <view class="meta-row">
+        <text class="meta-label">时间</text>
+        <text class="meta-value">{{detail.auditSummary.latestAtLabel}}</text>
+      </view>
+      <view class="meta-row">
+        <text class="meta-label">备注</text>
+        <text class="meta-value">{{detail.auditSummary.latestNoteLabel}}</text>
+      </view>
+    </view>
+
+    <view class="content-card">
+      <text class="section-title">时间线</text>
+      <view class="timeline-item" wx:for="{{detail.timeline}}" wx:key="atLabel">
+        <view class="timeline-dot"></view>
+        <view class="timeline-content">
+          <view class="timeline-head">
+            <text class="timeline-label">{{item.label}}</text>
+            <text class="timeline-time">{{item.atLabel}}</text>
+          </view>
+          <text class="timeline-meta">{{item.operatorLabel}}</text>
+          <text class="timeline-meta">{{item.transitionLabel}}</text>
+          <text class="timeline-note">{{item.detailLabel}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="content-card">
+      <text class="section-title">商品清单</text>
+      <view class="product-row" wx:for="{{detail.items}}" wx:key="name">
+        <view>
+          <text class="product-name">{{item.name}}</text>
+          <text class="product-meta">{{item.specLabel}} {{item.quantityLabel}}</text>
+        </view>
+        <text class="product-total">{{item.lineTotalLabel}}</text>
+      </view>
+    </view>
+
+    <view class="content-card">
+      <text class="section-title">金额汇总</text>
+      <view class="meta-row">
+        <text class="meta-label">商品小计</text>
+        <text class="meta-value">{{detail.itemsSubtotalLabel}}</text>
+      </view>
+      <view class="meta-row">
+        <text class="meta-label">配送费</text>
+        <text class="meta-value">{{detail.deliveryFeeLabel}}</text>
+      </view>
+      <view class="meta-row total-row">
+        <text class="meta-label">实付金额</text>
+        <text class="total-value">{{detail.payableTotalLabel}}</text>
+      </view>
+    </view>
+
+    <view class="content-card">
+      <text class="section-title">订单备注</text>
+      <text class="remark-copy">{{detail.remark}}</text>
+    </view>
+  </view>
+
+  <view class="action-bar" wx:if="{{detail && detail.canUpdateStatus}}">
+    <button class="action-button" bindtap="handleOpenStatusDrawer">{{detail.actionLabel}}</button>
+  </view>
+
+  <view class="drawer-mask" wx:if="{{isDrawerOpen}}" bindtap="handleCloseStatusDrawer"></view>
+  <view class="drawer" wx:if="{{isDrawerOpen}}">
+    <text class="drawer-title">更新订单状态</text>
+    <text class="drawer-subtitle">在提交前确认下一状态，并检查审计摘要。</text>
+
+    <view class="drawer-section">
+      <text class="drawer-label">下一状态</text>
+      <view class="option-list">
+        <view
+          class="option-pill {{selectedStatusValue === item.value ? 'active' : ''}}"
+          wx:for="{{detail.statusOptions}}"
+          wx:key="value"
+          data-value="{{item.value}}"
+          bindtap="handleStatusOptionTap"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <view class="drawer-section" wx:if="{{detail.requiresManualSettlement}}">
+      <text class="drawer-label">调整方式</text>
+      <view class="option-list">
+        <view
+          class="option-pill {{adjustmentMethod === item.value ? 'active' : ''}}"
+          wx:for="{{adjustmentMethods}}"
+          wx:key="value"
+          data-value="{{item.value}}"
+          bindtap="handleAdjustmentMethodTap"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <view class="drawer-section" wx:if="{{detail.requiresManualSettlement}}">
+      <text class="drawer-label">原因备注</text>
+      <textarea
+        class="reason-input"
+        maxlength="100"
+        placeholder="填写人工收款或兜底原因"
+        value="{{reasonNote}}"
+        bindinput="handleReasonInput"
+      ></textarea>
+    </view>
+
+    <view class="drawer-section audit-card">
+      <text class="drawer-label">审计</text>
+      <text class="audit-copy">最近操作：{{detail.auditSummary.latestActionLabel}}</text>
+      <text class="audit-copy">操作人：{{detail.auditSummary.latestOperatorLabel}}</text>
+      <text class="audit-copy">时间：{{detail.auditSummary.latestAtLabel}}</text>
+      <text class="audit-copy">备注：{{detail.auditSummary.latestNoteLabel}}</text>
+    </view>
+
+    <view class="drawer-actions">
+      <button class="secondary-button" bindtap="handleCloseStatusDrawer">取消</button>
+      <button class="primary-button" loading="{{submitting}}" bindtap="handleSubmitStatus">确认提交</button>
+    </view>
+  </view>
+</view>

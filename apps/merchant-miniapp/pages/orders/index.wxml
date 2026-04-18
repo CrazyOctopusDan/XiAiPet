@@ -1,0 +1,81 @@
+<view class="orders-page">
+  <view class="hero-card">
+    <text class="page-title">订单管理</text>
+    <text class="page-subtitle">按履约进度查看订单，未支付订单会保留待支付次级标识。</text>
+  </view>
+
+  <view class="toolbar-card">
+    <view class="search-row">
+      <input
+        class="search-input"
+        placeholder="搜索订单号、用户、商品"
+        value="{{draftKeyword}}"
+        bindinput="handleKeywordInput"
+        confirm-type="search"
+        bindconfirm="handleKeywordConfirm"
+      />
+      <button class="search-button" bindtap="handleKeywordConfirm">搜索</button>
+    </view>
+    <view class="filter-row">
+      <view
+        class="filter-pill {{activeMode === item.value ? 'active' : ''}}"
+        wx:for="{{filters}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="handleFilterTap"
+      >
+        {{item.label}}
+      </view>
+      <text class="clear-link" wx:if="{{keyword}}" bindtap="handleClearSearch">清空</text>
+    </view>
+  </view>
+
+  <view class="empty-card" wx:if="{{isEmpty && !loading}}">
+    <text class="empty-title">{{emptyTitle}}</text>
+    <text class="empty-body">{{emptyBody}}</text>
+  </view>
+
+  <view class="group-list" wx:elif="{{!loading}}">
+    <view class="group-card" wx:for="{{groups}}" wx:key="groupLabel">
+      <view class="group-head">
+        <text class="group-title">{{item.groupLabel}}</text>
+        <text class="group-count">{{item.countLabel}}</text>
+      </view>
+
+      <view
+        class="order-card"
+        wx:for="{{item.orders}}"
+        wx:key="id"
+        data-order-id="{{item.id}}"
+        bindtap="handleOrderTap"
+      >
+        <view class="order-head">
+          <view class="order-status-wrap">
+            <text class="order-status">{{item.statusLabel}}</text>
+            <text class="payment-badge" wx:if="{{item.secondaryBadgeLabel}}">{{item.secondaryBadgeLabel}}</text>
+          </view>
+          <text class="order-time">{{item.updatedAtLabel}}</text>
+        </view>
+        <text class="order-id">{{item.orderIdLabel}}</text>
+        <text class="order-summary">{{item.itemSummary}}</text>
+        <view class="meta-row">
+          <text class="meta-label">用户 / 预约</text>
+          <text class="meta-value">{{item.customerLabel}} · {{item.scheduleLabel}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-label">履约方式</text>
+          <text class="meta-value">{{item.fulfillmentLabel}}</text>
+        </view>
+        <view class="order-foot">
+          <text class="order-total">{{item.payableTotalLabel}}</text>
+          <text class="order-link">查看详情</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="loading-card" wx:else>
+    <text class="loading-title">正在加载订单</text>
+    <text class="loading-body">稍后会按履约进度渲染分组卡片。</text>
+  </view>
+</view>

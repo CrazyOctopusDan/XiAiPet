@@ -44,7 +44,7 @@ function createMerchantOrder(overrides: Partial<MerchantManagedOrderRecord> = {}
 }
 
 describe('queryMerchantOrders cloud function', () => {
-  it('requires merchant auth and groups paid orders by fulfillment progress instead of payment result', async () => {
+  it('requires merchant auth and keeps unpaid orders inside fulfillment progress groups with a secondary payment badge', async () => {
     const result = await main(
       {
         merchantUser: {
@@ -102,9 +102,13 @@ describe('queryMerchantOrders cloud function', () => {
       }
     );
 
-    expect(result.groups).toHaveLength(3);
-    expect(result.groups.map((group) => group.groupLabel)).toEqual(['待付款', '待处理', '已完成']);
-    expect(result.groups[1].orders[0]).toMatchObject({
+    expect(result.groups).toHaveLength(2);
+    expect(result.groups.map((group) => group.groupLabel)).toEqual(['待处理', '已完成']);
+    expect(result.groups[0].orders[0]).toMatchObject({
+      id: 'order-unpaid',
+      statusLabel: '待付款'
+    });
+    expect(result.groups[0].orders[1]).toMatchObject({
       id: 'order-delivery',
       statusLabel: '待处理'
     });

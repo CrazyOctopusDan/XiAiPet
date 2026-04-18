@@ -1,5 +1,6 @@
 import type { MerchantManagedOrderRecord, OrderStore } from '../shared/order-store';
 import { getOrderStatusDescriptor } from '@xiaipet/shared';
+import { getDefaultFulfillmentState, getFulfillmentGroupLabel } from '../../../../packages/shared/src/rules/order-fulfillment';
 
 import { main as assertMerchantAccess } from '../assertMerchantAccess/index';
 import { type FunctionContextLike } from '../shared/auth-context';
@@ -40,16 +41,22 @@ function sortOrders(list: MerchantManagedOrderRecord[]) {
 
 function toListItem(order: MerchantManagedOrderRecord): MerchantOrderListItem {
   const descriptor = getOrderStatusDescriptor(order);
+  const fallbackFulfillment = getDefaultFulfillmentState(order.snapshot.fulfillment.mode);
+  const fulfillmentStatus = order.fulfillmentState?.status ?? fallbackFulfillment.status;
+  const groupLabel =
+    order.status === 'cancelled'
+      ? descriptor.groupLabel
+      : getFulfillmentGroupLabel(order.snapshot.fulfillment.mode, fulfillmentStatus);
 
   return {
     id: order.id,
     status: order.status,
     statusLabel: descriptor.label,
-    groupLabel: descriptor.groupLabel,
+    groupLabel,
     paymentMethod: order.paymentMethod,
     paymentStatus: order.payment?.status,
     fulfillmentMode: order.snapshot.fulfillment.mode,
-    fulfillmentStatus: order.fulfillmentState?.status,
+    fulfillmentStatus,
     pricing: order.pricing,
     snapshot: order.snapshot,
     createdAt: order.createdAt,
