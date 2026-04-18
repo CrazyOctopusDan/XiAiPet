@@ -1,0 +1,132 @@
+.page {
+  min-height: 100vh;
+  padding: 32rpx 24rpx 160rpx;
+  background: linear-gradient(180deg, #F6EFE4 0%, #FCFAF5 100%);
+  color: #1F2A33;
+}
+
+.hero-card,
+.editor-card,
+.category-card,
+.empty-card,
+.loading-card {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18rpx 40rpx rgba(46, 91, 115, 0.08);
+}
+
+.page-title,
+.page-subtitle,
+.section-title,
+.empty-title,
+.empty-body,
+.category-name,
+.category-copy,
+.helper-copy {
+  display: block;
+}
+
+.page-title,
+.section-title,
+.empty-title,
+.category-name {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.page-subtitle,
+.empty-body,
+.category-copy,
+.helper-copy {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #7E8B95;
+}
+
+.editor-card,
+.card-list,
+.empty-card,
+.loading-card {
+  margin-top: 24rpx;
+}
+
+.field-input {
+  width: 100%;
+  min-height: 88rpx;
+  margin-top: 18rpx;
+  padding: 0 24rpx;
+  border-radius: 22rpx;
+  background: #F4F6F8;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.editor-actions,
+.category-head,
+.card-actions {
+  display: flex;
+}
+
+.editor-actions,
+.card-actions {
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.editor-actions button,
+.card-actions button {
+  flex: 1;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.category-head {
+  gap: 18rpx;
+  align-items: center;
+}
+
+.icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
+  background: rgba(46, 91, 115, 0.12);
+  font-size: 42rpx;
+}
+
+.category-meta {
+  flex: 1;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.danger-button {
+  border: none;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.primary-button {
+  background: #2E5B73;
+  color: #FFFFFF;
+}
+
+.secondary-button,
+.ghost-button {
+  background: #EEF2F5;
+  color: #4C5A65;
+}
+
+.danger-button {
+  background: rgba(182, 70, 58, 0.1);
+  color: #B6463A;
+}

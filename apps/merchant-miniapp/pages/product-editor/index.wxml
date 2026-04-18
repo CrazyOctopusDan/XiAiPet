@@ -1,0 +1,113 @@
+<view class="page">
+  <view class="hero-card" wx:if="{{!loading}}">
+    <text class="page-title">商品编辑</text>
+    <view class="step-row">
+      <view class="step-pill {{item.isActive ? 'active' : ''}}" wx:for="{{editorView.steps}}" wx:key="value" data-step="{{item.value}}" bindtap="handleStepTap">{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="loading-card" wx:if="{{loading}}">
+    <text class="page-title">正在加载商品编辑器</text>
+  </view>
+
+  <view wx:elif="{{activeStep === 'basicInfo'}}">
+    <view class="card">
+      <text class="section-title">基础信息</text>
+      <view class="upload-tile" bindtap="handleUploadImage">
+        <image class="upload-image" wx:if="{{draft.basicInfo.imagePreviewUrl}}" src="{{draft.basicInfo.imagePreviewUrl}}" mode="aspectFill"></image>
+        <text class="upload-copy" wx:else>上传商品图</text>
+        <text class="replace-copy" wx:if="{{draft.basicInfo.imageFileId}}">替换图片</text>
+      </view>
+      <text class="field-helper">imageFileId: {{draft.basicInfo.imageFileId || '待上传'}}</text>
+      <input class="field-input" data-field="name" placeholder="商品名称" value="{{draft.basicInfo.name}}" bindinput="handleBasicInput" />
+      <textarea class="field-area" data-field="description" placeholder="商品描述" value="{{draft.basicInfo.description}}" bindinput="handleBasicInput"></textarea>
+      <text class="field-label">一级品类</text>
+      <view class="pill-row">
+        <view class="pill {{draft.basicInfo.categoryId === item.id ? 'active' : ''}}" wx:for="{{categories}}" wx:key="id" data-id="{{item.id}}" bindtap="handleCategoryTap">{{item.name}}</view>
+      </view>
+      <input class="field-input" data-field="stock" type="number" placeholder="库存" value="{{draft.basicInfo.stock}}" bindinput="handleBasicInput" />
+    </view>
+  </view>
+
+  <view wx:elif="{{activeStep === 'pricing'}}">
+    <view class="card">
+      <text class="section-title">规格配方与价格</text>
+      <input class="field-input" type="number" placeholder="基准价格" value="{{draft.pricing.basePrice}}" bindinput="handleBasePriceInput" />
+
+      <view class="line-editor">
+        <view class="line-editor-head">
+          <text class="field-label">规格行</text>
+          <button class="mini-button" bindtap="handleAddSpec">新增规格</button>
+        </view>
+        <view class="line-row" wx:for="{{draft.pricing.specs}}" wx:key="id">
+          <input class="field-input compact" data-index="{{index}}" data-field="label" placeholder="规格名称" value="{{item.label}}" bindinput="handleSpecInput" />
+          <input class="field-input compact" data-index="{{index}}" data-field="surcharge" type="number" placeholder="加价" value="{{item.surcharge}}" bindinput="handleSpecInput" />
+          <button class="mini-button danger" data-index="{{index}}" bindtap="handleRemoveSpec">删除</button>
+        </view>
+      </view>
+
+      <view class="line-editor">
+        <view class="line-editor-head">
+          <text class="field-label">配方行</text>
+          <button class="mini-button" bindtap="handleAddFormula">新增配方</button>
+        </view>
+        <view class="line-row" wx:for="{{draft.pricing.formulas}}" wx:key="id">
+          <input class="field-input compact" data-index="{{index}}" data-field="label" placeholder="配方名称" value="{{item.label}}" bindinput="handleFormulaInput" />
+          <input class="field-input compact" data-index="{{index}}" data-field="surcharge" type="number" placeholder="加价" value="{{item.surcharge}}" bindinput="handleFormulaInput" />
+          <button class="mini-button danger" data-index="{{index}}" bindtap="handleRemoveFormula">删除</button>
+        </view>
+      </view>
+
+      <text class="field-label">少量例外</text>
+      <view class="preview-card" wx:for="{{editorView.pricePreviewRows}}" wx:key="label">
+        <text class="preview-label">{{item.label}}</text>
+        <text class="preview-copy">{{item.finalPriceLabel}}</text>
+        <text class="override-copy" wx:if="{{item.overrideLabel}}">{{item.overrideLabel}}</text>
+      </view>
+
+      <view class="toggle-row" bindtap="handlePurchaseLimitToggle">
+        <text class="field-label">限购</text>
+        <text class="toggle-copy">{{editorView.purchaseLimitLabel}}</text>
+      </view>
+      <input wx:if="{{draft.pricing.purchaseLimit.enabled}}" class="field-input" type="number" placeholder="限购数量" value="{{draft.pricing.purchaseLimit.maxQuantity}}" bindinput="handlePurchaseLimitInput" />
+
+      <text class="field-label">详情内容</text>
+      <textarea class="field-area" placeholder="详情内容" value="{{draft.pricing.detailContent}}" bindinput="handleDetailContentInput"></textarea>
+      <text class="field-helper">{{editorView.detailContentLabel}}</text>
+    </view>
+  </view>
+
+  <view wx:else>
+    <view class="card">
+      <text class="section-title">上架设置</text>
+      <text class="field-label">商品状态</text>
+      <view class="pill-row">
+        <view class="pill {{draft.publishSettings.status === 'draft' ? 'active' : ''}}" data-status="draft" bindtap="handleStatusTap">草稿</view>
+        <view class="pill {{draft.publishSettings.status === 'published' ? 'active' : ''}}" data-status="published" bindtap="handleStatusTap">上架</view>
+        <view class="pill {{draft.publishSettings.status === 'archived' ? 'active' : ''}}" data-status="archived" bindtap="handleStatusTap">归档</view>
+      </view>
+
+      <text class="field-label">可用履约方式</text>
+      <view class="pill-row">
+        <view class="pill {{draft.publishSettings.fulfillmentModes.indexOf('delivery') > -1 ? 'active' : ''}}" data-mode="delivery" bindtap="handleFulfillmentTap">配送</view>
+        <view class="pill {{draft.publishSettings.fulfillmentModes.indexOf('pickup') > -1 ? 'active' : ''}}" data-mode="pickup" bindtap="handleFulfillmentTap">自取</view>
+        <view class="pill {{draft.publishSettings.fulfillmentModes.indexOf('express') > -1 ? 'active' : ''}}" data-mode="express" bindtap="handleFulfillmentTap">快递</view>
+      </view>
+
+      <view class="toggle-row" bindtap="handleTrackInventoryToggle">
+        <text class="field-label">库存跟踪</text>
+        <text class="toggle-copy">{{draft.publishSettings.trackInventory ? '已开启' : '已关闭'}}</text>
+      </view>
+
+      <view class="preview-card">
+        <text class="preview-label">预览摘要</text>
+        <text class="preview-copy">{{draft.basicInfo.name || '未填写商品名称'}}</text>
+        <text class="preview-copy">{{editorView.fulfillmentModeLabels.join(' / ')}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="action-bar" wx:if="{{!loading}}">
+    <button class="action-button" loading="{{saving || imageUploading}}" bindtap="handleStepSubmit">{{editorView.ctaLabel}}</button>
+  </view>
+</view>

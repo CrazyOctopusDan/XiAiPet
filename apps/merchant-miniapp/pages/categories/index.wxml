@@ -1,0 +1,44 @@
+<view class="page">
+  <view class="hero-card">
+    <text class="page-title">品类管理</text>
+    <text class="page-subtitle">每个品类都显示 icon token、商品数量和删除品类守卫。</text>
+  </view>
+
+  <view class="editor-card">
+    <text class="section-title">品类编辑</text>
+    <input class="field-input" placeholder="品类名称" value="{{draftName}}" bindinput="handleNameInput" />
+    <input class="field-input" placeholder="icon token，例如 🎂" maxlength="4" value="{{draftIconToken}}" bindinput="handleIconInput" />
+    <view class="editor-actions">
+      <button class="secondary-button" bindtap="handleCreateTap">新建品类</button>
+      <button class="primary-button" bindtap="handleSaveTap">保存品类</button>
+    </view>
+  </view>
+
+  <view class="empty-card" wx:if="{{isEmpty && !loading}}">
+    <text class="empty-title">还没有品类</text>
+    <text class="empty-body">先创建一个带 icon 的一级品类。</text>
+  </view>
+
+  <view class="card-list" wx:elif="{{!loading}}">
+    <view class="category-card" wx:for="{{cards}}" wx:key="id">
+      <view class="category-head">
+        <view class="icon-badge">{{item.iconToken}}</view>
+        <view class="category-meta">
+          <text class="category-name">{{item.name}}</text>
+          <text class="category-copy">icon: {{item.iconToken}}</text>
+          <text class="category-copy">{{item.linkedProductCountLabel}}</text>
+        </view>
+      </view>
+      <text class="helper-copy">{{item.helperText}}</text>
+      <view class="card-actions">
+        <button class="ghost-button" data-id="{{item.id}}" bindtap="handleOpenProducts">查看商品</button>
+        <button class="ghost-button" data-id="{{item.id}}" data-name="{{item.name}}" data-icon="{{item.iconToken}}" bindtap="handleEditTap">编辑</button>
+        <button class="danger-button" data-id="{{item.id}}" data-name="{{item.name}}" data-action="{{item.deleteActionLabel}}" bindtap="handleDeleteTap">{{item.deleteActionLabel}}</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="loading-card" wx:else>
+    <text class="empty-title">正在加载品类</text>
+  </view>
+</view>

@@ -1,0 +1,196 @@
+.page {
+  min-height: 100vh;
+  padding: 32rpx 24rpx 180rpx;
+  background: linear-gradient(180deg, #F6EFE4 0%, #FCFAF5 100%);
+  color: #1F2A33;
+}
+
+.hero-card,
+.card,
+.loading-card {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18rpx 40rpx rgba(46, 91, 115, 0.08);
+}
+
+.card,
+.loading-card {
+  margin-top: 24rpx;
+}
+
+.page-title,
+.section-title,
+.field-label,
+.field-helper,
+.preview-label,
+.preview-copy,
+.replace-copy,
+.upload-copy,
+.toggle-copy,
+.override-copy {
+  display: block;
+}
+
+.page-title,
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.step-row,
+.pill-row,
+.line-editor-head,
+.line-row,
+.toggle-row {
+  display: flex;
+  align-items: center;
+}
+
+.step-row,
+.pill-row,
+.line-row {
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+
+.step-row {
+  margin-top: 18rpx;
+}
+
+.step-pill,
+.pill {
+  padding: 14rpx 22rpx;
+  border-radius: 999rpx;
+  background: #EEF2F5;
+  color: #5D6B75;
+  font-size: 24rpx;
+}
+
+.step-pill.active,
+.pill.active {
+  background: rgba(46, 91, 115, 0.14);
+  color: #2E5B73;
+  font-weight: 600;
+}
+
+.upload-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 192rpx;
+  height: 192rpx;
+  margin-top: 18rpx;
+  border-radius: 32rpx;
+  background: #EEF2F5;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-image {
+  width: 100%;
+  height: 100%;
+}
+
+.replace-copy {
+  position: absolute;
+  right: 12rpx;
+  bottom: 12rpx;
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.88);
+  font-size: 20rpx;
+}
+
+.field-label,
+.field-helper,
+.preview-copy,
+.toggle-copy {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #7E8B95;
+}
+
+.field-input,
+.field-area {
+  width: 100%;
+  margin-top: 16rpx;
+  padding: 0 24rpx;
+  border-radius: 22rpx;
+  background: #F4F6F8;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.field-input {
+  min-height: 88rpx;
+}
+
+.field-input.compact {
+  flex: 1;
+  min-width: 220rpx;
+}
+
+.field-area {
+  min-height: 180rpx;
+  padding-top: 20rpx;
+}
+
+.line-editor,
+.preview-card {
+  margin-top: 22rpx;
+}
+
+.line-editor-head,
+.toggle-row {
+  justify-content: space-between;
+}
+
+.preview-card {
+  padding: 20rpx;
+  border-radius: 22rpx;
+  background: #F8FBFC;
+}
+
+.preview-label {
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.override-copy {
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  color: #B6463A;
+}
+
+.mini-button,
+.action-button {
+  border: none;
+  border-radius: 999rpx;
+  font-weight: 600;
+}
+
+.mini-button {
+  background: #EEF2F5;
+  color: #4C5A65;
+  font-size: 22rpx;
+}
+
+.mini-button.danger {
+  background: rgba(182, 70, 58, 0.1);
+  color: #B6463A;
+}
+
+.action-bar {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.action-button {
+  width: 100%;
+  background: #2E5B73;
+  color: #FFFFFF;
+  font-size: 28rpx;
+}
