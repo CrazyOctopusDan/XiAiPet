@@ -1,0 +1,49 @@
+<view class="balance-page">
+  <view class="page-nav" style="height: {{navMetrics.contentTop}}px; padding-top: {{navMetrics.statusBarHeight}}px;">
+    <view class="page-nav-bar" style="height: {{navMetrics.navBarHeight}}px;">
+      <view class="nav-back" bindtap="handleBackTap">
+        <view class="nav-back-icon"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="balance-shell">
+    <view class="balance-hero">
+      <text class="balance-title">余额流水</text>
+      <text class="balance-subtitle">按月份看充值、抵扣和补偿返还，先把月度分组和收支汇总整理清楚。</text>
+    </view>
+
+    <view class="balance-overview-card">
+      <text class="overview-label">当前余额</text>
+      <text class="overview-value">￥{{overview.currentBalance}}</text>
+      <view class="overview-metrics">
+        <view class="overview-pill">
+          <text class="overview-pill-label">累计收入</text>
+          <text class="overview-pill-value">￥{{overview.totalIncome}}</text>
+        </view>
+        <view class="overview-pill">
+          <text class="overview-pill-label">累计支出</text>
+          <text class="overview-pill-value">￥{{overview.totalExpense}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="month-card" wx:for="{{groups}}" wx:key="month">
+      <view class="month-card-head">
+        <view>
+          <text class="month-title">{{item.monthLabel}}</text>
+          <text class="month-summary">收入 ￥{{item.totalIncome}} · 支出 ￥{{item.totalExpense}}</text>
+        </view>
+      </view>
+
+      <view class="ledger-row" wx:for="{{item.items}}" wx:key="id">
+        <view class="ledger-main">
+          <text class="ledger-title">{{item.title}}</text>
+          <text class="ledger-note" wx:if="{{item.note}}">{{item.note}}</text>
+          <text class="ledger-date">{{item.date}}</text>
+        </view>
+        <text class="ledger-amount {{item.type === 'income' ? 'income' : 'expense'}}">{{item.type === 'income' ? '+' : '-'}}￥{{item.amount}}</text>
+      </view>
+    </view>
+  </view>
+</view>

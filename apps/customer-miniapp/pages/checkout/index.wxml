@@ -1,0 +1,189 @@
+<view class="checkout-page">
+  <view class="page-nav" style="height: {{navMetrics.contentTop}}px; padding-top: {{navMetrics.statusBarHeight}}px;">
+    <view class="page-nav-bar" style="height: {{navMetrics.navBarHeight}}px;">
+      <view class="nav-back" bindtap="handleBackTap">
+        <view class="nav-back-icon"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="checkout-shell">
+    <view class="checkout-hero">
+      <text class="checkout-title">确认订单</text>
+      <text class="checkout-subtitle">先把履约方式、预约时间、宠物、备注和下单前提示统一确认好，再进入支付链路。</text>
+    </view>
+
+    <view class="checkout-card">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">履约方式</text>
+        <text class="checkout-card-summary">{{activeFulfillmentMode === 'delivery' ? '配送到家' : activeFulfillmentMode === 'pickup' ? '到店自取' : '快递直达'}}</text>
+      </view>
+
+      <view class="fulfillment-mode-row">
+        <view class="fulfillment-mode-pill {{activeFulfillmentMode === item.value ? 'active' : ''}}" wx:for="{{fulfillmentModes}}" wx:key="value" data-mode="{{item.value}}" bindtap="handleFulfillmentModeTap">
+          <text class="fulfillment-mode-label">{{item.label}}</text>
+          <text class="fulfillment-mode-hint">{{item.hint}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="checkout-card">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">门店位置</text>
+        <text class="checkout-card-summary" bindtap="handleOpenLocation">打开地图</text>
+      </view>
+      <view class="store-card" bindtap="handleOpenLocation">
+        <text class="store-name">{{storeName}}</text>
+        <text class="store-address">{{storeAddress}}</text>
+        <text class="store-address" wx:if="{{storePhone}}">联系电话 {{storePhone}}</text>
+      </view>
+    </view>
+
+    <view class="checkout-card" wx:if="{{activeFulfillmentMode !== 'pickup'}}">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">{{activeFulfillmentMode === 'delivery' ? '配送地址' : '快递地址'}}</text>
+        <text class="checkout-card-summary" bindtap="handleSelectAddress">去选择</text>
+      </view>
+
+      <view class="address-summary-card" bindtap="handleSelectAddress" wx:if="{{selectedAddress}}">
+        <view class="address-summary-head">
+          <view>
+            <text class="address-summary-name">{{selectedAddress.recipientName}}</text>
+            <text class="address-summary-phone">{{selectedAddress.phoneNumber}}</text>
+          </view>
+          <text class="address-summary-tag">{{selectedAddress.tag}}</text>
+        </view>
+        <text class="address-summary-body">{{selectedAddress.regionLabel}} {{selectedAddress.detailAddress}}</text>
+      </view>
+
+      <view class="address-empty-card" bindtap="handleSelectAddress" wx:else>
+        <text class="address-empty-title">还没有选中地址</text>
+        <text class="address-empty-body">先去地址簿里补齐 {{activeFulfillmentMode === 'delivery' ? '同城配送' : '快递到家'}} 地址，再继续确认订单。</text>
+      </view>
+    </view>
+
+    <view class="checkout-card" wx:if="{{activeFulfillmentMode === 'pickup'}}">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">预留电话</text>
+        <text class="checkout-card-summary" bindtap="handleAutoFillPhone">自动填写</text>
+      </view>
+
+      <input class="pickup-phone-input" type="number" value="{{pickupPhone}}" bindinput="handlePhoneInput" placeholder="请输入预留电话" />
+      <text class="pickup-phone-hint">优先复用已绑定联系方式；如果还没绑定，会跳转到手机号补录页。</text>
+    </view>
+
+    <view class="checkout-card" wx:if="{{activeFulfillmentMode !== 'express'}}">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">预约时间</text>
+        <text class="checkout-card-summary">{{selectedReservationLabel || '请选择'}}</text>
+      </view>
+
+      <view class="reservation-group" wx:for="{{reservationOptions}}" wx:key="value">
+        <text class="reservation-date">{{item.label}}</text>
+        <view class="reservation-slot-row">
+          <view
+            class="reservation-slot {{selectedReservationValue === item.value + '-' + subItem.value ? 'active' : ''}}"
+            wx:for="{{item.slots}}"
+            wx:key="value"
+            data-date-value="{{item.value}}"
+            data-date-label="{{item.label}}"
+            data-time-value="{{subItem.value}}"
+            data-time-label="{{subItem.label}}"
+            bindtap="handleReservationTap"
+          >
+            {{subItem.label}}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="checkout-card">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">本次宠物</text>
+        <text class="checkout-card-summary">{{selectedPetIds.length}} 只已勾选</text>
+      </view>
+
+      <view class="pet-choice-row">
+        <view class="pet-choice {{selectedPetIds.indexOf(item.id) > -1 ? 'active' : ''}}" wx:for="{{pets}}" wx:key="id" data-pet-id="{{item.id}}" bindtap="handlePetTap">
+          <text class="pet-choice-name">{{item.name}}</text>
+          <text class="pet-choice-meta">{{item.gender === 'female' ? '女孩' : item.gender === 'male' ? '男孩' : '未设置性别'}}</text>
+        </view>
+      </view>
+      <text class="pet-choice-hint" wx:if="{{!pets.length}}">当前没有勾选宠物，可先去宠物档案页补齐后再回来选择。</text>
+    </view>
+
+    <view class="checkout-card">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">订单备注</text>
+        <text class="checkout-card-summary" bindtap="handleRemarkTap">去填写</text>
+      </view>
+      <view class="remark-summary-card" bindtap="handleRemarkTap">
+        <text class="remark-summary-text">{{remarkSummary}}</text>
+      </view>
+    </view>
+
+    <view class="checkout-card" wx:if="{{customNotice}}">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">下单提示</text>
+      </view>
+      <view class="notice-card">
+        <text class="notice-copy">{{customNotice}}</text>
+        <view class="notice-check-row" bindtap="handleNoticeToggle">
+          <view class="notice-check {{hasReadCustomNotice ? 'active' : ''}}"></view>
+          <text class="notice-check-label">我已阅读并确认以上提示</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="checkout-card">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">费用与支付</text>
+        <text class="checkout-card-summary">{{deliveryFeeLabel}}</text>
+      </view>
+      <view class="fee-row">
+        <text class="fee-label">商品小计</text>
+        <text class="fee-value">￥{{selectedTotalPrice}}</text>
+      </view>
+      <view class="fee-row">
+        <text class="fee-label">配送费</text>
+        <text class="fee-value">￥{{deliveryFee}}</text>
+      </view>
+      <view class="delivery-rule-list" wx:if="{{activeFulfillmentMode === 'delivery' && deliveryRuleRows.length}}">
+        <text class="delivery-rule-item" wx:for="{{deliveryRuleRows}}" wx:key="*this">{{item}}</text>
+      </view>
+      <view class="payment-method-row">
+        <view class="payment-method-pill {{activePaymentMethod === item.value ? 'active' : ''}}" wx:for="{{paymentMethods}}" wx:key="value" data-method="{{item.value}}" bindtap="handlePaymentMethodTap">
+          <text class="payment-method-label">{{item.label}}</text>
+          <text class="payment-method-hint">{{item.hint}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="checkout-card">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">本次结算商品</text>
+        <text class="checkout-card-summary">{{selectedCount}} 件</text>
+      </view>
+
+      <view class="checkout-item" wx:for="{{items}}" wx:key="id">
+        <image class="checkout-item-image" mode="aspectFill" src="{{item.thumbnail}}" />
+        <view class="checkout-item-main">
+          <text class="checkout-item-name">{{item.name}}</text>
+          <text class="checkout-item-spec">{{item.specLabel || '默认规格'}} × {{item.quantity}}</text>
+        </view>
+        <text class="checkout-item-price">￥{{item.price}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="checkout-bottom-bar">
+    <view class="checkout-total">
+      合计
+      <text class="checkout-total-price">￥{{payableTotal}}</text>
+    </view>
+    <view class="checkout-bottom-actions">
+      <button class="checkout-return" bindtap="handleReturnCart">返回购物车</button>
+      <button class="checkout-submit {{canSubmit ? 'ready' : 'disabled'}}" bindtap="handleSubmit" loading="{{submitting}}" disabled="{{!canSubmit || submitting}}">确认下单</button>
+    </view>
+  </view>
+</view>

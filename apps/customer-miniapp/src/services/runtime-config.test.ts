@@ -1,0 +1,97 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  getCachedCustomerRuntimeConfig,
+  hydrateCustomerRuntimeConfig,
+  resetCustomerRuntimeConfigCache
+} from './runtime-config';
+
+describe('customer runtime config service', () => {
+  beforeEach(() => {
+    resetCustomerRuntimeConfigCache();
+  });
+
+  it('reads customer-facing runtime config from the dedicated readRuntimeConfig handler', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        ok: true,
+        banner: {
+          fileId: 'cloud://xiaipet-prod.123/banner/home.png',
+          altText: '本周主推'
+        },
+        store: {
+          address: '上海市长宁区愚园路 1200 号',
+          latitude: 31.2201,
+          longitude: 121.4242,
+          contactPhone: '13900000000'
+        },
+        customNotice: {
+          enabled: false,
+          content: '已关闭提示'
+        },
+        deliveryRules: {
+          tiers: [
+            {
+              distanceKm: 5,
+              minimumOrderAmount: 98,
+              deliveryFee: 0,
+              explainer: '5.0 公里内 98 元起送，配送费 0 元'
+            }
+          ]
+        }
+      }
+    });
+
+    const runtimeConfig = await hydrateCustomerRuntimeConfig(callFunction);
+
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'readRuntimeConfig',
+      data: {}
+    });
+    expect(runtimeConfig).toMatchObject({
+      banner: {
+        fileId: 'cloud://xiaipet-prod.123/banner/home.png',
+        altText: '本周主推'
+      },
+      store: {
+        address: '上海市长宁区愚园路 1200 号',
+        contactPhone: '13900000000'
+      },
+      customNotice: {
+        enabled: false,
+        content: '已关闭提示'
+      },
+      deliveryRules: {
+        tiers: [
+          expect.objectContaining({
+            distanceKm: 5,
+            deliveryFee: 0
+          })
+        ]
+      }
+    });
+  });
+
+  it('keeps durable defaults when sections are missing and updates the shared cache', async () => {
+    const runtimeConfig = await hydrateCustomerRuntimeConfig(
+      vi.fn().mockResolvedValue({
+        result: {
+          ok: true,
+          banner: null,
+          store: null,
+          customNotice: {
+            enabled: false,
+            content: '临时停用'
+          },
+          deliveryRules: null
+        }
+      })
+    );
+
+    expect(runtimeConfig.banner.fileId).toBe('/assets/catalog/home-hero.png');
+    expect(runtimeConfig.store.name).toBe('虾衣宠物烘焙工作室');
+    expect(runtimeConfig.customNotice.enabled).toBe(false);
+    expect(runtimeConfig.deliveryRules.tiers[0]?.explainer).toBe('5.0 公里内 98 元起送，配送费 0 元');
+    expect(getCachedCustomerRuntimeConfig()).toMatchObject(runtimeConfig);
+  });
+});
