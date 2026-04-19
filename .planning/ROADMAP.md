@@ -154,3 +154,14 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Account, Pets and Address Context | 0/3 | Not started | - |
 | 5. Checkout, Payment and Orders | 0/3 | Not started | - |
 | 6. Merchant Operations and Runtime Config | 0/12 | Not started | - |
+
+## Backlog
+
+### Phase 999.1: Follow-up — Phase 2 incomplete plans (BACKLOG)
+
+**Goal:** Resolve plans that ran without producing summaries during Phase 2 execution
+**Source phase:** 2
+**Deferred at:** 2026-04-19 during `$gsd-next` advancement to Phase 6
+**Plans:**
+- [ ] 02-04: 恢复微信原生透明导航，并修复 catalog 尾部分类跳转导致的整页位移 (ran, no SUMMARY.md)
+- [ ] 02-05: 统一 discovery 卡片 CTA、售罄视觉和详情页底部操作栏表现 (ran, no SUMMARY.md)
