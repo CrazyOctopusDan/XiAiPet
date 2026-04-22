@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-04-17T13:35:57.698Z"
-last_activity: 2026-04-17 -- Phase 06 planning complete
+last_updated: "2026-04-17T14:04:28.597Z"
+last_activity: 2026-04-17 -- Phase 06 execution started
 progress:
   total_phases: 6
   completed_phases: 2
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** 让宠物家长在微信内以尽可能少的步骤完成“选品-预约-支付-履约”，同时让店主能用同一套云后台稳定管理商品、订单、会员门槛和余额。
-**Current focus:** Phase 6 — Merchant Operations and Runtime Config
+**Current focus:** Phase 06 — merchant-operations-and-runtime-config
 
 ## Current Position
 
-Phase: 6 of 6 (Merchant Operations and Runtime Config)
-Plan: Phase 5 complete; next is discuss/planning for Phase 6
-Status: Ready to execute
-Last activity: 2026-04-17 -- Phase 06 planning complete
+Phase: 06 (merchant-operations-and-runtime-config) — EXECUTING
+Plan: 1 of 12
+Status: Executing Phase 06
+Last activity: 2026-04-17 -- Phase 06 execution started
 
 Progress: [######░░░░] 61%
 

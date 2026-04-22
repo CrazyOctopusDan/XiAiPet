@@ -1,0 +1,49 @@
+<view class="custom-tabbar">
+  <view
+    class="custom-tabbar__center-hitbox {{active === 'orders' ? 'is-active-center' : ''}}"
+    data-key="orders"
+    data-url="/pages/orders/index"
+    bindtap="handleTabTap"
+  >
+    <view class="custom-tabbar__center-ring">
+      <view class="custom-tabbar__center-button">
+        <view class="custom-tabbar__order-icon">
+          <view class="custom-tabbar__order-line"></view>
+          <view class="custom-tabbar__order-line custom-tabbar__order-line--short"></view>
+          <view class="custom-tabbar__order-line custom-tabbar__order-line--tiny"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="custom-tabbar__shell">
+    <view
+      class="custom-tabbar__item {{active === 'home' ? 'is-active' : ''}}"
+      data-key="home"
+      data-url="/pages/home/index"
+      bindtap="handleTabTap"
+    >
+      <view class="custom-tabbar__home-icon">
+        <view class="custom-tabbar__home-roof"></view>
+        <view class="custom-tabbar__home-body"></view>
+        <view class="custom-tabbar__home-door"></view>
+      </view>
+      <text class="custom-tabbar__label">首页</text>
+    </view>
+
+    <view class="custom-tabbar__center-spacer"></view>
+
+    <view
+      class="custom-tabbar__item {{active === 'profile' ? 'is-active' : ''}}"
+      data-key="profile"
+      data-url="/pages/profile/index"
+      bindtap="handleTabTap"
+    >
+      <view class="custom-tabbar__profile-icon">
+        <view class="custom-tabbar__profile-head"></view>
+        <view class="custom-tabbar__profile-body"></view>
+      </view>
+      <text class="custom-tabbar__label">个人中心</text>
+    </view>
+  </view>
+</view>

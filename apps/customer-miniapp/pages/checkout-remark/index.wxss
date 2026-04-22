@@ -1,0 +1,104 @@
+.remark-page {
+  min-height: 100vh;
+  padding-bottom: 180rpx;
+  background: #F7F4EA;
+}
+
+.remark-shell {
+  padding: 16rpx 20rpx 0;
+}
+
+.remark-hero,
+.remark-card {
+  border-radius: 28rpx;
+  background: #FFFFFF;
+}
+
+.remark-hero {
+  padding: 30rpx 28rpx;
+}
+
+.remark-title,
+.remark-subtitle,
+.remark-history-title,
+.remark-history-copy,
+.remark-history-delete {
+  display: block;
+}
+
+.remark-title,
+.remark-history-title {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #2E261F;
+}
+
+.remark-subtitle {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #7E766D;
+}
+
+.remark-card {
+  margin-top: 18rpx;
+  padding: 24rpx;
+}
+
+.remark-input {
+  width: 100%;
+  min-height: 240rpx;
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: #2E261F;
+}
+
+.remark-history-list {
+  margin-top: 20rpx;
+}
+
+.remark-history-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 18rpx 0;
+  border-top: 2rpx solid rgba(46, 38, 31, 0.06);
+}
+
+.remark-history-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.remark-history-copy {
+  flex: 1;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #5F554A;
+}
+
+.remark-history-delete {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #C56F45;
+}
+
+.remark-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 22rpx 20rpx 30rpx;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.remark-confirm {
+  border-radius: 999rpx;
+  background: #F6BE3E;
+  color: #FFFFFF;
+}
+
+.remark-confirm::after {
+  border: 0;
+}

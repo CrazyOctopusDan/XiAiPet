@@ -1,0 +1,14 @@
+{
+  "collectionName": "users",
+  "description": "Minimal user records for AUTH-01 and AUTH-02",
+  "fields": [
+    "openid",
+    "status",
+    "createdAt",
+    "updatedAt",
+    "lastLoginAt",
+    "phoneBindingState",
+    "contactPhoneMasked",
+    "contactPhoneCountryCode"
+  ]
+}

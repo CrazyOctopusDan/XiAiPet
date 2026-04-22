@@ -11,7 +11,7 @@ exports.splitProductEditorPayload = splitProductEditorPayload;
 exports.getProductEditorViewModel = getProductEditorViewModel;
 exports.uploadProductImage = uploadProductImage;
 exports.saveProduct = saveProduct;
-const product_pricing_1 = require("../../../../packages/shared/src/rules/product-pricing");
+const product_pricing_1 = require("../shared/product-pricing");
 function getCloudCaller() {
     return (payload) => wx.cloud.callFunction(payload);
 }

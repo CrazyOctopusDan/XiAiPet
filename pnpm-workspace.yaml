@@ -1,0 +1,5 @@
+packages:
+  - apps/customer-miniapp
+  - apps/merchant-miniapp
+  - apps/cloud-functions
+  - packages/shared

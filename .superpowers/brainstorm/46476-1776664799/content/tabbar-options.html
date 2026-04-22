@@ -1,0 +1,81 @@
+<h2>底部 Tabbar 方向</h2>
+<p class="subtitle">目标：左右保留“首页 / 个人中心”文字，中间订单按钮凸起且不显示文字，只用于 3 个一级页。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:20px;background:linear-gradient(180deg,#f8f1d0 0%,#fffaf0 100%);border-radius:24px;min-height:260px;display:flex;align-items:flex-end;">
+        <div style="width:100%;background:rgba(255,251,235,0.96);border-top:1px solid rgba(114,86,56,0.08);border-radius:26px 26px 0 0;padding:14px 28px 22px;position:relative;display:flex;align-items:flex-end;justify-content:space-between;box-shadow:0 -8px 24px rgba(114,86,56,0.06);">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;">
+            <div style="width:28px;height:24px;border:3px solid #373533;border-bottom-width:5px;border-radius:7px 7px 10px 10px;position:relative;"></div>
+            <div style="font-size:15px;color:#d4a447;">首页</div>
+          </div>
+          <div style="position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;width:96px;height:96px;border-radius:999px;background:#e7d54f;border:6px solid #fff8dc;box-shadow:0 10px 22px rgba(140,112,31,0.18);">
+            <div style="width:28px;height:38px;border:4px solid #45413d;border-radius:3px;position:relative;box-sizing:border-box;">
+              <div style="position:absolute;left:6px;right:6px;top:7px;height:4px;background:#45413d;"></div>
+              <div style="position:absolute;left:6px;right:10px;top:17px;height:4px;background:#45413d;"></div>
+              <div style="position:absolute;left:6px;right:12px;top:27px;height:4px;background:#45413d;"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;">
+            <div style="width:24px;height:24px;border:3px solid #4f4b49;border-radius:999px;border-bottom:none;position:relative;"></div>
+            <div style="width:40px;height:20px;border:3px solid #4f4b49;border-top:none;border-radius:0 0 22px 22px;margin-top:-3px;"></div>
+            <div style="font-size:15px;color:#2f2b28;margin-top:2px;">个人中心</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 参考图复刻</h3>
+      <p>中央按钮悬浮在底栏上方，左右保持常规图标加文字。视觉最像你给的效果，也是我的推荐。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:20px;background:linear-gradient(180deg,#f8f1d0 0%,#fffaf0 100%);border-radius:24px;min-height:260px;display:flex;align-items:flex-end;">
+        <div style="width:100%;background:rgba(255,251,235,0.98);border-radius:30px 30px 0 0;padding:14px 28px 22px;position:relative;display:flex;align-items:flex-end;justify-content:space-between;box-shadow:0 -8px 24px rgba(114,86,56,0.08);">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;">
+            <div style="width:30px;height:22px;border:3px solid #373533;border-radius:8px;"></div>
+            <div style="font-size:15px;color:#d4a447;">首页</div>
+          </div>
+          <div style="position:absolute;left:50%;bottom:30px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;width:90px;height:90px;border-radius:28px;background:#e7d54f;box-shadow:0 10px 22px rgba(140,112,31,0.18);">
+            <div style="width:26px;height:34px;border:4px solid #45413d;border-radius:3px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;">
+            <div style="width:22px;height:22px;border:3px solid #4f4b49;border-radius:999px;"></div>
+            <div style="font-size:15px;color:#2f2b28;">个人中心</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 胶囊圆角版</h3>
+      <p>也有高低差，但中间不是纯圆，整体更软一点，识别度比 A 稍弱。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:20px;background:linear-gradient(180deg,#f8f1d0 0%,#fffaf0 100%);border-radius:24px;min-height:260px;display:flex;align-items:flex-end;">
+        <div style="width:100%;background:rgba(255,251,235,0.98);border-radius:26px 26px 0 0;padding:14px 28px 22px;position:relative;display:flex;align-items:flex-end;justify-content:space-between;box-shadow:0 -8px 24px rgba(114,86,56,0.08);">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;">
+            <div style="width:30px;height:22px;border:3px solid #373533;border-radius:8px;"></div>
+            <div style="font-size:15px;color:#d4a447;">首页</div>
+          </div>
+          <div style="position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;width:88px;height:88px;border-radius:999px;background:#e7d54f;box-shadow:0 8px 18px rgba(140,112,31,0.16);">
+            <div style="width:26px;height:34px;border:4px solid #45413d;border-radius:3px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;">
+            <div style="width:22px;height:22px;border:3px solid #4f4b49;border-radius:999px;"></div>
+            <div style="font-size:15px;color:#2f2b28;">个人中心</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. 轻凸起版</h3>
+      <p>实现最稳，但“凸起感”最弱，和你参考图的距离也最大。</p>
+    </div>
+  </div>
+</div>

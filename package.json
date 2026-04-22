@@ -1,0 +1,19 @@
+{
+  "name": "xiaipet-monorepo",
+  "private": true,
+  "packageManager": "pnpm@10.8.1",
+  "scripts": {
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "dev:customer": "pnpm --filter @xiaipet/customer-miniapp dev",
+    "dev:merchant": "pnpm --filter @xiaipet/merchant-miniapp dev",
+    "dev:functions": "pnpm --filter @xiaipet/cloud-functions dev",
+    "ci:check": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}

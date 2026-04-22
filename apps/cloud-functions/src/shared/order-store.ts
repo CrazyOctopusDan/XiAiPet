@@ -19,9 +19,9 @@ export interface MerchantManagedOrderRecord extends OrderRecord {
 
 export interface OrderStore {
   getByOpenidAndIdempotencyKey(openid: string, idempotencyKey: string): Promise<OrderRecord | null>;
-  getById<T extends OrderRecord = OrderRecord>(orderId: string): Promise<T | null>;
-  listMerchantOrders<T extends OrderRecord = MerchantManagedOrderRecord>(): Promise<T[]>;
-  save<T extends OrderRecord = OrderRecord>(order: T): Promise<T>;
+  getById(orderId: string): Promise<OrderRecord | null>;
+  listMerchantOrders(): Promise<OrderRecord[]>;
+  save(order: OrderRecord): Promise<OrderRecord>;
 }
 
 function getCloudDatabase() {

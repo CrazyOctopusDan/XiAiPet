@@ -1,7 +1,7 @@
 import {
-  isRuntimeConfigSectionDocument,
-  type RuntimeConfigSectionDocument
+  isRuntimeConfigSectionDocument
 } from '../../../../packages/shared/src/schema/runtime-config';
+import type { RuntimeConfigSectionDocument } from '@xiaipet/shared/types/runtime-config';
 
 import { main as assertMerchantAccess } from '../assertMerchantAccess/index';
 import { type FunctionContextLike } from '../shared/auth-context';

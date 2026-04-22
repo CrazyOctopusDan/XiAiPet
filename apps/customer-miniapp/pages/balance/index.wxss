@@ -1,0 +1,140 @@
+.balance-page {
+  min-height: 100vh;
+  padding-bottom: calc(96rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #F7EFD6 0%, #FFFCF5 100%);
+  color: #4F341E;
+}
+.month-card-head,
+.overview-metrics {
+  display: flex;
+  align-items: center;
+}
+
+.balance-shell {
+  padding: 18rpx 24rpx 0;
+}
+
+.balance-title,
+.balance-subtitle,
+.overview-label,
+.overview-value,
+.overview-pill-label,
+.overview-pill-value,
+.month-title,
+.month-summary,
+.ledger-title,
+.ledger-date,
+.ledger-amount {
+  display: block;
+}
+
+.balance-hero {
+  padding: 18rpx 8rpx 12rpx;
+}
+
+.balance-title {
+  font-size: 50rpx;
+  font-weight: 700;
+}
+
+.balance-subtitle {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #7D6C59;
+}
+
+.balance-overview-card,
+.month-card {
+  margin-top: 18rpx;
+  padding: 30rpx 26rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 251, 239, 0.96);
+  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+}
+
+.overview-label {
+  font-size: 24rpx;
+  color: #8B7A67;
+}
+
+.overview-value {
+  margin-top: 12rpx;
+  font-size: 56rpx;
+  font-weight: 700;
+}
+
+.overview-metrics {
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.overview-pill {
+  flex: 1;
+  padding: 18rpx 20rpx;
+  border-radius: 22rpx;
+  background: #FFF4D8;
+}
+
+.overview-pill-label {
+  font-size: 20rpx;
+  color: #8D775E;
+}
+
+.overview-pill-value {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.month-card-head {
+  justify-content: space-between;
+}
+
+.month-title {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.month-summary {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #8A7865;
+}
+
+.ledger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding-top: 22rpx;
+}
+
+.ledger-row + .ledger-row {
+  border-top: 2rpx solid rgba(79, 52, 30, 0.06);
+  margin-top: 22rpx;
+}
+
+.ledger-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ledger-date {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #8A7865;
+}
+
+.ledger-amount {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.ledger-amount.income {
+  color: #2E8B57;
+}
+
+.ledger-amount.expense {
+  color: #D05C45;
+}

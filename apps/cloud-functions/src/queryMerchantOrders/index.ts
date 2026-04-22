@@ -1,4 +1,5 @@
 import type { MerchantManagedOrderRecord, OrderStore } from '../shared/order-store';
+import type { OrderFulfillmentStatus, OrderPaymentStatus } from '@xiaipet/shared';
 import { getOrderStatusDescriptor } from '@xiaipet/shared';
 import { getDefaultFulfillmentState, getFulfillmentGroupLabel } from '../../../../packages/shared/src/rules/order-fulfillment';
 
@@ -18,9 +19,9 @@ interface MerchantOrderListItem {
   statusLabel: string;
   groupLabel: string;
   paymentMethod: MerchantManagedOrderRecord['paymentMethod'];
-  paymentStatus?: MerchantManagedOrderRecord['payment']['status'];
+  paymentStatus?: OrderPaymentStatus;
   fulfillmentMode: MerchantManagedOrderRecord['snapshot']['fulfillment']['mode'];
-  fulfillmentStatus?: MerchantManagedOrderRecord['fulfillmentState']['status'];
+  fulfillmentStatus?: OrderFulfillmentStatus;
   pricing: MerchantManagedOrderRecord['pricing'];
   snapshot: MerchantManagedOrderRecord['snapshot'];
   createdAt: string;
@@ -76,7 +77,7 @@ export async function main(
     throw new Error('MERCHANT_FORBIDDEN');
   }
 
-  const orders = sortOrders(await store.listMerchantOrders<MerchantManagedOrderRecord>());
+  const orders = sortOrders((await store.listMerchantOrders()) as MerchantManagedOrderRecord[]);
   const groups = orders.reduce<Array<{ groupLabel: string; orders: MerchantOrderListItem[] }>>((result, order) => {
     const item = toListItem(order);
     const group = result.find((entry) => entry.groupLabel === item.groupLabel);

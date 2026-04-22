@@ -1,0 +1,110 @@
+.pet-form-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF6E5 0%, #FFFCF4 100%);
+  color: #4F341E;
+}
+
+.pet-form-shell {
+  padding: 16rpx 24rpx calc(96rpx + env(safe-area-inset-bottom));
+}
+
+.pet-form-hero {
+  padding: 18rpx 8rpx 12rpx;
+}
+
+.pet-form-title,
+.pet-form-subtitle,
+.section-title,
+.field-label {
+  display: block;
+}
+
+.pet-form-title {
+  font-size: 50rpx;
+  font-weight: 700;
+}
+
+.pet-form-subtitle {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #7D6C59;
+}
+
+.pet-form-card {
+  margin-top: 18rpx;
+  padding: 34rpx 28rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 251, 234, 0.96);
+  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.field-block {
+  margin-top: 28rpx;
+}
+
+.field-label {
+  margin-bottom: 14rpx;
+  font-size: 24rpx;
+  color: #7F6D59;
+}
+
+.text-input,
+.text-area,
+.picker-shell {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 22rpx;
+  background: #FFF7E7;
+  color: #4F341E;
+}
+
+.text-input,
+.picker-shell {
+  height: 88rpx;
+  padding: 0 24rpx;
+  font-size: 26rpx;
+  line-height: 88rpx;
+}
+
+.gender-row {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.gender-pill {
+  padding: 14rpx 26rpx;
+  border-radius: 999rpx;
+  background: #F6EEE0;
+  font-size: 24rpx;
+  color: #7E6F5B;
+}
+
+.gender-pill.active {
+  background: #F6BE3E;
+  color: #FFFFFF;
+}
+
+.text-area {
+  min-height: 180rpx;
+  padding: 20rpx 24rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.save-button {
+  margin-top: 28rpx;
+  border-radius: 999rpx;
+  background: #4F341E;
+  color: #FFFFFF;
+}
+
+.save-button::after {
+  border: 0;
+}

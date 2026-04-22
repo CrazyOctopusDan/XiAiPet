@@ -1,0 +1,71 @@
+<view class="search-page">
+  <page-nav />
+
+  <view class="search-input-row">
+    <view class="search-input-shell">
+      <text class="search-icon">○</text>
+      <input class="search-input" value="{{keyword}}" placeholder="搜索商品" bindinput="handleKeywordInput" />
+    </view>
+    <text class="cancel-text" bindtap="handleCancelTap">取消</text>
+  </view>
+
+  <view class="results-grid" wx:if="{{results.length}}">
+    <view class="result-card" wx:for="{{results}}" wx:key="id" data-product-id="{{item.id}}" bindtap="handleProductTap">
+      <image class="result-image" mode="aspectFill" src="{{item.thumbnail}}" />
+      <view class="soldout-mask" wx:if="{{item.soldOut}}">
+        <text class="soldout-stamp">售罄</text>
+      </view>
+      <text class="result-name">{{item.name}}</text>
+      <text class="result-summary">{{item.summary}}</text>
+      <text class="result-member">{{item.memberLevelLabel}}</text>
+      <text class="result-stock">库存 {{item.stock}}</text>
+      <text class="result-price">￥{{item.price}}</text>
+      <text class="result-soldout-label" wx:if="{{item.soldOut}}">暂不可售</text>
+      <button class="result-action spec" wx:elif="{{item.specs.length}}" data-product-id="{{item.id}}" data-sold-out="{{item.soldOut}}" data-has-spec="{{item.specs.length > 0}}" catchtap="handleAdd">
+        <text>选规格</text>
+        <view class="result-action-badge" wx:if="{{item.cartQuantity}}">{{item.cartQuantity > 99 ? '99+' : item.cartQuantity}}</view>
+      </button>
+      <view class="result-stepper" wx:elif="{{item.cartQuantity > 0}}" catchtap="handleActionTap">
+        <view class="stepper-circle" data-product-id="{{item.id}}" catchtap="handleMinus">-</view>
+        <text class="stepper-value">{{item.cartQuantity}}</text>
+        <view class="stepper-circle plus" data-product-id="{{item.id}}" catchtap="handleAdd">+</view>
+      </view>
+      <button class="result-action direct" wx:else data-product-id="{{item.id}}" data-sold-out="{{item.soldOut}}" data-has-spec="{{item.specs.length > 0}}" catchtap="handleAdd">+</button>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:elif="{{hasSearched}}">
+    <text class="empty-title">没有匹配到商品</text>
+    <text class="empty-body">试试搜索蛋糕名称、零食关键词或主题词。</text>
+  </view>
+
+  <view class="empty-state guide-state" wx:else>
+    <text class="empty-title">搜索商品</text>
+    <text class="empty-body">输入蛋糕名、主题词或零食关键词，快速找到想要的商品。</text>
+  </view>
+
+  <view class="quick-buy-mask" wx:if="{{showQuickBuy}}" catchtouchmove="handleMaskTouchMove">
+    <view class="quick-buy-panel">
+      <image class="quick-buy-image" mode="aspectFill" src="{{selectedProduct.thumbnail}}" />
+      <view class="quick-buy-close" bindtap="handleQuickBuyClose">×</view>
+      <view class="quick-buy-content">
+        <text class="quick-buy-name">{{selectedProduct.name}}</text>
+        <text class="quick-buy-summary">{{selectedProduct.summary}}</text>
+        <text class="quick-buy-member">{{selectedProduct.memberLevelLabel}}</text>
+        <text class="quick-buy-spec-title">尺寸&amp;口味选择</text>
+        <view class="quick-buy-specs">
+          <view class="quick-buy-spec {{selectedSpecId === item.id ? 'active' : ''}}" wx:for="{{selectedProduct.specs}}" wx:key="id" data-spec-id="{{item.id}}" bindtap="handleSpecTap">{{item.label}}</view>
+        </view>
+      </view>
+      <view class="quick-buy-footer">
+        <text class="quick-buy-price">￥{{selectedSpecPrice}}</text>
+        <view class="quick-buy-stepper">
+          <view class="stepper-btn" bindtap="handleQuantityMinus">-</view>
+          <text class="stepper-count">{{quantity}}</text>
+          <view class="stepper-btn plus" bindtap="handleQuantityPlus">+</view>
+        </view>
+      </view>
+      <button class="quick-buy-submit" bindtap="handleConfirmQuickBuy">加入购物袋</button>
+    </view>
+  </view>
+</view>

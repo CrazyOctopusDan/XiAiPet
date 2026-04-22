@@ -1,0 +1,40 @@
+<view class="pet-form-page">
+  <page-nav />
+
+  <view class="pet-form-shell">
+    <view class="pet-form-hero">
+      <text class="pet-form-title">{{mode === 'edit' ? '编辑宠物档案' : '新增宠物档案'}}</text>
+      <text class="pet-form-subtitle">先把多宠物资料沉淀成独立档案，后续下单只做选择，不再重复录入。</text>
+    </view>
+
+    <view class="pet-form-card">
+      <text class="section-title">基础信息</text>
+
+      <view class="field-block">
+        <text class="field-label">宠物名字</text>
+        <input class="text-input" value="{{form.name}}" bindinput="handleNameInput" placeholder="例如：布丁" />
+      </view>
+
+      <view class="field-block">
+        <text class="field-label">性别</text>
+        <view class="gender-row">
+          <view class="gender-pill {{form.gender === item.value ? 'active' : ''}}" wx:for="{{genderOptions}}" wx:key="value" data-gender="{{item.value}}" bindtap="handleGenderTap">{{item.label}}</view>
+        </view>
+      </view>
+
+      <view class="field-block">
+        <text class="field-label">生日</text>
+        <picker mode="date" value="{{form.birthday}}" bindchange="handleBirthdayChange">
+          <view class="picker-shell">{{form.birthday || '选择生日（可留空）'}}</view>
+        </picker>
+      </view>
+
+      <view class="field-block">
+        <text class="field-label">过敏源 / 饮食备注</text>
+        <textarea class="text-area" value="{{form.allergyNotes}}" bindinput="handleAllergyInput" placeholder="例如：对鸡肉冻干敏感，避免花生酱装饰" />
+      </view>
+    </view>
+
+    <button class="save-button" bindtap="handleSubmit">{{mode === 'edit' ? '保存档案' : '新增档案'}}</button>
+  </view>
+</view>

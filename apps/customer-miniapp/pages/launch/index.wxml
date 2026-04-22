@@ -1,0 +1,12 @@
+<view class="launch-page">
+  <view class="hero">
+    <text class="headline">先连接微信身份，再开始逛店</text>
+    <text class="supporting">完成登录后，我们会为你恢复账号基础身份，后续资料按需补齐。</text>
+  </view>
+  <button class="primary-cta" bindtap="handleBootstrapTap">微信授权登录</button>
+  <view class="status-card">
+    <text class="status-title">身份状态</text>
+    <text class="status-body">{{statusText}}</text>
+  </view>
+  <view class="env-badge">环境 {{envLabel}}</view>
+</view>

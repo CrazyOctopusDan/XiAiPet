@@ -21,6 +21,7 @@ import { getCartItems, getCartSummary, type CartItem } from '../../src/services/
 import { getPets, type PetProfile } from '../../src/services/pets';
 import { getCheckoutPricingPreview, submitOrder } from '../../src/services/order-submit';
 import { hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
+import { setPendingOrdersHighlight } from '../../src/services/tab-navigation';
 
 interface PaymentMethodOption {
   value: PaymentMethod;
@@ -28,14 +29,7 @@ interface PaymentMethodOption {
   hint: string;
 }
 
-interface NavigationMetrics {
-  statusBarHeight: number;
-  navBarHeight: number;
-  contentTop: number;
-}
-
 interface CheckoutPageData {
-  navMetrics: NavigationMetrics;
   items: CartItem[];
   selectedCount: number;
   selectedTotalPrice: number;
@@ -87,31 +81,8 @@ const PAYMENT_METHODS: PaymentMethodOption[] = [
   }
 ];
 
-function getNavigationMetrics(): NavigationMetrics {
-  const windowInfo = wx.getWindowInfo?.() ?? wx.getSystemInfoSync?.() ?? {};
-  const menuButton = wx.getMenuButtonBoundingClientRect?.();
-  const statusBarHeight = windowInfo.statusBarHeight ?? 20;
-
-  if (!menuButton) {
-    const navBarHeight = 44;
-    return {
-      statusBarHeight,
-      navBarHeight,
-      contentTop: statusBarHeight + navBarHeight
-    };
-  }
-
-  const navBarHeight = Math.max(44, menuButton.bottom + menuButton.top - statusBarHeight);
-  return {
-    statusBarHeight,
-    navBarHeight,
-    contentTop: statusBarHeight + navBarHeight
-  };
-}
-
 Page({
   data: {
-    navMetrics: getNavigationMetrics(),
     items: [],
     selectedCount: 0,
     selectedTotalPrice: 0,
@@ -140,9 +111,6 @@ Page({
     payableTotal: 0,
     deliveryFeeLabel: '待确认',
     submitting: false
-  },
-  onLoad(this: CheckoutPageInstance) {
-    this.setData({ navMetrics: getNavigationMetrics() });
   },
   onShow(this: CheckoutPageInstance) {
     this.refreshCheckout();
@@ -197,9 +165,6 @@ Page({
           ? view.deliveryRuleExplainers[0] ?? '按配送距离计算'
           : '当前模式免配送费'
     });
-  },
-  handleBackTap() {
-    wx.navigateBack();
   },
   handleFulfillmentModeTap(this: CheckoutPageInstance, event: { currentTarget?: { dataset?: { mode?: FulfillmentMode } } }) {
     const mode = event.currentTarget?.dataset?.mode;
@@ -322,8 +287,9 @@ Page({
       this.setData({ submitting: false });
 
       if (result.order.status === 'paid') {
-        wx.redirectTo({
-          url: `/pages/orders/index?highlightOrderId=${result.order.id}`
+        setPendingOrdersHighlight(result.order.id);
+        wx.switchTab({
+          url: '/pages/orders/index'
         });
         return;
       }

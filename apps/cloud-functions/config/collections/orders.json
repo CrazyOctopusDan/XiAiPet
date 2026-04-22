@@ -1,0 +1,18 @@
+{
+  "collectionName": "orders",
+  "description": "Customer orders with frozen snapshots and payment state",
+  "fields": [
+    "openid",
+    "orderNo",
+    "status",
+    "idempotencyKey",
+    "paymentMethod",
+    "payment",
+    "pricing",
+    "snapshot",
+    "createdAt",
+    "updatedAt",
+    "paidAt",
+    "cancelledAt"
+  ]
+}

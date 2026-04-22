@@ -14,7 +14,7 @@ import {
   getFulfillmentStatusLabel,
   getPaidFulfillmentChain,
   isTerminalFulfillmentStatus
-} from '../../../../packages/shared/src/rules/order-fulfillment';
+} from '../shared/order-fulfillment';
 
 import { verifyMerchantAccess } from './access';
 

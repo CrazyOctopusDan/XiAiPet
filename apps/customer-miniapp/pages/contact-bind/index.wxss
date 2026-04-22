@@ -1,0 +1,54 @@
+.contact-bind-page {
+  min-height: 100vh;
+  padding: 0 32rpx 48rpx;
+  background: #F6E396;
+  color: #2F241F;
+}
+
+.intro-card,
+.manual-card,
+.status-card {
+  margin-bottom: 24rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: #E7D7C3;
+}
+
+.heading,
+.label {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.body,
+.status-card {
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.primary-cta,
+.secondary-cta {
+  margin-bottom: 24rpx;
+  border-radius: 999rpx;
+}
+
+.primary-cta {
+  background: #D96C4E;
+  color: #FFFFFF;
+}
+
+.secondary-cta {
+  background: rgba(217, 108, 78, 0.16);
+  color: #2F241F;
+}
+
+.input {
+  width: 100%;
+  min-height: 88rpx;
+  margin-bottom: 20rpx;
+  padding: 0 24rpx;
+  border-radius: 20rpx;
+  background: #FFFFFF;
+}

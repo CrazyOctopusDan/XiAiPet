@@ -1,0 +1,8 @@
+{
+  "navigationStyle": "custom",
+  "backgroundColor": "#F9F5D9",
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "page-nav": "/components/page-nav/index"
+  }
+}

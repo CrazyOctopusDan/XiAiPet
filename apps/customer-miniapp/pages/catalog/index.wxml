@@ -1,0 +1,105 @@
+<view class="catalog-page">
+  <page-nav />
+
+  <view class="catalog-main">
+  <view class="delivery-tabs">
+    <view class="delivery-tab {{activeDeliveryMode === item.id ? 'active' : ''}}" wx:for="{{deliveryModes}}" wx:key="id" data-mode="{{item.id}}" bindtap="handleDeliveryModeTap">
+      {{item.label}}
+    </view>
+  </view>
+
+  <view class="catalog-header-row">
+    <view class="search-box" bindtap="handleSearchTap">
+      <text class="search-icon">○</text>
+      <text class="search-placeholder">搜索</text>
+    </view>
+    <view class="hero-chip">{{activeSectionSubtitle}}</view>
+  </view>
+
+  <view class="catalog-body">
+    <scroll-view class="category-column" scroll-y="{{!showQuickBuy}}">
+      <view class="category-item {{activeCategoryId === item.id ? 'active' : ''}}" wx:for="{{categories}}" wx:key="id" data-category-id="{{item.id}}" bindtap="handleCategoryTap">
+        <text class="category-icon">{{item.iconText}}</text>
+        <text class="category-label">{{item.shortName}}</text>
+      </view>
+    </scroll-view>
+
+    <scroll-view class="product-column" scroll-y="{{!showQuickBuy}}" scroll-into-view="{{scrollIntoViewTarget}}" bindscroll="handleProductScroll">
+      <view class="product-section" wx:for="{{sections}}" wx:key="id" id="section-{{item.category.id}}">
+        <view class="section-head">
+          <text class="section-title">{{item.category.name}}</text>
+          <text class="section-subtitle">{{item.category.sectionTitle}}</text>
+        </view>
+
+        <view class="product-grid">
+          <view class="product-card" wx:for="{{item.availableProducts}}" wx:key="id" data-product-id="{{item.id}}" bindtap="handleProductTap">
+            <image class="product-image" mode="aspectFill" src="{{item.thumbnail}}" />
+            <text class="product-name">{{item.name}}</text>
+            <text class="product-summary">{{item.summary}}</text>
+            <text class="product-member">{{item.memberLevelLabel}}</text>
+            <text class="product-price">￥{{item.price}}</text>
+            <button class="product-action spec" wx:if="{{item.cartActionLabel === '选规格'}}" data-product-id="{{item.id}}" catchtap="handleQuickBuyOpen">
+              <text>{{item.cartActionLabel}}</text>
+              <view class="product-action-badge" wx:if="{{item.cartQuantity}}">{{item.cartQuantity > 99 ? '99+' : item.cartQuantity}}</view>
+            </button>
+            <view class="product-stepper" wx:elif="{{item.cartQuantity > 0}}" catchtap="handleActionTap">
+              <view class="stepper-circle" data-product-id="{{item.id}}" catchtap="handleDirectMinus">-</view>
+              <text class="stepper-value">{{item.cartQuantity}}</text>
+              <view class="stepper-circle plus" data-product-id="{{item.id}}" catchtap="handleDirectAdd">+</view>
+            </view>
+            <button class="product-action direct" wx:else data-product-id="{{item.id}}" catchtap="handleDirectAdd">+</button>
+          </view>
+        </view>
+
+        <view class="soldout-toggle" wx:if="{{item.soldOutProducts.length}}" data-category-id="{{item.category.id}}" bindtap="handleToggleSoldOut">
+          {{item.isSoldOutExpanded ? '收起不可售商品' : '查看不可售商品'}}（{{item.soldOutProducts.length}}件）
+        </view>
+
+        <view class="product-grid soldout-grid" wx:if="{{item.isSoldOutExpanded}}">
+          <view class="product-card soldout" wx:for="{{item.soldOutProducts}}" wx:key="id" data-product-id="{{item.id}}" bindtap="handleProductTap">
+            <image class="product-image" mode="aspectFill" src="{{item.thumbnail}}" />
+            <view class="soldout-mask">
+              <text class="soldout-stamp">售罄</text>
+            </view>
+            <text class="product-name">{{item.name}}</text>
+            <text class="product-summary">{{item.summary}}</text>
+            <text class="product-stock">库存 {{item.stock}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="catalog-tail-spacer"></view>
+    </scroll-view>
+  </view>
+  </view>
+
+  <view class="cart-float" bindtap="handleCartTap">
+    <text class="cart-float-icon">车</text>
+    <text class="cart-float-label">购物车</text>
+    <view class="cart-float-badge" wx:if="{{cartCount}}">{{cartCount}}</view>
+  </view>
+
+  <view class="quick-buy-mask" wx:if="{{showQuickBuy}}" catchtouchmove="handleMaskTouchMove">
+    <view class="quick-buy-panel">
+      <image class="quick-buy-image" mode="aspectFill" src="{{selectedProduct.thumbnail}}" />
+      <view class="quick-buy-close" bindtap="handleQuickBuyClose">×</view>
+      <view class="quick-buy-content">
+        <text class="quick-buy-name">{{selectedProduct.name}}</text>
+        <text class="quick-buy-summary">{{selectedProduct.summary}}</text>
+        <text class="quick-buy-member">{{selectedProduct.memberLevelLabel}}</text>
+        <text class="quick-buy-spec-title">尺寸&amp;口味选择</text>
+        <view class="quick-buy-specs">
+          <view class="quick-buy-spec {{selectedSpecId === item.id ? 'active' : ''}}" wx:for="{{selectedProduct.specs}}" wx:key="id" data-spec-id="{{item.id}}" bindtap="handleSpecTap">{{item.label}}</view>
+        </view>
+      </view>
+      <view class="quick-buy-footer">
+        <text class="quick-buy-price">￥{{selectedSpecPrice}}</text>
+        <view class="quick-buy-stepper">
+          <view class="stepper-btn" bindtap="handleQuantityMinus">-</view>
+          <text class="stepper-count">{{quantity}}</text>
+          <view class="stepper-btn plus" bindtap="handleQuantityPlus">+</view>
+        </view>
+      </view>
+      <button class="quick-buy-submit" bindtap="handleConfirmQuickBuy">加入购物袋</button>
+    </view>
+  </view>
+</view>

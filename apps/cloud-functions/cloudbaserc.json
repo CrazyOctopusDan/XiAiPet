@@ -1,0 +1,10 @@
+{
+  "envs": {
+    "dev": {
+      "alias": "dev"
+    },
+    "prod": {
+      "alias": "prod"
+    }
+  }
+}

@@ -1,11 +1,5 @@
 <view class="checkout-page">
-  <view class="page-nav" style="height: {{navMetrics.contentTop}}px; padding-top: {{navMetrics.statusBarHeight}}px;">
-    <view class="page-nav-bar" style="height: {{navMetrics.navBarHeight}}px;">
-      <view class="nav-back" bindtap="handleBackTap">
-        <view class="nav-back-icon"></view>
-      </view>
-    </view>
-  </view>
+  <page-nav />
 
   <view class="checkout-shell">
     <view class="checkout-hero">

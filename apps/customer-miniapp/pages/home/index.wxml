@@ -2,26 +2,14 @@
   <image class="hero-poster" mode="widthFix" src="{{heroBannerSrc}}" />
 
   <view class="module-grid">
-    <view class="module-card" wx:for="{{modules}}" wx:key="id" data-module-id="{{item.id}}" bindtap="handleModuleTap">
-      <view class="module-icon" style="background: {{item.accent}};"></view>
-      <text class="module-title">{{item.title}}</text>
-      <text class="module-subtitle">{{item.subtitle}}</text>
-      <text class="module-description">{{item.description}}</text>
-    </view>
-  </view>
-
-  <view class="home-tabbar">
-    <view class="tab-item active" bindtap="handleHomeTap">
-      <text class="tab-icon">⌂</text>
-      <text class="tab-label">首页</text>
-    </view>
-    <view class="tab-item center" bindtap="handleOrdersTap">
-      <view class="center-button">单</view>
-      <text class="tab-label active-label">订单</text>
-    </view>
-    <view class="tab-item" bindtap="handleProfileTap">
-      <text class="tab-icon">○</text>
-      <text class="tab-label">个人中心</text>
-    </view>
+    <image
+      class="module-card"
+      wx:for="{{modules}}"
+      wx:key="id"
+      mode="widthFix"
+      src="{{item.imageSrc}}"
+      data-module-id="{{item.id}}"
+      bindtap="handleModuleTap"
+    />
   </view>
 </view>

@@ -1,0 +1,139 @@
+.profile-page {
+  min-height: 100vh;
+  padding: 56rpx 24rpx calc(242rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #FBF6DB 0%, #FFFDF4 100%);
+  color: #4F341E;
+}
+
+.profile-hero {
+  padding: 36rpx 12rpx 32rpx;
+}
+
+.profile-title {
+  display: block;
+  font-size: 52rpx;
+  font-weight: 700;
+}
+
+.profile-subtitle {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: #7D6C59;
+}
+
+.profile-card {
+  margin-top: 18rpx;
+  padding: 36rpx 30rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 251, 234, 0.96);
+  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+}
+
+.profile-summary-card {
+  margin-top: 0;
+}
+
+.card-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.card-body {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #867462;
+}
+
+.summary-head,
+.summary-metrics,
+.entry-row {
+  display: flex;
+}
+
+.summary-head {
+  align-items: center;
+  gap: 20rpx;
+}
+
+.summary-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 56rpx;
+  background: linear-gradient(180deg, #F1D256 0%, #D9A15B 100%);
+  font-size: 46rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.summary-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-metrics {
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.metric-pill {
+  min-width: 180rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 24rpx;
+  background: #FFF6D8;
+}
+
+.metric-label,
+.metric-value,
+.entry-title,
+.entry-copy {
+  display: block;
+}
+
+.metric-label {
+  font-size: 20rpx;
+  color: #9A886F;
+}
+
+.metric-value {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #574737;
+}
+
+.entry-row {
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+}
+
+.entry-row + .entry-row {
+  border-top: 2rpx solid rgba(79, 52, 30, 0.06);
+}
+
+.entry-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #4F341E;
+}
+
+.entry-copy {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #8A7865;
+}
+
+.entry-arrow {
+  font-size: 40rpx;
+  color: #C49A68;
+}

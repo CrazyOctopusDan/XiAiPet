@@ -1,0 +1,97 @@
+<view class="cart-page">
+  <page-nav />
+
+  <view class="cart-shell" wx:if="{{items.length}}">
+    <view class="cart-toolbar">
+      <view class="select-all" bindtap="handleToggleAll">
+        <view class="checkbox {{isAllSelected ? 'active' : ''}}">{{isAllSelected ? '✓' : ''}}</view>
+        <text class="select-all-label">全选</text>
+      </view>
+      <text class="clear-action" bindtap="handleClearCart">清空</text>
+    </view>
+
+    <view class="cart-list">
+      <scroll-view class="cart-list-scroll" scroll-y enable-flex>
+        <view
+          class="cart-swipe-row"
+          wx:for="{{items}}"
+          wx:key="id"
+        >
+          <view class="cart-delete-action" data-item-id="{{item.id}}" bindtap="handleRequestDelete">
+            <text class="cart-delete-label">删除</text>
+          </view>
+
+          <view
+            class="cart-row {{swipedItemId === item.id ? 'swiped' : ''}}"
+            data-item-id="{{item.id}}"
+            bindtouchstart="handleRowSwipeStart"
+            bindtouchmove="handleRowSwipeMove"
+            bindtouchend="handleRowSwipeEnd"
+            bindtouchcancel="handleRowSwipeEnd"
+          >
+            <view class="row-check" bindtap="handleToggleItem" data-item-id="{{item.id}}">
+              <view class="checkbox {{item.selected ? 'active' : ''}}">{{item.selected ? '✓' : ''}}</view>
+            </view>
+
+            <image class="row-image" mode="aspectFill" src="{{item.thumbnail}}" />
+
+            <view class="row-main">
+              <text class="row-name">{{item.name}}</text>
+
+              <view class="row-meta">
+                <view class="row-spec-trigger" wx:if="{{item.specs.length}}" data-item-id="{{item.id}}" bindtap="handleOpenSpecModal">
+                  <text class="row-spec-label">{{item.specLabel || '选择规格'}}</text>
+                  <text class="row-spec-arrow">∨</text>
+                </view>
+                <text class="row-stock">库存 {{item.stock}}</text>
+              </view>
+
+              <view class="row-footer">
+                <text class="row-price">￥{{item.price}}</text>
+                <view class="row-stepper">
+                  <view class="stepper-btn" data-item-id="{{item.id}}" bindtap="handleMinus">-</view>
+                  <text class="stepper-count">{{item.quantity}}</text>
+                  <view class="stepper-btn plus" data-item-id="{{item.id}}" bindtap="handlePlus">+</view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text class="empty-title">购物车还是空的</text>
+    <text class="empty-body">先去挑几款蛋糕或零食，再回来结算。</text>
+    <button class="empty-action" bindtap="handleContinueShopping">去逛逛</button>
+  </view>
+
+  <view class="cart-bottom-bar">
+    <view class="bottom-summary">
+      <view class="bottom-total">
+        已选 {{selectedCount}} 件 合计
+        <text class="bottom-total-price">￥{{selectedTotalPrice}}</text>
+      </view>
+    </view>
+    <view class="bottom-actions">
+      <button class="checkout-button {{selectedCount ? '' : 'disabled'}}" disabled="{{!selectedCount}}" bindtap="handleCheckout">结算</button>
+    </view>
+  </view>
+
+  <view class="quick-buy-mask" wx:if="{{showSpecModal}}">
+    <view class="quick-buy-panel">
+      <image class="quick-buy-image" mode="aspectFill" src="{{editingItem.thumbnail}}" />
+      <view class="quick-buy-close" bindtap="handleCloseSpecModal">×</view>
+      <view class="quick-buy-content">
+        <text class="quick-buy-name">{{editingItem.name}}</text>
+        <text class="quick-buy-summary">{{editingItem.summary}}</text>
+        <text class="quick-buy-spec-title">尺寸&amp;口味选择</text>
+        <view class="quick-buy-specs">
+          <view class="quick-buy-spec {{editingSpecId === item.id ? 'active' : ''}}" wx:for="{{editingItem.specs}}" wx:key="id" data-spec-id="{{item.id}}" bindtap="handleEditingSpecTap">{{item.label}}</view>
+        </view>
+      </view>
+      <button class="quick-buy-submit" bindtap="handleConfirmSpec">更新购物车</button>
+    </view>
+  </view>
+</view>

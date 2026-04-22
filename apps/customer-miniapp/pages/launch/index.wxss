@@ -1,0 +1,57 @@
+.launch-page {
+  min-height: 100vh;
+  padding: 64rpx 32rpx 48rpx;
+  background: #F6E396;
+  color: #2F241F;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 48rpx;
+}
+
+.headline {
+  font-size: 56rpx;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.supporting {
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.primary-cta {
+  margin-bottom: 32rpx;
+  border-radius: 999rpx;
+  background: #D96C4E;
+  color: #FFFFFF;
+}
+
+.status-card {
+  padding: 32rpx;
+  border-radius: 32rpx;
+  background: #E7D7C3;
+}
+
+.status-title {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.status-body,
+.env-badge {
+  font-size: 26rpx;
+}
+
+.env-badge {
+  display: inline-block;
+  margin-top: 24rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(217, 108, 78, 0.18);
+}

@@ -1,0 +1,44 @@
+<view class="address-page">
+  <page-nav />
+
+  <view class="address-shell">
+    <view class="address-hero">
+      <text class="address-title">我的地址</text>
+      <text class="address-subtitle">同城配送和快递地址共用一套地址簿，当前只把选择与回填链路打通。</text>
+    </view>
+
+    <view class="type-switch-card">
+      <view class="type-pill {{activeType === item.value ? 'active' : ''}}" wx:for="{{addressTypes}}" wx:key="value" data-type="{{item.value}}" bindtap="handleTypeTap">
+        <text class="type-pill-label">{{item.label}}</text>
+        <text class="type-pill-hint">{{item.hint}}</text>
+      </view>
+    </view>
+
+    <view class="address-list" wx:if="{{addresses.length}}">
+      <view class="address-card" wx:for="{{addresses}}" wx:key="id">
+        <view class="address-card-head">
+          <view>
+            <text class="address-name">{{item.recipientName}}</text>
+            <text class="address-phone">{{item.phoneNumber}}</text>
+          </view>
+          <view class="address-card-meta">
+            <text class="address-tag">{{item.tag}}</text>
+            <text class="address-current" wx:if="{{selectedAddressId === item.id}}">当前默认</text>
+          </view>
+        </view>
+        <text class="address-detail">{{item.regionLabel}} {{item.detailAddress}}</text>
+        <view class="address-actions">
+          <view class="address-action ghost" data-address-id="{{item.id}}" bindtap="handleEditAddress">编辑</view>
+          <view class="address-action primary" data-address-id="{{item.id}}" bindtap="handleSelectAddress">{{isCheckoutSelection ? '选这个地址' : '设为默认'}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>
+      <text class="empty-title">这一类地址还是空的</text>
+      <text class="empty-copy">先补一条 {{activeType === 'city' ? '同城配送' : '快递到家'}} 地址，后续 checkout 会直接消费这里的结果。</text>
+    </view>
+
+    <button class="address-add-button" bindtap="handleAddAddress">新增{{activeType === 'city' ? '同城' : '快递'}}地址</button>
+  </view>
+</view>

@@ -1,0 +1,18 @@
+<view class="page-nav" style="height: {{reserveSpace ? navMetrics.contentTop : 0}}px;">
+  <view
+    class="page-nav-bar {{fixed ? 'is-fixed' : ''}} page-nav-bar--{{background}}"
+    style="{{fixed ? 'top:' + navMetrics.statusBarHeight + 'px;' : ''}} height: {{navMetrics.navBarHeight}}px;"
+  >
+    <view
+      class="page-nav-back page-nav-back--{{theme}}"
+      wx:if="{{showBack}}"
+      bindtap="handleBackTap"
+    >
+      <view class="page-nav-back-icon page-nav-back-icon--{{theme}}"></view>
+    </view>
+
+    <text class="page-nav-title page-nav-title--{{theme}}" wx:if="{{title}}">
+      {{title}}
+    </text>
+  </view>
+</view>

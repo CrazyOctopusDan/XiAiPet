@@ -1,0 +1,10 @@
+{
+  "collectionName": "balance_accounts",
+  "description": "Customer balance accounts used by backend balance payment",
+  "fields": [
+    "openid",
+    "balance",
+    "createdAt",
+    "updatedAt"
+  ]
+}

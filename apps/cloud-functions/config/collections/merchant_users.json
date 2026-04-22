@@ -1,0 +1,11 @@
+{
+  "collectionName": "merchant_users",
+  "description": "Merchant whitelist entries",
+  "fields": [
+    "openid",
+    "merchantId",
+    "storeName",
+    "enabled",
+    "grantedAt"
+  ]
+}

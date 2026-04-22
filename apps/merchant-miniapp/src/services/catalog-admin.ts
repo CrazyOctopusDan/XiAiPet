@@ -9,8 +9,8 @@ import type {
   CatalogProductFormulaOption,
   CatalogProductPriceOverride,
   CatalogProductSpecOption
-} from '../../../../packages/shared/src/types/catalog-admin';
-import { resolveProductCombinationPrice } from '../../../../packages/shared/src/rules/product-pricing';
+} from '@xiaipet/shared/types/catalog-admin';
+import { resolveProductCombinationPrice } from '../shared/product-pricing';
 
 export interface MerchantCategoryListItem extends CatalogCategoryRecord {
   linkedProductCount: number;

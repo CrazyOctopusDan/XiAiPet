@@ -6,6 +6,7 @@ const cart_1 = require("../../src/services/cart");
 const pets_1 = require("../../src/services/pets");
 const order_submit_1 = require("../../src/services/order-submit");
 const runtime_config_1 = require("../../src/services/runtime-config");
+const tab_navigation_1 = require("../../src/services/tab-navigation");
 const PAYMENT_METHODS = [
     {
         value: 'wechat',
@@ -18,29 +19,8 @@ const PAYMENT_METHODS = [
         hint: '优先扣除当前账户余额'
     }
 ];
-function getNavigationMetrics() {
-    var _a, _b, _c, _d, _e, _f;
-    const windowInfo = (_d = (_b = (_a = wx.getWindowInfo) === null || _a === void 0 ? void 0 : _a.call(wx)) !== null && _b !== void 0 ? _b : (_c = wx.getSystemInfoSync) === null || _c === void 0 ? void 0 : _c.call(wx)) !== null && _d !== void 0 ? _d : {};
-    const menuButton = (_e = wx.getMenuButtonBoundingClientRect) === null || _e === void 0 ? void 0 : _e.call(wx);
-    const statusBarHeight = (_f = windowInfo.statusBarHeight) !== null && _f !== void 0 ? _f : 20;
-    if (!menuButton) {
-        const navBarHeight = 44;
-        return {
-            statusBarHeight,
-            navBarHeight,
-            contentTop: statusBarHeight + navBarHeight
-        };
-    }
-    const navBarHeight = Math.max(44, menuButton.bottom + menuButton.top - statusBarHeight);
-    return {
-        statusBarHeight,
-        navBarHeight,
-        contentTop: statusBarHeight + navBarHeight
-    };
-}
 Page({
     data: {
-        navMetrics: getNavigationMetrics(),
         items: [],
         selectedCount: 0,
         selectedTotalPrice: 0,
@@ -69,9 +49,6 @@ Page({
         payableTotal: 0,
         deliveryFeeLabel: '待确认',
         submitting: false
-    },
-    onLoad() {
-        this.setData({ navMetrics: getNavigationMetrics() });
     },
     onShow() {
         this.refreshCheckout();
@@ -126,9 +103,6 @@ Page({
                 ? (_b = view.deliveryRuleExplainers[0]) !== null && _b !== void 0 ? _b : '按配送距离计算'
                 : '当前模式免配送费'
         });
-    },
-    handleBackTap() {
-        wx.navigateBack();
     },
     handleFulfillmentModeTap(event) {
         var _a, _b;
@@ -237,8 +211,9 @@ Page({
             const result = await (0, order_submit_1.submitOrder)(this.data.activePaymentMethod);
             this.setData({ submitting: false });
             if (result.order.status === 'paid') {
-                wx.redirectTo({
-                    url: `/pages/orders/index?highlightOrderId=${result.order.id}`
+                (0, tab_navigation_1.setPendingOrdersHighlight)(result.order.id);
+                wx.switchTab({
+                    url: '/pages/orders/index'
                 });
                 return;
             }

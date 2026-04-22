@@ -1,0 +1,75 @@
+<view class="order-detail-page">
+  <view class="detail-hero">
+    <text class="detail-title">订单详情</text>
+    <text class="detail-subtitle">这里展示的是下单时冻结下来的订单快照。</text>
+  </view>
+
+  <view class="detail-card empty-card" wx:if="{{isEmpty}}">
+    <text class="detail-section-title">订单不存在</text>
+    <text class="detail-copy">当前没有找到这笔订单，返回订单列表重新查看。</text>
+    <button class="detail-button" bindtap="handleOpenOrders">返回订单列表</button>
+  </view>
+
+  <view wx:else>
+    <view class="detail-card">
+      <view class="detail-head">
+        <view>
+          <text class="detail-order-id">{{detail.id}}</text>
+          <text class="detail-order-time">{{detail.createdAtLabel}}</text>
+        </view>
+        <text class="detail-status">{{detail.statusLabel}}</text>
+      </view>
+      <view class="detail-meta-row">
+        <text class="detail-meta-label">履约方式</text>
+        <text class="detail-meta-value">{{detail.fulfillmentLabel}}</text>
+      </view>
+      <view class="detail-meta-row">
+        <text class="detail-meta-label">预约时间</text>
+        <text class="detail-meta-value">{{detail.scheduleLabel}}</text>
+      </view>
+      <view class="detail-meta-row">
+        <text class="detail-meta-label">支付方式</text>
+        <text class="detail-meta-value">{{detail.paymentMethodLabel}}</text>
+      </view>
+    </view>
+
+    <view class="detail-card">
+      <text class="detail-section-title">履约信息</text>
+      <text class="detail-copy">{{detail.addressLabel}}</text>
+      <text class="detail-copy">{{detail.contactLabel}}</text>
+      <text class="detail-copy">适用宠物：{{detail.petNamesLabel}}</text>
+    </view>
+
+    <view class="detail-card">
+      <text class="detail-section-title">商品清单</text>
+      <view class="detail-item" wx:for="{{detail.items}}" wx:key="name">
+        <view>
+          <text class="detail-item-name">{{item.name}}</text>
+          <text class="detail-item-spec">{{item.specLabel}} {{item.quantityLabel}}</text>
+        </view>
+        <text class="detail-item-total">{{item.lineTotalLabel}}</text>
+      </view>
+    </view>
+
+    <view class="detail-card">
+      <text class="detail-section-title">金额汇总</text>
+      <view class="detail-meta-row">
+        <text class="detail-meta-label">商品小计</text>
+        <text class="detail-meta-value">{{detail.itemsSubtotalLabel}}</text>
+      </view>
+      <view class="detail-meta-row">
+        <text class="detail-meta-label">配送费</text>
+        <text class="detail-meta-value">{{detail.deliveryFeeLabel}}</text>
+      </view>
+      <view class="detail-meta-row total-row">
+        <text class="detail-meta-label">实付金额</text>
+        <text class="detail-total">{{detail.payableTotalLabel}}</text>
+      </view>
+    </view>
+
+    <view class="detail-card">
+      <text class="detail-section-title">订单备注</text>
+      <text class="detail-copy">{{detail.remark}}</text>
+    </view>
+  </view>
+</view>

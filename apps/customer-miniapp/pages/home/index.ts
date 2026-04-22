@@ -1,7 +1,7 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import { getHomeModules } from '../../src/services/catalog';
+import { getHomeModules, resolveHomeModuleImageSources } from '../../src/services/catalog';
 import { getCachedCustomerRuntimeConfig, hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 
 interface NavigationMetrics {
@@ -13,6 +13,14 @@ interface NavigationMetrics {
 interface HomePageInstance {
   setData(data: Record<string, unknown>): void;
   refreshHome(): Promise<void>;
+  getTabBar?(): { setSelectedKey?: (key: string) => void } | undefined;
+}
+
+function buildHomeModulesFallback() {
+  return getHomeModules().map((module) => ({
+    ...module,
+    imageSrc: module.imageFileId
+  }));
 }
 
 function getNavigationMetrics(): NavigationMetrics {
@@ -39,18 +47,21 @@ function getNavigationMetrics(): NavigationMetrics {
 
 Page({
   data: {
-    modules: getHomeModules(),
+    modules: buildHomeModulesFallback(),
     heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId
   },
   onShow(this: HomePageInstance) {
+    this.getTabBar?.()?.setSelectedKey?.('home');
     void this.refreshHome();
   },
   async refreshHome(this: HomePageInstance) {
+    const modulePromise = resolveHomeModuleImageSources();
+
     try {
       await hydrateCustomerRuntimeConfig();
     } finally {
       this.setData({
-        modules: getHomeModules(),
+        modules: await modulePromise,
         heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId
       });
     }

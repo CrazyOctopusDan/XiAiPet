@@ -5,7 +5,7 @@ exports.getMerchantOrdersPageViewModel = getMerchantOrdersPageViewModel;
 exports.getMerchantOrderDetail = getMerchantOrderDetail;
 exports.getMerchantOrderDetailViewModel = getMerchantOrderDetailViewModel;
 exports.updateMerchantOrderStatus = updateMerchantOrderStatus;
-const order_fulfillment_1 = require("../../../../packages/shared/src/rules/order-fulfillment");
+const order_fulfillment_1 = require("../shared/order-fulfillment");
 const access_1 = require("./access");
 function getCloudCaller() {
     return (payload) => wx.cloud.callFunction(payload);

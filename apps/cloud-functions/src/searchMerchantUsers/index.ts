@@ -1,8 +1,10 @@
 import {
-  isMerchantUserSearchInput,
-  type MerchantUserSearchInput,
-  type MerchantUserSearchListItem
+  isMerchantUserSearchInput
 } from '../../../../packages/shared/src/schema/user-admin';
+import type {
+  MerchantUserSearchInput,
+  MerchantUserSearchListItem
+} from '@xiaipet/shared/types/user-admin';
 
 import { main as assertMerchantAccess } from '../assertMerchantAccess/index';
 import { type FunctionContextLike } from '../shared/auth-context';

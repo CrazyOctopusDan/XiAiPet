@@ -1,0 +1,15 @@
+[
+  {
+    "collectionName": "merchant_users",
+    "fields": [
+      {
+        "field": "openid",
+        "order": "asc"
+      },
+      {
+        "field": "enabled",
+        "order": "asc"
+      }
+    ]
+  }
+]

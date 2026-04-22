@@ -1,0 +1,31 @@
+<view class="pets-page">
+  <page-nav />
+
+  <view class="pets-shell">
+    <view class="pets-hero">
+      <text class="pets-title">宠物档案</text>
+      <text class="pets-subtitle">先把多宠物资料独立管理好，Phase 5 才能直接承接多宠物选择和订单回填。</text>
+    </view>
+
+    <view class="pet-list" wx:if="{{pets.length}}">
+      <view class="pet-card" wx:for="{{pets}}" wx:key="id">
+        <view class="pet-card-head">
+          <view>
+            <text class="pet-name">{{item.name}}</text>
+            <text class="pet-meta">{{item.gender === 'female' ? '女孩' : item.gender === 'male' ? '男孩' : '未设置性别'}} · {{item.birthday || '未设置生日'}}</text>
+          </view>
+          <view class="pet-edit" data-pet-id="{{item.id}}" bindtap="handleEditPet">编辑</view>
+        </view>
+        <text class="pet-allergy-label">过敏源 / 备注</text>
+        <text class="pet-allergy-copy">{{item.allergyNotes || '暂无特殊备注'}}</text>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>
+      <text class="empty-title">还没有宠物档案</text>
+      <text class="empty-copy">先录入名字、性别、生日和过敏源，后续 checkout 会直接复用这里的资料。</text>
+    </view>
+
+    <button class="pet-add-button" bindtap="handleAddPet">新增宠物档案</button>
+  </view>
+</view>

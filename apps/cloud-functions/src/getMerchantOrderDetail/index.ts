@@ -81,7 +81,7 @@ export async function main(
     throw new Error('ORDER_NOT_FOUND');
   }
 
-  const order = await store.getById<MerchantManagedOrderRecord>(event.orderId);
+  const order = (await store.getById(event.orderId)) as MerchantManagedOrderRecord | null;
 
   if (!order) {
     throw new Error('ORDER_NOT_FOUND');

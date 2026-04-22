@@ -1,7 +1,7 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import type { RuntimeConfigSectionDocument, RuntimeConfigSectionId } from '../../../../packages/shared/src/types/runtime-config';
+import type { RuntimeConfigSectionDocument, RuntimeConfigSectionId } from '@xiaipet/shared/types/runtime-config';
 
 import {
   LOCKED_DELIVERY_RULE_ROWS,

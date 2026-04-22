@@ -20,6 +20,7 @@ async function loadPageModule(modulePath: string) {
     getSystemInfoSync: () => ({ statusBarHeight: 20 }),
     getMenuButtonBoundingClientRect: () => null,
     showToast: vi.fn(),
+    showModal: vi.fn(),
     navigateTo: vi.fn(),
     navigateBack: vi.fn(),
     redirectTo: vi.fn(),
@@ -139,6 +140,247 @@ describe('cart checkout flow', () => {
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/checkout/index?source=cart'
     });
+  });
+
+  it('blocks checkout after deselecting all cart items', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { readFile } = await import('node:fs/promises');
+
+    clearCart();
+
+    const firstProduct = getProductById('sea-sponge');
+    const secondProduct = getProductById('ocean-party');
+
+    if (!firstProduct || !secondProduct) {
+      throw new Error('missing checkout block fixtures');
+    }
+
+    addCartItem(firstProduct, '', 1);
+    addCartItem(secondProduct, secondProduct.specs[0]?.id ?? '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    expect(instance.data.selectedCount).toBe(2);
+    expect(instance.data.isAllSelected).toBe(true);
+
+    instance.handleToggleAll();
+
+    expect(instance.data.selectedCount).toBe(0);
+    expect(instance.data.selectedTotalPrice).toBe(0);
+    expect(instance.data.isAllSelected).toBe(false);
+
+    const cartTemplate = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.wxml',
+      'utf8'
+    );
+
+    expect(cartTemplate).toMatch(
+      /<button class="checkout-button \{\{selectedCount \? '' : 'disabled'\}\}" disabled="\{\{!selectedCount\}\}" bindtap="handleCheckout">结算<\/button>/
+    );
+
+    instance.handleCheckout();
+
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '请选择商品',
+      icon: 'none'
+    });
+    expect(wx.navigateTo).not.toHaveBeenCalled();
+  });
+
+  it('keeps the edited cart row in place when a spec update merges into another row', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+
+    clearCart();
+
+    const fillerProduct = getProductById('sea-sponge');
+    const specProduct = getProductById('ocean-party');
+
+    if (!fillerProduct || !specProduct || specProduct.specs.length < 2) {
+      throw new Error('missing cart spec fixtures');
+    }
+
+    addCartItem(fillerProduct, '', 1);
+    addCartItem(specProduct, specProduct.specs[0]!.id, 1);
+    addCartItem(specProduct, specProduct.specs[1]!.id, 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    expect(instance.data.items.map((item: { id: string }) => item.id)).toEqual([
+      `${fillerProduct.id}::default`,
+      `${specProduct.id}::${specProduct.specs[0]!.id}`,
+      `${specProduct.id}::${specProduct.specs[1]!.id}`
+    ]);
+
+    instance.handleOpenSpecModal({
+      currentTarget: {
+        dataset: {
+          itemId: `${specProduct.id}::${specProduct.specs[1]!.id}`
+        }
+      }
+    });
+    instance.handleEditingSpecTap({
+      currentTarget: {
+        dataset: {
+          specId: specProduct.specs[0]!.id
+        }
+      }
+    });
+    instance.handleConfirmSpec();
+
+    expect(instance.data.items.map((item: { id: string }) => item.id)).toEqual([
+      `${fillerProduct.id}::default`,
+      `${specProduct.id}::${specProduct.specs[0]!.id}`
+    ]);
+    expect(instance.data.items[1]).toMatchObject({
+      id: `${specProduct.id}::${specProduct.specs[0]!.id}`,
+      quantity: 2
+    });
+  });
+
+  it('shows a stock warning and keeps the original row when a spec update would exceed stock', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+
+    clearCart();
+
+    const specProduct = getProductById('ocean-party');
+
+    if (!specProduct || specProduct.specs.length < 2) {
+      throw new Error('missing stock warning fixtures');
+    }
+
+    addCartItem(specProduct, specProduct.specs[0]!.id, 1);
+    addCartItem(specProduct, specProduct.specs[1]!.id, specProduct.stock);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    const beforeItems = instance.data.items.map((item: { id: string; quantity: number }) => ({
+      id: item.id,
+      quantity: item.quantity
+    }));
+
+    instance.handleOpenSpecModal({
+      currentTarget: {
+        dataset: {
+          itemId: `${specProduct.id}::${specProduct.specs[0]!.id}`
+        }
+      }
+    });
+    instance.handleEditingSpecTap({
+      currentTarget: {
+        dataset: {
+          specId: specProduct.specs[1]!.id
+        }
+      }
+    });
+    instance.handleConfirmSpec();
+
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '库存不足，请看看别的吧~',
+      icon: 'none'
+    });
+    expect(instance.data.items.map((item: { id: string; quantity: number }) => ({
+      id: item.id,
+      quantity: item.quantity
+    }))).toEqual(beforeItems);
+  });
+
+  it('reveals one swipe-delete row at a time, allows right-swipe collapse, and only deletes after confirmation', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+
+    clearCart();
+
+    const directProduct = getProductById('sea-sponge');
+    const specProduct = getProductById('ocean-party');
+
+    if (!directProduct || !specProduct) {
+      throw new Error('missing swipe delete fixtures');
+    }
+
+    addCartItem(directProduct, '', 1);
+    addCartItem(specProduct, specProduct.specs[0]?.id ?? '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    const firstItemId = `${directProduct.id}::default`;
+    const secondItemId = `${specProduct.id}::${specProduct.specs[0]!.id}`;
+
+    instance.handleRowSwipeStart({
+      currentTarget: { dataset: { itemId: firstItemId } },
+      touches: [{ clientX: 200 }]
+    });
+    instance.handleRowSwipeMove({
+      currentTarget: { dataset: { itemId: firstItemId } },
+      touches: [{ clientX: 140 }]
+    });
+
+    expect(instance.data.swipedItemId).toBe(firstItemId);
+
+    instance.handleRowSwipeStart({
+      currentTarget: { dataset: { itemId: secondItemId } },
+      touches: [{ clientX: 220 }]
+    });
+    instance.handleRowSwipeMove({
+      currentTarget: { dataset: { itemId: secondItemId } },
+      touches: [{ clientX: 150 }]
+    });
+
+    expect(instance.data.swipedItemId).toBe(secondItemId);
+
+    instance.handleRowSwipeStart({
+      currentTarget: { dataset: { itemId: secondItemId } },
+      touches: [{ clientX: 150 }]
+    });
+    instance.handleRowSwipeMove({
+      currentTarget: { dataset: { itemId: secondItemId } },
+      touches: [{ clientX: 212 }]
+    });
+
+    expect(instance.data.swipedItemId).toBe('');
+
+    instance.handleRowSwipeStart({
+      currentTarget: { dataset: { itemId: secondItemId } },
+      touches: [{ clientX: 220 }]
+    });
+    instance.handleRowSwipeMove({
+      currentTarget: { dataset: { itemId: secondItemId } },
+      touches: [{ clientX: 150 }]
+    });
+
+    expect(instance.data.swipedItemId).toBe(secondItemId);
+
+    wx.showModal = vi.fn().mockResolvedValueOnce({ confirm: false, cancel: true });
+    await instance.handleRequestDelete({
+      currentTarget: { dataset: { itemId: secondItemId } }
+    });
+
+    expect(wx.showModal).toHaveBeenCalledWith({
+      title: '删除商品',
+      content: '确认把这个商品从购物车中删除吗？',
+      confirmText: '删除',
+      confirmColor: '#FF3B30'
+    });
+    expect(instance.data.items.map((item: { id: string }) => item.id)).toEqual([firstItemId, secondItemId]);
+    expect(instance.data.swipedItemId).toBe(secondItemId);
+
+    wx.showModal = vi.fn().mockResolvedValueOnce({ confirm: true, cancel: false });
+    await instance.handleRequestDelete({
+      currentTarget: { dataset: { itemId: secondItemId } }
+    });
+
+    expect(instance.data.items.map((item: { id: string }) => item.id)).toEqual([firstItemId]);
+    expect(instance.data.swipedItemId).toBe('');
   });
 
   it('shows only selected cart rows on the checkout handoff page', async () => {

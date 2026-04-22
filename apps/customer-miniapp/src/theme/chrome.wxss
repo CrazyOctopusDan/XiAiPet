@@ -1,0 +1,42 @@
+.back-arrow {
+  font-size: 72rpx;
+  color: #1E1E1E;
+}
+
+.mini-capsule {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 18rpx 24rpx;
+  border: 2rpx solid rgba(79, 52, 30, 0.12);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.capsule-dot,
+.capsule-line,
+.capsule-ring {
+  display: block;
+  background: #2B261D;
+}
+
+.capsule-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  box-shadow: 22rpx 0 0 #2B261D, 44rpx 0 0 #2B261D;
+}
+
+.capsule-line {
+  width: 28rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+}
+
+.capsule-ring {
+  width: 26rpx;
+  height: 26rpx;
+  border: 6rpx solid #2B261D;
+  border-radius: 50%;
+  background: transparent;
+}

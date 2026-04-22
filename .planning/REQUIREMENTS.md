@@ -30,13 +30,13 @@
 
 ### Catalog
 
-- [ ] **CAT-01**: 用户可以在首页查看标题、Banner、提前预定入口和入会权益模块。
-- [ ] **CAT-02**: 用户可以在购物列表页按自取、配送、快递切换商品视图，并按一级分类/二级分类浏览商品。
-- [ ] **CAT-03**: 商品列表滚动时，左侧分类会联动聚焦；售罄商品默认折叠，可展开查看。
-- [ ] **CAT-04**: 用户可以通过节流搜索快速查找商品，并在无结果时看到空状态。
-- [ ] **CAT-05**: 用户可以查看商品详情，包括轮播图、简介、会员等级限制、规格配方信息和长图详情。
-- [ ] **CAT-06**: 用户可以从商品详情页分享商品到微信。
-- [ ] **CAT-07**: 商品列表和详情会正确体现库存售罄状态与会员等级可购门槛。
+- [x] **CAT-01**: 用户可以在首页查看标题、Banner、提前预定入口和入会权益模块。
+- [x] **CAT-02**: 用户可以在购物列表页按自取、配送、快递切换商品视图，并按一级分类/二级分类浏览商品。
+- [x] **CAT-03**: 商品列表滚动时，左侧分类会联动聚焦；售罄商品默认折叠，可展开查看。
+- [x] **CAT-04**: 用户可以通过节流搜索快速查找商品，并在无结果时看到空状态。
+- [x] **CAT-05**: 用户可以查看商品详情，包括轮播图、简介、会员等级限制、规格配方信息和长图详情。
+- [x] **CAT-06**: 用户可以从商品详情页分享商品到微信。
+- [x] **CAT-07**: 商品列表和详情会正确体现库存售罄状态与会员等级可购门槛。
 
 ### Cart
 
@@ -117,15 +117,15 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| CAT-01 | Phase 2 | Pending |
-| CAT-02 | Phase 2 | Pending |
-| CAT-03 | Phase 2 | Pending |
-| CAT-04 | Phase 2 | Pending |
-| CAT-05 | Phase 2 | Pending |
-| CAT-06 | Phase 2 | Pending |
-| CAT-07 | Phase 2 | Pending |
+| AUTH-01 | Phase 1 | Implemented |
+| AUTH-02 | Phase 1 | Implemented |
+| CAT-01 | Phase 2 | Implemented |
+| CAT-02 | Phase 2 | Implemented |
+| CAT-03 | Phase 2 | Implemented |
+| CAT-04 | Phase 2 | Implemented |
+| CAT-05 | Phase 2 | Implemented |
+| CAT-06 | Phase 2 | Implemented |
+| CAT-07 | Phase 2 | Implemented |
 | CART-01 | Phase 3 | Pending |
 | CART-02 | Phase 3 | Pending |
 | CART-03 | Phase 3 | Pending |

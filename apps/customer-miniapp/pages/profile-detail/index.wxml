@@ -1,0 +1,45 @@
+<view class="profile-detail-page">
+  <page-nav />
+
+  <view class="detail-hero">
+    <text class="detail-title">个人信息</text>
+    <text class="detail-subtitle">先把昵称、性别、生日和联系方式固定下来，后续地址和宠物回填会直接依赖这里的上下文。</text>
+  </view>
+
+  <view class="detail-card">
+    <text class="section-title">基础资料</text>
+    <view class="field-block">
+      <text class="field-label">昵称</text>
+      <input class="text-input" value="{{profile.nickname}}" bindinput="handleNicknameInput" placeholder="请输入昵称" />
+    </view>
+
+    <view class="field-block">
+      <text class="field-label">性别</text>
+      <view class="gender-row">
+        <view class="gender-pill {{profile.gender === item.value ? 'active' : ''}}" wx:for="{{genderOptions}}" wx:key="value" data-gender="{{item.value}}" bindtap="handleGenderTap">{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="field-block">
+      <text class="field-label">生日</text>
+      <picker wx:if="{{!profile.birthdayLocked}}" mode="date" bindchange="handleBirthdayChange">
+        <view class="picker-shell">{{profile.birthday || '首次设置后不可修改'}}</view>
+      </picker>
+      <view class="picker-shell locked" wx:else>{{profile.birthday}}</view>
+      <text class="field-tip">{{profile.birthdayLocked ? '生日已经锁定，如需变更请联系店主。' : '生日只允许设置一次，请确认后再提交。'}}</text>
+    </view>
+  </view>
+
+  <view class="detail-card">
+    <text class="section-title">联系方式</text>
+    <view class="contact-row" bindtap="handleContactTap">
+      <view>
+        <text class="contact-value">{{profile.contactPhoneMasked || '未绑定手机号'}}</text>
+        <text class="field-tip">优先使用微信手机号授权，必要时可手动补录。</text>
+      </view>
+      <text class="contact-arrow">›</text>
+    </view>
+  </view>
+
+  <button class="save-button" bindtap="handleSave">保存资料</button>
+</view>

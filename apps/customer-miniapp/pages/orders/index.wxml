@@ -1,0 +1,41 @@
+<view class="orders-page">
+  <view class="orders-hero">
+    <text class="orders-title">我的订单</text>
+    <text class="orders-subtitle">支付完成后可以在这里查看订单状态、履约信息和下单快照。</text>
+  </view>
+
+  <view class="orders-card empty-card" wx:if="{{isEmpty}}">
+    <text class="card-title">{{emptyStateTitle}}</text>
+    <text class="card-body">{{emptyStateBody}}</text>
+    <button class="catalog-button" bindtap="handleGoCatalog">去逛逛</button>
+  </view>
+
+  <view class="orders-list" wx:else>
+    <view class="order-card {{highlightedOrderId === item.id ? 'highlighted' : ''}}" wx:for="{{orderCards}}" wx:key="id" data-order-id="{{item.id}}" bindtap="handleOrderTap">
+      <view class="order-card-head">
+        <view>
+          <text class="order-id">{{item.id}}</text>
+          <text class="order-created">{{item.createdAtLabel}}</text>
+        </view>
+        <text class="order-status">{{item.statusLabel}}</text>
+      </view>
+      <text class="order-summary">{{item.itemSummary}}</text>
+      <view class="order-meta-row">
+        <text class="order-meta-label">履约方式</text>
+        <text class="order-meta-value">{{item.fulfillmentLabel}}</text>
+      </view>
+      <view class="order-meta-row">
+        <text class="order-meta-label">预约时间</text>
+        <text class="order-meta-value">{{item.scheduleLabel}}</text>
+      </view>
+      <view class="order-meta-row">
+        <text class="order-meta-label">宠物</text>
+        <text class="order-meta-value">{{item.petNamesLabel}}</text>
+      </view>
+      <view class="order-card-foot">
+        <text class="order-total">{{item.payableTotalLabel}}</text>
+        <text class="order-link">查看详情</text>
+      </view>
+    </view>
+  </view>
+</view>

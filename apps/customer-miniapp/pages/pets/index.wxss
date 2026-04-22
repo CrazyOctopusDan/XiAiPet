@@ -1,0 +1,122 @@
+.pets-page {
+  min-height: 100vh;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #FBF6DB 0%, #FFFDF4 100%);
+  color: #4F341E;
+}
+.pet-card-head {
+  display: flex;
+  align-items: center;
+}
+
+.pets-shell {
+  padding: 18rpx 24rpx 0;
+}
+
+.pets-title,
+.pets-subtitle,
+.pet-name,
+.pet-meta,
+.pet-allergy-label,
+.pet-allergy-copy,
+.empty-title,
+.empty-copy {
+  display: block;
+}
+
+.pets-hero {
+  padding: 18rpx 8rpx 12rpx;
+}
+
+.pets-title {
+  font-size: 50rpx;
+  font-weight: 700;
+}
+
+.pets-subtitle {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #7D6C59;
+}
+
+.pet-list {
+  margin-top: 18rpx;
+}
+
+.pet-card {
+  margin-top: 16rpx;
+  padding: 30rpx 26rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 251, 234, 0.96);
+  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+}
+
+.pet-card-head {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.pet-meta {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #8A7865;
+}
+
+.pet-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120rpx;
+  height: 60rpx;
+  border-radius: 999rpx;
+  background: #F6BE3E;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.pet-allergy-label {
+  margin-top: 22rpx;
+  font-size: 22rpx;
+  color: #8D775E;
+}
+
+.pet-allergy-copy {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #5F5041;
+}
+
+.empty-state {
+  margin-top: 18rpx;
+  padding: 80rpx 32rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 251, 234, 0.82);
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.empty-copy {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #8A7865;
+}
+
+.pet-add-button {
+  margin-top: 24rpx;
+  border-radius: 999rpx;
+  background: #4F341E;
+  color: #FFFFFF;
+}
+
+.pet-add-button::after {
+  border: 0;
+}

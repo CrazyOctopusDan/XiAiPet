@@ -1,11 +1,5 @@
 <view class="balance-page">
-  <view class="page-nav" style="height: {{navMetrics.contentTop}}px; padding-top: {{navMetrics.statusBarHeight}}px;">
-    <view class="page-nav-bar" style="height: {{navMetrics.navBarHeight}}px;">
-      <view class="nav-back" bindtap="handleBackTap">
-        <view class="nav-back-icon"></view>
-      </view>
-    </view>
-  </view>
+  <page-nav />
 
   <view class="balance-shell">
     <view class="balance-hero">

@@ -5,8 +5,19 @@ exports.queryRuntimeConfigSections = queryRuntimeConfigSections;
 exports.saveRuntimeConfigSection = saveRuntimeConfigSection;
 exports.getRuntimeConfigAdminViewModel = getRuntimeConfigAdminViewModel;
 exports.buildRuntimeConfigSectionDocument = buildRuntimeConfigSectionDocument;
-const runtime_config_1 = require("../../../../packages/shared/src/schema/runtime-config");
-Object.defineProperty(exports, "LOCKED_DELIVERY_RULE_ROWS", { enumerable: true, get: function () { return runtime_config_1.LOCKED_DELIVERY_RULE_ROWS; } });
+const LOCKED_DELIVERY_RULE_ROWS = [
+    { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
+    { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
+    { distanceKm: 15, minimumOrderAmount: null, deliveryFee: 25, explainer: '15.0 公里内，配送费 25 元' },
+    { distanceKm: 20, minimumOrderAmount: null, deliveryFee: 40, explainer: '20.0 公里内，配送费 40 元' },
+    { distanceKm: 25, minimumOrderAmount: null, deliveryFee: 50, explainer: '25.0 公里内，配送费 50 元' },
+    { distanceKm: 30, minimumOrderAmount: null, deliveryFee: 60, explainer: '30.0 公里内，配送费 60 元' },
+    { distanceKm: 35, minimumOrderAmount: null, deliveryFee: 65, explainer: '35.0 公里内，配送费 65 元' },
+    { distanceKm: 40, minimumOrderAmount: null, deliveryFee: 70, explainer: '40.0 公里内，配送费 70 元' },
+    { distanceKm: 45, minimumOrderAmount: null, deliveryFee: 75, explainer: '45.0 公里内，配送费 75 元' },
+    { distanceKm: 50, minimumOrderAmount: null, deliveryFee: 80, explainer: '50.0 公里内，配送费 80 元' }
+];
+exports.LOCKED_DELIVERY_RULE_ROWS = LOCKED_DELIVERY_RULE_ROWS;
 function getCloudCaller() {
     return (payload) => wx.cloud.callFunction(payload);
 }
@@ -50,7 +61,7 @@ function getDefaultSections() {
             updatedAt: now,
             updatedBy,
             value: {
-                tiers: runtime_config_1.LOCKED_DELIVERY_RULE_ROWS.map((row) => ({ ...row }))
+                tiers: LOCKED_DELIVERY_RULE_ROWS.map((row) => ({ ...row }))
             }
         },
         {

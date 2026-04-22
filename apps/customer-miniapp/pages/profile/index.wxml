@@ -1,0 +1,66 @@
+<view class="profile-page">
+  <view class="profile-hero">
+    <text class="profile-title">个人中心</text>
+    <text class="profile-subtitle">下单前需要的个人资料、宠物、地址和余额上下文，都从这里统一进入。</text>
+  </view>
+
+  <view class="profile-card profile-summary-card">
+    <view class="summary-head">
+      <view class="summary-avatar">{{summary.avatarText}}</view>
+      <view class="summary-main">
+        <text class="card-title">{{summary.nickname}}</text>
+        <text class="card-body">{{summary.memberLevel}} · 余额 ￥{{summary.balance}}</text>
+      </view>
+    </view>
+    <view class="summary-metrics">
+      <view class="metric-pill">
+        <text class="metric-label">累计消费</text>
+        <text class="metric-value">￥{{summary.totalSpent}}</text>
+      </view>
+      <view class="metric-pill">
+        <text class="metric-label">生日</text>
+        <text class="metric-value">{{summary.birthdayLabel}}</text>
+      </view>
+      <view class="metric-pill">
+        <text class="metric-label">联系方式</text>
+        <text class="metric-value">{{summary.contactPhoneLabel}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="profile-card">
+    <text class="card-title">我的资料</text>
+    <view class="entry-row" bindtap="handleProfileDetailTap">
+      <view>
+        <text class="entry-title">个人信息</text>
+        <text class="entry-copy">昵称、性别、生日和联系方式</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="profile-card">
+    <text class="card-title">订单前上下文</text>
+    <view class="entry-row" bindtap="handleAddressTap">
+      <view>
+        <text class="entry-title">我的地址</text>
+        <text class="entry-copy">同城配送 / 快递地址将在这里统一管理</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+    <view class="entry-row" bindtap="handlePetsTap">
+      <view>
+        <text class="entry-title">宠物档案</text>
+        <text class="entry-copy">为确认订单页准备多宠物资料</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+    <view class="entry-row" bindtap="handleBalanceTap">
+      <view>
+        <text class="entry-title">余额流水</text>
+        <text class="entry-copy">按月份查看收入、支出和余额变化</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+  </view>
+</view>

@@ -1,7 +1,7 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import type { CatalogCategoryRecord } from '../../../../packages/shared/src/types/catalog-admin';
+import type { CatalogCategoryRecord } from '@xiaipet/shared/types/catalog-admin';
 
 import { deleteCategory, getCategoryPageViewModel, queryCategories, saveCategory } from '../../src/services/catalog-admin';
 

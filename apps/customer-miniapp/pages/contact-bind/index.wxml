@@ -1,0 +1,14 @@
+<view class="contact-bind-page">
+  <page-nav />
+  <view class="intro-card">
+    <text class="heading">补充联系电话</text>
+    <text class="body">优先使用微信手机号授权，必要时可手动补录。</text>
+  </view>
+  <button class="primary-cta" open-type="getPhoneNumber" bindgetphonenumber="handleWechatPhone">使用微信手机号</button>
+  <view class="manual-card">
+    <text class="label">手动补录</text>
+    <input class="input" type="number" value="{{manualPhone}}" bindinput="handleManualPhoneInput" placeholder="请输入手机号" />
+    <button class="secondary-cta" bindtap="handleManualSubmit">提交手动补录</button>
+  </view>
+  <view class="status-card">{{statusText}}</view>
+</view>

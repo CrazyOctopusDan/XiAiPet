@@ -1,7 +1,7 @@
 import {
-  isMerchantUserBalanceAdjustmentPayload,
-  type MerchantUserBalanceAdjustmentPayload
+  isMerchantUserBalanceAdjustmentPayload
 } from '../../../../packages/shared/src/schema/user-admin';
+import type { MerchantUserBalanceAdjustmentPayload } from '@xiaipet/shared/types/user-admin';
 
 import { main as assertMerchantAccess } from '../assertMerchantAccess/index';
 import { type FunctionContextLike } from '../shared/auth-context';

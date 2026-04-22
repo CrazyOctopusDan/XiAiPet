@@ -1,0 +1,15 @@
+{
+  "name": "@xiaipet/cloud-functions",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "zip:upload": "node ./scripts/package-upload-zips.mjs",
+    "render:dev": "node ./scripts/render-deploy-config.mjs dev",
+    "render:prod": "node ./scripts/render-deploy-config.mjs prod",
+    "dev": "pnpm build && pnpm render:dev && echo 'Run: cd apps/cloud-functions/dist && tcb functions:deploy'",
+    "lint": "echo 'cloud-functions lint: not configured'",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts"
+  }
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "collectionName": "balance_accounts",
+    "fields": [
+      {
+        "field": "openid",
+        "order": "asc"
+      }
+    ]
+  }
+]

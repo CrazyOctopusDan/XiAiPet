@@ -1,0 +1,157 @@
+.orders-page {
+  min-height: 100vh;
+  padding: 56rpx 24rpx calc(242rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #FBF6DB 0%, #FFFDF4 100%);
+  color: #4F341E;
+}
+
+.orders-hero {
+  padding: 36rpx 12rpx 32rpx;
+}
+
+.orders-title {
+  display: block;
+  font-size: 52rpx;
+  font-weight: 700;
+}
+
+.orders-subtitle {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: #7D6C59;
+}
+
+.orders-card {
+  padding: 36rpx 30rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 251, 234, 0.96);
+  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.empty-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.card-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.card-body {
+  display: block;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #867462;
+}
+
+.catalog-button {
+  margin: 8rpx 0 0;
+  border: none;
+  border-radius: 999rpx;
+  background: #E8D243;
+  color: #4F341E;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.order-card {
+  padding: 30rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 251, 234, 0.96);
+  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+}
+
+.order-card.highlighted {
+  box-shadow: 0 0 0 3rpx rgba(232, 210, 67, 0.72), 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+}
+
+.order-card-head,
+.order-card-foot,
+.order-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.order-card-head {
+  gap: 20rpx;
+}
+
+.order-id,
+.order-created,
+.order-summary,
+.order-meta-label,
+.order-meta-value,
+.order-total,
+.order-link,
+.order-status {
+  display: block;
+}
+
+.order-id {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.order-created {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #9A8774;
+}
+
+.order-status {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(232, 210, 67, 0.2);
+  color: #7A5C28;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.order-summary {
+  margin-top: 20rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.order-meta-row {
+  margin-top: 16rpx;
+  gap: 16rpx;
+}
+
+.order-meta-label {
+  font-size: 24rpx;
+  color: #9A8774;
+}
+
+.order-meta-value {
+  flex: 1;
+  text-align: right;
+  font-size: 24rpx;
+  color: #5B4736;
+}
+
+.order-card-foot {
+  margin-top: 24rpx;
+}
+
+.order-total {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.order-link {
+  font-size: 24rpx;
+  color: #C38A41;
+}

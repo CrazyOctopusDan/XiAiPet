@@ -1,0 +1,12 @@
+{
+  "name": "@xiaipet/customer-miniapp",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --project tsconfig.runtime.json",
+    "dev": "pnpm build && echo 'Open apps/customer-miniapp in WeChat DevTools'",
+    "lint": "echo 'customer lint: not configured'",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts"
+  }
+}

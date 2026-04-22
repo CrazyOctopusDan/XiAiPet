@@ -1,0 +1,54 @@
+{
+  "pages": [
+    "pages/launch/index",
+    "pages/home/index",
+    "pages/orders/index",
+    "pages/order-detail/index",
+    "pages/profile/index",
+    "pages/profile-detail/index",
+    "pages/address-list/index",
+    "pages/address-form/index",
+    "pages/pets/index",
+    "pages/pet-form/index",
+    "pages/balance/index",
+    "pages/catalog/index",
+    "pages/search/index",
+    "pages/cart/index",
+    "pages/checkout-remark/index",
+    "pages/checkout/index",
+    "pages/product-detail/index",
+    "pages/contact-bind/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "虾衣宠",
+    "navigationStyle": "custom",
+    "backgroundColor": "#F9F1C7",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#46362C",
+    "selectedColor": "#D4A447",
+    "backgroundColor": "#FBF7DD",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "assets/tabbar/placeholder.png",
+        "selectedIconPath": "assets/tabbar/placeholder.png"
+      },
+      {
+        "pagePath": "pages/orders/index",
+        "text": "订单",
+        "iconPath": "assets/tabbar/placeholder.png",
+        "selectedIconPath": "assets/tabbar/placeholder.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "个人中心",
+        "iconPath": "assets/tabbar/placeholder.png",
+        "selectedIconPath": "assets/tabbar/placeholder.png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+<view class="access-page">
+  <view class="access-card">
+    <text class="heading">商户身份入口</text>
+    <text class="body">只有加入白名单的商户微信账号才允许继续进入商户端。</text>
+    <text class="status {{accessResult}}">{{statusText}}</text>
+  </view>
+  <button class="primary-cta" bindtap="handleVerifyTap">验证商户身份</button>
+  <view class="meta-line">环境 dev · 通过 assertMerchantAccess 校验</view>
+</view>

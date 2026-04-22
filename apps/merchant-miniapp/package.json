@@ -1,0 +1,12 @@
+{
+  "name": "@xiaipet/merchant-miniapp",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --project tsconfig.runtime.json",
+    "dev": "pnpm build && echo 'Open apps/merchant-miniapp in WeChat DevTools'",
+    "lint": "echo 'merchant lint: not configured'",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts"
+  }
+}

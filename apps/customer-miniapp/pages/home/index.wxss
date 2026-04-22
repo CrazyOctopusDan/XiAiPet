@@ -1,0 +1,25 @@
+.home-page {
+  min-height: 100vh;
+  padding-bottom: calc(242rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #F8F2D0 0%, #F7F2DE 100%);
+  color: #4F341E;
+}
+
+.hero-poster {
+  width: 100%;
+  display: block;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22rpx;
+  margin: -20rpx 18rpx 0;
+}
+
+.module-card {
+  width: 100%;
+  display: block;
+  border-radius: 32rpx;
+  box-shadow: 0 20rpx 42rpx rgba(142, 105, 55, 0.16);
+}

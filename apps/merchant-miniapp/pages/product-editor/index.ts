@@ -6,7 +6,7 @@ import type {
   CatalogProductAdminRecord,
   CatalogProductEditorPayload,
   CatalogProductEditorStep
-} from '../../../../packages/shared/src/types/catalog-admin';
+} from '@xiaipet/shared/types/catalog-admin';
 
 import {
   createEmptyProductEditorPayload,

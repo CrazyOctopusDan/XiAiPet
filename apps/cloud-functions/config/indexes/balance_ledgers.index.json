@@ -1,0 +1,24 @@
+[
+  {
+    "collectionName": "balance_ledgers",
+    "fields": [
+      {
+        "field": "openid",
+        "order": "asc"
+      },
+      {
+        "field": "createdAt",
+        "order": "desc"
+      }
+    ]
+  },
+  {
+    "collectionName": "balance_ledgers",
+    "fields": [
+      {
+        "field": "orderId",
+        "order": "asc"
+      }
+    ]
+  }
+]

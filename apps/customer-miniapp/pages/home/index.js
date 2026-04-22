@@ -2,6 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const catalog_1 = require("../../src/services/catalog");
 const runtime_config_1 = require("../../src/services/runtime-config");
+function buildHomeModulesFallback() {
+    return (0, catalog_1.getHomeModules)().map((module) => ({
+        ...module,
+        imageSrc: module.imageFileId
+    }));
+}
 function getNavigationMetrics() {
     var _a, _b, _c, _d, _e, _f;
     const windowInfo = (_d = (_b = (_a = wx.getWindowInfo) === null || _a === void 0 ? void 0 : _a.call(wx)) !== null && _b !== void 0 ? _b : (_c = wx.getSystemInfoSync) === null || _c === void 0 ? void 0 : _c.call(wx)) !== null && _d !== void 0 ? _d : {};
@@ -24,19 +30,22 @@ function getNavigationMetrics() {
 }
 Page({
     data: {
-        modules: (0, catalog_1.getHomeModules)(),
+        modules: buildHomeModulesFallback(),
         heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId
     },
     onShow() {
+        var _a, _b, _c;
+        (_c = (_b = (_a = this.getTabBar) === null || _a === void 0 ? void 0 : _a.call(this)) === null || _b === void 0 ? void 0 : _b.setSelectedKey) === null || _c === void 0 ? void 0 : _c.call(_b, 'home');
         void this.refreshHome();
     },
     async refreshHome() {
+        const modulePromise = (0, catalog_1.resolveHomeModuleImageSources)();
         try {
             await (0, runtime_config_1.hydrateCustomerRuntimeConfig)();
         }
         finally {
             this.setData({
-                modules: (0, catalog_1.getHomeModules)(),
+                modules: await modulePromise,
                 heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId
             });
         }

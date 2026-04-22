@@ -1,0 +1,11 @@
+[
+  {
+    "collectionName": "users",
+    "fields": [
+      {
+        "field": "openid",
+        "order": "asc"
+      }
+    ]
+  }
+]
