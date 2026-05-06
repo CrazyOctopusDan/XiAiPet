@@ -53,6 +53,14 @@
       "source": "src/updateMerchantOrderStatus"
     },
     {
+      "name": "prepareOrderReceiptPrint",
+      "source": "src/prepareOrderReceiptPrint"
+    },
+    {
+      "name": "recordOrderReceiptPrintResult",
+      "source": "src/recordOrderReceiptPrintResult"
+    },
+    {
       "name": "queryCategories",
       "source": "src/queryCategories"
     },

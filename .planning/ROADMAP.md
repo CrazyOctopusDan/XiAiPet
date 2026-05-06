@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: Cart State and Product Selection** - 实现购物车、规格加购与跨页面状态同步
 - [ ] **Phase 4: Account, Pets and Address Context** - 实现个人中心、资料编辑、宠物、地址与余额流水
 - [ ] **Phase 5: Checkout, Payment and Orders** - 实现确认订单、预约履约、支付和订单查询闭环
-- [ ] **Phase 6: Merchant Operations and Runtime Config** - 实现商户端订单、商品、用户、运营配置管理
+- [x] **Phase 6: Merchant Operations and Runtime Config** - 实现商户端订单、商品、用户、运营配置管理
 
 ## Phase Details
 
@@ -125,21 +125,22 @@ Plans:
   3. 商户可以搜索用户、调整余额并留下可追踪流水。
   4. 店铺位置、Banner、配送费规则、会员阈值和定制提示可以在运行时调整。
 **UI hint**: yes
-**Plans**: 12 plans
+**Plans**: 13 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — 建立商户订单履约 contract、手工结算审计模型与 merchant miniapp 测试基线
-- [ ] 06-02-PLAN.md — 建立品类/商品共享 contract，显式纳入 `iconToken` 与组合定价规则
-- [ ] 06-03-PLAN.md — 建立用户管理与运行时配置分区共享 contract
-- [ ] 06-04-PLAN.md — 实现商户订单查询、详情与状态流转云函数
-- [ ] 06-05-PLAN.md — 实现品类/商品云函数与集合/索引/安全配置
-- [ ] 06-06-PLAN.md — 实现用户搜索、余额调整与运行时配置云函数
-- [ ] 06-07-PLAN.md — 实现商户订单列表/详情 UI
-- [ ] 06-08-PLAN.md — 实现品类管理、商品列表与三步商品编辑 UI
-- [ ] 06-09-PLAN.md — 实现用户搜索与余额调整 UI
-- [ ] 06-10-PLAN.md — 实现商户运营配置管理页与分区保存 UI
-- [ ] 06-11-PLAN.md — 把保存的运营配置与余额调整文案接入客户端展示
-- [ ] 06-12-PLAN.md — 完成商户工作台入口、页面注册与云函数注册整合
+- [x] 06-01-PLAN.md — 建立商户订单履约 contract、手工结算审计模型与 merchant miniapp 测试基线
+- [x] 06-02-PLAN.md — 建立品类/商品共享 contract，显式纳入 `iconToken` 与组合定价规则
+- [x] 06-03-PLAN.md — 建立用户管理与运行时配置分区共享 contract
+- [x] 06-04-PLAN.md — 实现商户订单查询、详情与状态流转云函数
+- [x] 06-05-PLAN.md — 实现品类/商品云函数与集合/索引/安全配置
+- [x] 06-06-PLAN.md — 实现用户搜索、余额调整与运行时配置云函数
+- [x] 06-07-PLAN.md — 实现商户订单列表/详情 UI
+- [x] 06-08-PLAN.md — 实现品类管理、商品列表与三步商品编辑 UI
+- [x] 06-09-PLAN.md — 实现用户搜索与余额调整 UI
+- [x] 06-10-PLAN.md — 实现商户运营配置管理页与分区保存 UI
+- [x] 06-11-PLAN.md — 把保存的运营配置与余额调整文案接入客户端展示
+- [x] 06-12-PLAN.md — 完成商户工作台入口、页面注册与云函数注册整合
+- [x] 06-13-PLAN.md — 接入商户端订单小票打印机、打印审计与蓝牙设备管理
 
 ## Progress
 
@@ -153,7 +154,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Cart State and Product Selection | 0/3 | Not started | - |
 | 4. Account, Pets and Address Context | 0/3 | Not started | - |
 | 5. Checkout, Payment and Orders | 0/3 | Not started | - |
-| 6. Merchant Operations and Runtime Config | 0/12 | Not started | - |
+| 6. Merchant Operations and Runtime Config | 13/13 | Complete | - |
 
 ## Backlog
 

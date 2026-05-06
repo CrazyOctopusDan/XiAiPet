@@ -14,6 +14,7 @@ import {
   getMerchantOrderDetailViewModel,
   updateMerchantOrderStatus
 } from '../../src/services/orders';
+import { printOrderReceipt } from '../../src/services/order-receipt-print';
 
 interface AdjustmentMethodOption {
   value: OrderManualSettlementMethod;
@@ -31,6 +32,7 @@ interface OrderDetailPageData {
   adjustmentMethods: AdjustmentMethodOption[];
   reasonNote: string;
   submitting: boolean;
+  printing: boolean;
 }
 
 interface OrderDetailPageInstance {
@@ -38,6 +40,7 @@ interface OrderDetailPageInstance {
   currentOrder: MerchantManagedOrderRecord | null;
   setData(updates: Record<string, unknown>): void;
   refreshDetail(): Promise<void>;
+  handlePrintReceipt(): Promise<void>;
 }
 
 const ADJUSTMENT_METHODS: AdjustmentMethodOption[] = [
@@ -59,6 +62,16 @@ function findStatusOption(detail: MerchantOrderDetailViewModel | null, value: st
   return detail?.statusOptions.find((item) => item.value === value) ?? null;
 }
 
+function showModal(options: Record<string, unknown>) {
+  return new Promise<boolean>((resolve) => {
+    wx.showModal({
+      ...options,
+      success: (response: { confirm?: boolean }) => resolve(Boolean(response.confirm)),
+      fail: () => resolve(false)
+    });
+  });
+}
+
 Page({
   data: {
     orderId: '',
@@ -70,7 +83,8 @@ Page({
     adjustmentMethod: 'manual_override',
     adjustmentMethods: ADJUSTMENT_METHODS,
     reasonNote: '',
-    submitting: false
+    submitting: false,
+    printing: false
   },
   currentOrder: null,
   onLoad(this: OrderDetailPageInstance, options?: { orderId?: string }) {
@@ -109,6 +123,55 @@ Page({
   },
   handleBackTap() {
     wx.navigateBack();
+  },
+  handleOpenPrinterSettings() {
+    wx.navigateTo({
+      url: '/pages/printer-settings/index'
+    });
+  },
+  async handlePrintReceipt(this: OrderDetailPageInstance) {
+    if (!this.currentOrder || !this.data.detail?.canPrintReceipt || this.data.printing) {
+      return;
+    }
+
+    this.setData({ printing: true });
+
+    try {
+      await printOrderReceipt({
+        orderId: this.currentOrder.id
+      });
+
+      wx.showToast({
+        title: '打印成功',
+        icon: 'success'
+      });
+
+      await this.refreshDetail();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+
+      if (message === 'NO_PRINTER_CONNECTED') {
+        const confirmed = await showModal({
+          title: '未绑定打印机',
+          content: '需要先绑定蓝牙小票机后再打印。',
+          confirmText: '去设置',
+          cancelText: '稍后'
+        });
+
+        if (confirmed) {
+          wx.navigateTo({
+            url: '/pages/printer-settings/index'
+          });
+        }
+      } else {
+        wx.showToast({
+          title: '打印失败，请重试',
+          icon: 'none'
+        });
+      }
+    } finally {
+      this.setData({ printing: false });
+    }
   },
   handleOpenStatusDrawer(this: OrderDetailPageInstance) {
     if (!this.data.detail?.canUpdateStatus) {
@@ -200,6 +263,19 @@ Page({
       });
 
       await this.refreshDetail();
+
+      if (selected.value === 'in_production') {
+        const confirmed = await showModal({
+          title: '打印小票',
+          content: '订单已进入制作中，是否现在打印小票？',
+          confirmText: '打印',
+          cancelText: '稍后'
+        });
+
+        if (confirmed) {
+          await this.handlePrintReceipt();
+        }
+      }
     } catch (error) {
       this.setData({ submitting: false });
       wx.showToast({

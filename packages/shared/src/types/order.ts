@@ -123,6 +123,38 @@ export interface OrderMerchantOverride {
   manualSettlement?: OrderManualSettlementRecord;
 }
 
+export type OrderReceiptPrintResult = 'success' | 'failed';
+
+export interface OrderReceiptPrintMetadata {
+  printCount: number;
+  lastPrintedAt?: string;
+  lastPrintResult?: OrderReceiptPrintResult;
+  lastPrinterDeviceLabel?: string;
+  receiptTemplateVersion: string;
+}
+
+export interface OrderReceiptPrintAuditPayload {
+  orderId: string;
+  operator: OrderMerchantOperator;
+  printedAt: string;
+  printerDeviceId: string;
+  printerDeviceLabel: string;
+  receiptTemplateVersion: string;
+  result: OrderReceiptPrintResult;
+  failureReason?: string;
+  isReprint: boolean;
+}
+
+export interface OrderReceiptPrintJob {
+  orderId: string;
+  printJobId: string;
+  receiptTemplateVersion: string;
+  isReprint: boolean;
+  nextPrintCount: number;
+  chunksBase64: string[];
+  previewLines: string[];
+}
+
 export interface OrderRecord {
   id: string;
   openid: string;
@@ -132,6 +164,7 @@ export interface OrderRecord {
   payment?: OrderPaymentRecord;
   fulfillmentState?: OrderFulfillmentState;
   merchantOverride?: OrderMerchantOverride;
+  receiptPrint?: OrderReceiptPrintMetadata;
   pricing: OrderPricingBreakdown;
   snapshot: OrderSnapshot;
   createdAt: string;

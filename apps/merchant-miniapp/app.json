@@ -4,6 +4,7 @@
     "pages/workspace/index",
     "pages/orders/index",
     "pages/order-detail/index",
+    "pages/printer-settings/index",
     "pages/categories/index",
     "pages/products/index",
     "pages/product-editor/index",

@@ -72,6 +72,28 @@
     </view>
 
     <view class="content-card">
+      <view class="section-head">
+        <text class="section-title">小票打印</text>
+        <text class="print-status">{{detail.receiptPrintCountLabel}}</text>
+      </view>
+      <view class="meta-row">
+        <text class="meta-label">打印状态</text>
+        <text class="meta-value">{{detail.receiptPrintStatusLabel}}</text>
+      </view>
+      <view class="inline-actions">
+        <button class="secondary-button compact-button" bindtap="handleOpenPrinterSettings">打印机设置</button>
+        <button
+          class="primary-button compact-button"
+          loading="{{printing}}"
+          disabled="{{!detail.canPrintReceipt || printing}}"
+          bindtap="handlePrintReceipt"
+        >
+          {{detail.printActionLabel}}
+        </button>
+      </view>
+    </view>
+
+    <view class="content-card">
       <text class="section-title">时间线</text>
       <view class="timeline-item" wx:for="{{detail.timeline}}" wx:key="atLabel">
         <view class="timeline-dot"></view>

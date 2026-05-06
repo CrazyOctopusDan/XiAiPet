@@ -10,7 +10,7 @@ import {
 } from './orders';
 
 type MerchantTimelineEntry = {
-  type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled';
+  type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled' | 'print';
   label: string;
   at: string;
   detail?: string;
@@ -208,12 +208,44 @@ describe('merchant orders service', () => {
       statusLabel: '待处理',
       paymentBadgeLabel: '待支付',
       actionLabel: '标记已支付/已处理',
-      canUpdateStatus: true
+      canUpdateStatus: true,
+      canPrintReceipt: false,
+      printActionLabel: '打印小票',
+      receiptPrintCountLabel: '尚未打印'
     });
     expect(detail?.auditSummary).toMatchObject({
       latestActionLabel: '订单创建'
     });
     expect(detail?.statusOptions.map((item) => item.label)).toEqual(['待处理', '制作中', '配送中', '已完成', '已取消']);
+  });
+
+  it('shows receipt print metadata on paid order details', () => {
+    const detail = getMerchantOrderDetailViewModel({
+      order: createOrder({
+        receiptPrint: {
+          printCount: 2,
+          lastPrintedAt: '2026-04-18T11:00:00.000Z',
+          lastPrintResult: 'success',
+          lastPrinterDeviceLabel: '厨房小票机',
+          receiptTemplateVersion: 'receipt-v1'
+        }
+      }),
+      timeline: [
+        {
+          type: 'print',
+          label: '补打小票',
+          at: '2026-04-18T11:00:00.000Z',
+          detail: '打印机：厨房小票机'
+        }
+      ] satisfies MerchantTimelineEntry[]
+    });
+
+    expect(detail).toMatchObject({
+      canPrintReceipt: true,
+      printActionLabel: '补打小票',
+      receiptPrintCountLabel: '已打印 2 次',
+      receiptPrintStatusLabel: '最近打印成功 · 2026-04-18 19:00 · 厨房小票机'
+    });
   });
 
   it('submits a merchant status update with operator identity and manual settlement metadata', async () => {

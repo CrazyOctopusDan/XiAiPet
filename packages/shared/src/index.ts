@@ -2,6 +2,7 @@ export * from './types/user';
 export * from './types/order';
 export * from './constants/env';
 export * from './schema/runtime-config';
+export * from './schema/order-receipt-print';
 export * from './schema/user-record';
 export * from './schema/merchant-user';
 export * from './schema/phone-binding';

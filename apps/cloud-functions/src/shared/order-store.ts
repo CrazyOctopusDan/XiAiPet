@@ -1,7 +1,7 @@
 import type { OrderRecord } from '@xiaipet/shared';
 
 export interface MerchantOrderTimelineEntry {
-  type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled';
+  type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled' | 'print';
   label: string;
   at: string;
   detail?: string;

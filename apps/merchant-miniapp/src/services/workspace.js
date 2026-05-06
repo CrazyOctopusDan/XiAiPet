@@ -15,6 +15,11 @@ const WORKSPACE_CARDS = [
                 label: '查看订单',
                 url: '/pages/orders/index',
                 tone: 'primary'
+            },
+            {
+                label: '打印机设置',
+                url: '/pages/printer-settings/index',
+                tone: 'secondary'
             }
         ]
     },

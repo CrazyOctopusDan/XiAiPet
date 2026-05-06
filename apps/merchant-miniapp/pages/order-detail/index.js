@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const orders_1 = require("../../src/services/orders");
+const order_receipt_print_1 = require("../../src/services/order-receipt-print");
 const ADJUSTMENT_METHODS = [
     {
         value: 'manual_override',
@@ -19,6 +20,15 @@ function findStatusOption(detail, value) {
     var _a;
     return (_a = detail === null || detail === void 0 ? void 0 : detail.statusOptions.find((item) => item.value === value)) !== null && _a !== void 0 ? _a : null;
 }
+function showModal(options) {
+    return new Promise((resolve) => {
+        wx.showModal({
+            ...options,
+            success: (response) => resolve(Boolean(response.confirm)),
+            fail: () => resolve(false)
+        });
+    });
+}
 Page({
     data: {
         orderId: '',
@@ -30,7 +40,8 @@ Page({
         adjustmentMethod: 'manual_override',
         adjustmentMethods: ADJUSTMENT_METHODS,
         reasonNote: '',
-        submitting: false
+        submitting: false,
+        printing: false
     },
     currentOrder: null,
     onLoad(options) {
@@ -66,6 +77,53 @@ Page({
     },
     handleBackTap() {
         wx.navigateBack();
+    },
+    handleOpenPrinterSettings() {
+        wx.navigateTo({
+            url: '/pages/printer-settings/index'
+        });
+    },
+    async handlePrintReceipt() {
+        var _a;
+        if (!this.currentOrder || !((_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.canPrintReceipt) || this.data.printing) {
+            return;
+        }
+        this.setData({ printing: true });
+        try {
+            await (0, order_receipt_print_1.printOrderReceipt)({
+                orderId: this.currentOrder.id
+            });
+            wx.showToast({
+                title: '打印成功',
+                icon: 'success'
+            });
+            await this.refreshDetail();
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : '';
+            if (message === 'NO_PRINTER_CONNECTED') {
+                const confirmed = await showModal({
+                    title: '未绑定打印机',
+                    content: '需要先绑定蓝牙小票机后再打印。',
+                    confirmText: '去设置',
+                    cancelText: '稍后'
+                });
+                if (confirmed) {
+                    wx.navigateTo({
+                        url: '/pages/printer-settings/index'
+                    });
+                }
+            }
+            else {
+                wx.showToast({
+                    title: '打印失败，请重试',
+                    icon: 'none'
+                });
+            }
+        }
+        finally {
+            this.setData({ printing: false });
+        }
     },
     handleOpenStatusDrawer() {
         var _a;
@@ -145,6 +203,17 @@ Page({
                 reasonNote: ''
             });
             await this.refreshDetail();
+            if (selected.value === 'in_production') {
+                const confirmed = await showModal({
+                    title: '打印小票',
+                    content: '订单已进入制作中，是否现在打印小票？',
+                    confirmText: '打印',
+                    cancelText: '稍后'
+                });
+                if (confirmed) {
+                    await this.handlePrintReceipt();
+                }
+            }
         }
         catch (error) {
             this.setData({ submitting: false });

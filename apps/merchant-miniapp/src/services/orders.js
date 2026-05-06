@@ -174,6 +174,24 @@ function getAuditSummary(timeline) {
         latestNoteLabel: (_c = latest.detail) !== null && _c !== void 0 ? _c : '无备注'
     };
 }
+function getReceiptPrintCountLabel(order) {
+    var _a, _b;
+    const printCount = (_b = (_a = order.receiptPrint) === null || _a === void 0 ? void 0 : _a.printCount) !== null && _b !== void 0 ? _b : 0;
+    if (printCount <= 0) {
+        return '尚未打印';
+    }
+    return `已打印 ${printCount} 次`;
+}
+function getReceiptPrintStatusLabel(order) {
+    const metadata = order.receiptPrint;
+    if (!(metadata === null || metadata === void 0 ? void 0 : metadata.lastPrintResult)) {
+        return '等待首次打印';
+    }
+    const resultLabel = metadata.lastPrintResult === 'success' ? '最近打印成功' : '最近打印失败';
+    const timeLabel = metadata.lastPrintedAt ? formatDateTime(metadata.lastPrintedAt) : '时间未知';
+    const printerLabel = metadata.lastPrinterDeviceLabel ? ` · ${metadata.lastPrinterDeviceLabel}` : '';
+    return `${resultLabel} · ${timeLabel}${printerLabel}`;
+}
 function isTerminalOrder(order) {
     return order.status === 'cancelled' || (0, order_fulfillment_1.isTerminalFulfillmentStatus)(getProgressStatus(order));
 }
@@ -255,6 +273,7 @@ async function getMerchantOrderDetail(orderId, callFunction = getCloudCaller()) 
     };
 }
 function getMerchantOrderDetailViewModel(detail) {
+    var _a, _b;
     if (!(detail === null || detail === void 0 ? void 0 : detail.order)) {
         return null;
     }
@@ -278,6 +297,10 @@ function getMerchantOrderDetailViewModel(detail) {
         items: toDetailItems(order),
         auditSummary: getAuditSummary(timeline),
         timeline: timeline.map(toTimelineViewModel),
+        canPrintReceipt: order.status === 'paid',
+        printActionLabel: ((_b = (_a = order.receiptPrint) === null || _a === void 0 ? void 0 : _a.printCount) !== null && _b !== void 0 ? _b : 0) > 0 ? '补打小票' : '打印小票',
+        receiptPrintCountLabel: getReceiptPrintCountLabel(order),
+        receiptPrintStatusLabel: getReceiptPrintStatusLabel(order),
         canUpdateStatus: !isTerminalOrder(order),
         actionLabel: order.status === 'paid' ? '更新订单状态' : '标记已支付/已处理',
         requiresManualSettlement: order.status !== 'paid',

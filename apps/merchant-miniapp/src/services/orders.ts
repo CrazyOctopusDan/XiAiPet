@@ -19,7 +19,7 @@ import {
 import { verifyMerchantAccess } from './access';
 
 export interface MerchantOrderTimelineEntry {
-  type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled';
+  type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled' | 'print';
   label: string;
   at: string;
   detail?: string;
@@ -111,6 +111,10 @@ export interface MerchantOrderDetailViewModel {
   items: MerchantOrderDetailItemViewModel[];
   auditSummary: MerchantOrderAuditSummaryViewModel;
   timeline: MerchantOrderTimelineViewModel[];
+  canPrintReceipt: boolean;
+  printActionLabel: string;
+  receiptPrintCountLabel: string;
+  receiptPrintStatusLabel: string;
   canUpdateStatus: boolean;
   actionLabel: string;
   requiresManualSettlement: boolean;
@@ -350,6 +354,30 @@ function getAuditSummary(timeline: MerchantOrderTimelineEntry[]): MerchantOrderA
   };
 }
 
+function getReceiptPrintCountLabel(order: MerchantManagedOrderRecord) {
+  const printCount = order.receiptPrint?.printCount ?? 0;
+
+  if (printCount <= 0) {
+    return '尚未打印';
+  }
+
+  return `已打印 ${printCount} 次`;
+}
+
+function getReceiptPrintStatusLabel(order: MerchantManagedOrderRecord) {
+  const metadata = order.receiptPrint;
+
+  if (!metadata?.lastPrintResult) {
+    return '等待首次打印';
+  }
+
+  const resultLabel = metadata.lastPrintResult === 'success' ? '最近打印成功' : '最近打印失败';
+  const timeLabel = metadata.lastPrintedAt ? formatDateTime(metadata.lastPrintedAt) : '时间未知';
+  const printerLabel = metadata.lastPrinterDeviceLabel ? ` · ${metadata.lastPrinterDeviceLabel}` : '';
+
+  return `${resultLabel} · ${timeLabel}${printerLabel}`;
+}
+
 function isTerminalOrder(order: MerchantManagedOrderRecord) {
   return order.status === 'cancelled' || isTerminalFulfillmentStatus(getProgressStatus(order));
 }
@@ -476,6 +504,10 @@ export function getMerchantOrderDetailViewModel(detail: MerchantOrderDetailRespo
     items: toDetailItems(order),
     auditSummary: getAuditSummary(timeline),
     timeline: timeline.map(toTimelineViewModel),
+    canPrintReceipt: order.status === 'paid',
+    printActionLabel: (order.receiptPrint?.printCount ?? 0) > 0 ? '补打小票' : '打印小票',
+    receiptPrintCountLabel: getReceiptPrintCountLabel(order),
+    receiptPrintStatusLabel: getReceiptPrintStatusLabel(order),
     canUpdateStatus: !isTerminalOrder(order),
     actionLabel: order.status === 'paid' ? '更新订单状态' : '标记已支付/已处理',
     requiresManualSettlement: order.status !== 'paid',

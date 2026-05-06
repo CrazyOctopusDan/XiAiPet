@@ -25,9 +25,11 @@
 .hero-head,
 .status-wrap,
 .meta-row,
+.section-head,
 .timeline-head,
 .product-row,
 .drawer-actions,
+.inline-actions,
 .option-list {
   display: flex;
   align-items: center;
@@ -35,6 +37,7 @@
 
 .hero-head,
 .meta-row,
+.section-head,
 .timeline-head,
 .product-row,
 .drawer-actions {
@@ -42,6 +45,7 @@
 }
 
 .status-wrap,
+.inline-actions,
 .option-list {
   gap: 12rpx;
 }
@@ -61,6 +65,7 @@
 .product-meta,
 .product-total,
 .remark-copy,
+.print-status,
 .drawer-title,
 .drawer-subtitle,
 .drawer-label,
@@ -80,6 +85,7 @@
 
 .page-subtitle,
 .meta-label,
+.print-status,
 .timeline-time,
 .timeline-meta,
 .product-meta,
@@ -126,6 +132,10 @@
 .drawer-title {
   font-size: 32rpx;
   font-weight: 700;
+}
+
+.section-head {
+  gap: 20rpx;
 }
 
 .meta-row,
@@ -179,6 +189,16 @@
 .total-value {
   font-size: 30rpx;
   font-weight: 700;
+}
+
+.inline-actions {
+  margin-top: 24rpx;
+}
+
+.compact-button {
+  flex: 1;
+  min-height: 76rpx;
+  line-height: 76rpx;
 }
 
 .total-row {
