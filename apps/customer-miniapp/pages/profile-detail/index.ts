@@ -62,25 +62,35 @@ Page({
   handleBirthdayChange(this: ProfileDetailPageInstance, event: { detail?: { value?: string } }) {
     const birthday = event.detail?.value ?? '';
 
-    if (!birthday) {
+    if (!birthday || this.data.profile.birthdayLocked) {
       return;
     }
 
-    const result = setBirthday(birthday);
-
-    if (!result.ok) {
-      wx.showToast({ title: '生日仅可设置一次', icon: 'none' });
-      return;
-    }
-
-    this.refreshProfile();
-    wx.showToast({ title: '生日已锁定', icon: 'none' });
+    this.setData({
+      profile: {
+        ...this.data.profile,
+        birthday
+      }
+    });
   },
   handleSave(this: ProfileDetailPageInstance) {
+    const birthday = this.data.profile.birthday.trim();
+
     updateProfile({
       nickname: this.data.profile.nickname.trim() || '虾衣宠家长',
       gender: this.data.profile.gender
     });
+
+    if (!getProfile().birthdayLocked && birthday) {
+      const result = setBirthday(birthday);
+
+      if (!result.ok) {
+        wx.showToast({ title: '生日仅可设置一次', icon: 'none' });
+        this.refreshProfile();
+        return;
+      }
+    }
+
     this.refreshProfile();
     wx.showToast({ title: '资料已更新', icon: 'none' });
   },

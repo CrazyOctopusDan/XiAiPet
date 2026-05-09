@@ -1,54 +1,244 @@
 .contact-bind-page {
   min-height: 100vh;
-  padding: 0 32rpx 48rpx;
-  background: #F6E396;
-  color: #2F241F;
+  padding: 18rpx 24rpx calc(56rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #FFF7ED 0%, #FFFDF4 64%, #F8E7C3 100%);
+  color: #3A2A1E;
+  box-sizing: border-box;
 }
 
-.intro-card,
+.contact-hero,
+.wechat-card,
 .manual-card,
 .status-card {
-  margin-bottom: 24rpx;
-  padding: 28rpx;
-  border-radius: 28rpx;
-  background: #E7D7C3;
+  border-radius: 34rpx;
+  box-sizing: border-box;
 }
 
+.contact-hero {
+  position: relative;
+  overflow: hidden;
+  margin-top: 20rpx;
+  padding: 34rpx 30rpx;
+  background: radial-gradient(circle at 15% 0%, #FFE2A1 0, transparent 42%), linear-gradient(135deg, #FFF6DC 0%, #FFFFFF 100%);
+  box-shadow: 0 18rpx 44rpx rgba(154, 91, 32, 0.12);
+}
+
+.contact-hero::after {
+  content: '';
+  position: absolute;
+  right: -42rpx;
+  top: -38rpx;
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.13);
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 1;
+  padding-right: 156rpx;
+}
+
+.eyebrow,
 .heading,
-.label {
-  display: block;
-  margin-bottom: 12rpx;
-  font-size: 32rpx;
-  font-weight: 600;
-}
-
 .body,
-.status-card {
-  font-size: 28rpx;
-  line-height: 1.6;
+.card-title,
+.card-copy,
+.input-label,
+.status-label,
+.status-text,
+.hero-badge-main,
+.hero-badge-sub {
+  display: block;
 }
 
-.primary-cta,
-.secondary-cta {
-  margin-bottom: 24rpx;
+.eyebrow {
+  width: fit-content;
+  padding: 8rpx 16rpx;
   border-radius: 999rpx;
-}
-
-.primary-cta {
-  background: #D96C4E;
+  background: #F97316;
+  font-size: 20rpx;
+  font-weight: 700;
   color: #FFFFFF;
 }
 
+.heading {
+  margin-top: 18rpx;
+  font-size: 42rpx;
+  line-height: 1.18;
+  font-weight: 800;
+  color: #3A2A1E;
+}
+
+.body,
+.card-copy {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.65;
+  color: #7D6654;
+}
+
+.hero-badge {
+  position: absolute;
+  right: 28rpx;
+  bottom: 30rpx;
+  z-index: 1;
+  width: 124rpx;
+  height: 124rpx;
+  border-radius: 38rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #3A2A1E;
+  box-shadow: inset 0 -8rpx 0 rgba(255, 255, 255, 0.08);
+}
+
+.hero-badge-main {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #FFE6A3;
+}
+
+.hero-badge-sub {
+  margin-top: 4rpx;
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.wechat-card,
+.manual-card,
+.status-card,
+.privacy-card {
+  margin-top: 22rpx;
+  padding: 28rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16rpx 36rpx rgba(106, 72, 39, 0.08);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #3A2A1E;
+}
+
+.card-tag {
+  flex-shrink: 0;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #FFF1C2;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #A45A16;
+}
+
+.privacy-card {
+  border: 2rpx solid rgba(249, 115, 22, 0.18);
+  background: #FFF4E8;
+  box-shadow: none;
+}
+
+.privacy-title,
+.privacy-copy {
+  display: block;
+}
+
+.privacy-title {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: #3A2A1E;
+}
+
+.privacy-copy {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.55;
+  color: #7D6654;
+}
+
+.primary-cta,
+.secondary-cta,
+.privacy-cta {
+  height: 92rpx;
+  margin-top: 24rpx;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+  line-height: 92rpx;
+}
+
+.primary-cta {
+  background: linear-gradient(135deg, #F97316 0%, #F6BE3E 100%);
+  color: #FFFFFF;
+  box-shadow: 0 14rpx 26rpx rgba(249, 115, 22, 0.22);
+}
+
 .secondary-cta {
-  background: rgba(217, 108, 78, 0.16);
-  color: #2F241F;
+  background: #3A2A1E;
+  color: #FFFFFF;
+}
+
+.privacy-cta {
+  background: #FFFFFF;
+  color: #F97316;
+}
+
+.primary-cta::after,
+.secondary-cta::after,
+.privacy-cta::after {
+  border: 0;
+}
+
+.input-label {
+  margin-top: 24rpx;
+  font-size: 23rpx;
+  font-weight: 700;
+  color: #7D6654;
 }
 
 .input {
   width: 100%;
-  min-height: 88rpx;
-  margin-bottom: 20rpx;
+  height: 92rpx;
+  margin-top: 12rpx;
   padding: 0 24rpx;
-  border-radius: 20rpx;
-  background: #FFFFFF;
+  border-radius: 24rpx;
+  background: #FFF8E8;
+  font-size: 28rpx;
+  color: #3A2A1E;
+  box-sizing: border-box;
+}
+
+.status-card {
+  border: 2rpx solid rgba(58, 42, 30, 0.06);
+}
+
+.status-card.success {
+  border-color: rgba(49, 145, 94, 0.22);
+  background: #EEF9F1;
+}
+
+.status-card.error {
+  border-color: rgba(217, 91, 65, 0.22);
+  background: #FFF0EA;
+}
+
+.status-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #9A7B60;
+}
+
+.status-text {
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: #3A2A1E;
 }

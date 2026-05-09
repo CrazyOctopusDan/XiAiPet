@@ -1,33 +1,38 @@
 <view class="address-form-page">
   <page-nav />
+
   <view class="address-form-shell">
-    <view class="address-form-hero">
-      <text class="address-form-title">{{mode === 'edit' ? '编辑地址' : '新增地址'}}</text>
-      <text class="address-form-subtitle">{{typeLabel}} 会直接出现在 checkout 地址选择里，所以这里先收口成最小必要字段。</text>
+    <view class="address-form-context">
+      <text class="address-form-context-label">{{typeLabel}}</text>
+      <text class="address-form-context-badge">{{mode === 'edit' ? '编辑' : '新增'}}</text>
     </view>
+
     <view class="address-form-card">
       <text class="section-title">地址信息</text>
       <view class="field-block">
         <text class="field-label">收货人</text>
-        <input class="text-input" value="{{form.recipientName}}" bindinput="handleRecipientInput" placeholder="例如：虾衣妈妈" />
+        <input class="text-input" value="{{form.recipientName}}" bindinput="handleRecipientInput" placeholder="例如：虾衣妈妈" cursor-spacing="120" />
       </view>
       <view class="field-block">
         <text class="field-label">联系电话</text>
-        <input class="text-input" type="number" value="{{form.phoneNumber}}" bindinput="handlePhoneInput" placeholder="请输入手机号" />
+        <input class="text-input" type="number" value="{{form.phoneNumber}}" bindinput="handlePhoneInput" placeholder="请输入手机号" cursor-spacing="120" />
       </view>
       <view class="field-block">
         <text class="field-label">地区</text>
-        <input class="text-input" value="{{form.regionLabel}}" bindinput="handleRegionInput" placeholder="例如：上海市 静安区" />
+        <input class="text-input" value="{{form.regionLabel}}" bindinput="handleRegionInput" placeholder="例如：上海市 静安区" cursor-spacing="120" />
       </view>
       <view class="field-block">
         <text class="field-label">详细地址</text>
-        <textarea class="text-area" value="{{form.detailAddress}}" bindinput="handleDetailInput" placeholder="门牌号、楼层、房间号" />
+        <textarea class="text-area" value="{{form.detailAddress}}" bindinput="handleDetailInput" placeholder="门牌号、楼层、房间号" cursor-spacing="120" />
       </view>
       <view class="field-block">
         <text class="field-label">地址标签</text>
-        <input class="text-input" value="{{form.tag}}" bindinput="handleTagInput" placeholder="例如：家 / 公司 / 工作室" />
+        <input class="text-input" value="{{form.tag}}" bindinput="handleTagInput" placeholder="例如：家 / 公司 / 工作室" cursor-spacing="120" />
       </view>
     </view>
+  </view>
+
+  <view class="address-form-fixed-action">
     <button class="save-button" bindtap="handleSubmit">
       {{mode === 'edit' ? '保存地址' : '新增地址'}}
     </button>

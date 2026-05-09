@@ -75,6 +75,49 @@ describe('discovery cart pages', () => {
     vi.unstubAllGlobals();
   });
 
+  it('keeps the catalog page aligned with the refreshed warm commerce layout', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const catalogTemplate = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.wxml',
+      'utf8'
+    );
+    const catalogStyles = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.wxss',
+      'utf8'
+    );
+
+    expect(catalogTemplate).toContain('class="search-icon"');
+    expect(catalogTemplate).toContain('class="cart-float-icon"');
+    expect(catalogStyles).toContain('linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 58%, #F6E7C8 100%)');
+    expect(catalogStyles).toContain('background: #3A2A1E');
+    expect(catalogStyles).toContain('color: #FFE6A3');
+    expect(catalogStyles).toContain('bottom: calc(42rpx + env(safe-area-inset-bottom))');
+    expect(catalogStyles).toContain('align-items: center');
+    expect(catalogStyles).toContain('padding: calc(96rpx + env(safe-area-inset-top)) 24rpx calc(96rpx + env(safe-area-inset-bottom))');
+    expect(catalogStyles).toContain('.quick-buy-submit::after');
+  });
+
+  it('keeps the product detail page aligned with the refreshed warm commerce layout', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const detailTemplate = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/product-detail/index.wxml',
+      'utf8'
+    );
+    const detailStyles = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/product-detail/index.wxss',
+      'utf8'
+    );
+
+    expect(detailTemplate).toContain('class="detail-card spec-card"');
+    expect(detailTemplate).toContain('尺寸和口味选择');
+    expect(detailStyles).toContain('linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 58%, #F6E7C8 100%)');
+    expect(detailStyles).toContain('margin-top: -74rpx');
+    expect(detailStyles).toContain('background: #3A2A1E');
+    expect(detailStyles).toContain('color: #FFE6A3');
+    expect(detailStyles).toContain('padding: 22rpx 24rpx calc(24rpx + env(safe-area-inset-bottom))');
+    expect(detailStyles).toContain('.add-cart-button::after');
+  });
+
   it('opens quick buy in search when a spec product is added', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/search/index.ts');
     const { getProductById } = await import('../src/services/catalog');

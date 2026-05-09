@@ -1,61 +1,90 @@
 .profile-page {
   min-height: 100vh;
-  padding: 56rpx 24rpx calc(242rpx + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, #FBF6DB 0%, #FFFDF4 100%);
-  color: #4F341E;
+  padding: var(--profile-safe-top, 144rpx) 24rpx calc(242rpx + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 18% 4%, rgba(246, 190, 62, 0.44) 0, transparent 30%),
+    linear-gradient(180deg, #FFF7DF 0%, #FFFDF4 50%, #F8E8BD 100%);
+  color: #3A2A1E;
+  box-sizing: border-box;
 }
 
-.profile-hero {
-  padding: 36rpx 12rpx 32rpx;
-}
-
-.profile-title {
-  display: block;
-  font-size: 52rpx;
-  font-weight: 700;
-}
-
-.profile-subtitle {
-  display: block;
-  margin-top: 18rpx;
-  font-size: 26rpx;
-  line-height: 1.6;
-  color: #7D6C59;
-}
-
-.profile-card {
-  margin-top: 18rpx;
-  padding: 36rpx 30rpx;
-  border-radius: 32rpx;
-  background: rgba(255, 251, 234, 0.96);
-  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
-}
-
-.profile-summary-card {
-  margin-top: 0;
-}
-
-.card-title {
-  display: block;
-  font-size: 34rpx;
-  font-weight: 700;
-}
-
-.card-body {
-  display: block;
-  margin-top: 18rpx;
-  font-size: 26rpx;
-  line-height: 1.7;
-  color: #867462;
-}
-
-.summary-head,
-.summary-metrics,
-.entry-row {
+.balance-card-head,
+.balance-line,
+.balance-foot,
+.profile-facts {
   display: flex;
 }
 
-.summary-head {
+.profile-title,
+.member-chip,
+.summary-avatar,
+.profile-name,
+.profile-phone,
+.balance-label,
+.balance-currency,
+.balance-amount,
+.balance-foot-text,
+.balance-action,
+.fact-label,
+.fact-value,
+.quick-index,
+.quick-title,
+.quick-copy {
+  display: block;
+}
+
+.profile-title {
+  font-size: 54rpx;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -2rpx;
+  color: #3A2A1E;
+}
+
+.member-chip {
+  flex-shrink: 0;
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  background: #3A2A1E;
+  font-size: 22rpx;
+  font-weight: 800;
+  color: #FFE6A3;
+}
+
+.member-chip.in-card {
+  position: absolute;
+  right: 28rpx;
+  top: 28rpx;
+  z-index: 2;
+  background: rgba(255, 230, 163, 0.16);
+  color: #FFE6A3;
+}
+
+.balance-card {
+  position: relative;
+  overflow: hidden;
+  padding: 30rpx;
+  border-radius: 38rpx;
+  background:
+    radial-gradient(circle at 84% 8%, rgba(255, 230, 163, 0.32) 0, transparent 30%),
+    linear-gradient(145deg, #3B271A 0%, #6E3D18 58%, #B45309 100%);
+  box-shadow: 0 26rpx 58rpx rgba(72, 41, 17, 0.22);
+}
+
+.balance-card::after {
+  content: '';
+  position: absolute;
+  right: -72rpx;
+  bottom: -86rpx;
+  width: 250rpx;
+  height: 250rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.balance-card-head {
+  position: relative;
+  z-index: 1;
   align-items: center;
   gap: 20rpx;
 }
@@ -64,12 +93,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 56rpx;
-  background: linear-gradient(180deg, #F1D256 0%, #D9A15B 100%);
+  flex-shrink: 0;
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(180deg, #F6BE3E 0%, #F97316 100%);
+  box-shadow: inset 0 -8rpx 0 rgba(58, 42, 30, 0.12);
   font-size: 46rpx;
-  font-weight: 700;
+  font-weight: 900;
   color: #FFFFFF;
 }
 
@@ -78,62 +109,149 @@
   min-width: 0;
 }
 
-.summary-metrics {
-  flex-wrap: wrap;
-  gap: 16rpx;
-  margin-top: 28rpx;
+.profile-name {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #FFFFFF;
 }
 
-.metric-pill {
-  min-width: 180rpx;
-  padding: 18rpx 20rpx;
-  border-radius: 24rpx;
-  background: #FFF6D8;
+.profile-phone {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: rgba(255, 255, 255, 0.72);
 }
 
-.metric-label,
-.metric-value,
-.entry-title,
-.entry-copy {
-  display: block;
-}
-
-.metric-label {
-  font-size: 20rpx;
-  color: #9A886F;
-}
-
-.metric-value {
-  margin-top: 10rpx;
+.balance-label {
+  position: relative;
+  z-index: 1;
+  margin-top: 34rpx;
   font-size: 24rpx;
-  font-weight: 700;
-  color: #574737;
+  font-weight: 800;
+  color: rgba(255, 230, 163, 0.92);
 }
 
-.entry-row {
+.balance-line {
+  position: relative;
+  z-index: 1;
+  align-items: flex-end;
+  margin-top: 2rpx;
+}
+
+.balance-currency {
+  padding-bottom: 12rpx;
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #FFE6A3;
+}
+
+.balance-amount {
+  font-size: 76rpx;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -3rpx;
+  color: #FFFFFF;
+}
+
+.balance-foot {
+  position: relative;
+  z-index: 1;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 0;
+  gap: 18rpx;
+  margin-top: 24rpx;
 }
 
-.entry-row + .entry-row {
-  border-top: 2rpx solid rgba(79, 52, 30, 0.06);
-}
-
-.entry-title {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #4F341E;
-}
-
-.entry-copy {
-  margin-top: 8rpx;
+.balance-foot-text {
   font-size: 22rpx;
-  line-height: 1.6;
-  color: #8A7865;
+  color: rgba(255, 255, 255, 0.74);
 }
 
-.entry-arrow {
-  font-size: 40rpx;
-  color: #C49A68;
+.balance-action {
+  flex-shrink: 0;
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 22rpx;
+  font-weight: 800;
+  color: #FFE6A3;
+}
+
+.profile-facts {
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.fact-pill {
+  flex: 1;
+  min-width: 0;
+  padding: 20rpx 22rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14rpx 30rpx rgba(106, 72, 39, 0.07);
+}
+
+.fact-pill.editable {
+  border: 2rpx solid rgba(249, 115, 22, 0.18);
+  background: #FFF4E8;
+}
+
+.fact-label {
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #9A7B60;
+}
+
+.fact-value {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  font-weight: 900;
+  color: #3A2A1E;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+  margin-top: 22rpx;
+}
+
+.quick-card {
+  min-height: 184rpx;
+  padding: 24rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-sizing: border-box;
+}
+
+.quick-card.primary {
+  background: #FFF1C2;
+}
+
+.quick-card.balance-entry {
+  background: linear-gradient(135deg, #FFF8E8 0%, #FFE0A1 100%);
+}
+
+.quick-index {
+  font-size: 30rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: rgba(249, 115, 22, 0.28);
+}
+
+.quick-title {
+  margin-top: 26rpx;
+  font-size: 30rpx;
+  font-weight: 900;
+  color: #3A2A1E;
+}
+
+.quick-copy {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: #8A6D53;
 }

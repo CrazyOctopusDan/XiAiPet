@@ -1,10 +1,16 @@
 .balance-page {
   min-height: 100vh;
-  padding-bottom: calc(96rpx + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, #F7EFD6 0%, #FFFCF5 100%);
-  color: #4F341E;
+  padding-bottom: calc(104rpx + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 18% 0%, rgba(246, 190, 62, 0.38) 0, transparent 28%),
+    linear-gradient(180deg, #FFF7DF 0%, #FFFDF4 52%, #F8E8BD 100%);
+  color: #3A2A1E;
+  box-sizing: border-box;
 }
+
 .month-card-head,
+.overview-head,
+.overview-balance-line,
 .overview-metrics {
   display: flex;
   align-items: center;
@@ -14,77 +20,127 @@
   padding: 18rpx 24rpx 0;
 }
 
-.balance-title,
-.balance-subtitle,
 .overview-label,
+.overview-status,
+.overview-currency,
 .overview-value,
 .overview-pill-label,
 .overview-pill-value,
 .month-title,
 .month-summary,
 .ledger-title,
+.ledger-note,
 .ledger-date,
 .ledger-amount {
   display: block;
 }
 
-.balance-hero {
-  padding: 18rpx 8rpx 12rpx;
+.balance-overview-card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 10rpx;
+  padding: 32rpx 30rpx 30rpx;
+  border-radius: 38rpx;
+  background:
+    radial-gradient(circle at 86% 8%, rgba(255, 230, 163, 0.34) 0, transparent 30%),
+    linear-gradient(145deg, #3B271A 0%, #6E3D18 58%, #B45309 100%);
+  box-shadow: 0 26rpx 58rpx rgba(72, 41, 17, 0.22);
+  box-sizing: border-box;
 }
 
-.balance-title {
-  font-size: 50rpx;
-  font-weight: 700;
+.balance-overview-card::after {
+  content: '';
+  position: absolute;
+  right: -82rpx;
+  bottom: -92rpx;
+  width: 260rpx;
+  height: 260rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.balance-subtitle {
-  margin-top: 16rpx;
-  font-size: 26rpx;
-  line-height: 1.7;
-  color: #7D6C59;
+.overview-head,
+.overview-balance-line,
+.overview-metrics {
+  position: relative;
+  z-index: 1;
 }
 
-.balance-overview-card,
-.month-card {
-  margin-top: 18rpx;
-  padding: 30rpx 26rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 251, 239, 0.96);
-  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+.overview-head {
+  justify-content: space-between;
+  gap: 18rpx;
 }
 
 .overview-label {
   font-size: 24rpx;
-  color: #8B7A67;
+  font-weight: 800;
+  color: rgba(255, 230, 163, 0.92);
+}
+
+.overview-status {
+  flex-shrink: 0;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #FFE6A3;
+}
+
+.overview-balance-line {
+  align-items: flex-end;
+  margin-top: 12rpx;
+}
+
+.overview-currency {
+  padding-bottom: 12rpx;
+  font-size: 38rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #FFE6A3;
 }
 
 .overview-value {
-  margin-top: 12rpx;
-  font-size: 56rpx;
-  font-weight: 700;
+  font-size: 82rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #FFFFFF;
 }
 
 .overview-metrics {
-  gap: 16rpx;
-  margin-top: 22rpx;
+  gap: 18rpx;
+  margin-top: 28rpx;
 }
 
 .overview-pill {
   flex: 1;
-  padding: 18rpx 20rpx;
-  border-radius: 22rpx;
-  background: #FFF4D8;
+  min-width: 0;
+  padding: 20rpx 22rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.14);
+  box-sizing: border-box;
 }
 
 .overview-pill-label {
   font-size: 20rpx;
-  color: #8D775E;
+  font-weight: 800;
+  color: rgba(255, 230, 163, 0.78);
 }
 
 .overview-pill-value {
   margin-top: 10rpx;
-  font-size: 24rpx;
-  font-weight: 700;
+  font-size: 26rpx;
+  font-weight: 900;
+  color: #FFFFFF;
+}
+
+.month-card {
+  margin-top: 20rpx;
+  padding: 28rpx 26rpx 10rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-sizing: border-box;
 }
 
 .month-card-head {
@@ -92,27 +148,29 @@
 }
 
 .month-title {
-  font-size: 30rpx;
-  font-weight: 700;
+  font-size: 32rpx;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #3A2A1E;
 }
 
 .month-summary {
   margin-top: 10rpx;
   font-size: 22rpx;
-  color: #8A7865;
+  font-weight: 700;
+  color: #9A7B60;
 }
 
 .ledger-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 20rpx;
-  padding-top: 22rpx;
+  gap: 18rpx;
+  padding: 26rpx 0;
 }
 
 .ledger-row + .ledger-row {
-  border-top: 2rpx solid rgba(79, 52, 30, 0.06);
-  margin-top: 22rpx;
+  border-top: 2rpx solid rgba(58, 42, 30, 0.08);
 }
 
 .ledger-main {
@@ -120,21 +178,44 @@
   min-width: 0;
 }
 
+.ledger-title {
+  font-size: 30rpx;
+  line-height: 1.28;
+  font-weight: 900;
+  color: #3A2A1E;
+}
+
+.ledger-note {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  line-height: 1.35;
+  color: #8A6D53;
+}
+
 .ledger-date {
   margin-top: 8rpx;
   font-size: 22rpx;
-  color: #8A7865;
+  font-weight: 700;
+  color: #A1866A;
+}
+
+.ledger-amount-wrap {
+  flex-shrink: 0;
+  min-width: 150rpx;
+  padding: 8rpx 0;
+  text-align: right;
 }
 
 .ledger-amount {
-  font-size: 28rpx;
-  font-weight: 700;
+  font-size: 30rpx;
+  line-height: 1.2;
+  font-weight: 900;
 }
 
-.ledger-amount.income {
+.ledger-amount-wrap.income .ledger-amount {
   color: #2E8B57;
 }
 
-.ledger-amount.expense {
+.ledger-amount-wrap.expense .ledger-amount {
   color: #D05C45;
 }

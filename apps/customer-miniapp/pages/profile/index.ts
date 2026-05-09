@@ -5,22 +5,45 @@ import { getProfileSummary } from '../../src/services/profile';
 
 interface ProfilePageData {
   summary: ReturnType<typeof getProfileSummary>;
+  profileSafeTop: number;
 }
 
 interface ProfilePageInstance {
   data: ProfilePageData;
   setData(data: Record<string, unknown>): void;
   refreshSummary(): void;
+  refreshLayoutMetrics(): void;
   getTabBar?(): { setSelectedKey?: (key: string) => void } | undefined;
+}
+
+function resolveProfileSafeTop() {
+  const fallbackRpx = 144;
+  const windowInfo = wx.getWindowInfo?.() ?? wx.getSystemInfoSync?.();
+  const menuButton = wx.getMenuButtonBoundingClientRect?.();
+  const windowWidth = Number(windowInfo?.windowWidth ?? 0);
+  const menuBottom = Number(menuButton?.bottom ?? 0);
+
+  if (!windowWidth || !menuBottom) {
+    return fallbackRpx;
+  }
+
+  return Math.ceil(((menuBottom + 16) * 750) / windowWidth);
 }
 
 Page({
   data: {
-    summary: getProfileSummary()
+    summary: getProfileSummary(),
+    profileSafeTop: 144
   },
   onShow(this: ProfilePageInstance) {
     this.getTabBar?.()?.setSelectedKey?.('profile');
+    this.refreshLayoutMetrics();
     this.refreshSummary();
+  },
+  refreshLayoutMetrics(this: ProfilePageInstance) {
+    this.setData({
+      profileSafeTop: resolveProfileSafeTop()
+    });
   },
   refreshSummary(this: ProfilePageInstance) {
     this.setData({
@@ -59,5 +82,14 @@ Page({
     wx.navigateTo({
       url: '/pages/balance/index'
     });
+  },
+  handleProfileFactTap(event: { currentTarget?: { dataset?: { target?: string } } }) {
+    const target = event.currentTarget?.dataset?.target;
+
+    if (target === 'birthday' || target === 'contact') {
+      wx.navigateTo({
+        url: '/pages/profile-detail/index'
+      });
+    }
   }
 });

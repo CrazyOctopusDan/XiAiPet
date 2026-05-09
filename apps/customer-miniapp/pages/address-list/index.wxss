@@ -1,9 +1,13 @@
 .address-page {
   min-height: 100vh;
-  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, #FBF6DB 0%, #FFFDF4 100%);
-  color: #4F341E;
+  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 14% 0%, rgba(246, 190, 62, 0.22) 0, transparent 30%),
+    linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 54%, #F6E7C8 100%);
+  color: #3A2A1E;
+  box-sizing: border-box;
 }
+
 .address-card-head,
 .address-actions {
   display: flex;
@@ -11,11 +15,9 @@
 }
 
 .address-shell {
-  padding: 18rpx 24rpx 0;
+  padding: 26rpx 24rpx 0;
 }
 
-.address-title,
-.address-subtitle,
 .type-pill-label,
 .type-pill-hint,
 .address-name,
@@ -26,44 +28,34 @@
   display: block;
 }
 
-.address-hero {
-  padding: 18rpx 8rpx 12rpx;
-}
-
-.address-title {
-  font-size: 50rpx;
-  font-weight: 700;
-}
-
-.address-subtitle {
-  margin-top: 16rpx;
-  font-size: 26rpx;
-  line-height: 1.7;
-  color: #7D6C59;
-}
-
 .type-switch-card {
   display: flex;
-  gap: 16rpx;
-  margin-top: 18rpx;
+  gap: 18rpx;
+  margin-top: 8rpx;
 }
 
 .type-pill {
   flex: 1;
-  padding: 24rpx 20rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 250, 238, 0.95);
-  box-shadow: 0 16rpx 34rpx rgba(142, 105, 55, 0.07);
+  min-width: 0;
+  padding: 24rpx 22rpx;
+  border: 2rpx solid rgba(82, 49, 24, 0.08);
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14rpx 30rpx rgba(106, 72, 39, 0.07);
+  box-sizing: border-box;
 }
 
 .type-pill.active {
-  background: linear-gradient(180deg, #F6BE3E 0%, #D99A39 100%);
+  border-color: rgba(255, 230, 163, 0.28);
+  background: linear-gradient(145deg, #3B271A 0%, #6E3D18 58%, #B45309 100%);
+  box-shadow: 0 18rpx 38rpx rgba(72, 41, 17, 0.18);
 }
 
 .type-pill-label {
   font-size: 28rpx;
-  font-weight: 700;
-  color: #4F341E;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #3A2A1E;
 }
 
 .type-pill.active .type-pill-label,
@@ -74,20 +66,23 @@
 .type-pill-hint {
   margin-top: 10rpx;
   font-size: 22rpx;
-  line-height: 1.6;
-  color: #8E7A64;
+  line-height: 1.45;
+  font-weight: 700;
+  color: #8A6D53;
 }
 
 .address-list {
-  margin-top: 18rpx;
+  margin-top: 22rpx;
 }
 
 .address-card {
-  margin-top: 16rpx;
+  margin-top: 18rpx;
   padding: 30rpx 26rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 251, 234, 0.96);
-  box-shadow: 0 18rpx 40rpx rgba(142, 105, 55, 0.08);
+  border: 2rpx solid rgba(82, 49, 24, 0.06);
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-sizing: border-box;
 }
 
 .address-card-head {
@@ -96,10 +91,18 @@
   gap: 20rpx;
 }
 
+.address-name {
+  font-size: 32rpx;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #3A2A1E;
+}
+
 .address-phone {
   margin-top: 8rpx;
-  font-size: 22rpx;
-  color: #8A7865;
+  font-size: 23rpx;
+  font-weight: 700;
+  color: #9A7B60;
 }
 
 .address-card-meta {
@@ -114,23 +117,26 @@
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
   font-size: 20rpx;
+  line-height: 1.2;
+  font-weight: 800;
 }
 
 .address-tag {
-  background: #FFF1C7;
-  color: #8D662D;
+  background: #FFF1C2;
+  color: #8A5A14;
 }
 
 .address-current {
-  background: #EDE7D6;
-  color: #766754;
+  background: rgba(58, 42, 30, 0.1);
+  color: #6D563F;
 }
 
 .address-detail {
   margin-top: 18rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
-  color: #6F6254;
+  font-size: 25rpx;
+  line-height: 1.6;
+  font-weight: 700;
+  color: #6F5B47;
 }
 
 .address-actions {
@@ -146,44 +152,72 @@
   height: 72rpx;
   border-radius: 999rpx;
   font-size: 24rpx;
-  font-weight: 700;
+  font-weight: 900;
+  box-sizing: border-box;
 }
 
 .address-action.ghost {
-  border: 2rpx solid #E6D9BE;
-  color: #876948;
+  border: 2rpx solid rgba(58, 42, 30, 0.16);
+  color: #6D563F;
 }
 
 .address-action.primary {
-  background: #F6BE3E;
-  color: #FFFFFF;
+  background: #3A2A1E;
+  color: #FFE6A3;
 }
 
 .empty-state {
-  margin-top: 18rpx;
+  margin-top: 22rpx;
   padding: 80rpx 32rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 251, 234, 0.82);
+  border: 2rpx dashed rgba(82, 49, 24, 0.14);
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.72);
   text-align: center;
+  box-sizing: border-box;
 }
 
 .empty-title {
   font-size: 34rpx;
-  font-weight: 700;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #3A2A1E;
 }
 
 .empty-copy {
   margin-top: 16rpx;
   font-size: 24rpx;
-  line-height: 1.7;
-  color: #8A7865;
+  line-height: 1.6;
+  font-weight: 700;
+  color: #8A6D53;
+}
+
+.address-fixed-action {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 246, 0.94);
+  backdrop-filter: blur(18rpx);
+  box-shadow: 0 -12rpx 32rpx rgba(72, 41, 17, 0.08);
+  box-sizing: border-box;
 }
 
 .address-add-button {
-  margin-top: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 96rpx;
+  padding: 0;
   border-radius: 999rpx;
-  background: #4F341E;
-  color: #FFFFFF;
+  background: #3A2A1E;
+  font-size: 30rpx;
+  line-height: 96rpx;
+  font-weight: 900;
+  color: #FFE6A3;
+  box-shadow: 0 18rpx 38rpx rgba(72, 41, 17, 0.2);
 }
 
 .address-add-button::after {

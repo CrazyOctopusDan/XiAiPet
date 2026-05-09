@@ -1,10 +1,18 @@
-<view class="orders-page">
+<view class="orders-page" style="--orders-header-top: {{ordersHeaderTop}}rpx; --orders-header-height: {{ordersHeaderHeight}}rpx; --orders-header-right: {{ordersHeaderRightPadding}}rpx;">
   <view class="orders-hero">
-    <text class="orders-title">我的订单</text>
-    <text class="orders-subtitle">支付完成后可以在这里查看订单状态、履约信息和下单快照。</text>
+    <view class="orders-heading-row">
+      <text class="orders-title">我的订单</text>
+      <text class="orders-badge">{{isEmpty ? '待下单' : orderCards.length + ' 单'}}</text>
+    </view>
+    <text class="orders-subtitle">履约状态和下单快照</text>
   </view>
 
   <view class="orders-card empty-card" wx:if="{{isEmpty}}">
+    <view class="empty-mark">
+      <view class="empty-mark-line short"></view>
+      <view class="empty-mark-line"></view>
+      <view class="empty-mark-line"></view>
+    </view>
     <text class="card-title">{{emptyStateTitle}}</text>
     <text class="card-body">{{emptyStateBody}}</text>
     <button class="catalog-button" bindtap="handleGoCatalog">去逛逛</button>
@@ -20,17 +28,19 @@
         <text class="order-status">{{item.statusLabel}}</text>
       </view>
       <text class="order-summary">{{item.itemSummary}}</text>
-      <view class="order-meta-row">
-        <text class="order-meta-label">履约方式</text>
-        <text class="order-meta-value">{{item.fulfillmentLabel}}</text>
-      </view>
-      <view class="order-meta-row">
-        <text class="order-meta-label">预约时间</text>
-        <text class="order-meta-value">{{item.scheduleLabel}}</text>
-      </view>
-      <view class="order-meta-row">
-        <text class="order-meta-label">宠物</text>
-        <text class="order-meta-value">{{item.petNamesLabel}}</text>
+      <view class="order-meta-panel">
+        <view class="order-meta-row">
+          <text class="order-meta-label">履约方式</text>
+          <text class="order-meta-value">{{item.fulfillmentLabel}}</text>
+        </view>
+        <view class="order-meta-row">
+          <text class="order-meta-label">预约时间</text>
+          <text class="order-meta-value">{{item.scheduleLabel}}</text>
+        </view>
+        <view class="order-meta-row">
+          <text class="order-meta-label">宠物</text>
+          <text class="order-meta-value">{{item.petNamesLabel}}</text>
+        </view>
       </view>
       <view class="order-card-foot">
         <text class="order-total">{{item.payableTotalLabel}}</text>

@@ -2,9 +2,9 @@
   <page-nav />
 
   <view class="pet-form-shell">
-    <view class="pet-form-hero">
-      <text class="pet-form-title">{{mode === 'edit' ? '编辑宠物档案' : '新增宠物档案'}}</text>
-      <text class="pet-form-subtitle">先把多宠物资料沉淀成独立档案，后续下单只做选择，不再重复录入。</text>
+    <view class="pet-form-context">
+      <text class="pet-form-context-label">宠物档案</text>
+      <text class="pet-form-context-badge">{{mode === 'edit' ? '编辑' : '新增'}}</text>
     </view>
 
     <view class="pet-form-card">
@@ -12,7 +12,7 @@
 
       <view class="field-block">
         <text class="field-label">宠物名字</text>
-        <input class="text-input" value="{{form.name}}" bindinput="handleNameInput" placeholder="例如：布丁" />
+        <input class="text-input" value="{{form.name}}" bindinput="handleNameInput" placeholder="例如：布丁" cursor-spacing="120" />
       </view>
 
       <view class="field-block">
@@ -31,10 +31,12 @@
 
       <view class="field-block">
         <text class="field-label">过敏源 / 饮食备注</text>
-        <textarea class="text-area" value="{{form.allergyNotes}}" bindinput="handleAllergyInput" placeholder="例如：对鸡肉冻干敏感，避免花生酱装饰" />
+        <textarea class="text-area" value="{{form.allergyNotes}}" bindinput="handleAllergyInput" placeholder="例如：对鸡肉冻干敏感，避免花生酱装饰" cursor-spacing="120" />
       </view>
     </view>
+  </view>
 
+  <view class="pet-form-fixed-action">
     <button class="save-button" bindtap="handleSubmit">{{mode === 'edit' ? '保存档案' : '新增档案'}}</button>
   </view>
 </view>

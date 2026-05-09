@@ -81,6 +81,7 @@
   justify-content: center;
   width: 44rpx;
   height: 44rpx;
+  box-sizing: border-box;
   border: 2rpx solid #e2e2e2;
   border-radius: 50%;
   background: #ffffff;
@@ -139,7 +140,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44rpx;
+  width: 48rpx;
 }
 
 .row-image {

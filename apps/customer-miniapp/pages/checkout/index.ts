@@ -29,6 +29,10 @@ interface PaymentMethodOption {
   hint: string;
 }
 
+interface PetChoice extends PetProfile {
+  selected: boolean;
+}
+
 interface CheckoutPageData {
   items: CartItem[];
   selectedCount: number;
@@ -40,8 +44,11 @@ interface CheckoutPageData {
   reservationOptions: ReservationDayOption[];
   selectedReservationValue: string;
   selectedReservationLabel: string;
+  showReservationModal: boolean;
+  pendingReservationDateValue: string;
+  pendingReservationTimeValue: string;
   pickupPhone: string;
-  pets: PetProfile[];
+  pets: PetChoice[];
   selectedPetIds: string[];
   remarkSummary: string;
   customNotice: string;
@@ -57,6 +64,7 @@ interface CheckoutPageData {
   deliveryFee: number;
   payableTotal: number;
   deliveryFeeLabel: string;
+  showDeliveryFeeModal: boolean;
   submitting: boolean;
 }
 
@@ -66,6 +74,47 @@ interface CheckoutPageInstance {
   refreshCheckout(): void;
   refreshRuntimeConfig(): Promise<void>;
   handleSubmit(): Promise<void>;
+}
+
+function resolvePendingReservation(options: ReservationDayOption[], selectedValue: string) {
+  for (const day of options) {
+    for (const slot of day.slots) {
+      if (`${day.value}-${slot.value}` === selectedValue) {
+        return {
+          dateValue: day.value,
+          timeValue: slot.value
+        };
+      }
+    }
+  }
+
+  const firstDay = options[0];
+  const firstSlot = firstDay?.slots[0];
+
+  if (!firstDay || !firstSlot) {
+    return null;
+  }
+
+  return {
+    dateValue: firstDay.value,
+    timeValue: firstSlot.value
+  };
+}
+
+function findReservationSelection(options: ReservationDayOption[], dateValue: string, timeValue: string) {
+  const day = options.find((item) => item.value === dateValue);
+  const slot = day?.slots.find((item) => item.value === timeValue);
+
+  if (!day || !slot) {
+    return null;
+  }
+
+  return {
+    dateLabel: day.label,
+    dateValue: day.value,
+    timeLabel: slot.label,
+    timeValue: slot.value
+  };
 }
 
 const PAYMENT_METHODS: PaymentMethodOption[] = [
@@ -93,6 +142,9 @@ Page({
     reservationOptions: [],
     selectedReservationValue: '',
     selectedReservationLabel: '',
+    showReservationModal: false,
+    pendingReservationDateValue: '',
+    pendingReservationTimeValue: '',
     pickupPhone: '',
     pets: [],
     selectedPetIds: [],
@@ -110,6 +162,7 @@ Page({
     deliveryFee: 0,
     payableTotal: 0,
     deliveryFeeLabel: '待确认',
+    showDeliveryFeeModal: false,
     submitting: false
   },
   onShow(this: CheckoutPageInstance) {
@@ -128,6 +181,8 @@ Page({
     const view = getCheckoutViewModel();
     const pricing = getCheckoutPricingPreview();
     const activePaymentMethod = this.data.activePaymentMethod ?? 'wechat';
+    const selectedPetIds = view.selectedPets.map((item) => item.id);
+    const selectedPetIdSet = new Set(selectedPetIds);
 
     this.setData({
       items: getCartItems().filter((item) => item.selected),
@@ -145,8 +200,11 @@ Page({
         ? `${view.reservationSelection.dateLabel} ${view.reservationSelection.timeLabel}`
         : '',
       pickupPhone: view.pickupPhone,
-      pets: getPets(),
-      selectedPetIds: view.selectedPets.map((item) => item.id),
+      pets: getPets().map((item) => ({
+        ...item,
+        selected: selectedPetIdSet.has(item.id)
+      })),
+      selectedPetIds,
       remarkSummary: view.remark || '还没有填写备注',
       customNotice: view.customNotice,
       hasReadCustomNotice: view.hasReadCustomNotice,
@@ -191,25 +249,60 @@ Page({
       url: `/pages/address-list/index?source=checkout&type=${this.data.activeAddressType}`
     });
   },
-  handleReservationTap(
-    this: CheckoutPageInstance,
-    event: { currentTarget?: { dataset?: { dateValue?: string; dateLabel?: string; timeValue?: string; timeLabel?: string } } }
-  ) {
-    const dateValue = event.currentTarget?.dataset?.dateValue;
-    const dateLabel = event.currentTarget?.dataset?.dateLabel;
-    const timeValue = event.currentTarget?.dataset?.timeValue;
-    const timeLabel = event.currentTarget?.dataset?.timeLabel;
+  handleOpenReservationModal(this: CheckoutPageInstance) {
+    const pending = resolvePendingReservation(this.data.reservationOptions, this.data.selectedReservationValue);
 
-    if (!dateValue || !dateLabel || !timeValue || !timeLabel) {
+    if (!pending) {
       return;
     }
 
-    setReservationSelection({
-      dateLabel,
-      dateValue,
-      timeLabel,
-      timeValue
+    this.setData({
+      showReservationModal: true,
+      pendingReservationDateValue: pending.dateValue,
+      pendingReservationTimeValue: pending.timeValue
     });
+  },
+  handleCloseReservationModal(this: CheckoutPageInstance) {
+    this.setData({ showReservationModal: false });
+  },
+  handleReservationDateTap(this: CheckoutPageInstance, event: { currentTarget?: { dataset?: { dateValue?: string } } }) {
+    const dateValue = event.currentTarget?.dataset?.dateValue;
+    const day = this.data.reservationOptions.find((item) => item.value === dateValue);
+    const firstSlot = day?.slots[0];
+
+    if (!day || !firstSlot) {
+      return;
+    }
+
+    this.setData({
+      pendingReservationDateValue: day.value,
+      pendingReservationTimeValue: firstSlot.value
+    });
+  },
+  handleReservationSlotTap(this: CheckoutPageInstance, event: { currentTarget?: { dataset?: { timeValue?: string } } }) {
+    const timeValue = event.currentTarget?.dataset?.timeValue;
+
+    if (!timeValue) {
+      return;
+    }
+
+    this.setData({
+      pendingReservationTimeValue: timeValue
+    });
+  },
+  handleConfirmReservation(this: CheckoutPageInstance) {
+    const selection = findReservationSelection(
+      this.data.reservationOptions,
+      this.data.pendingReservationDateValue,
+      this.data.pendingReservationTimeValue
+    );
+
+    if (!selection) {
+      return;
+    }
+
+    setReservationSelection(selection);
+    this.setData({ showReservationModal: false });
     this.refreshCheckout();
   },
   handlePhoneInput(this: CheckoutPageInstance, event: { detail?: { value?: string } }) {
@@ -253,6 +346,17 @@ Page({
       activePaymentMethod: method
     });
   },
+  handleDeliveryFeeTap(this: CheckoutPageInstance) {
+    if (this.data.activeFulfillmentMode !== 'delivery' || !this.data.deliveryRuleRows.length) {
+      return;
+    }
+
+    this.setData({ showDeliveryFeeModal: true });
+  },
+  handleCloseDeliveryFeeModal(this: CheckoutPageInstance) {
+    this.setData({ showDeliveryFeeModal: false });
+  },
+  noop() {},
   handleNoticeToggle(this: CheckoutPageInstance) {
     setCustomNoticeAcknowledged(!this.data.hasReadCustomNotice);
     this.refreshCheckout();

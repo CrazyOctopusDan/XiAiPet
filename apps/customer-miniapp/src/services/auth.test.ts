@@ -68,6 +68,37 @@ describe('cloud service response handling', () => {
     });
   });
 
+  it('passes the WeChat getPhoneNumber code to bindPhone when no frontend phone number is returned', async () => {
+    callFunctionMock.mockResolvedValue({
+      result: {
+        ok: true,
+        update: {
+          phoneBindingState: 'bound',
+          contactPhoneMasked: '138****1234'
+        }
+      }
+    });
+
+    await expect(
+      requestWechatPhone({
+        code: 'wechat-phone-code'
+      })
+    ).resolves.toEqual({
+      ok: true,
+      update: {
+        phoneBindingState: 'bound',
+        contactPhoneMasked: '138****1234'
+      }
+    });
+
+    expect(callFunctionMock).toHaveBeenCalledWith({
+      name: 'bindPhone',
+      data: {
+        phoneCode: 'wechat-phone-code'
+      }
+    });
+  });
+
   it('normalizes manual phone submission before calling the cloud function', async () => {
     callFunctionMock.mockResolvedValue({
       result: {

@@ -1,4 +1,5 @@
 {
+  "__usePrivacyCheck__": true,
   "pages": [
     "pages/launch/index",
     "pages/home/index",

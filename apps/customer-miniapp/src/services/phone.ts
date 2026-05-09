@@ -18,15 +18,23 @@ function normalizeSubmission(input: ManualPhoneInput) {
 }
 
 export async function requestWechatPhone(detail: Record<string, unknown>) {
+  const phoneNumber = String(detail.phoneNumber ?? '');
+  const phoneCode = String(detail.code ?? '');
+  const data = phoneNumber
+    ? {
+        payload: {
+          phoneNumber,
+          countryCode: String(detail.countryCode ?? '+86'),
+          source: 'wechat'
+        }
+      }
+    : {
+        phoneCode
+      };
+
   const response = (await wx.cloud.callFunction({
     name: 'bindPhone',
-    data: {
-      payload: {
-        phoneNumber: String(detail.phoneNumber ?? ''),
-        countryCode: String(detail.countryCode ?? '+86'),
-        source: 'wechat'
-      }
-    }
+    data
   })) as { result: BindPhoneResponse };
 
   return response.result;

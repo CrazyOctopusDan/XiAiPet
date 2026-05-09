@@ -18,6 +18,9 @@ function cloneData<T>(value: T): T {
 async function loadPageModule(modulePath: string) {
   let capturedPage: PageOptions | null = null;
   const wxMock = {
+    getWindowInfo: () => ({ statusBarHeight: 20, windowWidth: 375 }),
+    getSystemInfoSync: () => ({ statusBarHeight: 20, windowWidth: 375 }),
+    getMenuButtonBoundingClientRect: () => null,
     redirectTo: vi.fn(),
     navigateTo: vi.fn(),
     navigateBack: vi.fn(),
@@ -149,6 +152,61 @@ describe('orders pages', () => {
     expect(instance.data.isEmpty).toBe(true);
     expect(instance.data.orderCards).toEqual([]);
     expect(instance.data.emptyStateTitle).toBe('还没有订单');
+  });
+
+  it('renders the orders page with the refreshed warm card layout', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
+    const { readFile } = await import('node:fs/promises');
+    const instance = createPageInstance(page);
+
+    expect(instance.data.emptyStateTitle).toBe('还没有订单');
+
+    const ordersTemplate = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.wxml',
+      'utf8'
+    );
+    const ordersStyles = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.wxss',
+      'utf8'
+    );
+
+    expect(ordersTemplate).toContain('class="orders-badge"');
+    expect(ordersTemplate).toContain('--orders-header-top: {{ordersHeaderTop}}rpx;');
+    expect(ordersTemplate).toContain('class="orders-heading-row"');
+    expect(ordersTemplate).toContain('class="empty-mark"');
+    expect(ordersTemplate).toContain('class="order-meta-panel"');
+    expect(ordersStyles).toContain('background: #3A2A1E');
+    expect(ordersStyles).toContain('color: #FFE6A3');
+    expect(ordersStyles).toContain('padding: var(--orders-header-top, 96rpx) 24rpx calc(242rpx + env(safe-area-inset-bottom))');
+    expect(ordersStyles).toContain('padding-right: var(--orders-header-right, 212rpx)');
+    expect(ordersStyles).toContain('.catalog-button::after');
+  });
+
+  it('derives orders header placement from the WeChat capsule metrics', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
+    wx.cloud.callFunction.mockResolvedValue({
+      result: {
+        ok: true,
+        orders: []
+      }
+    });
+    wx.getWindowInfo = vi.fn(() => ({ statusBarHeight: 20, windowWidth: 375 }));
+    (wx as any).getMenuButtonBoundingClientRect = vi.fn(() => ({
+      top: 58,
+      height: 32,
+      bottom: 90,
+      left: 282,
+      right: 369,
+      width: 87
+    }));
+
+    const instance = createPageInstance(page);
+
+    await instance.onShow();
+
+    expect(instance.data.ordersHeaderTop).toBe(116);
+    expect(instance.data.ordersHeaderHeight).toBe(64);
+    expect(instance.data.ordersHeaderRightPadding).toBe(210);
   });
 
   it('shows recorded orders and navigates into order detail', async () => {

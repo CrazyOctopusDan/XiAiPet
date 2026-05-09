@@ -15,8 +15,8 @@
     <text class="detail-member">{{product.memberLevelLabel}}</text>
   </view>
 
-  <view class="detail-card" wx:if="{{product.specs.length}}">
-    <text class="section-title">尺寸&amp;口味选择</text>
+  <view class="detail-card spec-card" wx:if="{{product.specs.length}}">
+    <text class="section-title">尺寸和口味选择</text>
     <view class="spec-grid">
       <view class="spec-pill {{selectedSpecId === item.id ? 'active' : ''}}" wx:for="{{product.specs}}" wx:key="id" data-spec-id="{{item.id}}" bindtap="handleSpecTap">{{item.label}}</view>
     </view>

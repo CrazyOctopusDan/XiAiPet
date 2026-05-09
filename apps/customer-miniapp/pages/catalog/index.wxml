@@ -10,7 +10,7 @@
 
   <view class="catalog-header-row">
     <view class="search-box" bindtap="handleSearchTap">
-      <text class="search-icon">○</text>
+      <view class="search-icon"></view>
       <text class="search-placeholder">搜索</text>
     </view>
     <view class="hero-chip">{{activeSectionSubtitle}}</view>
@@ -73,7 +73,11 @@
   </view>
 
   <view class="cart-float" bindtap="handleCartTap">
-    <text class="cart-float-icon">车</text>
+    <view class="cart-float-icon">
+      <view class="cart-float-handle"></view>
+      <view class="cart-float-line"></view>
+      <view class="cart-float-line short"></view>
+    </view>
     <text class="cart-float-label">购物车</text>
     <view class="cart-float-badge" wx:if="{{cartCount}}">{{cartCount}}</view>
   </view>
@@ -86,7 +90,7 @@
         <text class="quick-buy-name">{{selectedProduct.name}}</text>
         <text class="quick-buy-summary">{{selectedProduct.summary}}</text>
         <text class="quick-buy-member">{{selectedProduct.memberLevelLabel}}</text>
-        <text class="quick-buy-spec-title">尺寸&amp;口味选择</text>
+        <text class="quick-buy-spec-title">尺寸和口味选择</text>
         <view class="quick-buy-specs">
           <view class="quick-buy-spec {{selectedSpecId === item.id ? 'active' : ''}}" wx:for="{{selectedProduct.specs}}" wx:key="id" data-spec-id="{{item.id}}" bindtap="handleSpecTap">{{item.label}}</view>
         </view>

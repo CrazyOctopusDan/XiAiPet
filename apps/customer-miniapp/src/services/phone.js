@@ -9,16 +9,23 @@ function normalizeSubmission(input) {
     };
 }
 async function requestWechatPhone(detail) {
-    var _a, _b;
-    const response = (await wx.cloud.callFunction({
-        name: 'bindPhone',
-        data: {
+    var _a, _b, _c;
+    const phoneNumber = String((_a = detail.phoneNumber) !== null && _a !== void 0 ? _a : '');
+    const phoneCode = String((_b = detail.code) !== null && _b !== void 0 ? _b : '');
+    const data = phoneNumber
+        ? {
             payload: {
-                phoneNumber: String((_a = detail.phoneNumber) !== null && _a !== void 0 ? _a : ''),
-                countryCode: String((_b = detail.countryCode) !== null && _b !== void 0 ? _b : '+86'),
+                phoneNumber,
+                countryCode: String((_c = detail.countryCode) !== null && _c !== void 0 ? _c : '+86'),
                 source: 'wechat'
             }
         }
+        : {
+            phoneCode
+        };
+    const response = (await wx.cloud.callFunction({
+        name: 'bindPhone',
+        data
     }));
     return response.result;
 }

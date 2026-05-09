@@ -1,6 +1,6 @@
 .remark-page {
   min-height: 100vh;
-  padding-bottom: 180rpx;
+  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
   background: #F7F4EA;
 }
 
@@ -89,7 +89,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 22rpx 20rpx 30rpx;
+  padding: 22rpx 20rpx calc(30rpx + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.98);
 }
 

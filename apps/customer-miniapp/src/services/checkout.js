@@ -86,12 +86,21 @@ function formatTimeValue(date) {
     return `${padNumber(date.getHours())}:${padNumber(date.getMinutes())}`;
 }
 function buildDayLabel(date, offset) {
-    const prefix = offset === 0 ? '今天' : offset === 1 ? '明天' : offset === 2 ? '后天' : `${date.getMonth() + 1}月${date.getDate()}日`;
-    return `${prefix} ${padNumber(date.getMonth() + 1)}-${padNumber(date.getDate())}`;
+    const dateLabel = `${date.getMonth() + 1}月${date.getDate()}日`;
+    if (offset === 0) {
+        return `今天 ${dateLabel}`;
+    }
+    if (offset === 1) {
+        return `明天 ${dateLabel}`;
+    }
+    if (offset === 2) {
+        return `后天 ${dateLabel}`;
+    }
+    return dateLabel;
 }
 function buildReservationOptions(now = new Date()) {
     const options = [];
-    for (let offset = 0; offset < 3; offset += 1) {
+    for (let offset = 0; offset < 17; offset += 1) {
         const day = addDays(startOfDay(now), offset);
         const start = offset === 0 ? ceilToNextHalfHour(now) : new Date(day.getFullYear(), day.getMonth(), day.getDate(), 10, 0, 0, 0);
         const end = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 21, 0, 0, 0);

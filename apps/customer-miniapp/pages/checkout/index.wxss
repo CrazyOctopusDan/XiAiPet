@@ -81,7 +81,6 @@
 }
 
 .fulfillment-mode-row,
-.reservation-slot-row,
 .pet-choice-row,
 .checkout-bottom-actions {
   display: flex;
@@ -205,27 +204,64 @@
   color: #2E261F;
 }
 
-.reservation-group {
-  margin-top: 22rpx;
-}
-
-.reservation-slot-row,
 .pet-choice-row {
   gap: 14rpx;
   margin-top: 14rpx;
   flex-wrap: wrap;
 }
 
-.reservation-slot,
 .pet-choice {
   padding: 14rpx 20rpx;
   border-radius: 22rpx;
   background: #F5EFE3;
 }
 
-.reservation-slot {
+.reservation-summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 20rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  background: #FFF7E6;
+}
+
+.reservation-summary-title,
+.reservation-summary-hint,
+.reservation-summary-action {
+  display: block;
+}
+
+.reservation-summary-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #2E261F;
+}
+
+.reservation-summary-hint {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #8B8175;
+}
+
+.reservation-summary-action {
+  flex-shrink: 0;
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  background: #F6BE3E;
   font-size: 22rpx;
   font-weight: 700;
+  color: #FFFFFF;
+}
+
+.reservation-slot {
+  padding: 18rpx 0;
+  border-radius: 20rpx;
+  background: #F5EFE3;
+  font-size: 22rpx;
+  font-weight: 700;
+  text-align: center;
   color: #6F6457;
 }
 
@@ -233,6 +269,16 @@
 .pet-choice.active {
   background: #F6BE3E;
   color: #FFFFFF;
+}
+
+.pet-choice {
+  border: 2rpx solid transparent;
+  box-shadow: 0 8rpx 20rpx rgba(103, 76, 44, 0.06);
+}
+
+.pet-choice.active {
+  border-color: #E5A900;
+  box-shadow: 0 12rpx 26rpx rgba(246, 190, 62, 0.28);
 }
 
 .pet-choice.active .pet-choice-name,
@@ -248,6 +294,7 @@
 }
 
 .fee-row,
+.fee-value-with-arrow,
 .payment-method-row {
   display: flex;
 }
@@ -271,6 +318,21 @@
   font-size: 24rpx;
   font-weight: 700;
   color: #2E261F;
+}
+
+.delivery-fee-row {
+  min-height: 56rpx;
+}
+
+.fee-value-with-arrow {
+  align-items: center;
+  gap: 8rpx;
+}
+
+.fee-arrow {
+  font-size: 34rpx;
+  line-height: 1;
+  color: #9A6A3A;
 }
 
 .payment-method-row {
@@ -315,16 +377,29 @@
 }
 
 .notice-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   width: 34rpx;
   height: 34rpx;
   border-radius: 50%;
   border: 2rpx solid #D4B37C;
   background: #FFFFFF;
+  box-sizing: border-box;
 }
 
 .notice-check.active {
   background: #F6BE3E;
   border-color: #F6BE3E;
+}
+
+.notice-check-mark {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1;
+  color: #FFFFFF;
 }
 
 .checkout-item {
@@ -421,4 +496,190 @@
 .checkout-return::after,
 .checkout-submit::after {
   border: 0;
+}
+
+.reservation-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.reservation-panel {
+  width: 100%;
+  max-height: 78vh;
+  padding: 28rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));
+  border-radius: 32rpx 32rpx 0 0;
+  background: #FFFFFF;
+  box-shadow: 0 -18rpx 48rpx rgba(38, 28, 16, 0.18);
+}
+
+.reservation-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.reservation-panel-title,
+.reservation-panel-subtitle,
+.reservation-date-name,
+.reservation-date-count {
+  display: block;
+}
+
+.reservation-panel-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #2E261F;
+}
+
+.reservation-panel-subtitle {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #8B8175;
+}
+
+.reservation-panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #F5EFE3;
+  font-size: 36rpx;
+  line-height: 1;
+  color: #6F6457;
+}
+
+.reservation-picker {
+  display: flex;
+  gap: 18rpx;
+  height: 600rpx;
+  margin-top: 24rpx;
+}
+
+.reservation-date-list {
+  width: 188rpx;
+  height: 100%;
+  border-radius: 24rpx;
+  background: #F8F2E8;
+}
+
+.reservation-date-tab {
+  margin: 10rpx;
+  padding: 18rpx 14rpx;
+  border-radius: 20rpx;
+  color: #6F6457;
+}
+
+.reservation-date-tab.active {
+  background: #F6BE3E;
+  color: #FFFFFF;
+  box-shadow: 0 10rpx 22rpx rgba(246, 190, 62, 0.26);
+}
+
+.reservation-date-name {
+  font-size: 23rpx;
+  font-weight: 700;
+}
+
+.reservation-date-count {
+  margin-top: 6rpx;
+  font-size: 19rpx;
+  opacity: 0.76;
+}
+
+.reservation-time-list {
+  flex: 1;
+  height: 100%;
+}
+
+.reservation-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.reservation-confirm {
+  margin-top: 24rpx;
+  height: 88rpx;
+  border-radius: 999rpx;
+  background: #F6BE3E;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.reservation-confirm::after {
+  border: 0;
+}
+
+.delivery-fee-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.delivery-fee-panel {
+  width: 560rpx;
+  max-width: 100%;
+  padding: 28rpx 28rpx 30rpx;
+  border-radius: 28rpx;
+  background: #FFFFFF;
+  box-shadow: 0 20rpx 52rpx rgba(38, 28, 16, 0.16);
+}
+
+.delivery-fee-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.delivery-fee-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #2E261F;
+}
+
+.delivery-fee-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background: #F5EFE3;
+  font-size: 34rpx;
+  line-height: 1;
+  color: #6F6457;
+}
+
+.delivery-fee-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  margin-top: 24rpx;
+}
+
+.delivery-fee-detail {
+  display: block;
+  padding: 16rpx 18rpx;
+  border-radius: 18rpx;
+  background: #FFF7E6;
+  font-size: 24rpx;
+  line-height: 1.45;
+  color: #5F5144;
 }

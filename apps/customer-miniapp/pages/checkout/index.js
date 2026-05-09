@@ -7,6 +7,40 @@ const pets_1 = require("../../src/services/pets");
 const order_submit_1 = require("../../src/services/order-submit");
 const runtime_config_1 = require("../../src/services/runtime-config");
 const tab_navigation_1 = require("../../src/services/tab-navigation");
+function resolvePendingReservation(options, selectedValue) {
+    for (const day of options) {
+        for (const slot of day.slots) {
+            if (`${day.value}-${slot.value}` === selectedValue) {
+                return {
+                    dateValue: day.value,
+                    timeValue: slot.value
+                };
+            }
+        }
+    }
+    const firstDay = options[0];
+    const firstSlot = firstDay === null || firstDay === void 0 ? void 0 : firstDay.slots[0];
+    if (!firstDay || !firstSlot) {
+        return null;
+    }
+    return {
+        dateValue: firstDay.value,
+        timeValue: firstSlot.value
+    };
+}
+function findReservationSelection(options, dateValue, timeValue) {
+    const day = options.find((item) => item.value === dateValue);
+    const slot = day === null || day === void 0 ? void 0 : day.slots.find((item) => item.value === timeValue);
+    if (!day || !slot) {
+        return null;
+    }
+    return {
+        dateLabel: day.label,
+        dateValue: day.value,
+        timeLabel: slot.label,
+        timeValue: slot.value
+    };
+}
 const PAYMENT_METHODS = [
     {
         value: 'wechat',
@@ -31,6 +65,9 @@ Page({
         reservationOptions: [],
         selectedReservationValue: '',
         selectedReservationLabel: '',
+        showReservationModal: false,
+        pendingReservationDateValue: '',
+        pendingReservationTimeValue: '',
         pickupPhone: '',
         pets: [],
         selectedPetIds: [],
@@ -48,6 +85,7 @@ Page({
         deliveryFee: 0,
         payableTotal: 0,
         deliveryFeeLabel: '待确认',
+        showDeliveryFeeModal: false,
         submitting: false
     },
     onShow() {
@@ -68,6 +106,8 @@ Page({
         const view = (0, checkout_1.getCheckoutViewModel)();
         const pricing = (0, order_submit_1.getCheckoutPricingPreview)();
         const activePaymentMethod = (_a = this.data.activePaymentMethod) !== null && _a !== void 0 ? _a : 'wechat';
+        const selectedPetIds = view.selectedPets.map((item) => item.id);
+        const selectedPetIdSet = new Set(selectedPetIds);
         this.setData({
             items: (0, cart_1.getCartItems)().filter((item) => item.selected),
             selectedCount: summary.selectedCount,
@@ -84,8 +124,11 @@ Page({
                 ? `${view.reservationSelection.dateLabel} ${view.reservationSelection.timeLabel}`
                 : '',
             pickupPhone: view.pickupPhone,
-            pets: (0, pets_1.getPets)(),
-            selectedPetIds: view.selectedPets.map((item) => item.id),
+            pets: (0, pets_1.getPets)().map((item) => ({
+                ...item,
+                selected: selectedPetIdSet.has(item.id)
+            })),
+            selectedPetIds,
             remarkSummary: view.remark || '还没有填写备注',
             customNotice: view.customNotice,
             hasReadCustomNotice: view.hasReadCustomNotice,
@@ -125,21 +168,50 @@ Page({
             url: `/pages/address-list/index?source=checkout&type=${this.data.activeAddressType}`
         });
     },
-    handleReservationTap(event) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        const dateValue = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.dateValue;
-        const dateLabel = (_d = (_c = event.currentTarget) === null || _c === void 0 ? void 0 : _c.dataset) === null || _d === void 0 ? void 0 : _d.dateLabel;
-        const timeValue = (_f = (_e = event.currentTarget) === null || _e === void 0 ? void 0 : _e.dataset) === null || _f === void 0 ? void 0 : _f.timeValue;
-        const timeLabel = (_h = (_g = event.currentTarget) === null || _g === void 0 ? void 0 : _g.dataset) === null || _h === void 0 ? void 0 : _h.timeLabel;
-        if (!dateValue || !dateLabel || !timeValue || !timeLabel) {
+    handleOpenReservationModal() {
+        const pending = resolvePendingReservation(this.data.reservationOptions, this.data.selectedReservationValue);
+        if (!pending) {
             return;
         }
-        (0, checkout_1.setReservationSelection)({
-            dateLabel,
-            dateValue,
-            timeLabel,
-            timeValue
+        this.setData({
+            showReservationModal: true,
+            pendingReservationDateValue: pending.dateValue,
+            pendingReservationTimeValue: pending.timeValue
         });
+    },
+    handleCloseReservationModal() {
+        this.setData({ showReservationModal: false });
+    },
+    handleReservationDateTap(event) {
+        var _a, _b;
+        const dateValue = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.dateValue;
+        const day = this.data.reservationOptions.find((item) => item.value === dateValue);
+        const firstSlot = day === null || day === void 0 ? void 0 : day.slots[0];
+        if (!day || !firstSlot) {
+            return;
+        }
+        this.setData({
+            pendingReservationDateValue: day.value,
+            pendingReservationTimeValue: firstSlot.value
+        });
+    },
+    handleReservationSlotTap(event) {
+        var _a, _b;
+        const timeValue = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.timeValue;
+        if (!timeValue) {
+            return;
+        }
+        this.setData({
+            pendingReservationTimeValue: timeValue
+        });
+    },
+    handleConfirmReservation() {
+        const selection = findReservationSelection(this.data.reservationOptions, this.data.pendingReservationDateValue, this.data.pendingReservationTimeValue);
+        if (!selection) {
+            return;
+        }
+        (0, checkout_1.setReservationSelection)(selection);
+        this.setData({ showReservationModal: false });
         this.refreshCheckout();
     },
     handlePhoneInput(event) {
@@ -180,6 +252,16 @@ Page({
             activePaymentMethod: method
         });
     },
+    handleDeliveryFeeTap() {
+        if (this.data.activeFulfillmentMode !== 'delivery' || !this.data.deliveryRuleRows.length) {
+            return;
+        }
+        this.setData({ showDeliveryFeeModal: true });
+    },
+    handleCloseDeliveryFeeModal() {
+        this.setData({ showDeliveryFeeModal: false });
+    },
+    noop() { },
     handleNoticeToggle() {
         (0, checkout_1.setCustomNoticeAcknowledged)(!this.data.hasReadCustomNotice);
         this.refreshCheckout();
