@@ -42,6 +42,7 @@ Recent decisions affecting current work:
 - User has decided to move backend code away from Tencent CloudBase cloud functions.
 - Target infrastructure is Alibaba Cloud ECS, RDS MySQL 8, and OSS.
 - Backend framework direction is Fastify + Prisma + MySQL 8 + OSS.
+- Backend project will live at `apps/api` as one unified deployable service, not separate customer and merchant backend projects.
 - Deployment direction is Docker Compose on ECS, not Kubernetes.
 - Production API domain will be `https://api.xiaipet.vip` after ICP filing and HTTPS setup.
 - During备案 waiting period, development may use local API or WeChat DevTools temporary domain checks, but production release cannot rely on IP-only requests.

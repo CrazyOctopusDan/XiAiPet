@@ -11,6 +11,7 @@
 - [ ] **BE-02**: Developer can start the production backend stack on ECS with Docker Compose without manually installing app dependencies on the server.
 - [ ] **BE-03**: Operator can configure backend secrets through environment variables or server-only files without committing RDS, OSS, WeChat or payment credentials.
 - [ ] **BE-04**: Operator can view backend logs, restart services and roll back to the previous deployment using documented commands.
+- [ ] **BE-05**: Backend is implemented as one unified `apps/api` project with domain modules, not separate customer-backend and merchant-backend projects.
 
 ### Database and Migration
 
@@ -94,6 +95,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BE-02 | Phase 7 | Pending |
 | BE-03 | Phase 7 | Pending |
 | BE-04 | Phase 7 | Pending |
+| BE-05 | Phase 7 | Pending |
 | DB-01 | Phase 8 | Pending |
 | DB-02 | Phase 8 | Pending |
 | DB-03 | Phase 8 | Pending |
@@ -127,8 +129,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VER-04 | Phase 12 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 35 total
-- Mapped to phases: 35
+- v1.1 requirements: 36 total
+- Mapped to phases: 36
 - Unmapped: 0
 
 ---

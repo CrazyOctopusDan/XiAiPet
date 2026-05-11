@@ -2,7 +2,7 @@
 
 ## What This Is
 
-XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序项目，包含客户端微信小程序、商户端微信小程序，以及独立 Node.js 后端服务。客户端负责商品浏览、购物车、预约下单、支付、订单和个人资料；商户端负责商品、订单、用户与运营配置管理；后端负责身份、数据、支付、订单、余额、库存、对象存储和审计。
+XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序项目，包含客户端微信小程序、商户端微信小程序，以及 `apps/api` 下的统一独立 Node.js 后端服务。客户端负责商品浏览、购物车、预约下单、支付、订单和个人资料；商户端负责商品、订单、用户与运营配置管理；后端不按端拆分项目，而是统一负责身份、数据、支付、订单、余额、库存、对象存储和审计。
 
 ## Core Value
 
@@ -13,7 +13,7 @@ XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序
 **Goal:** 在功能不变的前提下，把当前 CloudBase 云函数后端迁移为部署在阿里云 ECS 上的独立 Node.js API 服务，以 MySQL 8 RDS 作为可信数据源，以 OSS 承载对象存储。
 
 **Target features:**
-- 建立 `apps/api` 独立后端项目：Fastify + Prisma + MySQL 8 + Docker Compose。
+- 建立 `apps/api` 统一独立后端项目：Fastify + Prisma + MySQL 8 + Docker Compose；内部按业务域组织模块，不拆成客户端后端和商户端后端。
 - 把现有 23 个 CloudBase 云函数能力迁移为 HTTP API，包括登录、商品、运行时配置、订单、支付、余额、商户管理和打印审计。
 - 把客户端与商户端小程序的 `wx.cloud.callFunction` 调用逐步替换为统一 HTTP API client。
 - 用 RDS 事务保护订单、余额、库存、支付状态、余额流水等敏感写操作。
@@ -31,7 +31,7 @@ XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序
 
 ### Active
 
-- [ ] 建立独立 Node.js API 后端，使当前小程序业务功能不再依赖 Tencent CloudBase 云函数。
+- [ ] 建立 `apps/api` 统一独立 Node.js API 后端，使当前小程序业务功能不再依赖 Tencent CloudBase 云函数。
 - [ ] 将现有 CloudBase 文档集合迁移为 MySQL 8 RDS schema，并保留订单、余额、库存、支付状态的事务一致性。
 - [ ] 将 CloudBase 云存储迁移为阿里云 OSS，图片上传与访问不暴露长期 AK/SK 到小程序端。
 - [ ] 将客户端和商户端调用面从 `wx.cloud.callFunction` 切换为 HTTPS API client，保持页面行为和业务结果不变。
@@ -50,6 +50,7 @@ XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序
 - 项目当前代码包含 `apps/cloud-functions` 下的 CloudBase 云函数，以及客户端/商户端大量 `wx.cloud.callFunction` 调用。
 - 后端能力已经覆盖身份、手机号绑定、商品/品类查询、订单创建、支付、余额支付、订单查询、商户订单管理、商品维护、用户查询、余额调整、运行时配置和小票打印审计。
 - 用户已经在阿里云开通 ECS、RDS MySQL 8 和 OSS，并正在为 `xiaipet.vip` 做 ICP 备案。
+- 用户明确要求后端项目建在 `apps` 目录下，作为一个统一项目部署到云端，不区分商户端后端和客户端后端。
 - 正式小程序请求需要 HTTPS 合法域名；规划目标域名为 `https://api.xiaipet.vip`。备案完成前只做开发者工具临时联调或本地 API 验证。
 - 用户是纯前端开发者，没有运维经验，因此部署方案必须脚本化、文档化，并避免 Kubernetes、复杂网络拓扑和手工服务器漂移。
 - 当前工作区存在未提交业务改动；迁移规划和后续实现必须避免误删或回滚已有小程序/云函数改动。
@@ -69,7 +70,8 @@ XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| 后端从 Tencent CloudBase 云函数迁移到独立 Node.js API | 用户已开通阿里云 ECS/RDS/OSS，并明确不再依赖腾讯云后端 | — Pending |
+| 后端从 Tencent CloudBase 云函数迁移到 `apps/api` 统一独立 Node.js API | 用户已开通阿里云 ECS/RDS/OSS，并明确不再依赖腾讯云后端 | — Pending |
+| 后端不拆分客户端项目和商户端项目 | 双端共享同一套身份、商品、订单、余额、配置和存储边界，按端拆分会增加重复逻辑和部署复杂度 | — Pending |
 | 使用 Fastify + Prisma + MySQL 8 作为后端核心栈 | Fastify 轻量且适合 TypeScript API；Prisma 适合管理 MySQL schema、迁移和事务访问 | — Pending |
 | 使用 Docker Compose 单机部署，而不是 Kubernetes 或裸 PM2 | 用户没有运维经验，Compose 更容易形成可复制部署、日志和回滚流程 | — Pending |
 | RDS MySQL 8 成为订单、余额、库存和支付状态的可信数据源 | 这些数据需要事务、一致性和可审计性，不能继续依赖前端或分散存储 | — Pending |

@@ -7,9 +7,9 @@
 
 ## Decision Summary
 
-The backend should move from Tencent CloudBase cloud functions to an independent Node.js HTTP API deployed on Alibaba Cloud ECS. The recommended implementation stack is Fastify + TypeScript + Prisma + MySQL 8 RDS + OSS, packaged with Docker Compose for ECS.
+The backend should move from Tencent CloudBase cloud functions to one independent Node.js HTTP API project under `apps/api`, deployed on Alibaba Cloud ECS. The recommended implementation stack is Fastify + TypeScript + Prisma + MySQL 8 RDS + OSS, packaged with Docker Compose for ECS.
 
-This migration is not a product expansion. Its success condition is functional parity with the current customer and merchant mini programs, while moving the trusted backend boundary to Alibaba Cloud.
+This migration is not a product expansion. Its success condition is functional parity with the current customer and merchant mini programs, while moving the trusted backend boundary to Alibaba Cloud. The backend should not be split into separate customer and merchant backend projects; one API app should expose domain modules used by both mini programs.
 
 ## Recommended Stack
 
@@ -35,7 +35,7 @@ The repo currently has 23 CloudBase function entry points:
 - Users and balance: `searchMerchantUsers`, `adjustUserBalance`
 - Printing: `prepareOrderReceiptPrint`, `recordOrderReceiptPrintResult`
 
-These should become HTTP routes grouped by domain rather than copied one-route-per-function without service boundaries.
+These should become HTTP routes grouped by business domain rather than copied one-route-per-function without service boundaries. Customer-facing and merchant-facing routes can have different authorization policies, but they should live in the same `apps/api` deployment.
 
 ### Data Model Changes
 

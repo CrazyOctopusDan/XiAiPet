@@ -2,7 +2,7 @@
 
 ## Overview
 
-这条路线以“先建立可部署的独立后端，再迁移可信数据与 API，最后切换小程序调用面和生产域名”为原则推进。迁移目标不是新增业务功能，而是在功能不变的前提下，把 CloudBase 云函数、文档数据库和云存储替换为阿里云 ECS 上的 Node.js API、RDS MySQL 8 和 OSS。
+这条路线以“先建立可部署的统一独立后端，再迁移可信数据与 API，最后切换小程序调用面和生产域名”为原则推进。迁移目标不是新增业务功能，而是在功能不变的前提下，把 CloudBase 云函数、文档数据库和云存储替换为 `apps/api` 下的一个 Node.js API 项目、RDS MySQL 8 和 OSS。后端内部按身份、商品、订单、支付、余额、配置、存储等业务域分模块，不按客户端/商户端拆分后端项目。
 
 当前 `xiaipet.vip` 正在备案，因此路线分成两条并行事实：备案期间先完成本地/API/开发者工具联调；备案通过后再完成 `https://api.xiaipet.vip`、HTTPS 证书和微信 request 合法域名配置。
 
@@ -14,7 +14,7 @@
 
 - [ ] **Phase 7: Node API Foundation and ECS Deployment Runway** - 建立独立后端工程、Docker Compose 部署骨架、配置安全和基础运维文档
 - [ ] **Phase 8: MySQL Data Model and Migration Pipeline** - 用 Prisma/RDS 建立可信数据模型，并提供 CloudBase 数据迁移脚本
-- [ ] **Phase 9: HTTP API Parity for Customer and Merchant Backend** - 将现有 CloudBase 云函数能力迁移为功能等价的 HTTP API
+- [ ] **Phase 9: HTTP API Parity for Unified Backend** - 将现有 CloudBase 云函数能力迁移为统一后端项目内的功能等价 HTTP API
 - [ ] **Phase 10: Mini Program API Client Migration** - 将客户端与商户端小程序调用面从 CloudBase 切换到 HTTP API
 - [ ] **Phase 11: OSS Asset Migration and Upload Flow** - 将 CloudBase 文件能力迁移到 OSS，并接入受控上传和访问 URL
 - [ ] **Phase 12: Production Cutover, Security and Regression Verification** - 完成域名 HTTPS、微信合法域名、部署验收、安全校验和双端回归
@@ -23,22 +23,23 @@
 
 ### Phase 7: Node API Foundation and ECS Deployment Runway
 
-**Goal:** 建立可以本地运行、测试、容器化和部署到 ECS 的独立 Node.js API 后端基础。
+**Goal:** 建立可以本地运行、测试、容器化和部署到 ECS 的 `apps/api` 统一独立 Node.js API 后端基础。
 **Depends on:** Milestone v1.1 requirements approval
-**Requirements:** [BE-01, BE-02, BE-03, BE-04]
+**Requirements:** [BE-01, BE-02, BE-03, BE-04, BE-05]
 
 **Success Criteria** (what must be TRUE):
 1. Developer can run `apps/api` locally and see a successful health check.
-2. API project uses Fastify, TypeScript, structured config and test scaffolding.
-3. Docker Compose can start the API stack without installing app dependencies directly on ECS.
-4. Secrets are loaded from environment or server-only files and are not committed.
-5. Deployment docs explain install, start, stop, logs, restart and rollback for a non-ops developer.
+2. API project uses one Fastify app with domain modules, not separate customer and merchant backend projects.
+3. API project uses TypeScript, structured config and test scaffolding.
+4. Docker Compose can start the API stack without installing app dependencies directly on ECS.
+5. Secrets are loaded from environment or server-only files and are not committed.
+6. Deployment docs explain install, start, stop, logs, restart and rollback for a non-ops developer.
 
 **UI hint:** no
 **Plans:** 5 plans
 
 Plans:
-- [ ] 07-01: Scaffold `apps/api` Fastify TypeScript project and shared package integration
+- [ ] 07-01: Scaffold one unified `apps/api` Fastify TypeScript project with domain modules and shared package integration
 - [ ] 07-02: Add config, env validation, health checks, error envelope and request logging
 - [ ] 07-03: Add Dockerfile, Docker Compose and local production-like startup path
 - [ ] 07-04: Add ECS deployment documentation for Docker install, service startup, logs and rollback
@@ -67,9 +68,9 @@ Plans:
 - [ ] 08-04: Build idempotent CloudBase-to-MySQL migration scripts with verification output
 - [ ] 08-05: Add RDS setup, migration, backup and local test database documentation
 
-### Phase 9: HTTP API Parity for Customer and Merchant Backend
+### Phase 9: HTTP API Parity for Unified Backend
 
-**Goal:** 将现有 23 个 CloudBase 云函数能力迁移为功能等价的 HTTP API，并保持统一鉴权、错误和响应格式。
+**Goal:** 将现有 23 个 CloudBase 云函数能力迁移为 `apps/api` 统一项目内功能等价的 HTTP API，并保持统一鉴权、错误和响应格式。
 **Depends on:** Phase 8
 **Requirements:** [API-01, API-02, API-03, API-04, API-05, API-06, API-07, API-08, API-09, API-10]
 
@@ -169,7 +170,7 @@ Phases execute in numeric order: 7 → 8 → 9 → 10 → 11 → 12
 |-------|----------------|--------|-----------|
 | 7. Node API Foundation and ECS Deployment Runway | 0/5 | Not started | - |
 | 8. MySQL Data Model and Migration Pipeline | 0/5 | Not started | - |
-| 9. HTTP API Parity for Customer and Merchant Backend | 0/6 | Not started | - |
+| 9. HTTP API Parity for Unified Backend | 0/6 | Not started | - |
 | 10. Mini Program API Client Migration | 0/5 | Not started | - |
 | 11. OSS Asset Migration and Upload Flow | 0/4 | Not started | - |
 | 12. Production Cutover, Security and Regression Verification | 0/5 | Not started | - |
