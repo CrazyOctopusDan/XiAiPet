@@ -35,6 +35,14 @@ Successful payloads intentionally stay close to CloudBase functions for Phase 10
 - Phase 10 migrates the customer and merchant mini program clients from CloudBase calls to these HTTP APIs.
 - Phase 12 adds real WeChat Pay callback, certificate verification, production HTTPS and cutover hardening.
 
+## OSS 资产迁移报告
+
+Phase 11 adds a read-only asset reference report for the CloudBase-to-OSS transition.
+Run `pnpm --filter @xiaipet/api assets:migrate -- tmp/cloudbase-export.json tmp/asset-migration-report.md` from the repo root after placing a CloudBase export JSON under `apps/api/tmp/`.
+
+The report scans product cover, product introduction images, product detail images, and runtime banner image references.
+It lists old `cloud://` file IDs with recommended OSS object keys for each role/variant, but it does not upload files or mutate the database.
+
 ## Response Contract
 
 - Success: keep domain payloads close to existing CloudBase function shapes.

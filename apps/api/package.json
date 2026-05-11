@@ -12,6 +12,7 @@
     "db:seed": "prisma db seed --config prisma.config.ts",
     "db:import:cloudbase": "tsx scripts/import-cloudbase.ts",
     "db:verify": "tsx scripts/verify-data.ts",
+    "assets:migrate": "tsx scripts/migrate-assets.ts",
     "dev": "pnpm build && node dist/server.js",
     "start": "node dist/server.js",
     "lint": "echo 'api lint: not configured'",
