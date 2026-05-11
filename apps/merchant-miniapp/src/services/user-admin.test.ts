@@ -24,11 +24,9 @@ function createUser(overrides: Partial<MerchantUserSearchListItem> = {}): Mercha
 
 describe('user admin service', () => {
   it('queries merchant users only on explicit submit payloads', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        users: [createUser()]
-      }
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      users: [createUser()]
     });
 
     const users = await queryMerchantUsers(
@@ -36,17 +34,16 @@ describe('user admin service', () => {
         query: '138',
         searchField: 'phone'
       },
-      callFunction
+      request
     );
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'searchMerchantUsers',
-      data: {
-        input: {
-          query: '138',
-          searchField: 'phone'
-        }
-      }
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/users', {
+      method: 'GET',
+      query: {
+        query: '138',
+        searchField: 'phone'
+      },
+      auth: 'merchant'
     });
     expect(users).toHaveLength(1);
   });
@@ -75,14 +72,12 @@ describe('user admin service', () => {
   });
 
   it('submits add, deduct, and set-target adjustments with confirmation and operator identity', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        balanceAfter: 238,
-        ledger: {
-          normalizedTitle: '商户充值',
-          shortNote: '增加 ￥50.00'
-        }
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      balanceAfter: 238,
+      ledger: {
+        normalizedTitle: '商户充值',
+        shortNote: '增加 ￥50.00'
       }
     });
     const verifyAccess = vi.fn().mockResolvedValue({
@@ -104,31 +99,30 @@ describe('user admin service', () => {
         reasonType: '充值',
         note: '门店补充储值'
       }),
-      callFunction,
+      request,
       verifyAccess,
       storage
     );
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'adjustUserBalance',
-      data: {
-        payload: {
-          userOpenid: 'user-openid',
-          action: 'add',
-          reasonType: '充值',
-          note: '门店补充储值',
-          operator: {
-            openid: 'merchant-openid',
-            name: '虾衣宠物烘焙工作室'
-          },
-          operatedAt: expect.any(String),
-          beforeBalance: 188,
-          delta: 50,
-          targetBalance: 238,
-          afterBalance: 238,
-          requiresConfirmation: true
-        }
-      }
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/users/user-openid/balance-adjustments', {
+      method: 'POST',
+      body: {
+        userOpenid: 'user-openid',
+        action: 'add',
+        reasonType: '充值',
+        note: '门店补充储值',
+        operator: {
+          openid: 'merchant-openid',
+          name: '虾衣宠物烘焙工作室'
+        },
+        operatedAt: expect.any(String),
+        beforeBalance: 188,
+        delta: 50,
+        targetBalance: 238,
+        afterBalance: 238,
+        requiresConfirmation: true
+      },
+      auth: 'merchant'
     });
     expect(storage).toHaveBeenCalled();
     expect(result.balanceAfter).toBe(238);

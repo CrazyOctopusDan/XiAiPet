@@ -12,12 +12,7 @@ exports.getProductEditorViewModel = getProductEditorViewModel;
 exports.uploadProductImage = uploadProductImage;
 exports.saveProduct = saveProduct;
 const product_pricing_1 = require("../shared/product-pricing");
-function getCloudCaller() {
-    return (payload) => wx.cloud.callFunction(payload);
-}
-function getUploader() {
-    return (payload) => wx.cloud.uploadFile(payload);
-}
+const api_client_1 = require("./api-client");
 function formatMoney(value) {
     return `￥${value.toFixed(2)}`;
 }
@@ -97,33 +92,36 @@ function createPricePreviewRows(basePrice, specs, formulas, overrides) {
 function getDraftProductId() {
     return `product-${Date.now()}`;
 }
-async function queryCategories(callFunction = getCloudCaller()) {
+async function queryCategories(request = api_client_1.merchantApiRequest) {
     var _a;
-    const response = (await callFunction({
-        name: 'queryCategories',
-        data: {}
-    }));
-    return (_a = response.result.categories) !== null && _a !== void 0 ? _a : [];
+    const response = await request('/api/v1/merchant/categories', {
+        method: 'GET',
+        auth: 'merchant'
+    });
+    return ((_a = response.categories) !== null && _a !== void 0 ? _a : []).map((category) => {
+        var _a, _b;
+        const linkedProductCount = (_a = category.linkedProductCount) !== null && _a !== void 0 ? _a : 0;
+        return {
+            ...category,
+            linkedProductCount,
+            canDelete: (_b = category.canDelete) !== null && _b !== void 0 ? _b : linkedProductCount === 0
+        };
+    });
 }
-async function saveCategory(category, callFunction = getCloudCaller()) {
-    const response = (await callFunction({
-        name: 'upsertCategory',
-        data: {
-            action: 'update',
-            category
-        }
-    }));
-    return response.result.category;
+async function saveCategory(category, request = api_client_1.merchantApiRequest) {
+    const response = await request(`/api/v1/merchant/categories/${category.id}`, {
+        method: 'PUT',
+        body: category,
+        auth: 'merchant'
+    });
+    return response.category;
 }
-async function deleteCategory(categoryId, callFunction = getCloudCaller()) {
-    const response = (await callFunction({
-        name: 'upsertCategory',
-        data: {
-            action: 'delete',
-            categoryId
-        }
-    }));
-    return response.result.deletedCategoryId;
+async function deleteCategory(categoryId, request = api_client_1.merchantApiRequest) {
+    await request(`/api/v1/merchant/categories/${categoryId}`, {
+        method: 'DELETE',
+        auth: 'merchant'
+    });
+    return categoryId;
 }
 function getCategoryPageViewModel(categories) {
     return {
@@ -138,13 +136,14 @@ function getCategoryPageViewModel(categories) {
         }))
     };
 }
-async function queryProducts(categoryId = '', callFunction = getCloudCaller()) {
+async function queryProducts(categoryId = '', request = api_client_1.merchantApiRequest) {
     var _a;
-    const response = (await callFunction({
-        name: 'queryProducts',
-        data: categoryId ? { categoryId } : {}
-    }));
-    return (_a = response.result.products) !== null && _a !== void 0 ? _a : [];
+    const response = await request('/api/v1/merchant/products', {
+        method: 'GET',
+        query: categoryId ? { categoryId } : undefined,
+        auth: 'merchant'
+    });
+    return (_a = response.products) !== null && _a !== void 0 ? _a : [];
 }
 function getProductPageViewModel(products, categories, activeCategoryId, keyword) {
     const normalizedKeyword = keyword.trim();
@@ -255,20 +254,16 @@ function getProductEditorViewModel(payload, activeStep) {
         pricePreviewRows: createPricePreviewRows(payload.pricing.basePrice, payload.pricing.specs, payload.pricing.formulas, payload.pricing.overrides)
     };
 }
-async function uploadProductImage(filePath, productId, uploader = getUploader()) {
-    var _a;
-    const response = (await uploader({
-        cloudPath: `products/${productId}/${Date.now()}-${(_a = filePath.split('/').pop()) !== null && _a !== void 0 ? _a : 'cover.png'}`,
-        filePath
-    }));
-    return response.fileID;
+async function uploadProductImage(filePath, productId) {
+    void filePath;
+    void productId;
+    throw new Error('ASSET_UPLOAD_PENDING_OSS');
 }
-async function saveProduct(payload, callFunction = getCloudCaller()) {
-    const response = (await callFunction({
-        name: 'upsertProduct',
-        data: {
-            payload
-        }
-    }));
-    return response.result.product;
+async function saveProduct(payload, request = api_client_1.merchantApiRequest) {
+    const response = await request(`/api/v1/merchant/products/${payload.basicInfo.productId}`, {
+        method: 'PUT',
+        body: payload,
+        auth: 'merchant'
+    });
+    return response.product;
 }

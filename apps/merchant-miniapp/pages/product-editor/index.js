@@ -84,23 +84,33 @@ Page({
         wx.chooseImage({
             count: 1,
             success: async (result) => {
-                var _a;
+                var _a, _b;
                 const filePath = (_a = result.tempFilePaths) === null || _a === void 0 ? void 0 : _a[0];
                 if (!filePath) {
                     return;
                 }
                 this.setData({ imageUploading: true });
-                const fileID = await (0, catalog_admin_1.uploadProductImage)(filePath, this.data.draft.basicInfo.productId);
-                const draft = {
-                    ...this.data.draft,
-                    basicInfo: {
-                        ...this.data.draft.basicInfo,
-                        imageFileId: fileID,
-                        imagePreviewUrl: fileID
-                    }
-                };
-                this.setData({ imageUploading: false });
-                refreshEditorView(this, draft, this.data.activeStep);
+                try {
+                    const fileID = await (0, catalog_admin_1.uploadProductImage)(filePath, this.data.draft.basicInfo.productId);
+                    const draft = {
+                        ...this.data.draft,
+                        basicInfo: {
+                            ...this.data.draft.basicInfo,
+                            imageFileId: fileID,
+                            imagePreviewUrl: fileID
+                        }
+                    };
+                    refreshEditorView(this, draft, this.data.activeStep);
+                }
+                catch (error) {
+                    (_b = wx.showToast) === null || _b === void 0 ? void 0 : _b.call(wx, {
+                        title: error instanceof Error && error.message === 'ASSET_UPLOAD_PENDING_OSS' ? '图片上传待接入 OSS' : '上传失败',
+                        icon: 'none'
+                    });
+                }
+                finally {
+                    this.setData({ imageUploading: false });
+                }
             }
         });
     },

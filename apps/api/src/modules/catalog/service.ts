@@ -96,6 +96,16 @@ export function createCatalogService(catalogRepository = createCatalogRepository
       return { ok: true as const, category };
     },
 
+    async deleteMerchantCategory(_merchantContext: MerchantContext, categoryId: string) {
+      const linkedProductCount = await catalogRepository.countProductsByCategory(categoryId);
+      if (linkedProductCount > 0) {
+        throw new ApiError('CATEGORY_HAS_PRODUCTS', 'Category has linked products', 409);
+      }
+
+      await catalogRepository.deleteCategory(categoryId);
+      return { ok: true as const, deletedCategoryId: categoryId };
+    },
+
     async queryMerchantProducts(filters: { categoryId?: string } = {}) {
       const products = await catalogRepository.listProducts({ categoryId: filters.categoryId });
       return { ok: true as const, products };

@@ -16,6 +16,7 @@ describe('customer catalog and runtime config routes', () => {
           queryCustomerProducts,
           queryMerchantCategories: async () => ({ ok: true }),
           upsertMerchantCategory: async () => ({ ok: true }),
+          deleteMerchantCategory: async () => ({ ok: true }),
           queryMerchantProducts: async () => ({ ok: true }),
           upsertMerchantProduct: async () => ({ ok: true })
         },

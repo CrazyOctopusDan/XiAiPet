@@ -16,6 +16,7 @@ describe('merchant admin routes', () => {
       queryCustomerProducts: vi.fn(async () => ({ ok: true })),
       queryMerchantCategories: vi.fn(async () => ({ ok: true, categories: [] })),
       upsertMerchantCategory: vi.fn(async () => ({ ok: true, category: { id: 'cat-1' } })),
+      deleteMerchantCategory: vi.fn(async () => ({ ok: true, deletedCategoryId: 'cat-1' })),
       queryMerchantProducts: vi.fn(async () => ({ ok: true, products: [] })),
       upsertMerchantProduct: vi.fn(async () => ({ ok: true, product: { id: 'p1' } }))
     };
@@ -43,6 +44,7 @@ describe('merchant admin routes', () => {
     const headers = authHeader('merchant');
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/categories', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'PUT', url: '/api/v1/merchant/categories/cat-1', headers, payload: { name: 'Cat', iconToken: 'C' } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'DELETE', url: '/api/v1/merchant/categories/cat-1', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/products', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'PUT', url: '/api/v1/merchant/products/p1', headers, payload: { invalid: true } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/users?query=138', headers })).statusCode).toBe(200);
@@ -71,6 +73,7 @@ describe('merchant admin routes', () => {
           queryCustomerProducts: async () => ({ ok: true }),
           queryMerchantCategories: async () => ({ ok: true }),
           upsertMerchantCategory: async () => ({ ok: true }),
+          deleteMerchantCategory: async () => ({ ok: true }),
           queryMerchantProducts,
           upsertMerchantProduct: async () => ({ ok: true })
         }

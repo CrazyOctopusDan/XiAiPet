@@ -9,6 +9,7 @@ import type {
 } from '@xiaipet/shared/types/user-admin';
 
 import { verifyMerchantAccess } from './access';
+import { merchantApiRequest, type MerchantApiRequester } from './api-client';
 
 export interface UserCardViewModel {
   openid: string;
@@ -76,10 +77,6 @@ interface MerchantAccessResult {
 
 const USER_DETAIL_CACHE_KEY = 'merchant-user-detail-cache';
 
-function getCloudCaller() {
-  return (payload: Record<string, unknown>) => wx.cloud.callFunction(payload);
-}
-
 function formatMoney(value: number) {
   return `￥${value.toFixed(2)}`;
 }
@@ -120,20 +117,20 @@ function writeUserDetailCache(cache: Record<string, LatestAdjustmentSummary>, st
   wx.setStorageSync(USER_DETAIL_CACHE_KEY, cache);
 }
 
-export async function queryMerchantUsers(input: MerchantUserSearchInput, callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'searchMerchantUsers',
-    data: {
-      input
-    }
-  })) as {
-    result: {
-      ok?: boolean;
-      users?: MerchantUserSearchListItem[];
-    };
-  };
+export async function queryMerchantUsers(input: MerchantUserSearchInput, request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{
+    ok?: boolean;
+    users?: MerchantUserSearchListItem[];
+  }>('/api/v1/merchant/users', {
+    method: 'GET',
+    query: {
+      query: input.query,
+      searchField: input.searchField
+    },
+    auth: 'merchant'
+  });
 
-  return response.result.users ?? [];
+  return response.users ?? [];
 }
 
 export function getUsersPageViewModel(users: MerchantUserSearchListItem[]): UsersPageViewModel {
@@ -217,7 +214,7 @@ export function buildBalanceAdjustmentDraft(
 
 export async function submitBalanceAdjustment(
   draft: BalanceAdjustmentDraft,
-  callFunction = getCloudCaller(),
+  request: MerchantApiRequester = merchantApiRequest,
   accessVerifier = verifyMerchantAccess,
   storage?: (key: string, value: unknown) => void
 ) {
@@ -244,30 +241,27 @@ export async function submitBalanceAdjustment(
     requiresConfirmation: true
   };
 
-  const response = (await callFunction({
-    name: 'adjustUserBalance',
-    data: {
-      payload
-    }
-  })) as {
-    result: {
-      ok?: boolean;
-      balanceAfter: number;
-      ledger: {
-        normalizedTitle: string;
-        shortNote: string;
-      };
+  const response = await request<{
+    ok?: boolean;
+    balanceAfter: number;
+    ledger: {
+      normalizedTitle: string;
+      shortNote: string;
     };
-  };
+  }>(`/api/v1/merchant/users/${draft.user.openid}/balance-adjustments`, {
+    method: 'POST',
+    body: payload,
+    auth: 'merchant'
+  });
 
   const cache = readUserDetailCache();
   cache[draft.user.openid] = {
-    normalizedTitle: response.result.ledger.normalizedTitle,
-    shortNote: response.result.ledger.shortNote,
+    normalizedTitle: response.ledger.normalizedTitle,
+    shortNote: response.ledger.shortNote,
     operatedAt: payload.operatedAt,
     operatorName: access.merchant.storeName
   };
   writeUserDetailCache(cache, storage);
 
-  return response.result;
+  return response;
 }

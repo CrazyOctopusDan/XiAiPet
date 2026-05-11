@@ -18,6 +18,11 @@ export async function merchantCatalogRoutes(
     return dependencies.catalogService.upsertMerchantCategory(request.merchant, params.categoryId, request.body);
   });
 
+  app.delete('/categories/:categoryId', merchantGuard, async (request) => {
+    const params = request.params as { categoryId: string };
+    return dependencies.catalogService.deleteMerchantCategory(request.merchant, params.categoryId);
+  });
+
   app.get('/products', merchantGuard, async (request) => {
     const query = request.query as { categoryId?: string };
     return dependencies.catalogService.queryMerchantProducts({ categoryId: query.categoryId });

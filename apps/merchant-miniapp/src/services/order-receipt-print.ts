@@ -1,8 +1,7 @@
-declare const wx: any;
-
 import type { OrderReceiptPrintAuditPayload, OrderReceiptPrintJob } from '@xiaipet/shared';
 
 import { verifyMerchantAccess } from './access';
+import { merchantApiRequest, type MerchantApiRequester } from './api-client';
 import type { ReceiptPrinterConnection } from './printer';
 import { getStoredReceiptPrinterConnection, writeReceiptPrinterChunks } from './printer';
 
@@ -20,15 +19,11 @@ interface PrintOrderReceiptInput {
 }
 
 interface PrintOrderReceiptDependencies {
-  callFunction?: (payload: Record<string, unknown>) => Promise<unknown>;
+  request?: MerchantApiRequester;
   accessVerifier?: () => Promise<MerchantAccessResult>;
   getConnection?: () => ReceiptPrinterConnection | null;
   writeChunks?: (chunksBase64: string[], connection: ReceiptPrinterConnection) => Promise<void>;
   now?: () => string;
-}
-
-function getCloudCaller() {
-  return (payload: Record<string, unknown>) => wx.cloud.callFunction(payload);
 }
 
 async function resolveMerchantOperator(accessVerifier: () => Promise<MerchantAccessResult>) {
@@ -45,24 +40,23 @@ async function resolveMerchantOperator(accessVerifier: () => Promise<MerchantAcc
   };
 }
 
-async function prepareReceiptPrintJob(orderId: string, callFunction: (payload: Record<string, unknown>) => Promise<unknown>) {
-  const response = (await callFunction({
-    name: 'prepareOrderReceiptPrint',
-    data: {
-      orderId
-    }
-  })) as {
-    result?: {
-      ok?: boolean;
-      job?: OrderReceiptPrintJob;
-    };
-  };
+async function prepareReceiptPrintJob(orderId: string, request: MerchantApiRequester) {
+  const response = await request<{
+    ok?: boolean;
+    job?: OrderReceiptPrintJob;
+    print?: Partial<OrderReceiptPrintJob> & Record<string, unknown>;
+  }>(`/api/v1/merchant/orders/${orderId}/receipt-print/prepare`, {
+    method: 'POST',
+    body: {},
+    auth: 'merchant'
+  });
 
-  if (!response.result?.job) {
+  const job = response.job ?? response.print;
+  if (!job) {
     throw new Error('PRINT_JOB_UNAVAILABLE');
   }
 
-  return response.result.job;
+  return job as OrderReceiptPrintJob;
 }
 
 async function recordReceiptPrintResult(
@@ -70,13 +64,13 @@ async function recordReceiptPrintResult(
   operator: OrderReceiptPrintAuditPayload['operator'],
   connection: Pick<ReceiptPrinterConnection, 'deviceId' | 'name'>,
   result: OrderReceiptPrintAuditPayload['result'],
-  callFunction: (payload: Record<string, unknown>) => Promise<unknown>,
+  request: MerchantApiRequester,
   printedAt: string,
   failureReason?: string
 ) {
-  await callFunction({
-    name: 'recordOrderReceiptPrintResult',
-    data: {
+  await request<{ ok?: boolean }>(`/api/v1/merchant/orders/${job.orderId}/receipt-print/result`, {
+    method: 'POST',
+    body: {
       orderId: job.orderId,
       operator,
       printedAt,
@@ -86,7 +80,8 @@ async function recordReceiptPrintResult(
       result,
       failureReason,
       isReprint: job.isReprint
-    } satisfies OrderReceiptPrintAuditPayload
+    } satisfies OrderReceiptPrintAuditPayload,
+    auth: 'merchant'
   });
 }
 
@@ -95,9 +90,9 @@ function getErrorMessage(error: unknown) {
 }
 
 export async function printOrderReceipt(input: PrintOrderReceiptInput, dependencies: PrintOrderReceiptDependencies = {}) {
-  const callFunction = dependencies.callFunction ?? getCloudCaller();
+  const request = dependencies.request ?? merchantApiRequest;
   const operator = await resolveMerchantOperator(dependencies.accessVerifier ?? verifyMerchantAccess);
-  const job = await prepareReceiptPrintJob(input.orderId, callFunction);
+  const job = await prepareReceiptPrintJob(input.orderId, request);
   const connection = dependencies.getConnection ? dependencies.getConnection() : getStoredReceiptPrinterConnection();
   const printedAt = dependencies.now?.() ?? new Date().toISOString();
 
@@ -110,7 +105,7 @@ export async function printOrderReceipt(input: PrintOrderReceiptInput, dependenc
         name: '未配置打印机'
       },
       'failed',
-      callFunction,
+      request,
       printedAt,
       'NO_PRINTER_CONNECTED'
     );
@@ -119,10 +114,10 @@ export async function printOrderReceipt(input: PrintOrderReceiptInput, dependenc
 
   try {
     await (dependencies.writeChunks ?? writeReceiptPrinterChunks)(job.chunksBase64, connection);
-    await recordReceiptPrintResult(job, operator, connection, 'success', callFunction, printedAt);
+    await recordReceiptPrintResult(job, operator, connection, 'success', request, printedAt);
     return job;
   } catch (error) {
-    await recordReceiptPrintResult(job, operator, connection, 'failed', callFunction, printedAt, getErrorMessage(error));
+    await recordReceiptPrintResult(job, operator, connection, 'failed', request, printedAt, getErrorMessage(error));
     throw error;
   }
 }

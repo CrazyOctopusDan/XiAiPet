@@ -2,10 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.printOrderReceipt = printOrderReceipt;
 const access_1 = require("./access");
+const api_client_1 = require("./api-client");
 const printer_1 = require("./printer");
-function getCloudCaller() {
-    return (payload) => wx.cloud.callFunction(payload);
-}
 async function resolveMerchantOperator(accessVerifier) {
     var _a, _b;
     const response = await accessVerifier();
@@ -18,23 +16,23 @@ async function resolveMerchantOperator(accessVerifier) {
         name: access.merchant.storeName
     };
 }
-async function prepareReceiptPrintJob(orderId, callFunction) {
+async function prepareReceiptPrintJob(orderId, request) {
     var _a;
-    const response = (await callFunction({
-        name: 'prepareOrderReceiptPrint',
-        data: {
-            orderId
-        }
-    }));
-    if (!((_a = response.result) === null || _a === void 0 ? void 0 : _a.job)) {
+    const response = await request(`/api/v1/merchant/orders/${orderId}/receipt-print/prepare`, {
+        method: 'POST',
+        body: {},
+        auth: 'merchant'
+    });
+    const job = (_a = response.job) !== null && _a !== void 0 ? _a : response.print;
+    if (!job) {
         throw new Error('PRINT_JOB_UNAVAILABLE');
     }
-    return response.result.job;
+    return job;
 }
-async function recordReceiptPrintResult(job, operator, connection, result, callFunction, printedAt, failureReason) {
-    await callFunction({
-        name: 'recordOrderReceiptPrintResult',
-        data: {
+async function recordReceiptPrintResult(job, operator, connection, result, request, printedAt, failureReason) {
+    await request(`/api/v1/merchant/orders/${job.orderId}/receipt-print/result`, {
+        method: 'POST',
+        body: {
             orderId: job.orderId,
             operator,
             printedAt,
@@ -44,7 +42,8 @@ async function recordReceiptPrintResult(job, operator, connection, result, callF
             result,
             failureReason,
             isReprint: job.isReprint
-        }
+        },
+        auth: 'merchant'
     });
 }
 function getErrorMessage(error) {
@@ -52,25 +51,25 @@ function getErrorMessage(error) {
 }
 async function printOrderReceipt(input, dependencies = {}) {
     var _a, _b, _c, _d, _e;
-    const callFunction = (_a = dependencies.callFunction) !== null && _a !== void 0 ? _a : getCloudCaller();
+    const request = (_a = dependencies.request) !== null && _a !== void 0 ? _a : api_client_1.merchantApiRequest;
     const operator = await resolveMerchantOperator((_b = dependencies.accessVerifier) !== null && _b !== void 0 ? _b : access_1.verifyMerchantAccess);
-    const job = await prepareReceiptPrintJob(input.orderId, callFunction);
+    const job = await prepareReceiptPrintJob(input.orderId, request);
     const connection = dependencies.getConnection ? dependencies.getConnection() : (0, printer_1.getStoredReceiptPrinterConnection)();
     const printedAt = (_d = (_c = dependencies.now) === null || _c === void 0 ? void 0 : _c.call(dependencies)) !== null && _d !== void 0 ? _d : new Date().toISOString();
     if (!connection) {
         await recordReceiptPrintResult(job, operator, {
             deviceId: 'unconfigured',
             name: '未配置打印机'
-        }, 'failed', callFunction, printedAt, 'NO_PRINTER_CONNECTED');
+        }, 'failed', request, printedAt, 'NO_PRINTER_CONNECTED');
         throw new Error('NO_PRINTER_CONNECTED');
     }
     try {
         await ((_e = dependencies.writeChunks) !== null && _e !== void 0 ? _e : printer_1.writeReceiptPrinterChunks)(job.chunksBase64, connection);
-        await recordReceiptPrintResult(job, operator, connection, 'success', callFunction, printedAt);
+        await recordReceiptPrintResult(job, operator, connection, 'success', request, printedAt);
         return job;
     }
     catch (error) {
-        await recordReceiptPrintResult(job, operator, connection, 'failed', callFunction, printedAt, getErrorMessage(error));
+        await recordReceiptPrintResult(job, operator, connection, 'failed', request, printedAt, getErrorMessage(error));
         throw error;
     }
 }

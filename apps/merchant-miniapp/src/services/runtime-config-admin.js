@@ -5,6 +5,7 @@ exports.queryRuntimeConfigSections = queryRuntimeConfigSections;
 exports.saveRuntimeConfigSection = saveRuntimeConfigSection;
 exports.getRuntimeConfigAdminViewModel = getRuntimeConfigAdminViewModel;
 exports.buildRuntimeConfigSectionDocument = buildRuntimeConfigSectionDocument;
+const api_client_1 = require("./api-client");
 const LOCKED_DELIVERY_RULE_ROWS = [
     { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
     { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
@@ -18,9 +19,6 @@ const LOCKED_DELIVERY_RULE_ROWS = [
     { distanceKm: 50, minimumOrderAmount: null, deliveryFee: 80, explainer: '50.0 公里内，配送费 80 元' }
 ];
 exports.LOCKED_DELIVERY_RULE_ROWS = LOCKED_DELIVERY_RULE_ROWS;
-function getCloudCaller() {
-    return (payload) => wx.cloud.callFunction(payload);
-}
 function formatDateTime(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
@@ -119,22 +117,21 @@ function getSectionTitle(sectionId) {
     }
     return '定制提示';
 }
-async function queryRuntimeConfigSections(callFunction = getCloudCaller()) {
+async function queryRuntimeConfigSections(request = api_client_1.merchantApiRequest) {
     var _a;
-    const response = (await callFunction({
-        name: 'getRuntimeConfigSections',
-        data: {}
-    }));
-    return mergeSections((_a = response.result.sections) !== null && _a !== void 0 ? _a : []);
+    const response = await request('/api/v1/merchant/runtime-config/sections', {
+        method: 'GET',
+        auth: 'merchant'
+    });
+    return mergeSections((_a = response.sections) !== null && _a !== void 0 ? _a : []);
 }
-async function saveRuntimeConfigSection(section, callFunction = getCloudCaller()) {
-    const response = (await callFunction({
-        name: 'upsertRuntimeConfigSection',
-        data: {
-            section
-        }
-    }));
-    return response.result.section;
+async function saveRuntimeConfigSection(section, request = api_client_1.merchantApiRequest) {
+    const response = await request(`/api/v1/merchant/runtime-config/sections/${section.sectionId}`, {
+        method: 'PUT',
+        body: section,
+        auth: 'merchant'
+    });
+    return response.section;
 }
 function getRuntimeConfigAdminViewModel(sections, dirty) {
     return {

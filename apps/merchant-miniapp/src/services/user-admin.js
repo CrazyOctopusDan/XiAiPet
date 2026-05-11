@@ -7,10 +7,8 @@ exports.getUserDetailViewModel = getUserDetailViewModel;
 exports.buildBalanceAdjustmentDraft = buildBalanceAdjustmentDraft;
 exports.submitBalanceAdjustment = submitBalanceAdjustment;
 const access_1 = require("./access");
+const api_client_1 = require("./api-client");
 const USER_DETAIL_CACHE_KEY = 'merchant-user-detail-cache';
-function getCloudCaller() {
-    return (payload) => wx.cloud.callFunction(payload);
-}
 function formatMoney(value) {
     return `￥${value.toFixed(2)}`;
 }
@@ -45,15 +43,17 @@ function writeUserDetailCache(cache, storage) {
     }
     wx.setStorageSync(USER_DETAIL_CACHE_KEY, cache);
 }
-async function queryMerchantUsers(input, callFunction = getCloudCaller()) {
+async function queryMerchantUsers(input, request = api_client_1.merchantApiRequest) {
     var _a;
-    const response = (await callFunction({
-        name: 'searchMerchantUsers',
-        data: {
-            input
-        }
-    }));
-    return (_a = response.result.users) !== null && _a !== void 0 ? _a : [];
+    const response = await request('/api/v1/merchant/users', {
+        method: 'GET',
+        query: {
+            query: input.query,
+            searchField: input.searchField
+        },
+        auth: 'merchant'
+    });
+    return (_a = response.users) !== null && _a !== void 0 ? _a : [];
 }
 function getUsersPageViewModel(users) {
     return {
@@ -127,7 +127,7 @@ function buildBalanceAdjustmentDraft(user, input) {
         disableSubmitReason
     };
 }
-async function submitBalanceAdjustment(draft, callFunction = getCloudCaller(), accessVerifier = access_1.verifyMerchantAccess, storage) {
+async function submitBalanceAdjustment(draft, request = api_client_1.merchantApiRequest, accessVerifier = access_1.verifyMerchantAccess, storage) {
     var _a;
     const access = resolveMerchantAccess((await accessVerifier()));
     if (!access.allowed || !((_a = access.merchant) === null || _a === void 0 ? void 0 : _a.merchantId) || !access.merchant.storeName) {
@@ -149,19 +149,18 @@ async function submitBalanceAdjustment(draft, callFunction = getCloudCaller(), a
         afterBalance: draft.afterBalance,
         requiresConfirmation: true
     };
-    const response = (await callFunction({
-        name: 'adjustUserBalance',
-        data: {
-            payload
-        }
-    }));
+    const response = await request(`/api/v1/merchant/users/${draft.user.openid}/balance-adjustments`, {
+        method: 'POST',
+        body: payload,
+        auth: 'merchant'
+    });
     const cache = readUserDetailCache();
     cache[draft.user.openid] = {
-        normalizedTitle: response.result.ledger.normalizedTitle,
-        shortNote: response.result.ledger.shortNote,
+        normalizedTitle: response.ledger.normalizedTitle,
+        shortNote: response.ledger.shortNote,
         operatedAt: payload.operatedAt,
         operatorName: access.merchant.storeName
     };
     writeUserDetailCache(cache, storage);
-    return response.result;
+    return response;
 }

@@ -134,17 +134,25 @@ Page({
         }
 
         this.setData({ imageUploading: true });
-        const fileID = await uploadProductImage(filePath, this.data.draft.basicInfo.productId);
-        const draft = {
-          ...this.data.draft,
-          basicInfo: {
-            ...this.data.draft.basicInfo,
-            imageFileId: fileID,
-            imagePreviewUrl: fileID
-          }
-        };
-        this.setData({ imageUploading: false });
-        refreshEditorView(this, draft, this.data.activeStep);
+        try {
+          const fileID = await uploadProductImage(filePath, this.data.draft.basicInfo.productId);
+          const draft = {
+            ...this.data.draft,
+            basicInfo: {
+              ...this.data.draft.basicInfo,
+              imageFileId: fileID,
+              imagePreviewUrl: fileID
+            }
+          };
+          refreshEditorView(this, draft, this.data.activeStep);
+        } catch (error) {
+          wx.showToast?.({
+            title: error instanceof Error && error.message === 'ASSET_UPLOAD_PENDING_OSS' ? '图片上传待接入 OSS' : '上传失败',
+            icon: 'none'
+          });
+        } finally {
+          this.setData({ imageUploading: false });
+        }
       }
     });
   },

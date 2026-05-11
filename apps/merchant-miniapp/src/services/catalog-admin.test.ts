@@ -8,9 +8,12 @@ import type {
 
 import {
   createEmptyProductEditorPayload,
+  deleteCategory,
   getCategoryPageViewModel,
   getProductEditorViewModel,
   queryCategories,
+  queryProducts,
+  saveCategory,
   saveProduct,
   uploadProductImage
 } from './catalog-admin';
@@ -93,30 +96,54 @@ function createProductPayload(overrides: Partial<CatalogProductEditorPayload> = 
 
 describe('catalog admin service', () => {
   it('queries categories and exposes icon tokens plus migrate-before-delete copy', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        categories: [
-          {
-            ...createCategory(),
-            linkedProductCount: 3,
-            canDelete: false
-          }
-        ]
-      }
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      categories: [
+        {
+          ...createCategory(),
+          linkedProductCount: 3,
+          canDelete: false
+        }
+      ]
     });
 
-    const categories = await queryCategories(callFunction);
+    const categories = await queryCategories(request);
     const view = getCategoryPageViewModel(categories);
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'queryCategories',
-      data: {}
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/categories', {
+      method: 'GET',
+      auth: 'merchant'
     });
     expect(view.cards[0]).toMatchObject({
       iconToken: '🎂',
       linkedProductCountLabel: '3 个商品',
       deleteActionLabel: '先迁移商品'
+    });
+  });
+
+  it('saves and deletes categories through merchant HTTP endpoints', async () => {
+    const category = createCategory();
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        category
+      })
+      .mockResolvedValueOnce({
+        ok: true
+      });
+
+    await expect(saveCategory(category, request)).resolves.toEqual(category);
+    await expect(deleteCategory(category.id, request)).resolves.toBe(category.id);
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/v1/merchant/categories/cakes', {
+      method: 'PUT',
+      body: category,
+      auth: 'merchant'
+    });
+    expect(request).toHaveBeenNthCalledWith(2, '/api/v1/merchant/categories/cakes', {
+      method: 'DELETE',
+      auth: 'merchant'
     });
   });
 
@@ -136,39 +163,47 @@ describe('catalog admin service', () => {
     );
   });
 
-  it('uploads a product image and preserves the returned imageFileId in product save calls', async () => {
-    const uploader = vi.fn().mockResolvedValue({
-      fileID: 'cloud://xiaipet-dev.123/products/product-001/1713412800-cover.png'
-    });
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
+  it('queries products and preserves the imageFileId in product save calls', async () => {
+    const product = createProductRecord();
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({
         ok: true,
-        product: createProductRecord()
-      }
-    });
-
-    const fileID = await uploadProductImage('/tmp/cover.png', 'product-001', uploader);
+        products: [product]
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        product
+      });
     const payload = createProductPayload({
       basicInfo: {
         ...createProductPayload().basicInfo,
-        imageFileId: fileID,
-        imagePreviewUrl: fileID
+        imageFileId: 'oss://xiaipet/products/product-001/cover.png',
+        imagePreviewUrl: 'https://oss.example.com/products/product-001/cover.png'
       }
     });
 
-    await saveProduct(payload, callFunction);
+    await expect(queryProducts('cakes', request)).resolves.toEqual([product]);
+    await saveProduct(payload, request);
 
-    expect(fileID).toContain('imageFileId'.replace('imageFileId', 'cloud://'));
-    expect(uploader).toHaveBeenCalledWith({
-      cloudPath: expect.stringContaining('product-001'),
-      filePath: '/tmp/cover.png'
+    expect(request).toHaveBeenNthCalledWith(1, '/api/v1/merchant/products', {
+      method: 'GET',
+      query: {
+        categoryId: 'cakes'
+      },
+      auth: 'merchant'
     });
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'upsertProduct',
-      data: {
-        payload
-      }
+    expect(request).toHaveBeenNthCalledWith(2, '/api/v1/merchant/products/product-001', {
+      method: 'PUT',
+      body: payload,
+      auth: 'merchant'
     });
+  });
+
+  it('keeps product image upload behind the OSS migration boundary', async () => {
+    await expect(uploadProductImage('/tmp/cover.png', 'product-001')).rejects.toThrow(
+      'ASSET_UPLOAD_PENDING_OSS'
+    );
   });
 
   it('creates a draft product payload with the fixed phase step structure', () => {

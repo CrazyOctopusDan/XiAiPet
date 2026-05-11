@@ -1,5 +1,3 @@
-declare const wx: any;
-
 import type {
   BannerRuntimeConfigSection,
   CustomNoticeRuntimeConfigSection,
@@ -11,6 +9,7 @@ import type {
   RuntimeConfigSectionId,
   StoreProfileRuntimeConfigSection
 } from '@xiaipet/shared/types/runtime-config';
+import { merchantApiRequest, type MerchantApiRequester } from './api-client';
 
 const LOCKED_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
   { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
@@ -49,10 +48,6 @@ export type RuntimeConfigSectionDraft =
   | MembershipTiersRuntimeConfigSection['value']
   | BannerRuntimeConfigSection['value']
   | CustomNoticeRuntimeConfigSection['value'];
-
-function getCloudCaller() {
-  return (payload: Record<string, unknown>) => wx.cloud.callFunction(payload);
-}
 
 function formatDateTime(value: string) {
   const date = new Date(value);
@@ -167,37 +162,32 @@ function getSectionTitle(sectionId: RuntimeConfigSectionId) {
   return '定制提示';
 }
 
-export async function queryRuntimeConfigSections(callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'getRuntimeConfigSections',
-    data: {}
-  })) as {
-    result: {
-      ok?: boolean;
-      sections?: RuntimeConfigSectionDocument[];
-    };
-  };
+export async function queryRuntimeConfigSections(request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{
+    ok?: boolean;
+    sections?: RuntimeConfigSectionDocument[];
+  }>('/api/v1/merchant/runtime-config/sections', {
+    method: 'GET',
+    auth: 'merchant'
+  });
 
-  return mergeSections(response.result.sections ?? []);
+  return mergeSections(response.sections ?? []);
 }
 
 export async function saveRuntimeConfigSection(
   section: RuntimeConfigSectionDocument,
-  callFunction = getCloudCaller()
+  request: MerchantApiRequester = merchantApiRequest
 ) {
-  const response = (await callFunction({
-    name: 'upsertRuntimeConfigSection',
-    data: {
-      section
-    }
-  })) as {
-    result: {
-      ok?: boolean;
-      section: RuntimeConfigSectionDocument;
-    };
-  };
+  const response = await request<{
+    ok?: boolean;
+    section: RuntimeConfigSectionDocument;
+  }>(`/api/v1/merchant/runtime-config/sections/${section.sectionId}`, {
+    method: 'PUT',
+    body: section,
+    auth: 'merchant'
+  });
 
-  return response.result.section;
+  return response.section;
 }
 
 export function getRuntimeConfigAdminViewModel(

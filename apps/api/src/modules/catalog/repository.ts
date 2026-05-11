@@ -137,6 +137,14 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       return products.map(mapProduct);
     },
 
+    async countProductsByCategory(categoryId: string): Promise<number> {
+      return client.product.count({
+        where: {
+          categoryId
+        }
+      });
+    },
+
     async getProductById(productId: string): Promise<CatalogProductRecord | null> {
       const product = await client.product.findUnique({
         where: { id: productId }
@@ -171,6 +179,14 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
         }
       });
       return mapCategory(category);
+    },
+
+    async deleteCategory(categoryId: string): Promise<void> {
+      await client.category.delete({
+        where: {
+          id: categoryId
+        }
+      });
     },
 
     async upsertProduct(input: CatalogProductRecord): Promise<CatalogProductRecord> {

@@ -1,5 +1,3 @@
-declare const wx: any;
-
 import type { OrderFulfillmentMode } from '@xiaipet/shared';
 import type {
   CatalogCategoryRecord,
@@ -11,6 +9,7 @@ import type {
   CatalogProductSpecOption
 } from '@xiaipet/shared/types/catalog-admin';
 import { resolveProductCombinationPrice } from '../shared/product-pricing';
+import { merchantApiRequest, type MerchantApiRequester } from './api-client';
 
 export interface MerchantCategoryListItem extends CatalogCategoryRecord {
   linkedProductCount: number;
@@ -74,14 +73,6 @@ export interface ProductEditorViewModel {
   detailContentLabel: string;
   fulfillmentModeLabels: string[];
   pricePreviewRows: ProductPricePreviewRowViewModel[];
-}
-
-function getCloudCaller() {
-  return (payload: Record<string, unknown>) => wx.cloud.callFunction(payload);
-}
-
-function getUploader() {
-  return (payload: Record<string, unknown>) => wx.cloud.uploadFile(payload);
 }
 
 function formatMoney(value: number) {
@@ -197,52 +188,45 @@ function getDraftProductId() {
   return `product-${Date.now()}`;
 }
 
-export async function queryCategories(callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'queryCategories',
-    data: {}
-  })) as {
-    result: {
-      ok?: boolean;
-      categories?: MerchantCategoryListItem[];
-    };
-  };
+export async function queryCategories(request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{
+    ok?: boolean;
+    categories?: MerchantCategoryListItem[];
+  }>('/api/v1/merchant/categories', {
+    method: 'GET',
+    auth: 'merchant'
+  });
 
-  return response.result.categories ?? [];
+  return (response.categories ?? []).map((category) => {
+    const linkedProductCount = category.linkedProductCount ?? 0;
+    return {
+      ...category,
+      linkedProductCount,
+      canDelete: category.canDelete ?? linkedProductCount === 0
+    };
+  });
 }
 
-export async function saveCategory(category: CatalogCategoryRecord, callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'upsertCategory',
-    data: {
-      action: 'update',
-      category
-    }
-  })) as {
-    result: {
-      ok?: boolean;
-      category: CatalogCategoryRecord;
-    };
-  };
+export async function saveCategory(category: CatalogCategoryRecord, request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{
+    ok?: boolean;
+    category: CatalogCategoryRecord;
+  }>(`/api/v1/merchant/categories/${category.id}`, {
+    method: 'PUT',
+    body: category,
+    auth: 'merchant'
+  });
 
-  return response.result.category;
+  return response.category;
 }
 
-export async function deleteCategory(categoryId: string, callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'upsertCategory',
-    data: {
-      action: 'delete',
-      categoryId
-    }
-  })) as {
-    result: {
-      ok?: boolean;
-      deletedCategoryId: string;
-    };
-  };
+export async function deleteCategory(categoryId: string, request: MerchantApiRequester = merchantApiRequest) {
+  await request<{ ok?: boolean }>(`/api/v1/merchant/categories/${categoryId}`, {
+    method: 'DELETE',
+    auth: 'merchant'
+  });
 
-  return response.result.deletedCategoryId;
+  return categoryId;
 }
 
 export function getCategoryPageViewModel(categories: MerchantCategoryListItem[]): CategoryPageViewModel {
@@ -259,18 +243,17 @@ export function getCategoryPageViewModel(categories: MerchantCategoryListItem[])
   };
 }
 
-export async function queryProducts(categoryId = '', callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'queryProducts',
-    data: categoryId ? { categoryId } : {}
-  })) as {
-    result: {
-      ok?: boolean;
-      products?: CatalogProductAdminRecord[];
-    };
-  };
+export async function queryProducts(categoryId = '', request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{
+    ok?: boolean;
+    products?: CatalogProductAdminRecord[];
+  }>('/api/v1/merchant/products', {
+    method: 'GET',
+    query: categoryId ? { categoryId } : undefined,
+    auth: 'merchant'
+  });
 
-  return response.result.products ?? [];
+  return response.products ?? [];
 }
 
 export function getProductPageViewModel(
@@ -400,31 +383,22 @@ export function getProductEditorViewModel(
 
 export async function uploadProductImage(
   filePath: string,
-  productId: string,
-  uploader = getUploader()
-) {
-  const response = (await uploader({
-    cloudPath: `products/${productId}/${Date.now()}-${filePath.split('/').pop() ?? 'cover.png'}`,
-    filePath
-  })) as {
-    fileID: string;
-  };
-
-  return response.fileID;
+  productId: string
+): Promise<string> {
+  void filePath;
+  void productId;
+  throw new Error('ASSET_UPLOAD_PENDING_OSS');
 }
 
-export async function saveProduct(payload: CatalogProductEditorPayload, callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'upsertProduct',
-    data: {
-      payload
-    }
-  })) as {
-    result: {
-      ok?: boolean;
-      product: CatalogProductAdminRecord;
-    };
-  };
+export async function saveProduct(payload: CatalogProductEditorPayload, request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{
+    ok?: boolean;
+    product: CatalogProductAdminRecord;
+  }>(`/api/v1/merchant/products/${payload.basicInfo.productId}`, {
+    method: 'PUT',
+    body: payload,
+    auth: 'merchant'
+  });
 
-  return response.result.product;
+  return response.product;
 }

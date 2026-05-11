@@ -28,6 +28,7 @@ export interface ApiRouteServices {
     queryCustomerProducts(filters?: { categoryId?: string }): AsyncResult;
     queryMerchantCategories(filters?: Record<string, unknown>): AsyncResult;
     upsertMerchantCategory(merchantContext: unknown, categoryId: string, payload: unknown): AsyncResult;
+    deleteMerchantCategory(merchantContext: unknown, categoryId: string): AsyncResult;
     queryMerchantProducts(filters?: { categoryId?: string }): AsyncResult;
     upsertMerchantProduct(merchantContext: unknown, productId: string, payload: unknown): AsyncResult;
   };

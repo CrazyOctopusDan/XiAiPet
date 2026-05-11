@@ -9,19 +9,17 @@ import {
 
 describe('runtime config admin service', () => {
   it('queries runtime config sections and fills the five locked sections', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        sections: []
-      }
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      sections: []
     });
 
-    const sections = await queryRuntimeConfigSections(callFunction);
+    const sections = await queryRuntimeConfigSections(request);
     const view = getRuntimeConfigAdminViewModel(sections, {});
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'getRuntimeConfigSections',
-      data: {}
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/runtime-config/sections', {
+      method: 'GET',
+      auth: 'merchant'
     });
     expect(view.sections.map((item) => item.sectionId)).toEqual([
       'store-profile',
@@ -83,20 +81,18 @@ describe('runtime config admin service', () => {
   });
 
   it('saves one runtime config section at a time', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        section: {
-          sectionId: 'custom-notice',
-          updatedAt: '2026-04-18T10:00:00.000Z',
-          updatedBy: {
-            openid: 'merchant-openid',
-            name: '虾衣宠物烘焙工作室'
-          },
-          value: {
-            enabled: true,
-            content: '请提前联系确认'
-          }
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      section: {
+        sectionId: 'custom-notice',
+        updatedAt: '2026-04-18T10:00:00.000Z',
+        updatedBy: {
+          openid: 'merchant-openid',
+          name: '虾衣宠物烘焙工作室'
+        },
+        value: {
+          enabled: true,
+          content: '请提前联系确认'
         }
       }
     });
@@ -114,16 +110,15 @@ describe('runtime config admin service', () => {
           content: '请提前联系确认'
         }
       },
-      callFunction
+      request
     );
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'upsertRuntimeConfigSection',
-      data: {
-        section: expect.objectContaining({
-          sectionId: 'custom-notice'
-        })
-      }
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/runtime-config/sections/custom-notice', {
+      method: 'PUT',
+      body: expect.objectContaining({
+        sectionId: 'custom-notice'
+      }),
+      auth: 'merchant'
     });
   });
 });
