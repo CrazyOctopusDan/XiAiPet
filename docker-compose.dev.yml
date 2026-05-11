@@ -1,0 +1,22 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: xiaipet-mysql-dev
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: xiaipet_local_root
+      MYSQL_DATABASE: xiaipet_dev
+      MYSQL_USER: xiaipet
+      MYSQL_PASSWORD: xiaipet_local_password
+    ports:
+      - '3307:3306'
+    volumes:
+      - xiaipet_mysql_dev:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uxiaipet', '-pxiaipet_local_password']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  xiaipet_mysql_dev:

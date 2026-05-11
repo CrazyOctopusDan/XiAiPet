@@ -13,7 +13,7 @@
 - This milestone starts at Phase 7 because Phase 1-6 already cover the CloudBase-era product build.
 
 - [x] **Phase 7: Node API Foundation and ECS Deployment Runway** - 建立独立后端工程、Docker Compose 部署骨架、配置安全和基础运维文档
-- [ ] **Phase 8: MySQL Data Model and Migration Pipeline** - 用 Prisma/RDS 建立可信数据模型，并提供 CloudBase 数据迁移脚本
+- [x] **Phase 8: MySQL Data Model and Migration Pipeline** - 用 Prisma/RDS 建立可信数据模型，并提供 CloudBase 数据迁移脚本
 - [ ] **Phase 9: HTTP API Parity for Unified Backend** - 将现有 CloudBase 云函数能力迁移为统一后端项目内的功能等价 HTTP API
 - [ ] **Phase 10: Mini Program API Client Migration** - 将客户端与商户端小程序调用面从 CloudBase 切换到 HTTP API
 - [ ] **Phase 11: OSS Asset Migration and Upload Flow** - 将 CloudBase 文件能力迁移到 OSS，并接入受控上传和访问 URL
@@ -62,11 +62,11 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
-- [ ] 08-01: Design Prisma schema and map existing CloudBase collection shapes to MySQL tables
-- [ ] 08-02: Implement repository layer for users, catalog, runtime config, orders, payments, balances and print audit
-- [ ] 08-03: Implement transaction boundaries for order creation, payment, stock and balance ledger changes
-- [ ] 08-04: Build idempotent CloudBase-to-MySQL migration scripts with verification output
-- [ ] 08-05: Add RDS setup, migration, backup and local test database documentation
+- [x] 08-01: Design Prisma schema and map existing CloudBase collection shapes to MySQL tables
+- [x] 08-02: Implement repository layer for users, catalog, runtime config, orders, payments, balances and print audit
+- [x] 08-03: Implement transaction boundaries for order creation, payment, stock and balance ledger changes
+- [x] 08-04: Build idempotent CloudBase-to-MySQL migration scripts with verification output
+- [x] 08-05: Add RDS setup, migration, backup and local test database documentation
 
 ### Phase 9: HTTP API Parity for Unified Backend
 

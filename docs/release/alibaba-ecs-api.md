@@ -1,6 +1,6 @@
 # Alibaba ECS API Deployment Runbook
 
-This runbook deploys the unified XiAiPet backend from `apps/api` to Alibaba Cloud ECS with Docker Compose. RDS MySQL and OSS are managed Alibaba Cloud services and are not installed inside ECS containers.
+This runbook deploys the unified XiAiPet backend from `apps/api` to Alibaba Cloud ECS with Docker Compose. RDS MySQL and OSS are managed Alibaba Cloud services and are not installed inside ECS containers. ECS runs API/Nginx only while RDS hosts MySQL.
 
 ## Architecture
 
@@ -17,6 +17,8 @@ Phase 7 does not make the mini program production-ready. While `xiaipet.vip` is 
 2. Docker and Docker Compose installed on ECS.
 3. Project source available on ECS.
 4. Alibaba RDS and OSS credentials prepared for later phases.
+
+Read `docs/release/alibaba-rds.md` before configuring `DATABASE_URL`.
 
 Alibaba Cloud Docker reference: `https://help.aliyun.com/zh/ecs/user-guide/install-and-use-docker`
 
@@ -41,9 +43,10 @@ API_HOST=0.0.0.0
 API_PORT=3000
 LOG_LEVEL=info
 API_PUBLIC_BASE_URL=https://api.xiaipet.vip
+DATABASE_URL=mysql://<user>:<password>@<rds-host>:3306/<database>?sslaccept=strict
 ```
 
-Later phases will add RDS, OSS, WeChat and payment variables here. Keep real passwords, AK/SK, app secrets and certificates out of git.
+Later phases will add OSS, WeChat and payment variables here. Keep real passwords, AK/SK, app secrets and certificates out of git. RDS setup and migration commands live in `docs/release/alibaba-rds.md`.
 
 ## First Start
 

@@ -6,6 +6,12 @@
   "types": "dist/app.d.ts",
   "scripts": {
     "build": "tsc --project tsconfig.json",
+    "db:generate": "prisma generate --config prisma.config.ts",
+    "db:migrate:dev": "prisma migrate dev --config prisma.config.ts",
+    "db:migrate:deploy": "prisma migrate deploy --config prisma.config.ts",
+    "db:seed": "prisma db seed --config prisma.config.ts",
+    "db:import:cloudbase": "tsx scripts/import-cloudbase.ts",
+    "db:verify": "tsx scripts/verify-data.ts",
     "dev": "pnpm build && node dist/server.js",
     "start": "node dist/server.js",
     "lint": "echo 'api lint: not configured'",
@@ -13,6 +19,12 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "dotenv": "^16.4.0",
     "fastify": "^5.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0",
+    "tsx": "^4.19.0"
   }
 }

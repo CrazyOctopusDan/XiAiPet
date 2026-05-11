@@ -15,10 +15,10 @@
 
 ### Database and Migration
 
-- [ ] **DB-01**: Developer can create and migrate the MySQL 8 RDS schema with Prisma for users, merchant users, categories, products, runtime config, orders, payments, balance accounts, balance ledgers and receipt print audit records.
-- [ ] **DB-02**: Backend can preserve existing order snapshot semantics when writing orders to MySQL.
-- [ ] **DB-03**: Backend can execute balance payment, balance adjustment, order payment state updates and stock deduction inside MySQL transactions.
-- [ ] **DB-04**: Developer can migrate existing CloudBase collection data into MySQL with an idempotent script and verification report.
+- [x] **DB-01**: Developer can create and migrate the MySQL 8 RDS schema with Prisma for users, merchant users, categories, products, runtime config, orders, payments, balance accounts, balance ledgers and receipt print audit records.
+- [x] **DB-02**: Backend can preserve existing order snapshot semantics when writing orders to MySQL.
+- [x] **DB-03**: Backend can execute balance payment, balance adjustment, order payment state updates and stock deduction inside MySQL transactions.
+- [x] **DB-04**: Developer can migrate existing CloudBase collection data into MySQL with an idempotent script and verification report.
 
 ### API Parity
 
@@ -96,10 +96,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BE-03 | Phase 7 | Complete |
 | BE-04 | Phase 7 | Complete |
 | BE-05 | Phase 7 | Complete |
-| DB-01 | Phase 8 | Pending |
-| DB-02 | Phase 8 | Pending |
-| DB-03 | Phase 8 | Pending |
-| DB-04 | Phase 8 | Pending |
+| DB-01 | Phase 8 | Complete |
+| DB-02 | Phase 8 | Complete |
+| DB-03 | Phase 8 | Complete |
+| DB-04 | Phase 8 | Complete |
 | API-01 | Phase 9 | Pending |
 | API-02 | Phase 9 | Pending |
 | API-03 | Phase 9 | Pending |

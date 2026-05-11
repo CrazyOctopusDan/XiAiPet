@@ -1,0 +1,362 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE   @map("active")
+  DISABLED @map("disabled")
+
+  @@map("user_status")
+}
+
+enum PhoneBindingState {
+  UNBOUND @map("unbound")
+  BOUND   @map("bound")
+
+  @@map("phone_binding_state")
+}
+
+enum ProductStatus {
+  DRAFT     @map("draft")
+  PUBLISHED @map("published")
+  ARCHIVED  @map("archived")
+
+  @@map("product_status")
+}
+
+enum PaymentMethod {
+  WECHAT  @map("wechat")
+  BALANCE @map("balance")
+
+  @@map("payment_method")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT    @map("pending_payment")
+  PAYMENT_PROCESSING @map("payment_processing")
+  PAID               @map("paid")
+  PAYMENT_FAILED     @map("payment_failed")
+  CANCELLED          @map("cancelled")
+
+  @@map("order_status")
+}
+
+enum PaymentStatus {
+  PENDING    @map("pending")
+  PROCESSING @map("processing")
+  PAID       @map("paid")
+  FAILED     @map("failed")
+
+  @@map("payment_status")
+}
+
+enum FulfillmentMode {
+  DELIVERY @map("delivery")
+  PICKUP   @map("pickup")
+  EXPRESS  @map("express")
+
+  @@map("fulfillment_mode")
+}
+
+enum FulfillmentStatus {
+  PENDING          @map("pending")
+  IN_PRODUCTION    @map("in_production")
+  OUT_FOR_DELIVERY @map("out_for_delivery")
+  READY_FOR_PICKUP @map("ready_for_pickup")
+  READY_TO_SHIP    @map("ready_to_ship")
+  COMPLETED        @map("completed")
+  CANCELLED        @map("cancelled")
+
+  @@map("fulfillment_status")
+}
+
+enum LedgerType {
+  RECHARGE          @map("recharge")
+  ORDER_PAYMENT     @map("order_payment")
+  REFUND            @map("refund")
+  MANUAL_ADJUSTMENT @map("manual_adjustment")
+
+  @@map("ledger_type")
+}
+
+enum PrintResult {
+  SUCCESS @map("success")
+  FAILED  @map("failed")
+
+  @@map("print_result")
+}
+
+model User {
+  id                      String            @id @default(cuid())
+  legacyId                String?           @unique @db.VarChar(191)
+  openid                  String            @unique @db.VarChar(191)
+  status                  UserStatus        @default(ACTIVE)
+  phoneBindingState       PhoneBindingState @default(UNBOUND)
+  contactPhoneEncrypted   String?           @db.VarChar(512)
+  contactPhoneMasked      String            @default("") @db.VarChar(64)
+  contactPhoneCountryCode String            @default("+86") @db.VarChar(16)
+  profile                 Json?
+  lastLoginAt             DateTime?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  addresses      Address[]
+  pets           Pet[]
+  orders         Order[]
+  merchantUser   MerchantUser?
+  balanceAccount BalanceAccount?
+
+  @@index([status])
+  @@map("users")
+}
+
+model MerchantUser {
+  id         String   @id @default(cuid())
+  legacyId   String?  @unique @db.VarChar(191)
+  openid     String   @unique @db.VarChar(191)
+  merchantId String   @db.VarChar(191)
+  storeName  String   @db.VarChar(191)
+  enabled    Boolean  @default(true)
+  grantedAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [openid], references: [openid], onDelete: Cascade)
+
+  @@index([merchantId, enabled])
+  @@map("merchant_users")
+}
+
+model RuntimeConfigSection {
+  id        String   @id @db.VarChar(191)
+  value     Json
+  version   Int      @default(1)
+  updatedBy String?  @db.VarChar(191)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("runtime_config_sections")
+}
+
+model Address {
+  id             String    @id @default(cuid())
+  legacyId       String?   @unique @db.VarChar(191)
+  openid         String    @db.VarChar(191)
+  recipientName  String    @db.VarChar(128)
+  phoneMasked    String    @db.VarChar(64)
+  phoneEncrypted String?   @db.VarChar(512)
+  regionLabel    String    @db.VarChar(255)
+  detailAddress  String    @db.VarChar(512)
+  tag            String    @default("") @db.VarChar(64)
+  isDefault      Boolean   @default(false)
+  snapshot       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [openid], references: [openid], onDelete: Cascade)
+
+  @@index([openid, isDefault])
+  @@map("addresses")
+}
+
+model Pet {
+  id        String    @id @default(cuid())
+  legacyId  String?   @unique @db.VarChar(191)
+  openid    String    @db.VarChar(191)
+  name      String    @db.VarChar(128)
+  species   String    @default("") @db.VarChar(64)
+  breed     String    @default("") @db.VarChar(128)
+  birthday  DateTime?
+  profile   Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [openid], references: [openid], onDelete: Cascade)
+
+  @@index([openid])
+  @@map("pets")
+}
+
+model Category {
+  id        String   @id @db.VarChar(191)
+  legacyId  String?  @unique @db.VarChar(191)
+  name      String   @db.VarChar(128)
+  iconToken String   @db.VarChar(16)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id               String        @id @db.VarChar(191)
+  legacyId         String?       @unique @db.VarChar(191)
+  name             String        @db.VarChar(191)
+  description      String        @db.VarChar(1024)
+  categoryId       String        @db.VarChar(191)
+  imageFileId      String        @db.VarChar(512)
+  imagePreviewUrl  String?       @db.VarChar(1024)
+  memberLevelId    String?       @db.VarChar(191)
+  status           ProductStatus @default(DRAFT)
+  stock            Int           @default(0)
+  trackInventory   Boolean       @default(true)
+  fulfillmentModes Json
+  basePrice        Decimal       @db.Decimal(10, 2)
+  specs            Json
+  formulas         Json
+  priceOverrides   Json
+  purchaseLimit    Json
+  detailContent    String        @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  category   Category    @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+
+  @@index([categoryId, status])
+  @@index([status, updatedAt])
+  @@map("products")
+}
+
+model Order {
+  id                String             @id @db.VarChar(191)
+  legacyId          String?            @unique @db.VarChar(191)
+  openid            String             @db.VarChar(191)
+  status            OrderStatus        @default(PENDING_PAYMENT)
+  idempotencyKey    String?            @db.VarChar(191)
+  paymentMethod     PaymentMethod
+  paymentStatus     PaymentStatus      @default(PENDING)
+  fulfillmentMode   FulfillmentMode
+  fulfillmentStatus FulfillmentStatus? @default(PENDING)
+  itemsSubtotal     Decimal            @db.Decimal(10, 2)
+  deliveryFee       Decimal            @db.Decimal(10, 2)
+  payableTotal      Decimal            @db.Decimal(10, 2)
+  snapshot          Json
+  merchantOverride  Json?
+  receiptPrint      Json?
+  paidAt            DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user        User                @relation(fields: [openid], references: [openid], onDelete: Restrict)
+  items       OrderItem[]
+  payment     Payment?
+  ledgers     BalanceLedger[]
+  printAudits ReceiptPrintAudit[]
+
+  @@unique([openid, idempotencyKey])
+  @@index([status, createdAt])
+  @@index([paymentStatus, createdAt])
+  @@index([fulfillmentStatus, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String   @db.VarChar(191)
+  productId String   @db.VarChar(191)
+  specId    String   @default("") @db.VarChar(191)
+  name      String   @db.VarChar(191)
+  specLabel String   @default("") @db.VarChar(191)
+  unitPrice Decimal  @db.Decimal(10, 2)
+  quantity  Int
+  lineTotal Decimal  @db.Decimal(10, 2)
+  snapshot  Json?
+  createdAt DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  orderId        String        @unique @db.VarChar(191)
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  outTradeNo     String?       @unique @db.VarChar(191)
+  prepayId       String?       @db.VarChar(191)
+  transactionId  String?       @unique @db.VarChar(191)
+  failureCode    String?       @db.VarChar(128)
+  failureMessage String?       @db.VarChar(512)
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([method, status])
+  @@map("payments")
+}
+
+model BalanceAccount {
+  id        String   @id @default(cuid())
+  openid    String   @unique @db.VarChar(191)
+  balance   Decimal  @default(0) @db.Decimal(10, 2)
+  version   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User            @relation(fields: [openid], references: [openid], onDelete: Cascade)
+  ledgers BalanceLedger[]
+
+  @@map("balance_accounts")
+}
+
+model BalanceLedger {
+  id             String     @id @default(cuid())
+  legacyId       String?    @unique @db.VarChar(191)
+  accountId      String     @db.VarChar(191)
+  openid         String     @db.VarChar(191)
+  orderId        String?    @db.VarChar(191)
+  type           LedgerType
+  amountDelta    Decimal    @db.Decimal(10, 2)
+  balanceBefore  Decimal    @db.Decimal(10, 2)
+  balanceAfter   Decimal    @db.Decimal(10, 2)
+  operatorId     String?    @db.VarChar(191)
+  operatorName   String?    @db.VarChar(191)
+  reason         String?    @db.VarChar(512)
+  idempotencyKey String?    @db.VarChar(191)
+  metadata       Json?
+  createdAt      DateTime   @default(now())
+
+  account BalanceAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  order   Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([openid, idempotencyKey])
+  @@index([openid, createdAt])
+  @@index([orderId])
+  @@map("balance_ledgers")
+}
+
+model ReceiptPrintAudit {
+  id                     String      @id @default(cuid())
+  orderId                String      @db.VarChar(191)
+  operatorId             String      @db.VarChar(191)
+  operatorName           String      @db.VarChar(191)
+  printedAt              DateTime
+  printerDeviceId        String      @db.VarChar(191)
+  printerDeviceLabel     String      @db.VarChar(191)
+  receiptTemplateVersion String      @db.VarChar(64)
+  result                 PrintResult
+  failureReason          String?     @db.VarChar(512)
+  isReprint              Boolean     @default(false)
+  createdAt              DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, printedAt])
+  @@map("receipt_print_audits")
+}

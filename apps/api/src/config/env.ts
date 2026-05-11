@@ -4,6 +4,7 @@ export interface ApiConfig {
   port: number;
   logLevel: LogLevel;
   publicBaseUrl: string;
+  databaseUrl: string;
 }
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
@@ -30,14 +31,37 @@ function parseLogLevel(rawLogLevel: string | undefined): LogLevel {
   return logLevel as LogLevel;
 }
 
+const TEST_DATABASE_URL = 'mysql://xiaipet:xiaipet_local_password@127.0.0.1:3307/xiaipet_test';
+
+function parseDatabaseUrl(rawDatabaseUrl: string | undefined, nodeEnv: string): string {
+  const databaseUrl = rawDatabaseUrl ?? (nodeEnv === 'test' ? TEST_DATABASE_URL : undefined);
+
+  if (!databaseUrl) {
+    throw new Error('Invalid DATABASE_URL: expected a MySQL connection string');
+  }
+
+  try {
+    const parsed = new URL(databaseUrl);
+    if (!['mysql:', 'mysql2:'].includes(parsed.protocol)) {
+      throw new Error('not mysql');
+    }
+  } catch (error) {
+    throw new Error('Invalid DATABASE_URL: expected a MySQL connection string');
+  }
+
+  return databaseUrl;
+}
+
 export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
+  const nodeEnv = raw.NODE_ENV ?? 'development';
   const port = parsePort(raw.API_PORT);
 
   return {
-    nodeEnv: raw.NODE_ENV ?? 'development',
+    nodeEnv,
     host: raw.API_HOST ?? '0.0.0.0',
     port,
     logLevel: parseLogLevel(raw.LOG_LEVEL),
-    publicBaseUrl: raw.API_PUBLIC_BASE_URL ?? `http://127.0.0.1:${port}`
+    publicBaseUrl: raw.API_PUBLIC_BASE_URL ?? `http://127.0.0.1:${port}`,
+    databaseUrl: parseDatabaseUrl(raw.DATABASE_URL, nodeEnv)
   };
 }
