@@ -19,26 +19,28 @@ This phase is a new backend integration refactor, not a compatibility preservati
 - **D-01:** Use HTTP-only defaults for migrated operations. Do not keep CloudBase as a production fallback.
 - **D-02:** Treat existing CloudBase service calls as replaceable scaffolding. The implementation may boldly reshape service internals where needed, as long as the mini program pages keep their intended workflows and business behavior.
 - **D-03:** Keep the migration at the mini program service layer where possible. Avoid page rewrites unless a page is tightly coupled to CloudBase-specific behavior.
+- **D-04:** The old CloudBase backend is not a long-term coexistence path. After the independent backend and mini program HTTP migration are stable, CloudBase code should be fully removed in a cleanup step.
 
 ### API Base URL Configuration
-- **D-04:** Add per-miniapp API configuration modules. Development should support a local or temporary backend URL; production should default to `https://api.xiaipet.vip`.
-- **D-05:** Do not build a runtime settings screen for manually changing the API URL in this phase.
-- **D-06:** Because ICP filing is still pending, production request-domain enablement remains a deployment/configuration follow-up, not a blocker for local migration.
+- **D-05:** Add per-miniapp API configuration modules. Development should support a local or temporary backend URL; production should default to `https://api.xiaipet.vip`.
+- **D-06:** Do not build a runtime settings screen for manually changing the API URL in this phase.
+- **D-07:** Because ICP filing is still pending, production request-domain enablement remains a deployment/configuration follow-up, not a blocker for local migration.
 
 ### Session and Token Handling
-- **D-07:** Use `wx.login` to obtain a backend API token from `POST /api/v1/customer/auth/login`, then persist the token in mini program storage.
-- **D-08:** Authenticated requests should send `Authorization: Bearer <token>`.
-- **D-09:** On a 401 response, the client should attempt one automatic re-login and retry the original request once. If that fails, surface a user-friendly failure state instead of leaking technical details.
-- **D-10:** Customer and merchant mini programs can use the same token scheme, but storage keys should be namespaced per app to avoid collisions.
+- **D-08:** Use `wx.login` to obtain a backend API token from `POST /api/v1/customer/auth/login`, then persist the token in mini program storage.
+- **D-09:** Authenticated requests should send `Authorization: Bearer <token>`.
+- **D-10:** On a 401 response, the client should attempt one automatic re-login and retry the original request once. If that fails, surface a user-friendly failure state instead of leaking technical details.
+- **D-11:** Customer and merchant mini programs can use the same token scheme, but storage keys should be namespaced per app to avoid collisions.
 
 ### Error Handling
-- **D-11:** The HTTP client should centrally parse API failures shaped as `{ ok: false, code, message }`.
-- **D-12:** Services/pages should continue showing stable or clearer user-facing messages. Backend technical messages and internal error codes should not be dumped directly to end users.
-- **D-13:** Domain services may map specific API codes such as `UNAUTHORIZED`, `MERCHANT_FORBIDDEN`, payment failures, or validation errors to existing page states and toasts.
+- **D-12:** The HTTP client should centrally parse API failures shaped as `{ ok: false, code, message }`.
+- **D-13:** Services/pages should continue showing stable or clearer user-facing messages. Backend technical messages and internal error codes should not be dumped directly to end users.
+- **D-14:** Domain services may map specific API codes such as `UNAUTHORIZED`, `MERCHANT_FORBIDDEN`, payment failures, or validation errors to existing page states and toasts.
 
 ### Verification Scope
-- **D-14:** Verification should focus on the HTTP client, service-to-route mappings, token retry behavior, error normalization, and existing key page regression tests.
-- **D-15:** Do not expand this phase into a full new end-to-end mini program testing framework. Keep tests focused enough to complete the backend migration safely.
+- **D-15:** Verification should focus on the HTTP client, service-to-route mappings, token retry behavior, error normalization, and existing key page regression tests.
+- **D-16:** Do not expand this phase into a full new end-to-end mini program testing framework. Keep tests focused enough to complete the backend migration safely.
+- **D-17:** Phase 10 must explicitly modify the customer and merchant mini program interface call sites away from `wx.cloud.callFunction` / `wx.cloud.Cloud` for migrated backend operations.
 
 ### the agent's Discretion
 - The agent may choose exact module names, helper shapes, and refactoring order based on existing miniapp patterns.
@@ -122,6 +124,7 @@ This phase is a new backend integration refactor, not a compatibility preservati
 ## Specific Ideas
 
 - The user explicitly selected HTTP-only migration and clarified that the old CloudBase code was not validated, had no real data entered, and never completed the intended links. This phase should favor a clean HTTP integration over preserving old CloudBase behavior.
+- The user clarified that old CloudBase code should eventually be fully removed after the independent backend is established, and that the frontend mini programs must have their interface invocation mode changed accordingly.
 - Use `https://api.xiaipet.vip` as the production base URL, while supporting local/temporary development URLs until ICP filing and WeChat legal-domain configuration are complete.
 
 </specifics>
@@ -131,6 +134,7 @@ This phase is a new backend integration refactor, not a compatibility preservati
 
 - Production HTTPS, Nginx reverse proxy, certificate setup, and WeChat request legal-domain configuration remain Phase 12.
 - OSS-backed product/runtime assets and CloudBase file migration remain Phase 11.
+- Full deletion of old CloudBase backend code should happen only after the mini program HTTP migration is verified, or as an explicit cleanup plan with clear rollback boundaries.
 - Full end-to-end mini program automation is not part of Phase 10 unless later promoted into a dedicated verification phase.
 
 </deferred>

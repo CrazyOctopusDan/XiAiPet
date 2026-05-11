@@ -20,6 +20,7 @@
 Notes:
 - User emphasized that previous CloudBase code had not been validated, had no real data, and had not completed the intended data flow.
 - The implementation should be free to make bold changes and should not preserve old CloudBase behavior for its own sake.
+- User later clarified that old CloudBase code should be fully removed after the independent backend is established, and that the frontend mini program interface invocation mode must be changed to the new backend API.
 
 ## API Base URL Configuration
 
@@ -57,4 +58,5 @@ Notes:
 
 - The agent may choose exact module names and implementation order.
 - CloudBase compatibility is not a required constraint for migrated operations.
+- Mini program service call sites must migrate away from `wx.cloud.callFunction` / `wx.cloud.Cloud` for migrated backend operations.
 - OSS file upload and production HTTPS/domain work stay in later phases.
