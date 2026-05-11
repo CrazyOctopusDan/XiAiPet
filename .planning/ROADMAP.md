@@ -111,7 +111,7 @@ Plans:
 Plans:
 - [x] 10-01: Add customer miniapp HTTP API client and migrate auth/catalog/runtime config services
 - [x] 10-02: Migrate customer checkout, payment and order services to HTTP API
-- [ ] 10-03: Add merchant miniapp HTTP API client and migrate access/order services
+- [x] 10-03: Add merchant miniapp HTTP API client and migrate access/order services
 - [ ] 10-04: Migrate merchant catalog/user/balance/runtime config/print services to HTTP API
 - [ ] 10-05: Update miniapp tests and development configuration for API base URLs
 
@@ -171,7 +171,7 @@ Phases execute in numeric order: 7 → 8 → 9 → 10 → 11 → 12
 | 7. Node API Foundation and ECS Deployment Runway | 5/5 | Complete | 2026-05-11 |
 | 8. MySQL Data Model and Migration Pipeline | 5/5 | Complete | 2026-05-11 |
 | 9. HTTP API Parity for Unified Backend | 6/6 | Complete | 2026-05-11 |
-| 10. Mini Program API Client Migration | 2/5 | In Progress | - |
+| 10. Mini Program API Client Migration | 3/5 | In Progress | - |
 | 11. OSS Asset Migration and Upload Flow | 0/4 | Not started | - |
 | 12. Production Cutover, Security and Regression Verification | 0/5 | Not started | - |
 
