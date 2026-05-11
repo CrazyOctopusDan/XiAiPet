@@ -15,7 +15,7 @@
 - [x] **Phase 7: Node API Foundation and ECS Deployment Runway** - 建立独立后端工程、Docker Compose 部署骨架、配置安全和基础运维文档
 - [x] **Phase 8: MySQL Data Model and Migration Pipeline** - 用 Prisma/RDS 建立可信数据模型，并提供 CloudBase 数据迁移脚本
 - [x] **Phase 9: HTTP API Parity for Unified Backend** - 将现有 CloudBase 云函数能力迁移为统一后端项目内的功能等价 HTTP API
-- [ ] **Phase 10: Mini Program API Client Migration** - 将客户端与商户端小程序调用面从 CloudBase 切换到 HTTP API
+- [x] **Phase 10: Mini Program API Client Migration** - 将客户端与商户端小程序调用面从 CloudBase 切换到 HTTP API
 - [ ] **Phase 11: OSS Asset Migration and Upload Flow** - 将 CloudBase 文件能力迁移到 OSS，并接入受控上传和访问 URL
 - [ ] **Phase 12: Production Cutover, Security and Regression Verification** - 完成域名 HTTPS、微信合法域名、部署验收、安全校验和双端回归
 
@@ -113,7 +113,7 @@ Plans:
 - [x] 10-02: Migrate customer checkout, payment and order services to HTTP API
 - [x] 10-03: Add merchant miniapp HTTP API client and migrate access/order services
 - [x] 10-04: Migrate merchant catalog/user/balance/runtime config/print services to HTTP API
-- [ ] 10-05: Update miniapp tests and development configuration for API base URLs
+- [x] 10-05: Update miniapp tests and development configuration for API base URLs
 
 ### Phase 11: OSS Asset Migration and Upload Flow
 
