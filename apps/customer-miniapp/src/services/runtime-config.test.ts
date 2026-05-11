@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getCachedCustomerRuntimeConfig,
   hydrateCustomerRuntimeConfig,
-  resetCustomerRuntimeConfigCache
+  resetCustomerRuntimeConfigCache,
+  resolveRuntimeBannerImageSrc
 } from './runtime-config';
 
 describe('customer runtime config service', () => {
@@ -86,5 +87,36 @@ describe('customer runtime config service', () => {
     expect(runtimeConfig.customNotice.enabled).toBe(false);
     expect(runtimeConfig.deliveryRules.tiers[0]?.explainer).toBe('5.0 公里内 98 元起送，配送费 0 元');
     expect(getCachedCustomerRuntimeConfig()).toMatchObject(runtimeConfig);
+  });
+
+  it('resolves OSS banner asset URLs before falling back to fileId', () => {
+    expect(resolveRuntimeBannerImageSrc({
+      fileId: 'oss://bucket/banner.jpg',
+      altText: 'Banner',
+      asset: {
+        provider: 'oss',
+        role: 'runtime-banner',
+        bucket: 'bucket',
+        region: 'oss-cn-shanghai',
+        objectKey: 'banner.jpg',
+        url: 'https://assets.example.test/banner.jpg',
+        width: 1280,
+        height: 720,
+        sizeBytes: 1000,
+        contentType: 'image/jpeg',
+        uploadedAt: '2026-05-11T00:00:00.000Z',
+        variants: [
+          {
+            name: 'banner',
+            objectKey: 'banner-banner.jpg',
+            url: 'https://assets.example.test/banner-banner.jpg',
+            width: 1280,
+            height: 720,
+            sizeBytes: 1000,
+            contentType: 'image/jpeg'
+          }
+        ]
+      }
+    })).toBe('https://assets.example.test/banner-banner.jpg');
   });
 });

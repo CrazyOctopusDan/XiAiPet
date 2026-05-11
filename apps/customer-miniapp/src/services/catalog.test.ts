@@ -9,6 +9,7 @@ import {
   getProductSelectedSpecLabel,
   hydrateCatalog,
   resetCatalogCache,
+  resolveCatalogProductAssetUrls,
   resolveHomeModuleImageSources,
   resolveProductSpec,
   searchProducts
@@ -49,10 +50,10 @@ describe('catalog service', () => {
       '会员权益'
     ]);
     expect(getHomeModules().map((item) => item.imageFileId)).toEqual([
-      'cloud://cloud1-d6g77eyym7081a1b0.636c-cloud1-d6g77eyym7081a1b0-1422849178/image/浏览商品_v2.png',
-      'cloud://cloud1-d6g77eyym7081a1b0.636c-cloud1-d6g77eyym7081a1b0-1422849178/image/购前须知_v2.png',
-      'cloud://cloud1-d6g77eyym7081a1b0.636c-cloud1-d6g77eyym7081a1b0-1422849178/image/售前咨询_v2.png',
-      'cloud://cloud1-d6g77eyym7081a1b0.636c-cloud1-d6g77eyym7081a1b0-1422849178/image/会员权益_v2.png'
+      '/assets/catalog/catalog-reference.png',
+      '/assets/catalog/detail-reference.png',
+      '/assets/catalog/search-reference.png',
+      '/assets/catalog/home-hero.png'
     ]);
   });
 
@@ -64,8 +65,7 @@ describe('catalog service', () => {
     expect(resolvedModules).toHaveLength(4);
     expect(resolvedModules[0]).toMatchObject({
       title: '浏览商品',
-      imageSrc:
-        'https://tmp.example.com/cloud%3A%2F%2Fcloud1-d6g77eyym7081a1b0.636c-cloud1-d6g77eyym7081a1b0-1422849178%2Fimage%2F%E6%B5%8F%E8%A7%88%E5%95%86%E5%93%81_v2.png'
+      imageSrc: 'https://tmp.example.com/%2Fassets%2Fcatalog%2Fcatalog-reference.png'
     });
     expect(resolvedModules[3]).toMatchObject({
       title: '会员权益'
@@ -140,6 +140,86 @@ describe('catalog service', () => {
     expect(catalog.categories).toHaveLength(1);
     expect(getCatalogCategories()[0]?.name).toBe('今日新品');
     expect(buildCatalogSections('delivery')[0]?.availableProducts[0]?.name).toBe('鲜奶小蛋糕');
+  });
+
+  it('resolves OSS product asset references to role-specific display URLs', () => {
+    const product = resolveCatalogProductAssetUrls({
+      id: 'asset-cake',
+      name: '资产蛋糕',
+      summary: 'OSS',
+      description: 'OSS',
+      price: 128,
+      stock: 1,
+      soldOut: false,
+      cartActionLabel: '直接加购',
+      memberLevelLabel: '普通会员可购',
+      categoryId: 'cakes',
+      deliveryModes: ['delivery'],
+      thumbnail: 'oss://bucket/legacy-cover.jpg',
+      imageAsset: {
+        provider: 'oss',
+        role: 'product-cover',
+        bucket: 'bucket',
+        region: 'oss-cn-shanghai',
+        objectKey: 'cover-display.jpg',
+        url: 'https://assets.example.test/cover-display.jpg',
+        width: 960,
+        height: 960,
+        sizeBytes: 1000,
+        contentType: 'image/jpeg',
+        uploadedAt: '2026-05-11T00:00:00.000Z',
+        variants: [
+          {
+            name: 'thumbnail',
+            objectKey: 'cover-thumbnail.jpg',
+            url: 'https://assets.example.test/cover-thumbnail.jpg',
+            width: 480,
+            height: 480,
+            sizeBytes: 500,
+            contentType: 'image/jpeg'
+          }
+        ]
+      },
+      gallery: [],
+      introductionImageAssets: [
+        {
+          provider: 'oss',
+          role: 'product-introduction',
+          bucket: 'bucket',
+          region: 'oss-cn-shanghai',
+          objectKey: 'intro-display.jpg',
+          url: 'https://assets.example.test/intro-display.jpg',
+          width: 960,
+          height: 720,
+          sizeBytes: 1000,
+          contentType: 'image/jpeg',
+          uploadedAt: '2026-05-11T00:00:00.000Z',
+          variants: []
+        }
+      ],
+      detailImages: [],
+      detailImageAssets: [
+        {
+          provider: 'oss',
+          role: 'product-detail',
+          bucket: 'bucket',
+          region: 'oss-cn-shanghai',
+          objectKey: 'detail.jpg',
+          url: 'https://assets.example.test/detail.jpg',
+          width: 960,
+          height: 1280,
+          sizeBytes: 1000,
+          contentType: 'image/jpeg',
+          uploadedAt: '2026-05-11T00:00:00.000Z',
+          variants: []
+        }
+      ],
+      specs: []
+    });
+
+    expect(product.thumbnail).toBe('https://assets.example.test/cover-thumbnail.jpg');
+    expect(product.gallery).toEqual(['https://assets.example.test/intro-display.jpg']);
+    expect(product.detailImages).toEqual(['https://assets.example.test/detail.jpg']);
   });
 
   it('keeps local fallback catalog content when remote sections are missing', async () => {

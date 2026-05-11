@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCachedCustomerRuntimeConfig = getCachedCustomerRuntimeConfig;
+exports.resolveRuntimeBannerImageSrc = resolveRuntimeBannerImageSrc;
 exports.resetCustomerRuntimeConfigCache = resetCustomerRuntimeConfigCache;
 exports.hydrateCustomerRuntimeConfig = hydrateCustomerRuntimeConfig;
 const api_client_1 = require("./api-client");
@@ -77,6 +78,10 @@ function mergeRuntimeConfig(result) {
 }
 function getCachedCustomerRuntimeConfig() {
     return cloneRuntimeConfig(cachedRuntimeConfig);
+}
+function resolveRuntimeBannerImageSrc(banner) {
+    var _a, _b, _c, _d, _e;
+    return (_e = (_c = (_b = (_a = banner.asset) === null || _a === void 0 ? void 0 : _a.variants.find((variant) => variant.name === 'banner')) === null || _b === void 0 ? void 0 : _b.url) !== null && _c !== void 0 ? _c : (_d = banner.asset) === null || _d === void 0 ? void 0 : _d.url) !== null && _e !== void 0 ? _e : banner.fileId;
 }
 function resetCustomerRuntimeConfigCache() {
     cachedRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);

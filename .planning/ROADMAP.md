@@ -16,7 +16,7 @@
 - [x] **Phase 8: MySQL Data Model and Migration Pipeline** - 用 Prisma/RDS 建立可信数据模型，并提供 CloudBase 数据迁移脚本
 - [x] **Phase 9: HTTP API Parity for Unified Backend** - 将现有 CloudBase 云函数能力迁移为统一后端项目内的功能等价 HTTP API
 - [x] **Phase 10: Mini Program API Client Migration** - 将客户端与商户端小程序调用面从 CloudBase 切换到 HTTP API
-- [ ] **Phase 11: OSS Asset Migration and Upload Flow** - 将 CloudBase 文件能力迁移到 OSS，并接入受控上传和访问 URL
+- [x] **Phase 11: OSS Asset Migration and Upload Flow** - 将 CloudBase 文件能力迁移到 OSS，并接入受控上传和访问 URL
 - [ ] **Phase 12: Production Cutover, Security and Regression Verification** - 完成域名 HTTPS、微信合法域名、部署验收、安全校验和双端回归
 
 ## Phase Details
@@ -132,10 +132,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 11-01: Add OSS service wrapper, bucket config and server-side credential handling
-- [ ] 11-02: Implement merchant asset upload/signing API and miniapp upload integration
-- [ ] 11-03: Implement CloudBase file reference to OSS migration script and report
-- [ ] 11-04: Update product/runtime config image display paths and asset tests
+- [x] 11-01: Add OSS service wrapper, bucket config and server-side credential handling
+- [x] 11-02: Implement merchant asset upload/signing API and miniapp upload integration
+- [x] 11-03: Implement CloudBase file reference to OSS migration script and report
+- [x] 11-04: Update product/runtime config image display paths and asset tests
 
 ### Phase 12: Production Cutover, Security and Regression Verification
 

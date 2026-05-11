@@ -1,3 +1,5 @@
+import type { OssAssetReference } from '@xiaipet/shared/types/assets';
+
 export type DeliveryMode = 'pickup' | 'delivery' | 'express';
 
 export interface HomeModule {
@@ -37,8 +39,11 @@ export interface CatalogProduct {
   categoryId: string;
   deliveryModes: DeliveryMode[];
   thumbnail: string;
+  imageAsset?: OssAssetReference;
   gallery: string[];
+  introductionImageAssets?: OssAssetReference[];
   detailImages: string[];
+  detailImageAssets?: OssAssetReference[];
   specs: ProductSpecOption[];
 }
 

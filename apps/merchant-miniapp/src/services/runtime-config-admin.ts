@@ -10,6 +10,7 @@ import type {
   StoreProfileRuntimeConfigSection
 } from '@xiaipet/shared/types/runtime-config';
 import { merchantApiRequest, type MerchantApiRequester } from './api-client';
+import { uploadMerchantAsset, type UploadedMerchantAsset } from './assets';
 
 const LOCKED_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
   { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
@@ -119,7 +120,7 @@ function getDefaultSections(): RuntimeConfigSectionDocument[] {
       updatedAt: now,
       updatedBy,
       value: {
-        fileId: 'cloud://xiaipet-dev.123/banners/default.png',
+        fileId: '/assets/catalog/home-hero.png',
         altText: '首页 Banner'
       }
     },
@@ -188,6 +189,14 @@ export async function saveRuntimeConfigSection(
   });
 
   return response.section;
+}
+
+export async function uploadRuntimeBannerAsset(filePath: string, request?: MerchantApiRequester): Promise<UploadedMerchantAsset> {
+  return uploadMerchantAsset('runtime-banner', {
+    filePath,
+    processingMode: 'miniapp',
+    request
+  });
 }
 
 export function getRuntimeConfigAdminViewModel(

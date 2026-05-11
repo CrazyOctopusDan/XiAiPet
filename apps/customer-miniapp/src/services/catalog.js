@@ -11,6 +11,7 @@ exports.getProductById = getProductById;
 exports.resolveProductSpec = resolveProductSpec;
 exports.getProductDisplayPrice = getProductDisplayPrice;
 exports.getProductSelectedSpecLabel = getProductSelectedSpecLabel;
+exports.resolveCatalogProductAssetUrls = resolveCatalogProductAssetUrls;
 exports.resetCatalogCache = resetCatalogCache;
 exports.hydrateCatalog = hydrateCatalog;
 const catalog_1 = require("../data/catalog");
@@ -93,13 +94,39 @@ function cloneCategories(categories) {
     return categories.map((category) => ({ ...category }));
 }
 function cloneProducts(products) {
-    return products.map((product) => ({
+    return products.map((product) => {
+        const resolved = resolveCatalogProductAssetUrls(product);
+        return {
+            ...resolved,
+            deliveryModes: [...resolved.deliveryModes],
+            gallery: [...resolved.gallery],
+            detailImages: [...resolved.detailImages],
+            specs: resolved.specs.map((spec) => ({ ...spec }))
+        };
+    });
+}
+function getAssetUrl(asset, variantName) {
+    var _a, _b;
+    if (!asset) {
+        return undefined;
+    }
+    return (_b = (_a = asset.variants.find((variant) => variant.name === variantName)) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : asset.url;
+}
+function resolveCatalogProductAssetUrls(product) {
+    var _a, _b, _c, _d, _e;
+    const thumbnail = (_c = (_a = getAssetUrl(product.imageAsset, 'thumbnail')) !== null && _a !== void 0 ? _a : (_b = product.imageAsset) === null || _b === void 0 ? void 0 : _b.url) !== null && _c !== void 0 ? _c : product.thumbnail;
+    const gallery = ((_d = product.introductionImageAssets) === null || _d === void 0 ? void 0 : _d.length)
+        ? product.introductionImageAssets.map((asset) => { var _a; return (_a = getAssetUrl(asset, 'display')) !== null && _a !== void 0 ? _a : asset.url; })
+        : product.gallery;
+    const detailImages = ((_e = product.detailImageAssets) === null || _e === void 0 ? void 0 : _e.length)
+        ? product.detailImageAssets.map((asset) => { var _a; return (_a = getAssetUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url; })
+        : product.detailImages;
+    return {
         ...product,
-        deliveryModes: [...product.deliveryModes],
-        gallery: [...product.gallery],
-        detailImages: [...product.detailImages],
-        specs: product.specs.map((spec) => ({ ...spec }))
-    }));
+        thumbnail,
+        gallery,
+        detailImages
+    };
 }
 function resetCatalogCache() {
     cachedCatalogCategories = cloneCategories(catalog_1.catalogCategories);

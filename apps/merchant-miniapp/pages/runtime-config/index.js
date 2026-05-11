@@ -103,6 +103,36 @@ Page({
             [field]: value
         }, section));
     },
+    async handleUploadBanner() {
+        wx.chooseImage({
+            count: 1,
+            success: async (result) => {
+                var _a;
+                const filePath = (_a = result.tempFilePaths) === null || _a === void 0 ? void 0 : _a[0];
+                if (!filePath) {
+                    return;
+                }
+                try {
+                    const uploaded = await (0, runtime_config_admin_1.uploadRuntimeBannerAsset)(filePath);
+                    this.patchSection('banner', (section) => (0, runtime_config_admin_1.buildRuntimeConfigSectionDocument)('banner', {
+                        ...(section.sectionId === 'banner' ? section.value : { fileId: '', altText: '' }),
+                        fileId: uploaded.storageId,
+                        asset: uploaded.asset
+                    }, section));
+                    wx.showToast({
+                        title: '上传成功',
+                        icon: 'success'
+                    });
+                }
+                catch (_b) {
+                    wx.showToast({
+                        title: '上传失败',
+                        icon: 'none'
+                    });
+                }
+            }
+        });
+    },
     handleNoticeInput(event) {
         var _a, _b, _c, _d;
         const field = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.field;

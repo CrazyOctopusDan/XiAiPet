@@ -109,6 +109,10 @@ export function getCachedCustomerRuntimeConfig() {
   return cloneRuntimeConfig(cachedRuntimeConfig);
 }
 
+export function resolveRuntimeBannerImageSrc(banner: BannerRuntimeConfigValue) {
+  return banner.asset?.variants.find((variant) => variant.name === 'banner')?.url ?? banner.asset?.url ?? banner.fileId;
+}
+
 export function resetCustomerRuntimeConfigCache() {
   cachedRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);
 }

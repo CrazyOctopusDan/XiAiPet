@@ -3,9 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LOCKED_DELIVERY_RULE_ROWS = void 0;
 exports.queryRuntimeConfigSections = queryRuntimeConfigSections;
 exports.saveRuntimeConfigSection = saveRuntimeConfigSection;
+exports.uploadRuntimeBannerAsset = uploadRuntimeBannerAsset;
 exports.getRuntimeConfigAdminViewModel = getRuntimeConfigAdminViewModel;
 exports.buildRuntimeConfigSectionDocument = buildRuntimeConfigSectionDocument;
 const api_client_1 = require("./api-client");
+const assets_1 = require("./assets");
 const LOCKED_DELIVERY_RULE_ROWS = [
     { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
     { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
@@ -82,7 +84,7 @@ function getDefaultSections() {
             updatedAt: now,
             updatedBy,
             value: {
-                fileId: 'cloud://xiaipet-dev.123/banners/default.png',
+                fileId: '/assets/catalog/home-hero.png',
                 altText: '首页 Banner'
             }
         },
@@ -132,6 +134,13 @@ async function saveRuntimeConfigSection(section, request = api_client_1.merchant
         auth: 'merchant'
     });
     return response.section;
+}
+async function uploadRuntimeBannerAsset(filePath, request) {
+    return (0, assets_1.uploadMerchantAsset)('runtime-banner', {
+        filePath,
+        processingMode: 'miniapp',
+        request
+    });
 }
 function getRuntimeConfigAdminViewModel(sections, dirty) {
     return {

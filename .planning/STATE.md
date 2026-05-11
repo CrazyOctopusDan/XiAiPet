@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: executing
-stopped_at: Planned Phase 11
-last_updated: "2026-05-11T14:36:35.689Z"
-last_activity: 2026-05-11 -- Phase 11 execution started
+status: ready_to_plan
+stopped_at: Completed Phase 11
+last_updated: "2026-05-11T14:59:30.000Z"
+last_activity: 2026-05-11 -- Phase 11 completed
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 25
-  completed_plans: 21
-  percent: 84
+  completed_phases: 5
+  total_plans: 30
+  completed_plans: 25
+  percent: 83
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-11)
 
 **Core value:** 让宠物家长在微信内以尽可能少的步骤完成“选品-预约-支付-履约”，同时让店主能用同一套云后台稳定管理商品、订单、会员门槛和余额。
-**Current focus:** Phase 11 — OSS Asset Migration and Upload Flow
+**Current focus:** Phase 12 — Production Cutover, Security and Regression Verification
 
 ## Current Position
 
-Phase: 11 (oss-asset-migration-and-upload-flow) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 11
-Last activity: 2026-05-11 -- Phase 11 execution started
+Phase: 12 (production-cutover-security-and-regression-verification) — READY TO PLAN
+Plan: 0 of 5
+Status: Ready to plan Phase 12
+Last activity: 2026-05-11 -- Phase 11 completed
 
-Progress: [████████░░] 84%
+Progress: [████████░░] 83%
 
 ## Accumulated Context
 
@@ -50,8 +50,6 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Replace mini program CloudBase function clients with HTTP API clients.
-- Prepare OSS upload/access replacement.
 - Prepare ECS Docker Compose deployment and `api.xiaipet.vip` HTTPS setup.
 - Run integrated regression across customer and merchant workflows after migration.
 
@@ -65,8 +63,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-11T14:25:05Z
-Stopped at: Planned Phase 11
+Last session: 2026-05-11T14:59:30Z
+Stopped at: Completed Phase 11
 Resume file: .planning/ROADMAP.md
 
-**Planned Phase:** 11 (OSS Asset Migration and Upload Flow) — 4 plans — 2026-05-11T14:25:05.585Z
+**Completed Phase:** 11 (OSS Asset Migration and Upload Flow) — 4 plans — 2026-05-11T14:59:30.000Z

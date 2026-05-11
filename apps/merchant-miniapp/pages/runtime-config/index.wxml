@@ -47,6 +47,7 @@
       <view wx:if="{{item.sectionId === 'banner'}}">
         <input class="field-input" data-field="fileId" value="{{item.bannerFields.fileId}}" placeholder="Banner fileId" bindinput="handleBannerInput" />
         <input class="field-input" data-field="altText" value="{{item.bannerFields.altText}}" placeholder="Banner 文案" bindinput="handleBannerInput" />
+        <button class="ghost-button" bindtap="handleUploadBanner">上传 Banner</button>
       </view>
 
       <view wx:if="{{item.sectionId === 'custom-notice'}}">

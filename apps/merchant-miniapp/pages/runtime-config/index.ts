@@ -8,7 +8,8 @@ import {
   buildRuntimeConfigSectionDocument,
   getRuntimeConfigAdminViewModel,
   queryRuntimeConfigSections,
-  saveRuntimeConfigSection
+  saveRuntimeConfigSection,
+  uploadRuntimeBannerAsset
 } from '../../src/services/runtime-config-admin';
 
 interface RuntimeConfigPageData {
@@ -151,6 +152,37 @@ Page({
         [field]: value
       }, section)
     );
+  },
+  async handleUploadBanner(this: RuntimeConfigPageInstance) {
+    wx.chooseImage({
+      count: 1,
+      success: async (result: { tempFilePaths?: string[] }) => {
+        const filePath = result.tempFilePaths?.[0];
+        if (!filePath) {
+          return;
+        }
+
+        try {
+          const uploaded = await uploadRuntimeBannerAsset(filePath);
+          this.patchSection('banner', (section) =>
+            buildRuntimeConfigSectionDocument('banner', {
+              ...(section.sectionId === 'banner' ? section.value : { fileId: '', altText: '' }),
+              fileId: uploaded.storageId,
+              asset: uploaded.asset
+            }, section)
+          );
+          wx.showToast({
+            title: '上传成功',
+            icon: 'success'
+          });
+        } catch {
+          wx.showToast({
+            title: '上传失败',
+            icon: 'none'
+          });
+        }
+      }
+    });
   },
   handleNoticeInput(
     this: RuntimeConfigPageInstance,

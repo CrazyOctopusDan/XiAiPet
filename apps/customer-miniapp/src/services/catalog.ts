@@ -7,6 +7,7 @@ import type {
   HomeModule,
   ProductSpecOption
 } from '../types/catalog';
+import type { OssAssetReference, OssAssetVariantName } from '@xiaipet/shared/types/assets';
 
 import { customerApiRequest, type CustomerApiRequestOptions } from './api-client';
 
@@ -120,13 +121,41 @@ function cloneCategories(categories: CatalogCategory[]): CatalogCategory[] {
 }
 
 function cloneProducts(products: CatalogProduct[]): CatalogProduct[] {
-  return products.map((product) => ({
+  return products.map((product) => {
+    const resolved = resolveCatalogProductAssetUrls(product);
+    return {
+      ...resolved,
+      deliveryModes: [...resolved.deliveryModes],
+      gallery: [...resolved.gallery],
+      detailImages: [...resolved.detailImages],
+      specs: resolved.specs.map((spec) => ({ ...spec }))
+    };
+  });
+}
+
+function getAssetUrl(asset: OssAssetReference | undefined, variantName: OssAssetVariantName) {
+  if (!asset) {
+    return undefined;
+  }
+
+  return asset.variants.find((variant) => variant.name === variantName)?.url ?? asset.url;
+}
+
+export function resolveCatalogProductAssetUrls(product: CatalogProduct): CatalogProduct {
+  const thumbnail = getAssetUrl(product.imageAsset, 'thumbnail') ?? product.imageAsset?.url ?? product.thumbnail;
+  const gallery = product.introductionImageAssets?.length
+    ? product.introductionImageAssets.map((asset) => getAssetUrl(asset, 'display') ?? asset.url)
+    : product.gallery;
+  const detailImages = product.detailImageAssets?.length
+    ? product.detailImageAssets.map((asset) => getAssetUrl(asset, 'detail') ?? asset.url)
+    : product.detailImages;
+
+  return {
     ...product,
-    deliveryModes: [...product.deliveryModes],
-    gallery: [...product.gallery],
-    detailImages: [...product.detailImages],
-    specs: product.specs.map((spec) => ({ ...spec }))
-  }));
+    thumbnail,
+    gallery,
+    detailImages
+  };
 }
 
 export function resetCatalogCache() {
