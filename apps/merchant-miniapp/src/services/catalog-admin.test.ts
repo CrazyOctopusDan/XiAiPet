@@ -5,6 +5,7 @@ import type {
   CatalogProductAdminRecord,
   CatalogProductEditorPayload
 } from '@xiaipet/shared/types/catalog-admin';
+import type { MerchantApiRequester } from './api-client';
 
 import {
   createEmptyProductEditorPayload,
@@ -200,10 +201,62 @@ describe('catalog admin service', () => {
     });
   });
 
-  it('keeps product image upload behind the OSS migration boundary', async () => {
-    await expect(uploadProductImage('/tmp/cover.png', 'product-001')).rejects.toThrow(
-      'ASSET_UPLOAD_PENDING_OSS'
+  it('uploads product cover images through the OSS asset flow', async () => {
+    (globalThis as any).wx = {
+      compressImage: vi.fn((options) => options.success({ tempFilePath: options.src })),
+      cropImage: vi.fn((options) => options.success({ tempFilePath: options.src })),
+      getFileInfo: vi.fn((options) => options.success({ size: 1000 })),
+      getImageInfo: vi.fn((options) => options.success({ width: 480, height: 480 })),
+      uploadFile: vi.fn((options) => options.success({ statusCode: 200 }))
+    };
+    const request = vi.fn((path: string, options: any) => {
+      if (path.endsWith('/upload-policies')) {
+        return Promise.resolve({
+          upload: {
+            method: 'POST',
+            url: 'https://oss.example.test',
+            fileFieldName: 'file',
+            formData: { key: options.body.variantName },
+            objectKey: `key-${options.body.variantName}`,
+            expiresAt: '2026-05-11T00:15:00.000Z',
+            confirmToken: `token-${options.body.variantName}`
+          }
+        });
+      }
+
+      return Promise.resolve({
+        storageId: `oss://bucket/${options.body.objectKey}`,
+        asset: {
+          provider: 'oss',
+          role: 'product-cover',
+          bucket: 'bucket',
+          region: 'oss-cn-shanghai',
+          objectKey: options.body.objectKey,
+          url: `https://assets.example.test/${options.body.objectKey}`,
+          width: 480,
+          height: 480,
+          sizeBytes: 1000,
+          contentType: 'image/jpeg',
+          uploadedAt: '2026-05-11T00:00:00.000Z',
+          variants: [
+            {
+              name: options.body.variantName,
+              objectKey: options.body.objectKey,
+              url: `https://assets.example.test/${options.body.objectKey}`,
+              width: 480,
+              height: 480,
+              sizeBytes: 1000,
+              contentType: 'image/jpeg'
+            }
+          ]
+        }
+      });
+    }) as unknown as MerchantApiRequester;
+
+    await expect(uploadProductImage('/tmp/cover.png', 'product-001', request)).resolves.toBe(
+      'oss://bucket/key-display'
     );
+    delete (globalThis as any).wx;
   });
 
   it('creates a draft product payload with the fixed phase step structure', () => {

@@ -14,6 +14,7 @@ import {
 } from '../modules/payments/provider';
 import { createRuntimeConfigService } from '../modules/runtime-config/service';
 import { createPrintingService } from '../modules/printing/service';
+import { createAssetService } from '../modules/assets/service';
 
 type AsyncResult = Promise<unknown>;
 
@@ -58,6 +59,10 @@ export interface ApiRouteServices {
     prepareOrderReceiptPrint(merchantContext: unknown, orderId: string, payload?: unknown): AsyncResult;
     recordOrderReceiptPrintResult(merchantContext: unknown, orderId: string, payload: unknown): AsyncResult;
   };
+  assetService: {
+    createUploadPolicy(merchantContext: unknown, payload: unknown): unknown;
+    confirmUpload(merchantContext: unknown, payload: unknown): unknown;
+  };
 }
 
 export interface ApiRouteDependencies extends ApiRouteServices {
@@ -96,6 +101,7 @@ export function createApiRouteDependencies(
     merchantUserService: overrides.merchantUserService ?? createMerchantUserService(),
     orderService: overrides.orderService ?? createOrderService(undefined, paymentProvider),
     printingService: overrides.printingService ?? createPrintingService(),
+    assetService: overrides.assetService ?? createAssetService(config),
     guards: createAuthGuards({
       sessionSecret: config.sessionSecret,
       merchantAccessService

@@ -10,6 +10,7 @@ import type {
 } from '@xiaipet/shared/types/catalog-admin';
 import { resolveProductCombinationPrice } from '../shared/product-pricing';
 import { merchantApiRequest, type MerchantApiRequester } from './api-client';
+import { uploadMerchantAsset, type UploadedMerchantAsset } from './assets';
 
 export interface MerchantCategoryListItem extends CatalogCategoryRecord {
   linkedProductCount: number;
@@ -289,7 +290,7 @@ export function getProductPageViewModel(
       stockLabel: product.trackInventory ? `库存 ${product.stock}` : '库存不跟踪',
       priceRangeLabel: getPriceRangeLabel(product),
       fulfillmentModesLabel: product.fulfillmentModes.map(getFulfillmentModeLabel).join(' / '),
-      imagePreviewUrl: product.imagePreviewUrl ?? product.imageFileId
+      imagePreviewUrl: product.imageAsset?.url ?? product.imagePreviewUrl ?? product.imageFileId
     }))
   };
 }
@@ -302,6 +303,8 @@ export function createEmptyProductEditorPayload(categoryId = ''): CatalogProduct
       description: '',
       categoryId,
       imageFileId: '',
+      introductionImageAssets: [],
+      detailImageAssets: [],
       imagePreviewUrl: '',
       memberLevelId: null,
       stock: 0
@@ -333,6 +336,9 @@ export function splitProductEditorPayload(product: CatalogProductAdminRecord): C
       description: product.description,
       categoryId: product.categoryId,
       imageFileId: product.imageFileId,
+      imageAsset: product.imageAsset,
+      introductionImageAssets: product.introductionImageAssets ?? [],
+      detailImageAssets: product.detailImageAssets ?? [],
       imagePreviewUrl: product.imagePreviewUrl ?? product.imageFileId,
       memberLevelId: product.memberLevelId,
       stock: product.stock
@@ -383,11 +389,24 @@ export function getProductEditorViewModel(
 
 export async function uploadProductImage(
   filePath: string,
-  productId: string
+  productId: string,
+  request?: MerchantApiRequester
 ): Promise<string> {
-  void filePath;
   void productId;
-  throw new Error('ASSET_UPLOAD_PENDING_OSS');
+  const uploaded = await uploadMerchantAsset('product-cover', {
+    filePath,
+    processingMode: 'miniapp',
+    request
+  });
+  return uploaded.storageId;
+}
+
+export async function uploadProductCoverAsset(filePath: string, request?: MerchantApiRequester): Promise<UploadedMerchantAsset> {
+  return uploadMerchantAsset('product-cover', {
+    filePath,
+    processingMode: 'miniapp',
+    request
+  });
 }
 
 export async function saveProduct(payload: CatalogProductEditorPayload, request: MerchantApiRequester = merchantApiRequest) {

@@ -10,9 +10,11 @@ exports.createEmptyProductEditorPayload = createEmptyProductEditorPayload;
 exports.splitProductEditorPayload = splitProductEditorPayload;
 exports.getProductEditorViewModel = getProductEditorViewModel;
 exports.uploadProductImage = uploadProductImage;
+exports.uploadProductCoverAsset = uploadProductCoverAsset;
 exports.saveProduct = saveProduct;
 const product_pricing_1 = require("../shared/product-pricing");
 const api_client_1 = require("./api-client");
+const assets_1 = require("./assets");
 function formatMoney(value) {
     return `￥${value.toFixed(2)}`;
 }
@@ -164,7 +166,7 @@ function getProductPageViewModel(products, categories, activeCategoryId, keyword
             isActive: category.id === activeCategoryId
         })),
         cards: filteredProducts.map((product) => {
-            var _a;
+            var _a, _b, _c;
             return ({
                 id: product.id,
                 name: product.name,
@@ -172,7 +174,7 @@ function getProductPageViewModel(products, categories, activeCategoryId, keyword
                 stockLabel: product.trackInventory ? `库存 ${product.stock}` : '库存不跟踪',
                 priceRangeLabel: getPriceRangeLabel(product),
                 fulfillmentModesLabel: product.fulfillmentModes.map(getFulfillmentModeLabel).join(' / '),
-                imagePreviewUrl: (_a = product.imagePreviewUrl) !== null && _a !== void 0 ? _a : product.imageFileId
+                imagePreviewUrl: (_c = (_b = (_a = product.imageAsset) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : product.imagePreviewUrl) !== null && _c !== void 0 ? _c : product.imageFileId
             });
         })
     };
@@ -185,6 +187,8 @@ function createEmptyProductEditorPayload(categoryId = '') {
             description: '',
             categoryId,
             imageFileId: '',
+            introductionImageAssets: [],
+            detailImageAssets: [],
             imagePreviewUrl: '',
             memberLevelId: null,
             stock: 0
@@ -208,7 +212,7 @@ function createEmptyProductEditorPayload(categoryId = '') {
     };
 }
 function splitProductEditorPayload(product) {
-    var _a;
+    var _a, _b, _c;
     return {
         basicInfo: {
             productId: product.id,
@@ -216,7 +220,10 @@ function splitProductEditorPayload(product) {
             description: product.description,
             categoryId: product.categoryId,
             imageFileId: product.imageFileId,
-            imagePreviewUrl: (_a = product.imagePreviewUrl) !== null && _a !== void 0 ? _a : product.imageFileId,
+            imageAsset: product.imageAsset,
+            introductionImageAssets: (_a = product.introductionImageAssets) !== null && _a !== void 0 ? _a : [],
+            detailImageAssets: (_b = product.detailImageAssets) !== null && _b !== void 0 ? _b : [],
+            imagePreviewUrl: (_c = product.imagePreviewUrl) !== null && _c !== void 0 ? _c : product.imageFileId,
             memberLevelId: product.memberLevelId,
             stock: product.stock
         },
@@ -254,10 +261,21 @@ function getProductEditorViewModel(payload, activeStep) {
         pricePreviewRows: createPricePreviewRows(payload.pricing.basePrice, payload.pricing.specs, payload.pricing.formulas, payload.pricing.overrides)
     };
 }
-async function uploadProductImage(filePath, productId) {
-    void filePath;
+async function uploadProductImage(filePath, productId, request) {
     void productId;
-    throw new Error('ASSET_UPLOAD_PENDING_OSS');
+    const uploaded = await (0, assets_1.uploadMerchantAsset)('product-cover', {
+        filePath,
+        processingMode: 'miniapp',
+        request
+    });
+    return uploaded.storageId;
+}
+async function uploadProductCoverAsset(filePath, request) {
+    return (0, assets_1.uploadMerchantAsset)('product-cover', {
+        filePath,
+        processingMode: 'miniapp',
+        request
+    });
 }
 async function saveProduct(payload, request = api_client_1.merchantApiRequest) {
     const response = await request(`/api/v1/merchant/products/${payload.basicInfo.productId}`, {

@@ -8,6 +8,7 @@ exports.isMembershipTiersRuntimeConfigSection = isMembershipTiersRuntimeConfigSe
 exports.isBannerRuntimeConfigSection = isBannerRuntimeConfigSection;
 exports.isCustomNoticeRuntimeConfigSection = isCustomNoticeRuntimeConfigSection;
 const runtime_config_1 = require("../types/runtime-config");
+const assets_1 = require("./assets");
 exports.LOCKED_DELIVERY_RULE_ROWS = [
     { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
     { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
@@ -34,9 +35,6 @@ function isNonEmptyString(value) {
 }
 function isFiniteNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
-}
-function isCloudBaseFileId(value) {
-    return isNonEmptyString(value) && value.startsWith('cloud://');
 }
 function isRuntimeConfigUpdatedBy(value) {
     if (!isObject(value)) {
@@ -87,9 +85,10 @@ function isBannerValue(value) {
     if (!isObject(value)) {
         return false;
     }
-    return (hasOnlyKeys(value, ['fileId', 'altText']) &&
-        isCloudBaseFileId(value.fileId) &&
-        isNonEmptyString(value.altText));
+    return ((hasOnlyKeys(value, ['fileId', 'altText']) || hasOnlyKeys(value, ['fileId', 'altText', 'asset'])) &&
+        (0, assets_1.isAssetStorageId)(value.fileId) &&
+        isNonEmptyString(value.altText) &&
+        (value.asset === undefined || (0, assets_1.isOssAssetReference)(value.asset)));
 }
 function isCustomNoticeValue(value) {
     if (!isObject(value)) {

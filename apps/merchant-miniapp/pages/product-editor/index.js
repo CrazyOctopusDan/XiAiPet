@@ -91,20 +91,21 @@ Page({
                 }
                 this.setData({ imageUploading: true });
                 try {
-                    const fileID = await (0, catalog_admin_1.uploadProductImage)(filePath, this.data.draft.basicInfo.productId);
+                    const uploaded = await (0, catalog_admin_1.uploadProductCoverAsset)(filePath);
                     const draft = {
                         ...this.data.draft,
                         basicInfo: {
                             ...this.data.draft.basicInfo,
-                            imageFileId: fileID,
-                            imagePreviewUrl: fileID
+                            imageFileId: uploaded.storageId,
+                            imageAsset: uploaded.asset,
+                            imagePreviewUrl: uploaded.asset.url
                         }
                     };
                     refreshEditorView(this, draft, this.data.activeStep);
                 }
                 catch (error) {
                     (_b = wx.showToast) === null || _b === void 0 ? void 0 : _b.call(wx, {
-                        title: error instanceof Error && error.message === 'ASSET_UPLOAD_PENDING_OSS' ? '图片上传待接入 OSS' : '上传失败',
+                        title: error instanceof Error && error.message === 'Image exceeds the upload size limit' ? '图片过大' : '上传失败',
                         icon: 'none'
                     });
                 }
