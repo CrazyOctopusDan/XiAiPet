@@ -5,9 +5,7 @@ exports.getMyOrderDetail = getMyOrderDetail;
 exports.getOrdersPageViewModel = getOrdersPageViewModel;
 exports.getOrderDetailViewModel = getOrderDetailViewModel;
 const order_runtime_1 = require("../shared/order-runtime");
-function getCloudCaller() {
-    return (payload) => wx.cloud.callFunction(payload);
-}
+const api_client_1 = require("./api-client");
 function sortOrders(list) {
     return [...list].sort((left, right) => {
         const createdAtDiff = new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
@@ -97,22 +95,20 @@ function toOrderCard(order) {
         payableTotalLabel: formatMoney(order.pricing.payableTotal)
     };
 }
-async function queryMyOrders(callFunction = getCloudCaller()) {
+async function queryMyOrders(request = api_client_1.customerApiRequest) {
     var _a;
-    const response = (await callFunction({
-        name: 'queryMyOrders',
-        data: {}
-    }));
-    return (_a = response.result.orders) !== null && _a !== void 0 ? _a : [];
+    const response = await request('/api/v1/customer/orders', {
+        method: 'GET',
+        auth: 'customer'
+    });
+    return (_a = response.orders) !== null && _a !== void 0 ? _a : [];
 }
-async function getMyOrderDetail(orderId, callFunction = getCloudCaller()) {
-    const response = (await callFunction({
-        name: 'getMyOrderDetail',
-        data: {
-            orderId
-        }
-    }));
-    return response.result.order;
+async function getMyOrderDetail(orderId, request = api_client_1.customerApiRequest) {
+    const response = await request(`/api/v1/customer/orders/${orderId}`, {
+        method: 'GET',
+        auth: 'customer'
+    });
+    return response.order;
 }
 function getOrdersPageViewModel(orders, highlightOrderId) {
     var _a, _b, _c, _d;

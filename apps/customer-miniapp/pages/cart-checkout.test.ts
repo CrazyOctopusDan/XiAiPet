@@ -13,9 +13,137 @@ function cloneData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
+function getRequestPath(options: { url: string }) {
+  return new URL(options.url).pathname;
+}
+
+function respondApi(options: { success?: (response: { statusCode: number; data: Record<string, unknown> }) => void }, data: Record<string, unknown>, statusCode = 200) {
+  options.success?.({
+    statusCode,
+    data
+  });
+}
+
+function createCheckoutApiOrder(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'order-001',
+    openid: 'session-openid',
+    status: 'paid',
+    paymentMethod: 'balance',
+    payment: {
+      method: 'balance',
+      status: 'paid'
+    },
+    pricing: {
+      itemsSubtotal: 36,
+      deliveryFee: 10,
+      payableTotal: 46
+    },
+    snapshot: {
+      fulfillment: {
+        mode: 'delivery',
+        store: {
+          name: '虾衣宠物烘焙工作室',
+          address: '上海市静安区南京西路 1266 号 8 楼'
+        }
+      },
+      items: [],
+      pets: [],
+      remark: ''
+    },
+    createdAt: '2026-04-17T10:00:00.000Z',
+    updatedAt: '2026-04-17T10:01:00.000Z',
+    ...overrides
+  };
+}
+
+function createDefaultRequestMock() {
+  return vi.fn((options) => {
+    const path = getRequestPath(options);
+
+    if (path === '/api/v1/customer/auth/login') {
+      respondApi(options, {
+        ok: true,
+        token: 'customer-token',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        openid: 'session-openid'
+      });
+      return;
+    }
+    if (path === '/api/v1/customer/runtime-config') {
+      respondApi(options, {
+        ok: true,
+        banner: null,
+        store: null,
+        customNotice: null,
+        deliveryRules: null
+      });
+      return;
+    }
+    if (path === '/api/v1/customer/profile/phone') {
+      respondApi(options, {
+        ok: true,
+        update: {
+          contactPhoneMasked: '138****1234'
+        }
+      });
+      return;
+    }
+    if (path === '/api/v1/customer/orders' && options.method === 'POST') {
+      respondApi(options, {
+        ok: true,
+        order: createCheckoutApiOrder({
+          status: 'pending_payment',
+          payment: {
+            method: options.data?.paymentMethod ?? 'balance',
+            status: 'pending'
+          }
+        })
+      });
+      return;
+    }
+    if (path === '/api/v1/customer/orders/order-001/payment') {
+      respondApi(options, {
+        ok: true,
+        paymentStatus: 'paid',
+        order: createCheckoutApiOrder()
+      });
+      return;
+    }
+    if (path === '/api/v1/customer/orders/order-001/payment-sync') {
+      respondApi(options, {
+        ok: true,
+        order: createCheckoutApiOrder()
+      });
+      return;
+    }
+
+    respondApi(
+      options,
+      {
+        ok: false,
+        code: 'NOT_FOUND',
+        message: `Unhandled test API path: ${path}`
+      },
+      404
+    );
+  });
+}
+
 async function loadPageModule(modulePath: string) {
+  const storage = new Map<string, unknown>();
   let capturedPage: PageOptions | null = null;
   const wxMock = {
+    login: vi.fn().mockResolvedValue({ code: 'wx-login-code' }),
+    request: createDefaultRequestMock(),
+    getStorageSync: vi.fn((key: string) => storage.get(key)),
+    setStorageSync: vi.fn((key: string, value: unknown) => storage.set(key, value)),
+    removeStorageSync: vi.fn((key: string) => storage.delete(key)),
+    getAccountInfoSync: vi.fn(() => ({
+      miniProgram: {
+        envVersion: 'develop'
+      }
+    })),
     getWindowInfo: () => ({ statusBarHeight: 20 }),
     getSystemInfoSync: () => ({ statusBarHeight: 20 }),
     getMenuButtonBoundingClientRect: () => null,
@@ -28,15 +156,7 @@ async function loadPageModule(modulePath: string) {
     redirectTo: vi.fn(),
     switchTab: vi.fn(),
     cloud: {
-      callFunction: vi.fn().mockResolvedValue({
-        result: {
-          ok: true,
-          banner: null,
-          store: null,
-          customNotice: null,
-          deliveryRules: null
-        }
-      })
+      callFunction: vi.fn()
     }
   };
 
@@ -423,8 +543,8 @@ describe('cart checkout flow', () => {
   it('hydrates checkout runtime config from readRuntimeConfig and hides disabled notices', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
 
-    wx.cloud.callFunction.mockResolvedValueOnce({
-      result: {
+    wx.request.mockImplementationOnce((options) => {
+      respondApi(options, {
         ok: true,
         banner: null,
         store: {
@@ -447,16 +567,18 @@ describe('cart checkout flow', () => {
             }
           ]
         }
-      }
+      });
     });
 
     const instance = createPageInstance(page);
     await instance.refreshRuntimeConfig();
 
-    expect(wx.cloud.callFunction).toHaveBeenCalledWith({
-      name: 'readRuntimeConfig',
-      data: {}
-    });
+    expect(wx.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: expect.stringContaining('/api/v1/customer/runtime-config'),
+        method: 'GET'
+      })
+    );
     expect(instance.data.storeAddress).toBe('上海市徐汇区永嘉路 88 号');
     expect(instance.data.customNotice).toBe('');
     expect(instance.data.deliveryRuleRows).toEqual(['5.0 公里内 98 元起送，配送费 0 元']);
@@ -955,15 +1077,6 @@ describe('cart checkout flow', () => {
     const { readFile } = await import('node:fs/promises');
     const instance = createPageInstance(page);
 
-    wx.cloud.callFunction.mockResolvedValueOnce({
-      result: {
-        ok: true,
-        update: {
-          contactPhoneMasked: '138****1234'
-        }
-      }
-    });
-
     await instance.handleWechatPhone({
       detail: {
         errMsg: 'getPhoneNumber:ok',
@@ -971,12 +1084,15 @@ describe('cart checkout flow', () => {
       }
     });
 
-    expect(wx.cloud.callFunction).toHaveBeenCalledWith({
-      name: 'bindPhone',
-      data: {
-        phoneCode: 'wechat-phone-code'
-      }
-    });
+    expect(wx.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: expect.stringContaining('/api/v1/customer/profile/phone'),
+        method: 'POST',
+        data: {
+          phoneCode: 'wechat-phone-code'
+        }
+      })
+    );
     expect(instance.data.statusText).toBe('联系方式已安全保存');
     expect(instance.data.statusTone).toBe('success');
     expect(instance.data.statusText).not.toContain('cloud.callFunction');
@@ -1011,7 +1127,11 @@ describe('cart checkout flow', () => {
       }
     });
 
-    expect(wx.cloud.callFunction).not.toHaveBeenCalled();
+    expect(wx.request).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: expect.stringContaining('/api/v1/customer/profile/phone')
+      })
+    );
     expect(instance.data.statusText).toBe('你已取消微信手机号授权，可重新点击授权');
     expect(instance.data.statusTone).toBe('error');
   });
@@ -1133,132 +1253,6 @@ describe('cart checkout flow', () => {
       timeLabel: '11:00'
     });
 
-    wx.cloud.callFunction
-      .mockResolvedValueOnce({
-        result: {
-          ok: true,
-          banner: null,
-          store: null,
-          customNotice: null,
-          deliveryRules: null
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          ok: true,
-          order: {
-            id: 'order-001',
-            status: 'pending_payment',
-            paymentMethod: 'balance',
-            payment: {
-              method: 'balance',
-              status: 'pending'
-            },
-            pricing: {
-              itemsSubtotal: 36,
-              deliveryFee: 10,
-              payableTotal: 46
-            },
-            snapshot: {
-              fulfillment: {
-                mode: 'delivery',
-                address: {
-                  id: address.id,
-                  recipientName: address.recipientName,
-                  phoneNumber: address.phoneNumber,
-                  regionLabel: address.regionLabel,
-                  detailAddress: address.detailAddress,
-                  tag: address.tag
-                },
-                reservation: {
-                  dateValue: '2026-04-17',
-                  dateLabel: '今天 04-17',
-                  timeValue: '11:00',
-                  timeLabel: '11:00'
-                },
-                store: {
-                  name: '虾衣宠物烘焙工作室',
-                  address: '上海市静安区南京西路 1266 号 8 楼'
-                }
-              },
-              items: [
-                {
-                  productId: product.id,
-                  name: product.name,
-                  quantity: 1,
-                  unitPrice: 36,
-                  specId: '',
-                  specLabel: '',
-                  lineTotal: 36
-                }
-              ],
-              pets: [],
-              remark: ''
-            },
-            createdAt: '2026-04-17T10:00:00.000Z',
-            updatedAt: '2026-04-17T10:00:00.000Z'
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          ok: true,
-          paymentStatus: 'paid',
-          order: {
-            id: 'order-001',
-            status: 'paid',
-            paymentMethod: 'balance',
-            payment: {
-              method: 'balance',
-              status: 'paid'
-            },
-            pricing: {
-              itemsSubtotal: 36,
-              deliveryFee: 10,
-              payableTotal: 46
-            },
-            snapshot: {
-              fulfillment: {
-                mode: 'delivery',
-                address: {
-                  id: address.id,
-                  recipientName: address.recipientName,
-                  phoneNumber: address.phoneNumber,
-                  regionLabel: address.regionLabel,
-                  detailAddress: address.detailAddress,
-                  tag: address.tag
-                },
-                reservation: {
-                  dateValue: '2026-04-17',
-                  dateLabel: '今天 04-17',
-                  timeValue: '11:00',
-                  timeLabel: '11:00'
-                },
-                store: {
-                  name: '虾衣宠物烘焙工作室',
-                  address: '上海市静安区南京西路 1266 号 8 楼'
-                }
-              },
-              items: [
-                {
-                  productId: product.id,
-                  name: product.name,
-                  quantity: 1,
-                  unitPrice: 36,
-                  specId: '',
-                  specLabel: '',
-                  lineTotal: 36
-                }
-              ],
-              pets: [],
-              remark: ''
-            },
-            createdAt: '2026-04-17T10:00:00.000Z',
-            updatedAt: '2026-04-17T10:01:00.000Z'
-          }
-        }
-      });
-
     const instance = createPageInstance(page);
     instance.onShow();
     instance.handlePaymentMethodTap({
@@ -1304,80 +1298,24 @@ describe('cart checkout flow', () => {
       timeLabel: '11:00'
     });
 
-    let resolvePayment: ((value: { result: Record<string, unknown> }) => void) | null = null;
-    wx.cloud.callFunction
-      .mockResolvedValueOnce({
-        result: {
-          ok: true,
-          banner: null,
-          store: null,
-          customNotice: null,
-          deliveryRules: null
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          ok: true,
-          order: {
-            id: 'order-001',
-            status: 'pending_payment',
-            paymentMethod: 'balance',
-            payment: {
-              method: 'balance',
-              status: 'pending'
-            },
-            pricing: {
-              itemsSubtotal: 36,
-              deliveryFee: 10,
-              payableTotal: 46
-            },
-            snapshot: {
-              fulfillment: {
-                mode: 'delivery',
-                address: {
-                  id: address.id,
-                  recipientName: address.recipientName,
-                  phoneNumber: address.phoneNumber,
-                  regionLabel: address.regionLabel,
-                  detailAddress: address.detailAddress,
-                  tag: address.tag
-                },
-                reservation: {
-                  dateValue: '2026-04-17',
-                  dateLabel: '今天 04-17',
-                  timeValue: '11:00',
-                  timeLabel: '11:00'
-                },
-                store: {
-                  name: '虾衣宠物烘焙工作室',
-                  address: '上海市静安区南京西路 1266 号 8 楼'
-                }
-              },
-              items: [
-                {
-                  productId: product.id,
-                  name: product.name,
-                  quantity: 1,
-                  unitPrice: 36,
-                  specId: '',
-                  specLabel: '',
-                  lineTotal: 36
-                }
-              ],
-              pets: [],
-              remark: ''
-            },
-            createdAt: '2026-04-17T10:00:00.000Z',
-            updatedAt: '2026-04-17T10:00:00.000Z'
-          }
-        }
-      })
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolvePayment = resolve;
-          })
-      );
+    let resolvePayment: (() => void) | null = null;
+    const defaultRequest = createDefaultRequestMock();
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/orders/order-001/payment') {
+        resolvePayment = () => {
+          respondApi(options, {
+            ok: true,
+            paymentStatus: 'paid',
+            order: createCheckoutApiOrder()
+          });
+        };
+        return;
+      }
+
+      defaultRequest(options);
+    });
 
     const instance = createPageInstance(page);
     instance.onShow();
@@ -1395,70 +1333,19 @@ describe('cart checkout flow', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(wx.cloud.callFunction).toHaveBeenCalledTimes(3);
+    const getPaymentRequestCalls = () =>
+      wx.request.mock.calls.filter(([options]) => getRequestPath(options) === '/api/v1/customer/orders/order-001/payment');
 
-    if (resolvePayment) {
-      (resolvePayment as (value: { result: Record<string, unknown> }) => void)({
-        result: {
-          ok: true,
-          paymentStatus: 'paid',
-          order: {
-            id: 'order-001',
-            status: 'paid',
-            paymentMethod: 'balance',
-            payment: {
-              method: 'balance',
-              status: 'paid'
-            },
-            pricing: {
-              itemsSubtotal: 36,
-              deliveryFee: 10,
-              payableTotal: 46
-            },
-            snapshot: {
-              fulfillment: {
-                mode: 'delivery',
-                address: {
-                  id: address.id,
-                  recipientName: address.recipientName,
-                  phoneNumber: address.phoneNumber,
-                  regionLabel: address.regionLabel,
-                  detailAddress: address.detailAddress,
-                  tag: address.tag
-                },
-                reservation: {
-                  dateValue: '2026-04-17',
-                  dateLabel: '今天 04-17',
-                  timeValue: '11:00',
-                  timeLabel: '11:00'
-                },
-                store: {
-                  name: '虾衣宠物烘焙工作室',
-                  address: '上海市静安区南京西路 1266 号 8 楼'
-                }
-              },
-              items: [
-                {
-                  productId: product.id,
-                  name: product.name,
-                  quantity: 1,
-                  unitPrice: 36,
-                  specId: '',
-                  specLabel: '',
-                  lineTotal: 36
-                }
-              ],
-              pets: [],
-              remark: ''
-            },
-            createdAt: '2026-04-17T10:00:00.000Z',
-            updatedAt: '2026-04-17T10:01:00.000Z'
-          }
-        }
-      });
+    await vi.waitFor(() => {
+      expect(getPaymentRequestCalls()).toHaveLength(1);
+    });
+    if (!resolvePayment) {
+      throw new Error('payment request was not captured');
     }
+    const completePayment = resolvePayment as () => void;
+    completePayment();
 
     await Promise.all([firstSubmit, secondSubmit]);
-    expect(wx.cloud.callFunction).toHaveBeenCalledTimes(3);
+    expect(getPaymentRequestCalls()).toHaveLength(1);
   });
 });

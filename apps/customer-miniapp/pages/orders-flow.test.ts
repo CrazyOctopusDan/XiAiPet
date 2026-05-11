@@ -15,9 +15,60 @@ function cloneData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
+function getRequestPath(options: { url: string }) {
+  return new URL(options.url).pathname;
+}
+
+function respondApi(options: { success?: (response: { statusCode: number; data: Record<string, unknown> }) => void }, data: Record<string, unknown>, statusCode = 200) {
+  options.success?.({
+    statusCode,
+    data
+  });
+}
+
 async function loadPageModule(modulePath: string) {
+  const storage = new Map<string, unknown>();
   let capturedPage: PageOptions | null = null;
   const wxMock = {
+    login: vi.fn().mockResolvedValue({ code: 'wx-login-code' }),
+    request: vi.fn((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders') {
+        respondApi(options, {
+          ok: true,
+          orders: []
+        });
+        return;
+      }
+
+      respondApi(
+        options,
+        {
+          ok: false,
+          code: 'NOT_FOUND',
+          message: `Unhandled test API path: ${path}`
+        },
+        404
+      );
+    }),
+    getStorageSync: vi.fn((key: string) => storage.get(key)),
+    setStorageSync: vi.fn((key: string, value: unknown) => storage.set(key, value)),
+    removeStorageSync: vi.fn((key: string) => storage.delete(key)),
+    getAccountInfoSync: vi.fn(() => ({
+      miniProgram: {
+        envVersion: 'develop'
+      }
+    })),
     getWindowInfo: () => ({ statusBarHeight: 20, windowWidth: 375 }),
     getSystemInfoSync: () => ({ statusBarHeight: 20, windowWidth: 375 }),
     getMenuButtonBoundingClientRect: () => null,
@@ -138,13 +189,7 @@ describe('orders pages', () => {
   });
 
   it('shows a clear empty state when no order exists', async () => {
-    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
-    wx.cloud.callFunction.mockResolvedValue({
-      result: {
-        ok: true,
-        orders: []
-      }
-    });
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
     const instance = createPageInstance(page);
 
     await instance.onShow();
@@ -184,12 +229,6 @@ describe('orders pages', () => {
 
   it('derives orders header placement from the WeChat capsule metrics', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
-    wx.cloud.callFunction.mockResolvedValue({
-      result: {
-        ok: true,
-        orders: []
-      }
-    });
     wx.getWindowInfo = vi.fn(() => ({ statusBarHeight: 20, windowWidth: 375 }));
     (wx as any).getMenuButtonBoundingClientRect = vi.fn(() => ({
       top: 58,
@@ -211,10 +250,23 @@ describe('orders pages', () => {
 
   it('shows recorded orders and navigates into order detail', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
-    wx.cloud.callFunction.mockResolvedValue({
-      result: {
-        ok: true,
-        orders: [createOrder()]
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders') {
+        respondApi(options, {
+          ok: true,
+          orders: [createOrder()]
+        });
       }
     });
     const instance = createPageInstance(page);
@@ -235,7 +287,7 @@ describe('orders pages', () => {
     expect(instance.data.highlightedOrderId).toBe('order-001');
     expect(instance.data.orderCards[0]).toMatchObject({
       id: 'order-001',
-      statusLabel: '已支付'
+      statusLabel: '待处理'
     });
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/order-detail/index?orderId=order-001'
@@ -244,10 +296,23 @@ describe('orders pages', () => {
 
   it('renders the order detail page from the stored snapshot', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/order-detail/index.ts');
-    wx.cloud.callFunction.mockResolvedValue({
-      result: {
-        ok: true,
-        order: createOrder()
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders/order-001') {
+        respondApi(options, {
+          ok: true,
+          order: createOrder()
+        });
       }
     });
     const instance = createPageInstance(page);
@@ -259,7 +324,7 @@ describe('orders pages', () => {
 
     expect(instance.data.detail).toMatchObject({
       id: 'order-001',
-      statusLabel: '已支付',
+      statusLabel: '待处理',
       remark: '到店前联系'
     });
   });

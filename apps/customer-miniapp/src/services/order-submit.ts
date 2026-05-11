@@ -1,5 +1,3 @@
-declare const wx: any;
-
 import type {
   CreateOrderPayload,
   OrderAddressSnapshot,
@@ -11,6 +9,7 @@ import type {
 import { buildOrderLineSnapshot, buildOrderPricingBreakdown } from '../shared/order-runtime';
 
 import { getSelectedAddress } from './address';
+import { customerApiRequest, CustomerApiError, type CustomerApiRequester } from './api-client';
 import { getCartItems } from './cart';
 import { getCheckoutViewModel } from './checkout';
 
@@ -32,10 +31,6 @@ const CITY_DELIVERY_FEES: Record<string, DeliveryFeePreview> = {
     ruleLabel: '3-6km 配送费 16 元'
   }
 };
-
-function getCloudCaller() {
-  return (payload: Record<string, unknown>) => wx.cloud.callFunction(payload);
-}
 
 function buildAddressSnapshot(address: ReturnType<typeof getSelectedAddress>): OrderAddressSnapshot | undefined {
   if (!address) {
@@ -132,76 +127,98 @@ interface SubmitOrderOptions {
   idempotencyKey?: string;
 }
 
+interface CreateOrderResult {
+  ok: boolean;
+  order?: OrderRecord;
+  code?: string;
+}
+
+interface StartPaymentResult {
+  ok: boolean;
+  code?: string;
+  order?: OrderRecord;
+  paymentStatus?: 'paid' | 'processing' | 'pending_wechat' | 'blocked';
+  paymentParams?: Record<string, unknown>;
+  balanceAfter?: number;
+}
+
+interface SyncPaymentResult {
+  ok: boolean;
+  order?: OrderRecord;
+  code?: string;
+}
+
+function toSubmitOrderError(error: unknown): Error {
+  if (error instanceof CustomerApiError) {
+    return new Error(error.code);
+  }
+  return error instanceof Error ? error : new Error('submit_order_failed');
+}
+
 export async function submitOrder(
   paymentMethod: PaymentMethod,
-  callFunction = getCloudCaller(),
+  request: CustomerApiRequester = customerApiRequest,
   options: SubmitOrderOptions = {}
 ) {
   const payload = buildCreateOrderPayload(paymentMethod, options.idempotencyKey);
-  const createOrderResponse = (await callFunction({
-    name: 'createOrder',
-    data: {
-      payload
+
+  try {
+    const createOrderResponse = await request<CreateOrderResult>('/api/v1/customer/orders', {
+      method: 'POST',
+      body: payload,
+      auth: 'customer'
+    });
+
+    if (!createOrderResponse.ok || !createOrderResponse.order) {
+      throw new Error(String(createOrderResponse.code ?? 'create_order_failed'));
     }
-  })) as {
-    result: {
-      ok: boolean;
-      order: OrderRecord;
-    };
-  };
 
-  if (!createOrderResponse.result.ok) {
-    throw new Error('create_order_failed');
-  }
-
-  const payOrderResponse = (await callFunction({
-    name: 'payOrder',
-    data: {
-      orderId: createOrderResponse.result.order.id
-    }
-  })) as {
-    result: Record<string, unknown> & {
-      ok: boolean;
-      code?: string;
-      order?: OrderRecord;
-      paymentStatus?: 'paid' | 'processing';
-    };
-  };
-
-  if (!payOrderResponse.result.ok) {
-    throw new Error(String(payOrderResponse.result.code ?? 'pay_order_failed'));
-  }
-
-  if (!payOrderResponse.result.order) {
-    throw new Error('missing_paid_order');
-  }
-
-  if (paymentMethod === 'wechat' && payOrderResponse.result.paymentStatus === 'processing') {
-    const syncOrderPaymentResponse = (await callFunction({
-      name: 'syncOrderPayment',
-      data: {
-        orderId: createOrderResponse.result.order.id
+    const payOrderResponse = await request<StartPaymentResult>(
+      `/api/v1/customer/orders/${createOrderResponse.order.id}/payment`,
+      {
+        method: 'POST',
+        body: {
+          paymentMethod
+        },
+        auth: 'customer'
       }
-    })) as {
-      result: {
-        ok: boolean;
-        order?: OrderRecord;
-        code?: string;
-      };
-    };
+    );
 
-    if (!syncOrderPaymentResponse.result.ok || !syncOrderPaymentResponse.result.order) {
-      throw new Error(String(syncOrderPaymentResponse.result.code ?? 'sync_payment_failed'));
+    if (!payOrderResponse.ok) {
+      throw new Error(String(payOrderResponse.code ?? 'pay_order_failed'));
+    }
+
+    if (!payOrderResponse.order) {
+      throw new Error('missing_paid_order');
+    }
+
+    if (
+      paymentMethod === 'wechat' &&
+      (payOrderResponse.paymentStatus === 'pending_wechat' || payOrderResponse.paymentStatus === 'processing')
+    ) {
+      const syncOrderPaymentResponse = await request<SyncPaymentResult>(
+        `/api/v1/customer/orders/${createOrderResponse.order.id}/payment-sync`,
+        {
+          method: 'POST',
+          auth: 'customer'
+        }
+      );
+
+      if (!syncOrderPaymentResponse.ok || !syncOrderPaymentResponse.order) {
+        throw new Error(String(syncOrderPaymentResponse.code ?? 'sync_payment_failed'));
+      }
+
+      return {
+        order: syncOrderPaymentResponse.order,
+        payment: payOrderResponse
+      };
     }
 
     return {
-      order: syncOrderPaymentResponse.result.order,
-      payment: payOrderResponse.result
+      order: payOrderResponse.order,
+      payment: payOrderResponse
     };
+  } catch (error) {
+    throw toSubmitOrderError(error);
   }
-
-  return {
-    order: payOrderResponse.result.order,
-    payment: payOrderResponse.result
-  };
 }

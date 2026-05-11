@@ -6,6 +6,7 @@ exports.buildCreateOrderPayload = buildCreateOrderPayload;
 exports.submitOrder = submitOrder;
 const order_runtime_1 = require("../shared/order-runtime");
 const address_1 = require("./address");
+const api_client_1 = require("./api-client");
 const cart_1 = require("./cart");
 const checkout_1 = require("./checkout");
 const CITY_DELIVERY_FEES = {
@@ -20,9 +21,6 @@ const CITY_DELIVERY_FEES = {
         ruleLabel: '3-6km 配送费 16 元'
     }
 };
-function getCloudCaller() {
-    return (payload) => wx.cloud.callFunction(payload);
-}
 function buildAddressSnapshot(address) {
     if (!address) {
         return undefined;
@@ -101,47 +99,57 @@ function buildCreateOrderPayload(paymentMethod, idempotencyKey = createIdempoten
         pricing
     };
 }
-async function submitOrder(paymentMethod, callFunction = getCloudCaller(), options = {}) {
-    var _a, _b;
+function toSubmitOrderError(error) {
+    if (error instanceof api_client_1.CustomerApiError) {
+        return new Error(error.code);
+    }
+    return error instanceof Error ? error : new Error('submit_order_failed');
+}
+async function submitOrder(paymentMethod, request = api_client_1.customerApiRequest, options = {}) {
+    var _a, _b, _c;
     const payload = buildCreateOrderPayload(paymentMethod, options.idempotencyKey);
-    const createOrderResponse = (await callFunction({
-        name: 'createOrder',
-        data: {
-            payload
+    try {
+        const createOrderResponse = await request('/api/v1/customer/orders', {
+            method: 'POST',
+            body: payload,
+            auth: 'customer'
+        });
+        if (!createOrderResponse.ok || !createOrderResponse.order) {
+            throw new Error(String((_a = createOrderResponse.code) !== null && _a !== void 0 ? _a : 'create_order_failed'));
         }
-    }));
-    if (!createOrderResponse.result.ok) {
-        throw new Error('create_order_failed');
-    }
-    const payOrderResponse = (await callFunction({
-        name: 'payOrder',
-        data: {
-            orderId: createOrderResponse.result.order.id
+        const payOrderResponse = await request(`/api/v1/customer/orders/${createOrderResponse.order.id}/payment`, {
+            method: 'POST',
+            body: {
+                paymentMethod
+            },
+            auth: 'customer'
+        });
+        if (!payOrderResponse.ok) {
+            throw new Error(String((_b = payOrderResponse.code) !== null && _b !== void 0 ? _b : 'pay_order_failed'));
         }
-    }));
-    if (!payOrderResponse.result.ok) {
-        throw new Error(String((_a = payOrderResponse.result.code) !== null && _a !== void 0 ? _a : 'pay_order_failed'));
-    }
-    if (!payOrderResponse.result.order) {
-        throw new Error('missing_paid_order');
-    }
-    if (paymentMethod === 'wechat' && payOrderResponse.result.paymentStatus === 'processing') {
-        const syncOrderPaymentResponse = (await callFunction({
-            name: 'syncOrderPayment',
-            data: {
-                orderId: createOrderResponse.result.order.id
+        if (!payOrderResponse.order) {
+            throw new Error('missing_paid_order');
+        }
+        if (paymentMethod === 'wechat' &&
+            (payOrderResponse.paymentStatus === 'pending_wechat' || payOrderResponse.paymentStatus === 'processing')) {
+            const syncOrderPaymentResponse = await request(`/api/v1/customer/orders/${createOrderResponse.order.id}/payment-sync`, {
+                method: 'POST',
+                auth: 'customer'
+            });
+            if (!syncOrderPaymentResponse.ok || !syncOrderPaymentResponse.order) {
+                throw new Error(String((_c = syncOrderPaymentResponse.code) !== null && _c !== void 0 ? _c : 'sync_payment_failed'));
             }
-        }));
-        if (!syncOrderPaymentResponse.result.ok || !syncOrderPaymentResponse.result.order) {
-            throw new Error(String((_b = syncOrderPaymentResponse.result.code) !== null && _b !== void 0 ? _b : 'sync_payment_failed'));
+            return {
+                order: syncOrderPaymentResponse.order,
+                payment: payOrderResponse
+            };
         }
         return {
-            order: syncOrderPaymentResponse.result.order,
-            payment: payOrderResponse.result
+            order: payOrderResponse.order,
+            payment: payOrderResponse
         };
     }
-    return {
-        order: payOrderResponse.result.order,
-        payment: payOrderResponse.result
-    };
+    catch (error) {
+        throw toSubmitOrderError(error);
+    }
 }

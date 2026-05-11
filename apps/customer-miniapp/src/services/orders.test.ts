@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { OrderRecord } from '@xiaipet/shared';
 
+import type { CustomerApiRequester } from './api-client';
 import {
   getMyOrderDetail,
   getOrderDetailViewModel,
@@ -80,19 +81,17 @@ function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
 }
 
 describe('orders service', () => {
-  it('queries my orders from cloud function', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        orders: [createOrder()]
-      }
+  it('queries my orders from the HTTP order list API', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      orders: [createOrder()]
     });
 
-    const orders = await queryMyOrders(callFunction);
+    const orders = await queryMyOrders(request as CustomerApiRequester);
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'queryMyOrders',
-      data: {}
+    expect(request).toHaveBeenCalledWith('/api/v1/customer/orders', {
+      method: 'GET',
+      auth: 'customer'
     });
     expect(orders).toHaveLength(1);
   });
@@ -171,20 +170,16 @@ describe('orders service', () => {
 
   it('queries one order detail and maps the frozen snapshot fields', async () => {
     const order = createOrder();
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        order
-      }
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      order
     });
 
-    const detailOrder = await getMyOrderDetail('order-001', callFunction);
+    const detailOrder = await getMyOrderDetail('order-001', request as CustomerApiRequester);
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'getMyOrderDetail',
-      data: {
-        orderId: 'order-001'
-      }
+    expect(request).toHaveBeenCalledWith('/api/v1/customer/orders/order-001', {
+      method: 'GET',
+      auth: 'customer'
     });
     expect(getOrderDetailViewModel(detailOrder)).toMatchObject({
       id: 'order-001',

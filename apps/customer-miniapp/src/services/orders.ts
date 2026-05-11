@@ -1,7 +1,7 @@
-declare const wx: any;
-
 import type { GetMyOrderDetailResult, OrderFulfillmentMode, OrderRecord, PaymentMethod, QueryMyOrdersResult } from '@xiaipet/shared';
 import { getOrderStatusLabel } from '../shared/order-runtime';
+
+import { customerApiRequest, type CustomerApiRequester } from './api-client';
 
 export interface OrderCardViewModel {
   id: string;
@@ -42,10 +42,6 @@ export interface OrderDetailViewModel {
   deliveryFeeLabel: string;
   payableTotalLabel: string;
   items: OrderDetailItemViewModel[];
-}
-
-function getCloudCaller() {
-  return (payload: Record<string, unknown>) => wx.cloud.callFunction(payload);
 }
 
 function sortOrders(list: OrderRecord[]) {
@@ -166,28 +162,25 @@ function toOrderCard(order: OrderRecord): OrderCardViewModel {
   };
 }
 
-export async function queryMyOrders(callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'queryMyOrders',
-    data: {}
-  })) as {
-    result: QueryMyOrdersResult & { ok?: boolean };
-  };
+export async function queryMyOrders(request: CustomerApiRequester = customerApiRequest) {
+  const response = await request<QueryMyOrdersResult & { ok?: boolean }>('/api/v1/customer/orders', {
+    method: 'GET',
+    auth: 'customer'
+  });
 
-  return response.result.orders ?? [];
+  return response.orders ?? [];
 }
 
-export async function getMyOrderDetail(orderId: string, callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'getMyOrderDetail',
-    data: {
-      orderId
+export async function getMyOrderDetail(orderId: string, request: CustomerApiRequester = customerApiRequest) {
+  const response = await request<GetMyOrderDetailResult & { ok?: boolean }>(
+    `/api/v1/customer/orders/${orderId}`,
+    {
+      method: 'GET',
+      auth: 'customer'
     }
-  })) as {
-    result: GetMyOrderDetailResult & { ok?: boolean };
-  };
+  );
 
-  return response.result.order;
+  return response.order;
 }
 
 export function getOrdersPageViewModel(orders: OrderRecord[], highlightOrderId?: string | null): OrdersPageViewModel {
