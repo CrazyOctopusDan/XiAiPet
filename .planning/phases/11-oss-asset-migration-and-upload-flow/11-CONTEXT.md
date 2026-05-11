@@ -32,9 +32,16 @@ This phase is not a product feature expansion. It should make existing asset nee
 - **D-10:** Treat homepage Banner, product cover/list images, product introduction images, and product detail images as distinct asset roles. They should not all reuse one full-size URL.
 - **D-11:** Each asset role should have its own constraints and output URLs. Product list/card views should use a lightweight thumbnail or display variant; product detail pages may use larger detail images; homepage Banner should use a wide banner-optimized variant.
 - **D-12:** Phase 11 should include practical cost controls: file size limits, allowed MIME types, deterministic object key prefixes, and role-specific max dimensions/variants.
-- **D-13:** Avoid complex image editing features in this phase. No cropping UI, no full media library, and no advanced gallery management unless required to complete existing product/runtime config flows.
+- **D-13:** Phase 11 should include a practical merchant image crop/compression UI. It should be role-driven rather than a full media library: choose asset role, crop to role constraints, preview, compress, then upload.
 - **D-14:** The exact dimensions, compression settings, and image format choices are the agent's discretion during planning/research, but they must be justified by WeChat mini program display compatibility and OSS traffic/cost control.
-- **D-15:** Store enough metadata for the frontend to select the right URL for the right surface, for example `thumbnailUrl`, `displayUrl`, `originalUrl`, role, width, height, size, content type, and OSS object key.
+- **D-15:** Store enough metadata for the frontend to select the right URL for the right surface, for example `thumbnailUrl`, `displayUrl`, `detailUrl`, `bannerUrl`, role, width, height, size, content type, and OSS object key.
+
+### Crop and Compression Modes
+- **D-25:** Support two merchant upload modes: upload an already processed image and only validate it, or use miniapp-assisted crop/compress to produce compliant images before upload.
+- **D-26:** Miniapp-assisted processing should generate role-appropriate final files before upload where practical. OSS image processing styles may be used as a fallback or supplement, but list/card views should not depend on dynamically transforming large originals on every request.
+- **D-27:** Default to not persisting original source images in OSS, to control storage and traffic cost. If a merchant needs to change crop or quality later, they can re-upload; preserving originals can be added later if real operations require it.
+- **D-28:** The upload UI should let the merchant pick the asset role first so the app can apply the correct aspect ratio, max dimensions, quality target, and output variant naming.
+- **D-29:** Compression should be treated as a budget control, not just a visual feature. Planning should define per-role size targets and reject or reprocess files that exceed the configured limits after compression.
 
 ### Legacy CloudBase References
 - **D-16:** Existing mini program data is largely fake or placeholder data, so Phase 11 should not over-invest in rescuing historical CloudBase files.
@@ -65,6 +72,8 @@ This phase is not a product feature expansion. It should make existing asset nee
 - The user expects future merchant-side uploads for product detail images and product introduction images.
 - The user specifically wants homepage Banner, product introduction, and product detail images treated differently because their formats are different.
 - The user is concerned about OSS pay-as-you-go traffic cost. List/card views should not load large detail/original images when a smaller variant would work.
+- The user wants image editing/cropping UI if feasible, and wants compression included as part of the OSS cost-control design.
+- The user agreed with defaulting to no original-image persistence, while still allowing merchants to upload pre-processed images manually if they prefer.
 
 </specifics>
 
@@ -136,7 +145,7 @@ This phase is not a product feature expansion. It should make existing asset nee
 ## Deferred Ideas
 
 - Full CDN rollout and custom asset domain optimization can be finalized in Phase 12 or a later operations phase if not required for miniapp display.
-- Advanced image editing, crop UI, media library management, and marketing asset workflows are out of scope for Phase 11.
+- Advanced media library management, reusable crop templates beyond the role-driven flow, and broader marketing asset workflows are out of scope for Phase 11.
 - Real production cutover, HTTPS, and WeChat legal-domain configuration remain Phase 12.
 - If the current fake CloudBase references are not worth migrating, they can be replaced by seed placeholders or left as report-only non-production data.
 
