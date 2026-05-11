@@ -7,11 +7,11 @@
 
 ### Backend Foundation
 
-- [ ] **BE-01**: Developer can run an independent `apps/api` Node.js backend locally with TypeScript, Fastify, structured config and health checks.
-- [ ] **BE-02**: Developer can start the production backend stack on ECS with Docker Compose without manually installing app dependencies on the server.
-- [ ] **BE-03**: Operator can configure backend secrets through environment variables or server-only files without committing RDS, OSS, WeChat or payment credentials.
-- [ ] **BE-04**: Operator can view backend logs, restart services and roll back to the previous deployment using documented commands.
-- [ ] **BE-05**: Backend is implemented as one unified `apps/api` project with domain modules, not separate customer-backend and merchant-backend projects.
+- [x] **BE-01**: Developer can run an independent `apps/api` Node.js backend locally with TypeScript, Fastify, structured config and health checks.
+- [x] **BE-02**: Developer can start the production backend stack on ECS with Docker Compose without manually installing app dependencies on the server.
+- [x] **BE-03**: Operator can configure backend secrets through environment variables or server-only files without committing RDS, OSS, WeChat or payment credentials.
+- [x] **BE-04**: Operator can view backend logs, restart services and roll back to the previous deployment using documented commands.
+- [x] **BE-05**: Backend is implemented as one unified `apps/api` project with domain modules, not separate customer-backend and merchant-backend projects.
 
 ### Database and Migration
 
@@ -91,11 +91,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BE-01 | Phase 7 | Pending |
-| BE-02 | Phase 7 | Pending |
-| BE-03 | Phase 7 | Pending |
-| BE-04 | Phase 7 | Pending |
-| BE-05 | Phase 7 | Pending |
+| BE-01 | Phase 7 | Complete |
+| BE-02 | Phase 7 | Complete |
+| BE-03 | Phase 7 | Complete |
+| BE-04 | Phase 7 | Complete |
+| BE-05 | Phase 7 | Complete |
 | DB-01 | Phase 8 | Pending |
 | DB-02 | Phase 8 | Pending |
 | DB-03 | Phase 8 | Pending |
@@ -135,4 +135,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-11*
-*Last updated: 2026-05-11 after milestone v1.1 definition*
+*Last updated: 2026-05-11 after Phase 7 execution*

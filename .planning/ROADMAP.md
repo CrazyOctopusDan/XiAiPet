@@ -12,7 +12,7 @@
 - Integer phases continue from the previous milestone.
 - This milestone starts at Phase 7 because Phase 1-6 already cover the CloudBase-era product build.
 
-- [ ] **Phase 7: Node API Foundation and ECS Deployment Runway** - 建立独立后端工程、Docker Compose 部署骨架、配置安全和基础运维文档
+- [x] **Phase 7: Node API Foundation and ECS Deployment Runway** - 建立独立后端工程、Docker Compose 部署骨架、配置安全和基础运维文档
 - [ ] **Phase 8: MySQL Data Model and Migration Pipeline** - 用 Prisma/RDS 建立可信数据模型，并提供 CloudBase 数据迁移脚本
 - [ ] **Phase 9: HTTP API Parity for Unified Backend** - 将现有 CloudBase 云函数能力迁移为统一后端项目内的功能等价 HTTP API
 - [ ] **Phase 10: Mini Program API Client Migration** - 将客户端与商户端小程序调用面从 CloudBase 切换到 HTTP API
@@ -39,11 +39,11 @@
 **Plans:** 5 plans
 
 Plans:
-- [ ] 07-01: Scaffold one unified `apps/api` Fastify TypeScript project with domain modules and shared package integration
-- [ ] 07-02: Add config, env validation, health checks, error envelope and request logging
-- [ ] 07-03: Add Dockerfile, Docker Compose and local production-like startup path
-- [ ] 07-04: Add ECS deployment documentation for Docker install, service startup, logs and rollback
-- [ ] 07-05: Add baseline tests, typecheck and root workspace scripts for the API
+- [x] 07-01: Scaffold one unified `apps/api` Fastify TypeScript project with domain modules and shared package integration
+- [x] 07-02: Add config, env validation, health checks, error envelope and request logging
+- [x] 07-03: Add Dockerfile, Docker Compose and local production-like startup path
+- [x] 07-04: Add ECS deployment documentation for Docker install, service startup, logs and rollback
+- [x] 07-05: Add baseline tests, typecheck and root workspace scripts for the API
 
 ### Phase 8: MySQL Data Model and Migration Pipeline
 
@@ -168,7 +168,7 @@ Phases execute in numeric order: 7 → 8 → 9 → 10 → 11 → 12
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Node API Foundation and ECS Deployment Runway | 0/5 | Not started | - |
+| 7. Node API Foundation and ECS Deployment Runway | 5/5 | Complete | 2026-05-11 |
 | 8. MySQL Data Model and Migration Pipeline | 0/5 | Not started | - |
 | 9. HTTP API Parity for Unified Backend | 0/6 | Not started | - |
 | 10. Mini Program API Client Migration | 0/5 | Not started | - |
