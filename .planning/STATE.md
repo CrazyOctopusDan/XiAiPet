@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 独立 Node.js 后端迁移
-status: defining_requirements
-stopped_at: Milestone v1.1 initialized
+status: planned
+stopped_at: Phase 7 planned
 last_updated: "2026-05-11T00:00:00+08:00"
 last_activity: 2026-05-11 -- Milestone v1.1 started
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
+  total_plans: 5
   completed_plans: 0
   percent: 0
 ---
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-05-11 -- Milestone v1.1 started
+Phase: 07 (node-api-foundation-and-ecs-deployment-runway) — PLANNED
+Plan: 0 of 5
+Status: Ready to execute Phase 07
+Last activity: 2026-05-11 -- Phase 07 planned
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -50,8 +50,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Define v1.1 migration requirements and roadmap.
-- Build independent `apps/api` backend scaffold.
+- Execute Phase 7 plan set for the unified `apps/api` backend scaffold.
 - Design MySQL schema and data migration path from CloudBase document collections.
 - Replace mini program CloudBase function clients with HTTP API clients.
 - Prepare OSS upload/access replacement.
@@ -69,5 +68,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-05-11
-Stopped at: Milestone v1.1 summary approved
-Resume file: .planning/ROADMAP.md
+Stopped at: Phase 7 planned
+Resume file: .planning/phases/07-node-api-foundation-and-ecs-deployment-runway/07-01-PLAN.md
