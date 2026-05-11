@@ -1,5 +1,3 @@
-declare const wx: any;
-
 import type {
   OrderFulfillmentMode,
   OrderFulfillmentStatus,
@@ -17,6 +15,7 @@ import {
 } from '../shared/order-fulfillment';
 
 import { verifyMerchantAccess } from './access';
+import { merchantApiRequest, type MerchantApiRequester } from './api-client';
 
 export interface MerchantOrderTimelineEntry {
   type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled' | 'print';
@@ -140,10 +139,6 @@ interface MerchantAccessResult {
     storeName: string;
   };
   result?: MerchantAccessResult;
-}
-
-function getCloudCaller() {
-  return (payload: Record<string, unknown>) => wx.cloud.callFunction(payload);
 }
 
 function formatMoney(value: number) {
@@ -419,18 +414,16 @@ async function resolveMerchantOperator(accessVerifier: () => Promise<MerchantAcc
   };
 }
 
-export async function queryMerchantOrders(callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'queryMerchantOrders',
-    data: {}
-  })) as {
-    result: {
-      ok?: boolean;
-      groups?: MerchantOrderQueryGroup[];
-    };
-  };
+export async function queryMerchantOrders(request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{ ok?: boolean; groups?: MerchantOrderQueryGroup[] }>(
+    '/api/v1/merchant/orders',
+    {
+      method: 'GET',
+      auth: 'merchant'
+    }
+  );
 
-  return response.result.groups ?? [];
+  return response.groups ?? [];
 }
 
 export function getMerchantOrdersPageViewModel(groups: MerchantOrderQueryGroup[]): MerchantOrdersPageViewModel {
@@ -462,19 +455,21 @@ export function getMerchantOrdersPageViewModel(groups: MerchantOrderQueryGroup[]
   };
 }
 
-export async function getMerchantOrderDetail(orderId: string, callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'getMerchantOrderDetail',
-    data: {
-      orderId
+export async function getMerchantOrderDetail(
+  orderId: string,
+  request: MerchantApiRequester = merchantApiRequest
+) {
+  const response = await request<MerchantOrderDetailResponse & { ok?: boolean }>(
+    `/api/v1/merchant/orders/${orderId}`,
+    {
+      method: 'GET',
+      auth: 'merchant'
     }
-  })) as {
-    result: MerchantOrderDetailResponse & { ok?: boolean };
-  };
+  );
 
   return {
-    order: response.result.order,
-    timeline: response.result.timeline ?? []
+    order: response.order,
+    timeline: response.timeline ?? []
   };
 }
 
@@ -517,14 +512,14 @@ export function getMerchantOrderDetailViewModel(detail: MerchantOrderDetailRespo
 
 export async function updateMerchantOrderStatus(
   input: UpdateMerchantOrderStatusInput,
-  callFunction = getCloudCaller(),
+  request: MerchantApiRequester = merchantApiRequest,
   accessVerifier = verifyMerchantAccess
 ) {
   const operator = await resolveMerchantOperator(accessVerifier);
-  const data: {
-    orderId: string;
-    nextOrderStatus?: OrderStatus;
-    nextFulfillmentStatus?: OrderFulfillmentStatus;
+  const body: {
+    status?: OrderStatus;
+    paymentStatus?: 'paid';
+    fulfillmentStatus?: OrderFulfillmentStatus | 'cancelled';
     adjustmentMethod?: OrderManualSettlementMethod;
     reasonNote?: string;
     operator: {
@@ -532,30 +527,30 @@ export async function updateMerchantOrderStatus(
       name: string;
     };
   } = {
-    orderId: input.order.id,
     operator
   };
 
   if (input.nextStatus === 'cancelled') {
-    data.nextOrderStatus = 'cancelled';
+    body.status = 'cancelled';
+    body.fulfillmentStatus = 'cancelled';
   } else if (input.order.status !== 'paid') {
-    data.nextOrderStatus = 'paid';
-    data.nextFulfillmentStatus = input.nextStatus;
-    data.adjustmentMethod = input.adjustmentMethod;
-    data.reasonNote = input.reasonNote;
+    body.status = 'paid';
+    body.paymentStatus = 'paid';
+    body.fulfillmentStatus = input.nextStatus;
+    body.adjustmentMethod = input.adjustmentMethod;
+    body.reasonNote = input.reasonNote;
   } else {
-    data.nextFulfillmentStatus = input.nextStatus;
+    body.fulfillmentStatus = input.nextStatus;
   }
 
-  const response = (await callFunction({
-    name: 'updateMerchantOrderStatus',
-    data
-  })) as {
-    result: {
-      ok?: boolean;
-      order: MerchantManagedOrderRecord;
-    };
-  };
+  const response = await request<{ ok?: boolean; order: MerchantManagedOrderRecord }>(
+    `/api/v1/merchant/orders/${input.order.id}/status`,
+    {
+      method: 'PATCH',
+      body,
+      auth: 'merchant'
+    }
+  );
 
-  return response.result.order;
+  return response.order;
 }

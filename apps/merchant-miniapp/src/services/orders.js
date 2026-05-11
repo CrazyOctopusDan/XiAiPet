@@ -7,9 +7,7 @@ exports.getMerchantOrderDetailViewModel = getMerchantOrderDetailViewModel;
 exports.updateMerchantOrderStatus = updateMerchantOrderStatus;
 const order_fulfillment_1 = require("../shared/order-fulfillment");
 const access_1 = require("./access");
-function getCloudCaller() {
-    return (payload) => wx.cloud.callFunction(payload);
-}
+const api_client_1 = require("./api-client");
 function formatMoney(value) {
     return `￥${value.toFixed(2)}`;
 }
@@ -226,13 +224,13 @@ async function resolveMerchantOperator(accessVerifier) {
         name: access.merchant.storeName
     };
 }
-async function queryMerchantOrders(callFunction = getCloudCaller()) {
+async function queryMerchantOrders(request = api_client_1.merchantApiRequest) {
     var _a;
-    const response = (await callFunction({
-        name: 'queryMerchantOrders',
-        data: {}
-    }));
-    return (_a = response.result.groups) !== null && _a !== void 0 ? _a : [];
+    const response = await request('/api/v1/merchant/orders', {
+        method: 'GET',
+        auth: 'merchant'
+    });
+    return (_a = response.groups) !== null && _a !== void 0 ? _a : [];
 }
 function getMerchantOrdersPageViewModel(groups) {
     const grouped = groups
@@ -259,17 +257,15 @@ function getMerchantOrdersPageViewModel(groups) {
         groups: grouped
     };
 }
-async function getMerchantOrderDetail(orderId, callFunction = getCloudCaller()) {
+async function getMerchantOrderDetail(orderId, request = api_client_1.merchantApiRequest) {
     var _a;
-    const response = (await callFunction({
-        name: 'getMerchantOrderDetail',
-        data: {
-            orderId
-        }
-    }));
+    const response = await request(`/api/v1/merchant/orders/${orderId}`, {
+        method: 'GET',
+        auth: 'merchant'
+    });
     return {
-        order: response.result.order,
-        timeline: (_a = response.result.timeline) !== null && _a !== void 0 ? _a : []
+        order: response.order,
+        timeline: (_a = response.timeline) !== null && _a !== void 0 ? _a : []
     };
 }
 function getMerchantOrderDetailViewModel(detail) {
@@ -307,27 +303,29 @@ function getMerchantOrderDetailViewModel(detail) {
         statusOptions: createStatusOptions(order)
     };
 }
-async function updateMerchantOrderStatus(input, callFunction = getCloudCaller(), accessVerifier = access_1.verifyMerchantAccess) {
+async function updateMerchantOrderStatus(input, request = api_client_1.merchantApiRequest, accessVerifier = access_1.verifyMerchantAccess) {
     const operator = await resolveMerchantOperator(accessVerifier);
-    const data = {
-        orderId: input.order.id,
+    const body = {
         operator
     };
     if (input.nextStatus === 'cancelled') {
-        data.nextOrderStatus = 'cancelled';
+        body.status = 'cancelled';
+        body.fulfillmentStatus = 'cancelled';
     }
     else if (input.order.status !== 'paid') {
-        data.nextOrderStatus = 'paid';
-        data.nextFulfillmentStatus = input.nextStatus;
-        data.adjustmentMethod = input.adjustmentMethod;
-        data.reasonNote = input.reasonNote;
+        body.status = 'paid';
+        body.paymentStatus = 'paid';
+        body.fulfillmentStatus = input.nextStatus;
+        body.adjustmentMethod = input.adjustmentMethod;
+        body.reasonNote = input.reasonNote;
     }
     else {
-        data.nextFulfillmentStatus = input.nextStatus;
+        body.fulfillmentStatus = input.nextStatus;
     }
-    const response = (await callFunction({
-        name: 'updateMerchantOrderStatus',
-        data
-    }));
-    return response.result.order;
+    const response = await request(`/api/v1/merchant/orders/${input.order.id}/status`, {
+        method: 'PATCH',
+        body,
+        auth: 'merchant'
+    });
+    return response.order;
 }

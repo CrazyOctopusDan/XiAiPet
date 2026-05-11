@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { OrderFulfillmentStatus, OrderRecord } from '@xiaipet/shared';
 
+import type { MerchantApiRequester } from './api-client';
 import {
+  getMerchantOrderDetail,
   getMerchantOrderDetailViewModel,
   getMerchantOrdersPageViewModel,
   queryMerchantOrders,
@@ -120,21 +122,49 @@ function createQueryGroup(status: OrderRecord['status'], fulfillmentStatus?: Ord
 }
 
 describe('merchant orders service', () => {
-  it('queries merchant order groups from the cloud function surface', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        groups: [createQueryGroup('paid', 'pending')]
-      }
+  it('queries merchant order groups from the HTTP API', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      groups: [createQueryGroup('paid', 'pending')]
     });
 
-    const groups = await queryMerchantOrders(callFunction);
+    const groups = await queryMerchantOrders(request as MerchantApiRequester);
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'queryMerchantOrders',
-      data: {}
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/orders', {
+      method: 'GET',
+      auth: 'merchant'
     });
     expect(groups).toHaveLength(1);
+  });
+
+  it('queries merchant order detail from the HTTP API', async () => {
+    const order = createOrder();
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      order,
+      timeline: [
+        {
+          type: 'created',
+          label: '订单创建',
+          at: '2026-04-18T09:30:00.000Z'
+        }
+      ]
+    });
+
+    await expect(getMerchantOrderDetail('order-001', request as MerchantApiRequester)).resolves.toMatchObject({
+      order: {
+        id: 'order-001'
+      },
+      timeline: [
+        expect.objectContaining({
+          label: '订单创建'
+        })
+      ]
+    });
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/orders/order-001', {
+      method: 'GET',
+      auth: 'merchant'
+    });
   });
 
   it('maps unpaid merchant orders into fulfillment-progress groups with a pending-payment badge', () => {
@@ -249,27 +279,23 @@ describe('merchant orders service', () => {
   });
 
   it('submits a merchant status update with operator identity and manual settlement metadata', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        order: createOrder({
-          status: 'paid',
-          fulfillmentState: {
-            mode: 'delivery',
-            status: 'in_production',
-            updatedAt: '2026-04-18T11:00:00.000Z'
-          }
-        })
-      }
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      order: createOrder({
+        status: 'paid',
+        fulfillmentState: {
+          mode: 'delivery',
+          status: 'in_production',
+          updatedAt: '2026-04-18T11:00:00.000Z'
+        }
+      })
     });
     const verifyAccess = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        allowed: true,
-        merchant: {
-          merchantId: 'merchant-001',
-          storeName: '虾衣宠物烘焙工作室'
-        }
+      ok: true,
+      allowed: true,
+      merchant: {
+        merchantId: 'merchant-001',
+        storeName: '虾衣宠物烘焙工作室'
       }
     });
 
@@ -288,23 +314,45 @@ describe('merchant orders service', () => {
         adjustmentMethod: 'manual_override',
         reasonNote: '线下已收款，继续制作'
       },
-      callFunction,
+      request as MerchantApiRequester,
       verifyAccess
     );
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'updateMerchantOrderStatus',
-      data: {
-        orderId: 'order-unpaid',
-        nextOrderStatus: 'paid',
-        nextFulfillmentStatus: 'in_production',
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/orders/order-unpaid/status', {
+      method: 'PATCH',
+      body: {
+        status: 'paid',
+        paymentStatus: 'paid',
+        fulfillmentStatus: 'in_production',
         adjustmentMethod: 'manual_override',
         reasonNote: '线下已收款，继续制作',
         operator: {
           id: 'merchant-001',
           name: '虾衣宠物烘焙工作室'
         }
-      }
+      },
+      auth: 'merchant'
     });
+  });
+
+  it('blocks status updates when merchant access is denied', async () => {
+    const request = vi.fn();
+    const verifyAccess = vi.fn().mockResolvedValue({
+      ok: true,
+      allowed: false,
+      reason: '当前账号还没有商户权限'
+    });
+
+    await expect(
+      updateMerchantOrderStatus(
+        {
+          order: createOrder(),
+          nextStatus: 'in_production'
+        },
+        request as MerchantApiRequester,
+        verifyAccess
+      )
+    ).rejects.toThrow('MERCHANT_FORBIDDEN');
+    expect(request).not.toHaveBeenCalled();
   });
 });
