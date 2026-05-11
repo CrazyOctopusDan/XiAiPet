@@ -112,7 +112,7 @@ Plans:
 - [x] 10-01: Add customer miniapp HTTP API client and migrate auth/catalog/runtime config services
 - [x] 10-02: Migrate customer checkout, payment and order services to HTTP API
 - [x] 10-03: Add merchant miniapp HTTP API client and migrate access/order services
-- [ ] 10-04: Migrate merchant catalog/user/balance/runtime config/print services to HTTP API
+- [x] 10-04: Migrate merchant catalog/user/balance/runtime config/print services to HTTP API
 - [ ] 10-05: Update miniapp tests and development configuration for API base URLs
 
 ### Phase 11: OSS Asset Migration and Upload Flow
