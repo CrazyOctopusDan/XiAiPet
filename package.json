@@ -8,6 +8,7 @@
     "test": "pnpm -r test",
     "dev:customer": "pnpm --filter @xiaipet/customer-miniapp dev",
     "dev:merchant": "pnpm --filter @xiaipet/merchant-miniapp dev",
+    "dev:api": "pnpm --filter @xiaipet/api dev",
     "dev:functions": "pnpm --filter @xiaipet/cloud-functions dev",
     "ci:check": "pnpm lint && pnpm typecheck && pnpm test"
   },
