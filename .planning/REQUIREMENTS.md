@@ -22,16 +22,16 @@
 
 ### API Parity
 
-- [ ] **API-01**: Customer mini program can bootstrap or restore user identity through the new HTTP API.
-- [ ] **API-02**: Customer mini program can bind or update phone data through the new HTTP API.
-- [ ] **API-03**: Customer mini program can query categories, products and runtime config through the new HTTP API.
-- [ ] **API-04**: Customer mini program can create orders, start payment, sync payment state, query order list and query order detail through the new HTTP API.
-- [ ] **API-05**: Merchant mini program can verify merchant access through the new HTTP API.
-- [ ] **API-06**: Merchant mini program can query and update merchant orders through the new HTTP API.
-- [ ] **API-07**: Merchant mini program can create, update, delete and query categories and products through the new HTTP API.
-- [ ] **API-08**: Merchant mini program can search users, adjust balances and query balance-impacting records through the new HTTP API.
-- [ ] **API-09**: Merchant mini program can read and update runtime config sections through the new HTTP API.
-- [ ] **API-10**: Merchant mini program can prepare receipt print jobs and record receipt print results through the new HTTP API.
+- [x] **API-01**: Customer mini program can bootstrap or restore user identity through the new HTTP API.
+- [x] **API-02**: Customer mini program can bind or update phone data through the new HTTP API.
+- [x] **API-03**: Customer mini program can query categories, products and runtime config through the new HTTP API.
+- [x] **API-04**: Customer mini program can create orders, start payment, sync payment state, query order list and query order detail through the new HTTP API.
+- [x] **API-05**: Merchant mini program can verify merchant access through the new HTTP API.
+- [x] **API-06**: Merchant mini program can query and update merchant orders through the new HTTP API.
+- [x] **API-07**: Merchant mini program can create, update, delete and query categories and products through the new HTTP API.
+- [x] **API-08**: Merchant mini program can search users, adjust balances and query balance-impacting records through the new HTTP API.
+- [x] **API-09**: Merchant mini program can read and update runtime config sections through the new HTTP API.
+- [x] **API-10**: Merchant mini program can prepare receipt print jobs and record receipt print results through the new HTTP API.
 
 ### Mini Program Integration
 
@@ -100,16 +100,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DB-02 | Phase 8 | Complete |
 | DB-03 | Phase 8 | Complete |
 | DB-04 | Phase 8 | Complete |
-| API-01 | Phase 9 | Pending |
-| API-02 | Phase 9 | Pending |
-| API-03 | Phase 9 | Pending |
-| API-04 | Phase 9 | Pending |
-| API-05 | Phase 9 | Pending |
-| API-06 | Phase 9 | Pending |
-| API-07 | Phase 9 | Pending |
-| API-08 | Phase 9 | Pending |
-| API-09 | Phase 9 | Pending |
-| API-10 | Phase 9 | Pending |
+| API-01 | Phase 9 | Complete |
+| API-02 | Phase 9 | Complete |
+| API-03 | Phase 9 | Complete |
+| API-04 | Phase 9 | Complete |
+| API-05 | Phase 9 | Complete |
+| API-06 | Phase 9 | Complete |
+| API-07 | Phase 9 | Complete |
+| API-08 | Phase 9 | Complete |
+| API-09 | Phase 9 | Complete |
+| API-10 | Phase 9 | Complete |
 | MP-01 | Phase 10 | Pending |
 | MP-02 | Phase 10 | Pending |
 | MP-03 | Phase 10 | Pending |
@@ -135,4 +135,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-11*
-*Last updated: 2026-05-11 after Phase 7 execution*
+*Last updated: 2026-05-11 after Phase 9 execution*

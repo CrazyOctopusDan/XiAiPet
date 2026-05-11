@@ -13,6 +13,23 @@ export interface UserRecord {
   contactPhoneCountryCode: string;
 }
 
+export interface MerchantUserRecord {
+  openid: string;
+  merchantId: string;
+  storeName: string;
+  enabled: boolean;
+  grantedAt: string;
+}
+
+export interface MerchantUserSearchItem {
+  openid: string;
+  avatarUrl: string;
+  nickname: string;
+  contactPhoneMasked: string;
+  membershipTierLabel: string;
+  currentBalance: number;
+}
+
 interface UserRow {
   openid: string;
   status: string;
@@ -22,6 +39,14 @@ interface UserRow {
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+interface MerchantUserRow {
+  openid: string;
+  merchantId: string;
+  storeName: string;
+  enabled: boolean;
+  grantedAt: Date;
 }
 
 export function mapUser(row: UserRow): UserRecord {
@@ -60,6 +85,64 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         }
       });
       return mapUser(user);
+    },
+
+    async bindPhone(
+      openid: string,
+      input: { maskedPhone: string; countryCode: string },
+      at: Date = new Date()
+    ): Promise<UserRecord> {
+      await this.bootstrap(openid, at);
+      const user = await client.user.update({
+        where: { openid },
+        data: {
+          phoneBindingState: PHONE_BINDING_STATE.bound,
+          contactPhoneMasked: input.maskedPhone,
+          contactPhoneCountryCode: input.countryCode,
+          updatedAt: at
+        }
+      });
+      return mapUser(user);
+    },
+
+    async getMerchantByOpenid(openid: string): Promise<MerchantUserRecord | null> {
+      const merchantUser = await client.merchantUser.findUnique({ where: { openid } });
+      if (!merchantUser) {
+        return null;
+      }
+      const row = merchantUser as MerchantUserRow;
+      return {
+        openid: row.openid,
+        merchantId: row.merchantId,
+        storeName: row.storeName,
+        enabled: row.enabled,
+        grantedAt: row.grantedAt.toISOString()
+      };
+    },
+
+    async searchUsers(query: string, limit = 20): Promise<MerchantUserSearchItem[]> {
+      const users = await client.user.findMany({
+        where: {
+          OR: [
+            { openid: { contains: query } },
+            { contactPhoneMasked: { contains: query } }
+          ]
+        },
+        include: {
+          balanceAccount: true
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: limit
+      });
+
+      return users.map((user) => ({
+        openid: user.openid,
+        avatarUrl: '',
+        nickname: user.openid,
+        contactPhoneMasked: user.contactPhoneMasked,
+        membershipTierLabel: '普通会员',
+        currentBalance: user.balanceAccount?.balance.toNumber() ?? 0
+      }));
     }
   };
 }

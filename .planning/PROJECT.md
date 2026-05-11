@@ -28,6 +28,7 @@ XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序
 - ✓ 商品浏览、搜索、详情、会员/库存展示已经形成可运行客户端能力 — Phase 2
 - ✓ 购物车、规格选择、订单前上下文、订单快照、商户端运营能力已在当前代码中推进到可迁移状态 — Phase 3-6 implementation history
 - ✓ 商户端订单、品类、商品、用户、运行时配置和小票打印能力已经有 CloudBase 云函数调用面 — Phase 6
+- ✓ `apps/api` 已提供覆盖当前 CloudBase 函数 manifest 的 `/api/v1` HTTP API parity 表面 — Phase 9
 
 ### Active
 
@@ -70,9 +71,9 @@ XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| 后端从 Tencent CloudBase 云函数迁移到 `apps/api` 统一独立 Node.js API | 用户已开通阿里云 ECS/RDS/OSS，并明确不再依赖腾讯云后端 | — Pending |
-| 后端不拆分客户端项目和商户端项目 | 双端共享同一套身份、商品、订单、余额、配置和存储边界，按端拆分会增加重复逻辑和部署复杂度 | — Pending |
-| 使用 Fastify + Prisma + MySQL 8 作为后端核心栈 | Fastify 轻量且适合 TypeScript API；Prisma 适合管理 MySQL schema、迁移和事务访问 | — Pending |
+| 后端从 Tencent CloudBase 云函数迁移到 `apps/api` 统一独立 Node.js API | 用户已开通阿里云 ECS/RDS/OSS，并明确不再依赖腾讯云后端 | ✓ Good |
+| 后端不拆分客户端项目和商户端项目 | 双端共享同一套身份、商品、订单、余额、配置和存储边界，按端拆分会增加重复逻辑和部署复杂度 | ✓ Good |
+| 使用 Fastify + Prisma + MySQL 8 作为后端核心栈 | Fastify 轻量且适合 TypeScript API；Prisma 适合管理 MySQL schema、迁移和事务访问 | ✓ Good |
 | 使用 Docker Compose 单机部署，而不是 Kubernetes 或裸 PM2 | 用户没有运维经验，Compose 更容易形成可复制部署、日志和回滚流程 | — Pending |
 | RDS MySQL 8 成为订单、余额、库存和支付状态的可信数据源 | 这些数据需要事务、一致性和可审计性，不能继续依赖前端或分散存储 | — Pending |
 | OSS 使用后端签名或受控上传/访问路径 | 小程序端不能持有长期 OSS 凭证，图片资源也要能受控迁移和审计 | — Pending |

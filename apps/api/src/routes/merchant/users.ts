@@ -1,0 +1,21 @@
+import type { FastifyInstance } from 'fastify';
+
+import type { ApiRouteDependencies } from '../dependencies';
+
+export async function merchantUserRoutes(
+  app: FastifyInstance,
+  options: { dependencies: ApiRouteDependencies }
+) {
+  const { dependencies } = options;
+  const merchantGuard = { preHandler: dependencies.guards.requireMerchantSession };
+
+  app.get('/users', merchantGuard, async (request) => {
+    const query = request.query as { query?: string; searchField?: string };
+    return dependencies.merchantUserService.searchMerchantUsers(request.merchant, query);
+  });
+
+  app.post('/users/:openid/balance-adjustments', merchantGuard, async (request) => {
+    const params = request.params as { openid: string };
+    return dependencies.merchantUserService.adjustUserBalance(request.merchant, params.openid, request.body);
+  });
+}

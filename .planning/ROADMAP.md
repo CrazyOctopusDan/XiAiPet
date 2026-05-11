@@ -14,7 +14,7 @@
 
 - [x] **Phase 7: Node API Foundation and ECS Deployment Runway** - 建立独立后端工程、Docker Compose 部署骨架、配置安全和基础运维文档
 - [x] **Phase 8: MySQL Data Model and Migration Pipeline** - 用 Prisma/RDS 建立可信数据模型，并提供 CloudBase 数据迁移脚本
-- [ ] **Phase 9: HTTP API Parity for Unified Backend** - 将现有 CloudBase 云函数能力迁移为统一后端项目内的功能等价 HTTP API
+- [x] **Phase 9: HTTP API Parity for Unified Backend** - 将现有 CloudBase 云函数能力迁移为统一后端项目内的功能等价 HTTP API
 - [ ] **Phase 10: Mini Program API Client Migration** - 将客户端与商户端小程序调用面从 CloudBase 切换到 HTTP API
 - [ ] **Phase 11: OSS Asset Migration and Upload Flow** - 将 CloudBase 文件能力迁移到 OSS，并接入受控上传和访问 URL
 - [ ] **Phase 12: Production Cutover, Security and Regression Verification** - 完成域名 HTTPS、微信合法域名、部署验收、安全校验和双端回归
@@ -85,12 +85,12 @@ Plans:
 **Plans:** 6 plans
 
 Plans:
-- [ ] 09-01: Implement auth, WeChat login code exchange and customer identity APIs
-- [ ] 09-02: Implement catalog and runtime config read APIs
-- [ ] 09-03: Implement order creation, payment start, payment sync and customer order query APIs
-- [ ] 09-04: Implement merchant access, merchant order query/detail/status APIs
-- [ ] 09-05: Implement merchant category/product/user/balance/runtime config APIs
-- [ ] 09-06: Implement receipt print preparation/result APIs and API parity test coverage
+- [x] 09-01: Implement auth, WeChat login code exchange and customer identity APIs
+- [x] 09-02: Implement catalog and runtime config read APIs
+- [x] 09-03: Implement order creation, payment start, payment sync and customer order query APIs
+- [x] 09-04: Implement merchant access, merchant order query/detail/status APIs
+- [x] 09-05: Implement merchant category/product/user/balance/runtime config APIs
+- [x] 09-06: Implement receipt print preparation/result APIs and API parity test coverage
 
 ### Phase 10: Mini Program API Client Migration
 
@@ -169,8 +169,8 @@ Phases execute in numeric order: 7 → 8 → 9 → 10 → 11 → 12
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 7. Node API Foundation and ECS Deployment Runway | 5/5 | Complete | 2026-05-11 |
-| 8. MySQL Data Model and Migration Pipeline | 0/5 | Not started | - |
-| 9. HTTP API Parity for Unified Backend | 0/6 | Not started | - |
+| 8. MySQL Data Model and Migration Pipeline | 5/5 | Complete | 2026-05-11 |
+| 9. HTTP API Parity for Unified Backend | 6/6 | Complete | 2026-05-11 |
 | 10. Mini Program API Client Migration | 0/5 | Not started | - |
 | 11. OSS Asset Migration and Upload Flow | 0/4 | Not started | - |
 | 12. Production Cutover, Security and Regression Verification | 0/5 | Not started | - |

@@ -5,6 +5,10 @@ export interface ApiConfig {
   logLevel: LogLevel;
   publicBaseUrl: string;
   databaseUrl: string;
+  sessionSecret: string;
+  sessionTtlSeconds: number;
+  wechatAppId: string;
+  wechatAppSecret: string;
 }
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
@@ -52,6 +56,24 @@ function parseDatabaseUrl(rawDatabaseUrl: string | undefined, nodeEnv: string): 
   return databaseUrl;
 }
 
+function parsePositiveInteger(rawValue: string | undefined, fallback: number, name: string): number {
+  const value = Number(rawValue ?? fallback);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`Invalid ${name}: expected a positive integer`);
+  }
+  return value;
+}
+
+function parseRequiredSecret(rawValue: string | undefined, nodeEnv: string, name: string): string {
+  if (rawValue) {
+    return rawValue;
+  }
+  if (nodeEnv === 'test') {
+    return `test-${name.toLowerCase().replaceAll('_', '-')}`;
+  }
+  throw new Error(`Invalid ${name}: expected a non-empty value`);
+}
+
 export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
   const nodeEnv = raw.NODE_ENV ?? 'development';
   const port = parsePort(raw.API_PORT);
@@ -62,6 +84,10 @@ export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
     port,
     logLevel: parseLogLevel(raw.LOG_LEVEL),
     publicBaseUrl: raw.API_PUBLIC_BASE_URL ?? `http://127.0.0.1:${port}`,
-    databaseUrl: parseDatabaseUrl(raw.DATABASE_URL, nodeEnv)
+    databaseUrl: parseDatabaseUrl(raw.DATABASE_URL, nodeEnv),
+    sessionSecret: parseRequiredSecret(raw.API_SESSION_SECRET, nodeEnv, 'API_SESSION_SECRET'),
+    sessionTtlSeconds: parsePositiveInteger(raw.API_SESSION_TTL_SECONDS, 60 * 60 * 24 * 14, 'API_SESSION_TTL_SECONDS'),
+    wechatAppId: parseRequiredSecret(raw.WECHAT_APP_ID, nodeEnv, 'WECHAT_APP_ID'),
+    wechatAppSecret: parseRequiredSecret(raw.WECHAT_APP_SECRET, nodeEnv, 'WECHAT_APP_SECRET')
   };
 }

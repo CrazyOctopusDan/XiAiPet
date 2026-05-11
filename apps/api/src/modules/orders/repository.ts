@@ -118,6 +118,13 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
       return orders.map(mapOrder);
     },
 
+    async listAll(): Promise<OrderRecord[]> {
+      const orders = await client.order.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+      return orders.map(mapOrder);
+    },
+
     async createPending(input: CreateOrderInput): Promise<OrderRecord> {
       const existing = await this.getByOpenidAndIdempotencyKey(input.openid, input.idempotencyKey);
       if (existing) {
@@ -165,6 +172,31 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
         data: {
           status: ORDER_STATUS.payment_processing,
           paymentStatus: PAYMENT_STATUS.processing
+        }
+      });
+      return mapOrder(order);
+    },
+
+    async updateStatus(
+      orderId: string,
+      input: {
+        status?: OrderRecord['status'];
+        paymentStatus?: OrderRecord['paymentStatus'];
+        fulfillmentStatus?: NonNullable<OrderRecord['fulfillmentStatus']>;
+        paidAt?: Date;
+        cancelledAt?: Date;
+        merchantOverride?: unknown;
+      }
+    ): Promise<OrderRecord> {
+      const order = await client.order.update({
+        where: { id: orderId },
+        data: {
+          status: input.status ? ORDER_STATUS[input.status] : undefined,
+          paymentStatus: input.paymentStatus ? PAYMENT_STATUS[input.paymentStatus] : undefined,
+          fulfillmentStatus: input.fulfillmentStatus ? FULFILLMENT_STATUS[input.fulfillmentStatus] : undefined,
+          paidAt: input.paidAt,
+          cancelledAt: input.cancelledAt,
+          merchantOverride: input.merchantOverride as Prisma.InputJsonValue | undefined
         }
       });
       return mapOrder(order);
