@@ -1,11 +1,11 @@
-declare const wx: any;
-
 import type {
   BannerRuntimeConfigValue,
   CustomNoticeRuntimeConfigValue,
   DeliveryRulesRuntimeConfigValue,
   StoreProfileRuntimeConfigValue
 } from '@xiaipet/shared/types/runtime-config';
+
+import { customerApiRequest } from './api-client';
 
 const LOCKED_DELIVERY_RULE_ROWS: DeliveryRulesRuntimeConfigValue['tiers'] = [
   { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
@@ -39,6 +39,8 @@ interface ReadRuntimeConfigResult {
   deliveryRules?: DeliveryRulesRuntimeConfigValue | null;
 }
 
+type RuntimeConfigRequester = () => Promise<ReadRuntimeConfigResult>;
+
 const DEFAULT_RUNTIME_CONFIG: CustomerRuntimeConfig = {
   banner: {
     fileId: '/assets/catalog/home-hero.png',
@@ -62,8 +64,12 @@ const DEFAULT_RUNTIME_CONFIG: CustomerRuntimeConfig = {
 
 let cachedRuntimeConfig: CustomerRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);
 
-function getCloudCaller() {
-  return (payload: Record<string, unknown>) => wx.cloud.callFunction(payload);
+function getRuntimeConfigRequester(): RuntimeConfigRequester {
+  return () =>
+    customerApiRequest<ReadRuntimeConfigResult>('/api/v1/customer/runtime-config', {
+      method: 'GET',
+      auth: 'none'
+    });
 }
 
 function cloneRuntimeConfig(config: CustomerRuntimeConfig): CustomerRuntimeConfig {
@@ -107,14 +113,9 @@ export function resetCustomerRuntimeConfigCache() {
   cachedRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);
 }
 
-export async function hydrateCustomerRuntimeConfig(callFunction = getCloudCaller()) {
-  const response = (await callFunction({
-    name: 'readRuntimeConfig',
-    data: {}
-  })) as {
-    result: ReadRuntimeConfigResult;
-  };
+export async function hydrateCustomerRuntimeConfig(requestRuntimeConfig = getRuntimeConfigRequester()) {
+  const result = await requestRuntimeConfig();
 
-  cachedRuntimeConfig = mergeRuntimeConfig(response.result ?? {});
+  cachedRuntimeConfig = mergeRuntimeConfig(result ?? {});
   return getCachedCustomerRuntimeConfig();
 }

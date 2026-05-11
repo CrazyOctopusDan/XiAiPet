@@ -1,4 +1,4 @@
-declare const wx: any;
+import { customerApiRequest, type CustomerApiRequester } from './api-client';
 
 export interface BootstrapResponse {
   ok: boolean;
@@ -6,15 +6,11 @@ export interface BootstrapResponse {
   user: Record<string, unknown>;
 }
 
-export async function startCustomerBootstrap(): Promise<BootstrapResponse> {
-  const loginResult = await wx.login();
-
-  const response = (await wx.cloud.callFunction({
-    name: 'bootstrapUser',
-    data: {
-      code: loginResult.code
-    }
-  })) as { result: BootstrapResponse };
-
-  return response.result;
+export async function startCustomerBootstrap(
+  request: CustomerApiRequester = customerApiRequest
+): Promise<BootstrapResponse> {
+  return request<BootstrapResponse>('/api/v1/customer/bootstrap', {
+    method: 'POST',
+    auth: 'customer'
+  });
 }

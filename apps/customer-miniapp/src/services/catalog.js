@@ -11,26 +11,17 @@ exports.getProductById = getProductById;
 exports.resolveProductSpec = resolveProductSpec;
 exports.getProductDisplayPrice = getProductDisplayPrice;
 exports.getProductSelectedSpecLabel = getProductSelectedSpecLabel;
+exports.resetCatalogCache = resetCatalogCache;
+exports.hydrateCatalog = hydrateCatalog;
 const catalog_1 = require("../data/catalog");
+const api_client_1 = require("./api-client");
+let cachedCatalogCategories = cloneCategories(catalog_1.catalogCategories);
+let cachedCatalogProducts = cloneProducts(catalog_1.catalogProducts);
 function getHomeModules() {
     return catalog_1.homeModules;
 }
-async function defaultResolveHomeModuleImages(fileIds) {
-    var _a, _b;
-    if (!fileIds.length || !((_a = wx === null || wx === void 0 ? void 0 : wx.cloud) === null || _a === void 0 ? void 0 : _a.getTempFileURL)) {
-        return {};
-    }
-    try {
-        const response = (await wx.cloud.getTempFileURL({
-            fileList: fileIds
-        }));
-        return Object.fromEntries(((_b = response.fileList) !== null && _b !== void 0 ? _b : [])
-            .filter((item) => item.fileID && item.tempFileURL)
-            .map((item) => [item.fileID, item.tempFileURL]));
-    }
-    catch (_c) {
-        return {};
-    }
+async function defaultResolveHomeModuleImages() {
+    return {};
 }
 async function resolveHomeModuleImageSources(resolveImages = defaultResolveHomeModuleImages) {
     const modules = getHomeModules();
@@ -44,11 +35,11 @@ async function resolveHomeModuleImageSources(resolveImages = defaultResolveHomeM
     });
 }
 function getCatalogCategories() {
-    return catalog_1.catalogCategories;
+    return cloneCategories(cachedCatalogCategories);
 }
 function getCategoryById(categoryId) {
     var _a;
-    return (_a = catalog_1.catalogCategories.find((category) => category.id === categoryId)) !== null && _a !== void 0 ? _a : null;
+    return (_a = cachedCatalogCategories.find((category) => category.id === categoryId)) !== null && _a !== void 0 ? _a : null;
 }
 function getDeliveryModes() {
     return [
@@ -58,9 +49,9 @@ function getDeliveryModes() {
     ];
 }
 function buildCatalogSections(mode) {
-    return catalog_1.catalogCategories
+    return cachedCatalogCategories
         .map((category) => {
-        const products = catalog_1.catalogProducts.filter((product) => product.categoryId === category.id && product.deliveryModes.includes(mode));
+        const products = cachedCatalogProducts.filter((product) => product.categoryId === category.id && product.deliveryModes.includes(mode));
         return {
             category,
             availableProducts: products.filter((product) => !product.soldOut),
@@ -74,14 +65,14 @@ function searchProducts(keyword) {
     if (!normalizedKeyword) {
         return [];
     }
-    return catalog_1.catalogProducts.filter((product) => {
+    return cachedCatalogProducts.filter((product) => {
         const haystack = `${product.name} ${product.summary} ${product.description}`.toLowerCase();
         return haystack.includes(normalizedKeyword);
     });
 }
 function getProductById(productId) {
     var _a;
-    return (_a = catalog_1.catalogProducts.find((product) => product.id === productId)) !== null && _a !== void 0 ? _a : null;
+    return (_a = cachedCatalogProducts.find((product) => product.id === productId)) !== null && _a !== void 0 ? _a : null;
 }
 function resolveProductSpec(product, specId) {
     var _a, _b;
@@ -97,4 +88,42 @@ function getProductDisplayPrice(product, specId = '') {
 function getProductSelectedSpecLabel(product, specId) {
     var _a, _b;
     return (_b = (_a = resolveProductSpec(product, specId)) === null || _a === void 0 ? void 0 : _a.label) !== null && _b !== void 0 ? _b : '';
+}
+function cloneCategories(categories) {
+    return categories.map((category) => ({ ...category }));
+}
+function cloneProducts(products) {
+    return products.map((product) => ({
+        ...product,
+        deliveryModes: [...product.deliveryModes],
+        gallery: [...product.gallery],
+        detailImages: [...product.detailImages],
+        specs: product.specs.map((spec) => ({ ...spec }))
+    }));
+}
+function resetCatalogCache() {
+    cachedCatalogCategories = cloneCategories(catalog_1.catalogCategories);
+    cachedCatalogProducts = cloneProducts(catalog_1.catalogProducts);
+}
+async function hydrateCatalog(request = api_client_1.customerApiRequest) {
+    const [categoriesResponse, productsResponse] = await Promise.all([
+        request('/api/v1/customer/catalog/categories', {
+            method: 'GET',
+            auth: 'none'
+        }),
+        request('/api/v1/customer/catalog/products', {
+            method: 'GET',
+            auth: 'none'
+        })
+    ]);
+    if (Array.isArray(categoriesResponse.categories)) {
+        cachedCatalogCategories = cloneCategories(categoriesResponse.categories);
+    }
+    if (Array.isArray(productsResponse.products)) {
+        cachedCatalogProducts = cloneProducts(productsResponse.products);
+    }
+    return {
+        categories: getCatalogCategories(),
+        products: cloneProducts(cachedCatalogProducts)
+    };
 }

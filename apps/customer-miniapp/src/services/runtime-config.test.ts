@@ -11,43 +11,38 @@ describe('customer runtime config service', () => {
     resetCustomerRuntimeConfigCache();
   });
 
-  it('reads customer-facing runtime config from the dedicated readRuntimeConfig handler', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        banner: {
-          fileId: 'cloud://xiaipet-prod.123/banner/home.png',
-          altText: '本周主推'
-        },
-        store: {
-          address: '上海市长宁区愚园路 1200 号',
-          latitude: 31.2201,
-          longitude: 121.4242,
-          contactPhone: '13900000000'
-        },
-        customNotice: {
-          enabled: false,
-          content: '已关闭提示'
-        },
-        deliveryRules: {
-          tiers: [
-            {
-              distanceKm: 5,
-              minimumOrderAmount: 98,
-              deliveryFee: 0,
-              explainer: '5.0 公里内 98 元起送，配送费 0 元'
-            }
-          ]
-        }
+  it('reads customer-facing runtime config from the HTTP runtime config API', async () => {
+    const requestRuntimeConfig = vi.fn().mockResolvedValue({
+      ok: true,
+      banner: {
+        fileId: 'cloud://xiaipet-prod.123/banner/home.png',
+        altText: '本周主推'
+      },
+      store: {
+        address: '上海市长宁区愚园路 1200 号',
+        latitude: 31.2201,
+        longitude: 121.4242,
+        contactPhone: '13900000000'
+      },
+      customNotice: {
+        enabled: false,
+        content: '已关闭提示'
+      },
+      deliveryRules: {
+        tiers: [
+          {
+            distanceKm: 5,
+            minimumOrderAmount: 98,
+            deliveryFee: 0,
+            explainer: '5.0 公里内 98 元起送，配送费 0 元'
+          }
+        ]
       }
     });
 
-    const runtimeConfig = await hydrateCustomerRuntimeConfig(callFunction);
+    const runtimeConfig = await hydrateCustomerRuntimeConfig(requestRuntimeConfig);
 
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'readRuntimeConfig',
-      data: {}
-    });
+    expect(requestRuntimeConfig).toHaveBeenCalledWith();
     expect(runtimeConfig).toMatchObject({
       banner: {
         fileId: 'cloud://xiaipet-prod.123/banner/home.png',
@@ -75,16 +70,14 @@ describe('customer runtime config service', () => {
   it('keeps durable defaults when sections are missing and updates the shared cache', async () => {
     const runtimeConfig = await hydrateCustomerRuntimeConfig(
       vi.fn().mockResolvedValue({
-        result: {
-          ok: true,
-          banner: null,
-          store: null,
-          customNotice: {
-            enabled: false,
-            content: '临时停用'
-          },
-          deliveryRules: null
-        }
+        ok: true,
+        banner: null,
+        store: null,
+        customNotice: {
+          enabled: false,
+          content: '临时停用'
+        },
+        deliveryRules: null
       })
     );
 

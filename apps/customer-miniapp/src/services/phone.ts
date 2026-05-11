@@ -1,4 +1,4 @@
-declare const wx: any;
+import { customerApiRequest, type CustomerApiRequester } from './api-client';
 
 interface ManualPhoneInput {
   phoneNumber: string;
@@ -17,10 +17,13 @@ function normalizeSubmission(input: ManualPhoneInput) {
   };
 }
 
-export async function requestWechatPhone(detail: Record<string, unknown>) {
+export async function requestWechatPhone(
+  detail: Record<string, unknown>,
+  request: CustomerApiRequester = customerApiRequest
+) {
   const phoneNumber = String(detail.phoneNumber ?? '');
   const phoneCode = String(detail.code ?? '');
-  const data = phoneNumber
+  const body = phoneNumber
     ? {
         payload: {
           phoneNumber,
@@ -32,20 +35,22 @@ export async function requestWechatPhone(detail: Record<string, unknown>) {
         phoneCode
       };
 
-  const response = (await wx.cloud.callFunction({
-    name: 'bindPhone',
-    data
-  })) as { result: BindPhoneResponse };
-
-  return response.result;
+  return request<BindPhoneResponse>('/api/v1/customer/profile/phone', {
+    method: 'POST',
+    body,
+    auth: 'customer'
+  });
 }
 
-export async function submitManualPhone(input: ManualPhoneInput) {
+export async function submitManualPhone(
+  input: ManualPhoneInput,
+  request: CustomerApiRequester = customerApiRequest
+) {
   const normalized = normalizeSubmission(input);
 
-  const response = (await wx.cloud.callFunction({
-    name: 'bindPhone',
-    data: {
+  return request<BindPhoneResponse>('/api/v1/customer/profile/phone', {
+    method: 'POST',
+    body: {
       payload: {
         ...normalized,
         source: 'manual',
@@ -53,8 +58,7 @@ export async function submitManualPhone(input: ManualPhoneInput) {
         contactPhoneMasked: '',
         contactPhoneCountryCode: normalized.countryCode
       }
-    }
-  })) as { result: BindPhoneResponse };
-
-  return response.result;
+    },
+    auth: 'customer'
+  });
 }

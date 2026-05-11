@@ -3,54 +3,38 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { startCustomerBootstrap } from './auth';
 import { requestWechatPhone, submitManualPhone } from './phone';
 
-describe('cloud service response handling', () => {
-  let loginMock: ReturnType<typeof vi.fn>;
-  let callFunctionMock: ReturnType<typeof vi.fn>;
+describe('customer HTTP service response handling', () => {
+  let apiRequest: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    loginMock = vi.fn().mockResolvedValue({ code: 'login-code' });
-    callFunctionMock = vi.fn();
-
-    vi.stubGlobal('wx', {
-      login: loginMock,
-      cloud: {
-        callFunction: callFunctionMock
-      }
-    });
+    apiRequest = vi.fn();
   });
 
-  it('unwraps the business result from customer bootstrap', async () => {
-    callFunctionMock.mockResolvedValue({
-      result: {
-        ok: true,
-        operation: 'create',
-        user: { openid: 'user-openid' }
-      }
-    });
-
-    await expect(startCustomerBootstrap()).resolves.toEqual({
+  it('requests customer bootstrap from the HTTP API', async () => {
+    apiRequest.mockResolvedValue({
       ok: true,
       operation: 'create',
       user: { openid: 'user-openid' }
     });
 
-    expect(loginMock).toHaveBeenCalledTimes(1);
-    expect(callFunctionMock).toHaveBeenCalledWith({
-      name: 'bootstrapUser',
-      data: {
-        code: 'login-code'
-      }
+    await expect(startCustomerBootstrap(apiRequest)).resolves.toEqual({
+      ok: true,
+      operation: 'create',
+      user: { openid: 'user-openid' }
+    });
+
+    expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/bootstrap', {
+      method: 'POST',
+      auth: 'customer'
     });
   });
 
-  it('unwraps the business result from wechat phone binding', async () => {
-    callFunctionMock.mockResolvedValue({
-      result: {
-        ok: true,
-        update: {
-          phoneBindingState: 'bound',
-          contactPhoneMasked: '138****1234'
-        }
+  it('requests wechat phone binding from the HTTP API', async () => {
+    apiRequest.mockResolvedValue({
+      ok: true,
+      update: {
+        phoneBindingState: 'bound',
+        contactPhoneMasked: '138****1234'
       }
     });
 
@@ -58,7 +42,7 @@ describe('cloud service response handling', () => {
       requestWechatPhone({
         phoneNumber: '13800138123',
         countryCode: '+86'
-      })
+      }, apiRequest)
     ).resolves.toEqual({
       ok: true,
       update: {
@@ -66,23 +50,33 @@ describe('cloud service response handling', () => {
         contactPhoneMasked: '138****1234'
       }
     });
+
+    expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/profile/phone', {
+      method: 'POST',
+      body: {
+        payload: {
+          phoneNumber: '13800138123',
+          countryCode: '+86',
+          source: 'wechat'
+        }
+      },
+      auth: 'customer'
+    });
   });
 
-  it('passes the WeChat getPhoneNumber code to bindPhone when no frontend phone number is returned', async () => {
-    callFunctionMock.mockResolvedValue({
-      result: {
-        ok: true,
-        update: {
-          phoneBindingState: 'bound',
-          contactPhoneMasked: '138****1234'
-        }
+  it('passes the WeChat getPhoneNumber code to the profile phone API when no frontend phone number is returned', async () => {
+    apiRequest.mockResolvedValue({
+      ok: true,
+      update: {
+        phoneBindingState: 'bound',
+        contactPhoneMasked: '138****1234'
       }
     });
 
     await expect(
       requestWechatPhone({
         code: 'wechat-phone-code'
-      })
+      }, apiRequest)
     ).resolves.toEqual({
       ok: true,
       update: {
@@ -91,33 +85,32 @@ describe('cloud service response handling', () => {
       }
     });
 
-    expect(callFunctionMock).toHaveBeenCalledWith({
-      name: 'bindPhone',
-      data: {
+    expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/profile/phone', {
+      method: 'POST',
+      body: {
         phoneCode: 'wechat-phone-code'
-      }
+      },
+      auth: 'customer'
     });
   });
 
-  it('normalizes manual phone submission before calling the cloud function', async () => {
-    callFunctionMock.mockResolvedValue({
-      result: {
-        ok: true
-      }
+  it('normalizes manual phone submission before calling the profile phone API', async () => {
+    apiRequest.mockResolvedValue({
+      ok: true
     });
 
     await expect(
       submitManualPhone({
         phoneNumber: '138 0013 8123',
         countryCode: '86'
-      })
+      }, apiRequest)
     ).resolves.toEqual({
       ok: true
     });
 
-    expect(callFunctionMock).toHaveBeenCalledWith({
-      name: 'bindPhone',
-      data: {
+    expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/profile/phone', {
+      method: 'POST',
+      body: {
         payload: {
           phoneNumber: '13800138123',
           countryCode: '+86',
@@ -126,7 +119,8 @@ describe('cloud service response handling', () => {
           contactPhoneMasked: '',
           contactPhoneCountryCode: '+86'
         }
-      }
+      },
+      auth: 'customer'
     });
   });
 });

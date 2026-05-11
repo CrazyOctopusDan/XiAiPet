@@ -2,17 +2,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requestWechatPhone = requestWechatPhone;
 exports.submitManualPhone = submitManualPhone;
+const api_client_1 = require("./api-client");
 function normalizeSubmission(input) {
     return {
         phoneNumber: input.phoneNumber.replace(/\s+/g, ''),
         countryCode: input.countryCode.startsWith('+') ? input.countryCode : `+${input.countryCode}`
     };
 }
-async function requestWechatPhone(detail) {
+async function requestWechatPhone(detail, request = api_client_1.customerApiRequest) {
     var _a, _b, _c;
     const phoneNumber = String((_a = detail.phoneNumber) !== null && _a !== void 0 ? _a : '');
     const phoneCode = String((_b = detail.code) !== null && _b !== void 0 ? _b : '');
-    const data = phoneNumber
+    const body = phoneNumber
         ? {
             payload: {
                 phoneNumber,
@@ -23,17 +24,17 @@ async function requestWechatPhone(detail) {
         : {
             phoneCode
         };
-    const response = (await wx.cloud.callFunction({
-        name: 'bindPhone',
-        data
-    }));
-    return response.result;
+    return request('/api/v1/customer/profile/phone', {
+        method: 'POST',
+        body,
+        auth: 'customer'
+    });
 }
-async function submitManualPhone(input) {
+async function submitManualPhone(input, request = api_client_1.customerApiRequest) {
     const normalized = normalizeSubmission(input);
-    const response = (await wx.cloud.callFunction({
-        name: 'bindPhone',
-        data: {
+    return request('/api/v1/customer/profile/phone', {
+        method: 'POST',
+        body: {
             payload: {
                 ...normalized,
                 source: 'manual',
@@ -41,7 +42,7 @@ async function submitManualPhone(input) {
                 contactPhoneMasked: '',
                 contactPhoneCountryCode: normalized.countryCode
             }
-        }
-    }));
-    return response.result;
+        },
+        auth: 'customer'
+    });
 }

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCachedCustomerRuntimeConfig = getCachedCustomerRuntimeConfig;
 exports.resetCustomerRuntimeConfigCache = resetCustomerRuntimeConfigCache;
 exports.hydrateCustomerRuntimeConfig = hydrateCustomerRuntimeConfig;
+const api_client_1 = require("./api-client");
 const LOCKED_DELIVERY_RULE_ROWS = [
     { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
     { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
@@ -36,8 +37,11 @@ const DEFAULT_RUNTIME_CONFIG = {
     }
 };
 let cachedRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);
-function getCloudCaller() {
-    return (payload) => wx.cloud.callFunction(payload);
+function getRuntimeConfigRequester() {
+    return () => (0, api_client_1.customerApiRequest)('/api/v1/customer/runtime-config', {
+        method: 'GET',
+        auth: 'none'
+    });
 }
 function cloneRuntimeConfig(config) {
     return {
@@ -77,12 +81,8 @@ function getCachedCustomerRuntimeConfig() {
 function resetCustomerRuntimeConfigCache() {
     cachedRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);
 }
-async function hydrateCustomerRuntimeConfig(callFunction = getCloudCaller()) {
-    var _a;
-    const response = (await callFunction({
-        name: 'readRuntimeConfig',
-        data: {}
-    }));
-    cachedRuntimeConfig = mergeRuntimeConfig((_a = response.result) !== null && _a !== void 0 ? _a : {});
+async function hydrateCustomerRuntimeConfig(requestRuntimeConfig = getRuntimeConfigRequester()) {
+    const result = await requestRuntimeConfig();
+    cachedRuntimeConfig = mergeRuntimeConfig(result !== null && result !== void 0 ? result : {});
     return getCachedCustomerRuntimeConfig();
 }

@@ -1,7 +1,6 @@
-declare const wx: any;
-
 import { catalogCategories, catalogProducts, homeModules } from '../data/catalog';
 import type {
+  CatalogCategory,
   CatalogProduct,
   CatalogSection,
   DeliveryMode,
@@ -9,39 +8,34 @@ import type {
   ProductSpecOption
 } from '../types/catalog';
 
+import { customerApiRequest, type CustomerApiRequestOptions } from './api-client';
+
 export interface HomeModuleDisplay extends HomeModule {
   imageSrc: string;
 }
 
 type HomeModuleImageResolver = (fileIds: string[]) => Promise<Record<string, string>>;
+type CatalogApiRequester = <T>(path: string, options?: CustomerApiRequestOptions) => Promise<T>;
+
+interface CatalogCategoriesResponse {
+  ok?: boolean;
+  categories?: CatalogCategory[];
+}
+
+interface CatalogProductsResponse {
+  ok?: boolean;
+  products?: CatalogProduct[];
+}
+
+let cachedCatalogCategories = cloneCategories(catalogCategories);
+let cachedCatalogProducts = cloneProducts(catalogProducts);
 
 export function getHomeModules(): HomeModule[] {
   return homeModules;
 }
 
-async function defaultResolveHomeModuleImages(fileIds: string[]): Promise<Record<string, string>> {
-  if (!fileIds.length || !wx?.cloud?.getTempFileURL) {
-    return {};
-  }
-
-  try {
-    const response = (await wx.cloud.getTempFileURL({
-      fileList: fileIds
-    })) as {
-      fileList?: Array<{
-        fileID?: string;
-        tempFileURL?: string;
-      }>;
-    };
-
-    return Object.fromEntries(
-      (response.fileList ?? [])
-        .filter((item) => item.fileID && item.tempFileURL)
-        .map((item) => [item.fileID as string, item.tempFileURL as string])
-    );
-  } catch {
-    return {};
-  }
+async function defaultResolveHomeModuleImages(): Promise<Record<string, string>> {
+  return {};
 }
 
 export async function resolveHomeModuleImageSources(
@@ -57,11 +51,11 @@ export async function resolveHomeModuleImageSources(
 }
 
 export function getCatalogCategories() {
-  return catalogCategories;
+  return cloneCategories(cachedCatalogCategories);
 }
 
 export function getCategoryById(categoryId: string) {
-  return catalogCategories.find((category) => category.id === categoryId) ?? null;
+  return cachedCatalogCategories.find((category) => category.id === categoryId) ?? null;
 }
 
 export function getDeliveryModes(): Array<{ id: DeliveryMode; label: string }> {
@@ -73,9 +67,9 @@ export function getDeliveryModes(): Array<{ id: DeliveryMode; label: string }> {
 }
 
 export function buildCatalogSections(mode: DeliveryMode): CatalogSection[] {
-  return catalogCategories
+  return cachedCatalogCategories
     .map((category) => {
-      const products = catalogProducts.filter(
+      const products = cachedCatalogProducts.filter(
         (product) => product.categoryId === category.id && product.deliveryModes.includes(mode)
       );
 
@@ -95,14 +89,14 @@ export function searchProducts(keyword: string): CatalogProduct[] {
     return [];
   }
 
-  return catalogProducts.filter((product) => {
+  return cachedCatalogProducts.filter((product) => {
     const haystack = `${product.name} ${product.summary} ${product.description}`.toLowerCase();
     return haystack.includes(normalizedKeyword);
   });
 }
 
 export function getProductById(productId: string): CatalogProduct | null {
-  return catalogProducts.find((product) => product.id === productId) ?? null;
+  return cachedCatalogProducts.find((product) => product.id === productId) ?? null;
 }
 
 export function resolveProductSpec(product: CatalogProduct, specId: string): ProductSpecOption | null {
@@ -119,4 +113,48 @@ export function getProductDisplayPrice(product: CatalogProduct, specId = ''): nu
 
 export function getProductSelectedSpecLabel(product: CatalogProduct, specId: string): string {
   return resolveProductSpec(product, specId)?.label ?? '';
+}
+
+function cloneCategories(categories: CatalogCategory[]): CatalogCategory[] {
+  return categories.map((category) => ({ ...category }));
+}
+
+function cloneProducts(products: CatalogProduct[]): CatalogProduct[] {
+  return products.map((product) => ({
+    ...product,
+    deliveryModes: [...product.deliveryModes],
+    gallery: [...product.gallery],
+    detailImages: [...product.detailImages],
+    specs: product.specs.map((spec) => ({ ...spec }))
+  }));
+}
+
+export function resetCatalogCache() {
+  cachedCatalogCategories = cloneCategories(catalogCategories);
+  cachedCatalogProducts = cloneProducts(catalogProducts);
+}
+
+export async function hydrateCatalog(request: CatalogApiRequester = customerApiRequest) {
+  const [categoriesResponse, productsResponse] = await Promise.all([
+    request<CatalogCategoriesResponse>('/api/v1/customer/catalog/categories', {
+      method: 'GET',
+      auth: 'none'
+    }),
+    request<CatalogProductsResponse>('/api/v1/customer/catalog/products', {
+      method: 'GET',
+      auth: 'none'
+    })
+  ]);
+
+  if (Array.isArray(categoriesResponse.categories)) {
+    cachedCatalogCategories = cloneCategories(categoriesResponse.categories);
+  }
+  if (Array.isArray(productsResponse.products)) {
+    cachedCatalogProducts = cloneProducts(productsResponse.products);
+  }
+
+  return {
+    categories: getCatalogCategories(),
+    products: cloneProducts(cachedCatalogProducts)
+  };
 }
