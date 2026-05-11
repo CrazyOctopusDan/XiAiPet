@@ -7,6 +7,13 @@ export interface ApiConfig {
   databaseUrl: string;
   sessionSecret: string;
   sessionTtlSeconds: number;
+  ossRegion: string;
+  ossBucket: string;
+  ossEndpoint: string;
+  ossPublicBaseUrl: string;
+  ossAccessKeyId: string;
+  ossAccessKeySecret: string;
+  ossUploadPolicyTtlSeconds: number;
   wechatAppId: string;
   wechatAppSecret: string;
 }
@@ -36,6 +43,10 @@ function parseLogLevel(rawLogLevel: string | undefined): LogLevel {
 }
 
 const TEST_DATABASE_URL = 'mysql://xiaipet:xiaipet_local_password@127.0.0.1:3307/xiaipet_test';
+const TEST_OSS_REGION = 'oss-cn-shanghai';
+const TEST_OSS_BUCKET = 'xiaipet-test-assets';
+const TEST_OSS_ENDPOINT = 'oss-cn-shanghai.aliyuncs.com';
+const TEST_OSS_PUBLIC_BASE_URL = 'https://assets.example.test';
 
 function parseDatabaseUrl(rawDatabaseUrl: string | undefined, nodeEnv: string): string {
   const databaseUrl = rawDatabaseUrl ?? (nodeEnv === 'test' ? TEST_DATABASE_URL : undefined);
@@ -87,6 +98,13 @@ export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
     databaseUrl: parseDatabaseUrl(raw.DATABASE_URL, nodeEnv),
     sessionSecret: parseRequiredSecret(raw.API_SESSION_SECRET, nodeEnv, 'API_SESSION_SECRET'),
     sessionTtlSeconds: parsePositiveInteger(raw.API_SESSION_TTL_SECONDS, 60 * 60 * 24 * 14, 'API_SESSION_TTL_SECONDS'),
+    ossRegion: raw.OSS_REGION ?? (nodeEnv === 'test' ? TEST_OSS_REGION : 'oss-cn-shanghai'),
+    ossBucket: raw.OSS_BUCKET ?? (nodeEnv === 'test' ? TEST_OSS_BUCKET : ''),
+    ossEndpoint: raw.OSS_ENDPOINT ?? (nodeEnv === 'test' ? TEST_OSS_ENDPOINT : 'oss-cn-shanghai.aliyuncs.com'),
+    ossPublicBaseUrl: raw.OSS_PUBLIC_BASE_URL ?? (nodeEnv === 'test' ? TEST_OSS_PUBLIC_BASE_URL : ''),
+    ossAccessKeyId: parseRequiredSecret(raw.OSS_ACCESS_KEY_ID, nodeEnv, 'OSS_ACCESS_KEY_ID'),
+    ossAccessKeySecret: parseRequiredSecret(raw.OSS_ACCESS_KEY_SECRET, nodeEnv, 'OSS_ACCESS_KEY_SECRET'),
+    ossUploadPolicyTtlSeconds: parsePositiveInteger(raw.OSS_UPLOAD_POLICY_TTL_SECONDS, 900, 'OSS_UPLOAD_POLICY_TTL_SECONDS'),
     wechatAppId: parseRequiredSecret(raw.WECHAT_APP_ID, nodeEnv, 'WECHAT_APP_ID'),
     wechatAppSecret: parseRequiredSecret(raw.WECHAT_APP_SECRET, nodeEnv, 'WECHAT_APP_SECRET')
   };

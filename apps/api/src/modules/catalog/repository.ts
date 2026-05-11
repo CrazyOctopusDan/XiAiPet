@@ -4,6 +4,21 @@ import type { DbClient } from '../../db/types';
 import { PRODUCT_STATUS, toSharedEnum } from '../../db/enums';
 import { getPrismaClient } from '../../db/prisma';
 
+export interface CatalogOssAssetReference {
+  provider: 'oss';
+  role: string;
+  bucket: string;
+  region: string;
+  objectKey: string;
+  url: string;
+  width: number;
+  height: number;
+  sizeBytes: number;
+  contentType: string;
+  uploadedAt: string;
+  variants: unknown[];
+}
+
 export interface CatalogCategoryRecord {
   id: string;
   name: string;
@@ -19,7 +34,10 @@ export interface CatalogProductRecord {
   description: string;
   categoryId: string;
   imageFileId: string;
+  imageAsset?: CatalogOssAssetReference;
   imagePreviewUrl?: string;
+  introductionImageAssets?: CatalogOssAssetReference[];
+  detailImageAssets?: CatalogOssAssetReference[];
   memberLevelId: string | null;
   status: 'draft' | 'published' | 'archived';
   stock: number;
@@ -50,7 +68,10 @@ interface ProductRow {
   description: string;
   categoryId: string;
   imageFileId: string;
+  imageAsset: unknown | null;
   imagePreviewUrl: string | null;
+  introductionImageAssets: unknown | null;
+  detailImageAssets: unknown | null;
   memberLevelId: string | null;
   status: string;
   stock: number;
@@ -70,6 +91,18 @@ function toArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
+function toAssetArray(value: unknown): CatalogOssAssetReference[] | undefined {
+  return Array.isArray(value) ? (value as CatalogOssAssetReference[]) : undefined;
+}
+
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
+
+function asOptionalJson(value: unknown): Prisma.InputJsonValue | undefined {
+  return value === undefined ? undefined : asJson(value);
+}
+
 export function mapProduct(row: ProductRow): CatalogProductRecord {
   return {
     id: row.id,
@@ -77,7 +110,10 @@ export function mapProduct(row: ProductRow): CatalogProductRecord {
     description: row.description,
     categoryId: row.categoryId,
     imageFileId: row.imageFileId,
+    imageAsset: row.imageAsset ? (row.imageAsset as CatalogOssAssetReference) : undefined,
     imagePreviewUrl: row.imagePreviewUrl ?? undefined,
+    introductionImageAssets: toAssetArray(row.introductionImageAssets),
+    detailImageAssets: toAssetArray(row.detailImageAssets),
     memberLevelId: row.memberLevelId,
     status: toSharedEnum(row.status, PRODUCT_STATUS),
     stock: row.stock,
@@ -103,10 +139,6 @@ export function mapCategory(row: CategoryRow): CatalogCategoryRecord {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   };
-}
-
-function asJson(value: unknown): Prisma.InputJsonValue {
-  return value as Prisma.InputJsonValue;
 }
 
 export function createCatalogRepository(client: DbClient = getPrismaClient()) {
@@ -197,7 +229,10 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           description: input.description,
           categoryId: input.categoryId,
           imageFileId: input.imageFileId,
+          imageAsset: asOptionalJson(input.imageAsset),
           imagePreviewUrl: input.imagePreviewUrl,
+          introductionImageAssets: asOptionalJson(input.introductionImageAssets),
+          detailImageAssets: asOptionalJson(input.detailImageAssets),
           memberLevelId: input.memberLevelId,
           status: PRODUCT_STATUS[input.status],
           stock: input.stock,
@@ -216,7 +251,10 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           description: input.description,
           categoryId: input.categoryId,
           imageFileId: input.imageFileId,
+          imageAsset: asOptionalJson(input.imageAsset),
           imagePreviewUrl: input.imagePreviewUrl,
+          introductionImageAssets: asOptionalJson(input.introductionImageAssets),
+          detailImageAssets: asOptionalJson(input.detailImageAssets),
           memberLevelId: input.memberLevelId,
           status: PRODUCT_STATUS[input.status],
           stock: input.stock,

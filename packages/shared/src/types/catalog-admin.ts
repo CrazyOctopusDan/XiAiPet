@@ -1,4 +1,5 @@
 import type { OrderFulfillmentMode } from './order';
+import type { OssAssetReference } from './assets';
 
 export type CatalogCategoryIconToken = string;
 export type CatalogProductStatus = 'draft' | 'published' | 'archived';
@@ -47,7 +48,10 @@ export interface CatalogProductEditorBasicInfo {
   description: string;
   categoryId: string;
   imageFileId: string;
+  imageAsset?: OssAssetReference;
   imagePreviewUrl?: string;
+  introductionImageAssets?: OssAssetReference[];
+  detailImageAssets?: OssAssetReference[];
   memberLevelId: string | null;
   stock: number;
 }
@@ -79,7 +83,10 @@ export interface CatalogProductAdminRecord {
   description: string;
   categoryId: string;
   imageFileId: string;
+  imageAsset?: OssAssetReference;
   imagePreviewUrl?: string;
+  introductionImageAssets?: OssAssetReference[];
+  detailImageAssets?: OssAssetReference[];
   memberLevelId: string | null;
   status: CatalogProductStatus;
   stock: number;

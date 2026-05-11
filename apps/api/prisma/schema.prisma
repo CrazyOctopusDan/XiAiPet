@@ -203,7 +203,10 @@ model Product {
   description      String        @db.VarChar(1024)
   categoryId       String        @db.VarChar(191)
   imageFileId      String        @db.VarChar(512)
+  imageAsset       Json?
   imagePreviewUrl  String?       @db.VarChar(1024)
+  introductionImageAssets Json?
+  detailImageAssets       Json?
   memberLevelId    String?       @db.VarChar(191)
   status           ProductStatus @default(DRAFT)
   stock            Int           @default(0)

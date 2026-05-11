@@ -1,0 +1,4 @@
+ALTER TABLE `products`
+  ADD COLUMN `imageAsset` JSON NULL AFTER `imageFileId`,
+  ADD COLUMN `introductionImageAssets` JSON NULL AFTER `imagePreviewUrl`,
+  ADD COLUMN `detailImageAssets` JSON NULL AFTER `introductionImageAssets`;

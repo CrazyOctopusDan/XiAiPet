@@ -1,3 +1,5 @@
+import type { OssAssetReference } from './assets';
+
 export const RUNTIME_CONFIG_SECTION_IDS = [
   'store-profile',
   'delivery-rules',
@@ -51,6 +53,7 @@ export interface MembershipTiersRuntimeConfigValue {
 export interface BannerRuntimeConfigValue {
   fileId: string;
   altText: string;
+  asset?: OssAssetReference;
 }
 
 export interface CustomNoticeRuntimeConfigValue {

@@ -1,6 +1,7 @@
 import { ApiError } from '../../lib/errors';
 import { createCatalogRepository, type CatalogProductRecord } from './repository';
 import type { MerchantContext } from '../auth/types';
+import type { CatalogOssAssetReference } from './repository';
 
 interface CatalogProductEditorPayload {
   basicInfo: {
@@ -8,7 +9,10 @@ interface CatalogProductEditorPayload {
     description: string;
     categoryId: string;
     imageFileId: string;
+    imageAsset?: CatalogOssAssetReference;
     imagePreviewUrl?: string;
+    introductionImageAssets?: CatalogOssAssetReference[];
+    detailImageAssets?: CatalogOssAssetReference[];
     memberLevelId: string | null;
     stock: number;
   };
@@ -27,6 +31,28 @@ interface CatalogProductEditorPayload {
   };
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isOssAssetReference(value: unknown): value is CatalogOssAssetReference {
+  return (
+    isObject(value) &&
+    value.provider === 'oss' &&
+    typeof value.role === 'string' &&
+    typeof value.bucket === 'string' &&
+    typeof value.region === 'string' &&
+    typeof value.objectKey === 'string' &&
+    typeof value.url === 'string' &&
+    typeof value.width === 'number' &&
+    typeof value.height === 'number' &&
+    typeof value.sizeBytes === 'number' &&
+    typeof value.contentType === 'string' &&
+    typeof value.uploadedAt === 'string' &&
+    Array.isArray(value.variants)
+  );
+}
+
 function isCatalogProductEditorPayload(value: unknown): value is CatalogProductEditorPayload {
   if (!value || typeof value !== 'object') {
     return false;
@@ -43,6 +69,15 @@ function isCatalogProductEditorPayload(value: unknown): value is CatalogProductE
       typeof basicInfo.description === 'string' &&
       typeof basicInfo.categoryId === 'string' &&
       typeof basicInfo.imageFileId === 'string' &&
+      (basicInfo.imageAsset === undefined || isOssAssetReference(basicInfo.imageAsset)) &&
+      (
+        basicInfo.introductionImageAssets === undefined ||
+        (Array.isArray(basicInfo.introductionImageAssets) && basicInfo.introductionImageAssets.every(isOssAssetReference))
+      ) &&
+      (
+        basicInfo.detailImageAssets === undefined ||
+        (Array.isArray(basicInfo.detailImageAssets) && basicInfo.detailImageAssets.every(isOssAssetReference))
+      ) &&
       typeof basicInfo.stock === 'number' &&
       typeof pricing.basePrice === 'number' &&
       Array.isArray(pricing.specs) &&
@@ -125,7 +160,10 @@ export function createCatalogService(catalogRepository = createCatalogRepository
         description: payload.basicInfo.description,
         categoryId: payload.basicInfo.categoryId,
         imageFileId: payload.basicInfo.imageFileId,
+        imageAsset: payload.basicInfo.imageAsset,
         imagePreviewUrl: payload.basicInfo.imagePreviewUrl,
+        introductionImageAssets: payload.basicInfo.introductionImageAssets,
+        detailImageAssets: payload.basicInfo.detailImageAssets,
         memberLevelId: payload.basicInfo.memberLevelId,
         status: payload.publishSettings.status,
         stock: payload.basicInfo.stock,

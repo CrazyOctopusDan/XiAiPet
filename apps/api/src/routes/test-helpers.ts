@@ -10,6 +10,13 @@ export const testConfig: ApiConfig = {
   databaseUrl: 'mysql://xiaipet:xiaipet_local_password@127.0.0.1:3307/xiaipet_test',
   sessionSecret: 'test-session-secret',
   sessionTtlSeconds: 3600,
+  ossRegion: 'oss-cn-shanghai',
+  ossBucket: 'xiaipet-test-assets',
+  ossEndpoint: 'oss-cn-shanghai.aliyuncs.com',
+  ossPublicBaseUrl: 'https://assets.example.test',
+  ossAccessKeyId: 'test-oss-key-id',
+  ossAccessKeySecret: 'test-oss-key-secret',
+  ossUploadPolicyTtlSeconds: 900,
   wechatAppId: 'test-app-id',
   wechatAppSecret: 'test-app-secret'
 };

@@ -10,6 +10,7 @@ import type {
   CatalogProductSpecOption,
   CatalogPurchaseLimit
 } from '../types/catalog-admin';
+import { isAssetStorageId, isOssAssetReference } from './assets';
 
 const PRODUCT_STATUSES = new Set(['draft', 'published', 'archived']);
 const FULFILLMENT_MODES = new Set<OrderFulfillmentMode>(['delivery', 'pickup', 'express']);
@@ -38,12 +39,16 @@ function isShortIconToken(value: unknown): value is string {
   return isNonEmptyString(value) && Array.from(value.trim()).length <= 4;
 }
 
-function isCloudBaseFileId(value: unknown): value is string {
-  return isNonEmptyString(value) && value.startsWith('cloud://');
-}
-
 function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === 'string';
+}
+
+function isOptionalAssetReference(value: unknown) {
+  return value === undefined || isOssAssetReference(value);
+}
+
+function isOptionalAssetReferenceArray(value: unknown) {
+  return value === undefined || (Array.isArray(value) && value.every(isOssAssetReference));
 }
 
 function isMemberLevelId(value: unknown): value is string | null {
@@ -164,8 +169,11 @@ export function isCatalogProductEditorPayload(value: unknown): value is CatalogP
     isNonEmptyString(basicInfo.description) &&
     isNonEmptyString(basicInfo.categoryId) &&
     !Array.isArray(basicInfo.categoryId) &&
-    isCloudBaseFileId(basicInfo.imageFileId) &&
+    isAssetStorageId(basicInfo.imageFileId) &&
+    isOptionalAssetReference(basicInfo.imageAsset) &&
     isOptionalString(basicInfo.imagePreviewUrl) &&
+    isOptionalAssetReferenceArray(basicInfo.introductionImageAssets) &&
+    isOptionalAssetReferenceArray(basicInfo.detailImageAssets) &&
     isMemberLevelId(basicInfo.memberLevelId) &&
     isNonNegativeInteger(basicInfo.stock) &&
     isNonNegativeNumber(pricing.basePrice) &&
@@ -191,8 +199,11 @@ export function isCatalogProductAdminRecord(value: unknown): value is CatalogPro
     isNonEmptyString(value.description) &&
     isNonEmptyString(value.categoryId) &&
     !Array.isArray(value.categoryId) &&
-    isCloudBaseFileId(value.imageFileId) &&
+    isAssetStorageId(value.imageFileId) &&
+    isOptionalAssetReference(value.imageAsset) &&
     isOptionalString(value.imagePreviewUrl) &&
+    isOptionalAssetReferenceArray(value.introductionImageAssets) &&
+    isOptionalAssetReferenceArray(value.detailImageAssets) &&
     isMemberLevelId(value.memberLevelId) &&
     typeof value.status === 'string' &&
     PRODUCT_STATUSES.has(value.status) &&

@@ -10,6 +10,7 @@ import type {
   StoreProfileRuntimeConfigSection
 } from '../types/runtime-config';
 import { RUNTIME_CONFIG_SECTION_IDS } from '../types/runtime-config';
+import { isAssetStorageId, isOssAssetReference } from './assets';
 
 export const LOCKED_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
   { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
@@ -44,10 +45,6 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
-}
-
-function isCloudBaseFileId(value: unknown): value is string {
-  return isNonEmptyString(value) && value.startsWith('cloud://');
 }
 
 function isRuntimeConfigUpdatedBy(value: unknown): value is RuntimeConfigUpdatedBy {
@@ -123,9 +120,10 @@ function isBannerValue(value: unknown) {
   }
 
   return (
-    hasOnlyKeys(value, ['fileId', 'altText']) &&
-    isCloudBaseFileId(value.fileId) &&
-    isNonEmptyString(value.altText)
+    (hasOnlyKeys(value, ['fileId', 'altText']) || hasOnlyKeys(value, ['fileId', 'altText', 'asset'])) &&
+    isAssetStorageId(value.fileId) &&
+    isNonEmptyString(value.altText) &&
+    (value.asset === undefined || isOssAssetReference(value.asset))
   );
 }
 

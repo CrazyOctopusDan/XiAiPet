@@ -14,6 +14,7 @@ export function createLoggerOptions(config: ApiConfig): FastifyServerOptions['lo
       'req.headers.cookie',
       'DATABASE_URL',
       'OSS_ACCESS_KEY_SECRET',
+      'ossAccessKeySecret',
       'WECHAT_APP_SECRET'
     ]
   };
