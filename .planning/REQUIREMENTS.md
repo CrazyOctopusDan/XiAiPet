@@ -1,170 +1,136 @@
-# Requirements: XiAiPet 宠物烘焙
+# Requirements: XiAiPet 独立 Node.js 后端迁移
 
-**Defined:** 2026-04-16
+**Defined:** 2026-05-11
 **Core Value:** 让宠物家长在微信内以尽可能少的步骤完成“选品-预约-支付-履约”，同时让店主能用同一套云后台稳定管理商品、订单、会员门槛和余额。
 
-## v1 Requirements
+## v1.1 Requirements
 
-### Authentication
+### Backend Foundation
 
-- [ ] **AUTH-01**: 用户首次进入客户端小程序时，系统可基于微信登录态建立或恢复账户身份。
-- [ ] **AUTH-02**: 用户在需要预留电话的场景下，可以使用微信手机号能力自动填写，或手动补录手机号。
+- [ ] **BE-01**: Developer can run an independent `apps/api` Node.js backend locally with TypeScript, Fastify, structured config and health checks.
+- [ ] **BE-02**: Developer can start the production backend stack on ECS with Docker Compose without manually installing app dependencies on the server.
+- [ ] **BE-03**: Operator can configure backend secrets through environment variables or server-only files without committing RDS, OSS, WeChat or payment credentials.
+- [ ] **BE-04**: Operator can view backend logs, restart services and roll back to the previous deployment using documented commands.
 
-### Profile
+### Database and Migration
 
-- [ ] **PROF-01**: 用户可以在个人中心查看头像、余额、累计消费和会员等级。
-- [ ] **PROF-02**: 用户可以编辑昵称和性别信息。
-- [ ] **PROF-03**: 用户只能设置一次生日，后续不可重复修改。
-- [ ] **PROF-04**: 用户可以从个人中心进入地址管理、余额流水和宠物信息管理页面。
+- [ ] **DB-01**: Developer can create and migrate the MySQL 8 RDS schema with Prisma for users, merchant users, categories, products, runtime config, orders, payments, balance accounts, balance ledgers and receipt print audit records.
+- [ ] **DB-02**: Backend can preserve existing order snapshot semantics when writing orders to MySQL.
+- [ ] **DB-03**: Backend can execute balance payment, balance adjustment, order payment state updates and stock deduction inside MySQL transactions.
+- [ ] **DB-04**: Developer can migrate existing CloudBase collection data into MySQL with an idempotent script and verification report.
 
-### Pets
+### API Parity
 
-- [ ] **PET-01**: 用户可以新增和编辑宠物资料，包括名称、性别、出生日期和过敏源。
-- [ ] **PET-02**: 用户在配送订单确认页可以多选宠物，并把选中的宠物信息写入订单快照。
+- [ ] **API-01**: Customer mini program can bootstrap or restore user identity through the new HTTP API.
+- [ ] **API-02**: Customer mini program can bind or update phone data through the new HTTP API.
+- [ ] **API-03**: Customer mini program can query categories, products and runtime config through the new HTTP API.
+- [ ] **API-04**: Customer mini program can create orders, start payment, sync payment state, query order list and query order detail through the new HTTP API.
+- [ ] **API-05**: Merchant mini program can verify merchant access through the new HTTP API.
+- [ ] **API-06**: Merchant mini program can query and update merchant orders through the new HTTP API.
+- [ ] **API-07**: Merchant mini program can create, update, delete and query categories and products through the new HTTP API.
+- [ ] **API-08**: Merchant mini program can search users, adjust balances and query balance-impacting records through the new HTTP API.
+- [ ] **API-09**: Merchant mini program can read and update runtime config sections through the new HTTP API.
+- [ ] **API-10**: Merchant mini program can prepare receipt print jobs and record receipt print results through the new HTTP API.
 
-### Address
+### Mini Program Integration
 
-- [ ] **ADDR-01**: 用户可以新增、编辑和选择同城配送地址。
-- [ ] **ADDR-02**: 用户可以新增、编辑和选择快递地址。
-- [ ] **ADDR-03**: 用户从订单确认页进入地址列表选择地址后，可以无缝返回订单确认页并带回所选地址。
+- [ ] **MP-01**: Customer mini program uses a shared HTTP API client instead of direct `wx.cloud.callFunction` for migrated backend operations.
+- [ ] **MP-02**: Merchant mini program uses a shared HTTP API client instead of `wx.cloud.Cloud` or direct CloudBase function calls for migrated backend operations.
+- [ ] **MP-03**: Mini program API client supports development base URL, production `https://api.xiaipet.vip`, request timeout handling and consistent error messages.
+- [ ] **MP-04**: Existing customer workflows for catalog, cart, checkout, payment and order viewing continue to behave the same after API migration.
+- [ ] **MP-05**: Existing merchant workflows for orders, catalog management, users, balances, runtime config and printing continue to behave the same after API migration.
 
-### Catalog
+### Storage and Assets
 
-- [x] **CAT-01**: 用户可以在首页查看标题、Banner、提前预定入口和入会权益模块。
-- [x] **CAT-02**: 用户可以在购物列表页按自取、配送、快递切换商品视图，并按一级分类/二级分类浏览商品。
-- [x] **CAT-03**: 商品列表滚动时，左侧分类会联动聚焦；售罄商品默认折叠，可展开查看。
-- [x] **CAT-04**: 用户可以通过节流搜索快速查找商品，并在无结果时看到空状态。
-- [x] **CAT-05**: 用户可以查看商品详情，包括轮播图、简介、会员等级限制、规格配方信息和长图详情。
-- [x] **CAT-06**: 用户可以从商品详情页分享商品到微信。
-- [x] **CAT-07**: 商品列表和详情会正确体现库存售罄状态与会员等级可购门槛。
+- [ ] **OSS-01**: Backend can upload product and runtime config assets to OSS without exposing long-lived OSS credentials to mini programs.
+- [ ] **OSS-02**: Mini programs can display migrated OSS-backed images through signed or otherwise approved access URLs.
+- [ ] **OSS-03**: Developer can migrate existing CloudBase file references to OSS references with an idempotent script and verification report.
 
-### Cart
+### Domain, Security and Deployment
 
-- [ ] **CART-01**: 用户可以在列表页、详情页和购物车页对商品进行加入、增减和删除，且数量不能超过库存。
-- [ ] **CART-02**: 对于有规格配方信息的商品，用户可以通过快速购买卡片完成规格选择后加入购物车。
-- [ ] **CART-03**: 浮动购物车角标会在列表、详情和购物车页面保持同步。
-- [ ] **CART-04**: 用户可以清空购物车，并实时看到商品总件数和金额变化。
+- [ ] **DEP-01**: Production deployment is prepared for `https://api.xiaipet.vip` with Nginx reverse proxy and HTTPS certificate configuration.
+- [ ] **DEP-02**: Project documentation tells the user how to finish WeChat request legal domain configuration after ICP filing is approved.
+- [ ] **DEP-03**: Backend validates WeChat mini program identity tokens or login codes server-side before trusting user or merchant actions.
+- [ ] **DEP-04**: Backend protects merchant-only APIs with merchant authorization checks equivalent to or stricter than the current CloudBase implementation.
+- [ ] **DEP-05**: Backend exposes health checks and safe diagnostics that do not leak secrets.
 
-### Checkout
+### Verification
 
-- [ ] **CHK-01**: 用户在确认订单页可以切换配送、自取和快递三种履约方式。
-- [ ] **CHK-02**: 用户可以在确认订单页查看店铺位置，并通过地图能力打开门店位置。
-- [ ] **CHK-03**: 用户可以为配送或自取订单选择符合业务规则的预约日期与时间段。
-- [ ] **CHK-04**: 用户在自取订单中可以维护预留电话，并通过微信手机号能力自动填写。
-- [ ] **CHK-05**: 系统可以基于配送地址与店铺地址的距离，按配置规则计算配送费并展示提示信息。
-- [ ] **CHK-06**: 用户可以填写订单备注，系统会为该用户保留最多 10 条历史备注并支持删除历史备注。
-- [ ] **CHK-07**: 当存在定制提示时，用户必须勾选“已阅读”后才可下单。
-- [ ] **CHK-08**: 用户可以选择微信支付或余额支付完成下单。
-
-### Orders
-
-- [ ] **ORD-01**: 系统会在下单时生成订单快照，保存商品、规格、数量、宠物、备注、联系方式、地址/门店、履约方式和金额明细。
-- [ ] **ORD-02**: 用户支付完成后会进入我的订单页；无订单时展示空状态并可跳转回购物列表页。
-- [ ] **ORD-03**: 用户可以查看订单详情，看到订单状态、商品信息、金额和履约信息。
-
-### Balance
-
-- [ ] **BAL-01**: 用户可以按月份查看余额流水列表，并看到该月收入与支出汇总。
-
-### Merchant Orders
-
-- [ ] **MORD-01**: 商户可以查看全部订单列表并进入订单详情页。
-- [ ] **MORD-02**: 商户可以在订单详情中手动修改订单状态。
-
-### Merchant Catalog
-
-- [ ] **MCAT-01**: 商户可以新增和删除商品一级品类，并维护品类名称和 icon。
-- [ ] **MPRD-01**: 商户可以创建和编辑商品基础信息，包括图片、名称、描述、等级限制、状态、库存和可用履约方式。
-- [ ] **MPRD-02**: 商户可以维护商品定价和销售规则，包括基准价格、配方标题、配方及配方加价、可选规格、限购数量和商品详情内容。
-
-### Merchant Users
-
-- [ ] **MUSR-01**: 商户可以按手机号或用户名搜索用户。
-- [ ] **MUSR-02**: 商户可以为用户调整余额，并自动生成可追踪的余额流水记录。
-
-### Operations
-
-- [ ] **OPS-01**: 商户或运营可以维护店铺位置、配送费规则、会员等级阈值、首页 Banner 和定制提示等运行时配置。
+- [ ] **VER-01**: Automated tests cover migrated business rules for order creation, payment state, balance transactions, catalog admin, runtime config and merchant authorization.
+- [ ] **VER-02**: Developer can run an integration test or smoke checklist against local API + MySQL-compatible test database before deploying.
+- [ ] **VER-03**: Developer can run a post-deploy smoke checklist against ECS API without modifying production data unexpectedly.
+- [ ] **VER-04**: Migration is not considered complete until both customer and merchant mini programs pass the existing critical workflow regression checklist.
 
 ## v2 Requirements
 
-### Marketing
+### Operations
 
-- **MKT-01**: 用户可以使用优惠券、满减或其他促销权益。
-- **MKT-02**: 运营可以配置活动、节日专题或限时营销规则。
+- **OPS2-01**: System can deploy through a hosted CI/CD pipeline instead of manual ECS commands.
+- **OPS2-02**: System can add monitoring dashboards, alerting and centralized log search.
+- **OPS2-03**: System can add Redis or job queue infrastructure if order/payment scale requires asynchronous processing.
 
-### Engagement
+### Product Expansion
 
-- **ENG-01**: 用户可以对订单或商品进行评价与晒单。
-- **ENG-02**: 用户可以接收订单状态或履约提醒通知中心消息。
-
-### Expansion
-
-- **EXP-01**: 系统支持多门店或多商家模式。
-- **EXP-02**: 系统提供 Web 商户后台和经营分析看板。
+- **PROD2-01**: System can add Web merchant admin after the mini program migration is stable.
+- **PROD2-02**: System can add marketing features such as coupons, promotions and customer engagement notifications.
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| 独立会员中心入口 | 需求文档明确不展示该按钮，首发不做 |
-| 优惠券展示和管理 | 需求文档明确不展示优惠券，且不属于首发闭环刚需 |
-| 社交社区/内容订阅 | 与当前宠物烘焙交易闭环无直接关系 |
-| Web/H5/App 三端同步发布 | 当前只要求微信小程序与微信云服务 |
-| 多店铺平台化能力 | 当前业务是单店宠物烘焙，提前平台化会导致范围失控 |
+| Kubernetes or multi-node orchestration | Current project is a single-store mini program business; Docker Compose on ECS is easier to operate and sufficient for this milestone |
+| New marketing or coupon features | This milestone preserves existing functionality and changes backend platform only |
+| Rebuilding mini program UI | UI behavior should remain stable while backend calls are migrated |
+| Self-hosting MySQL or object storage on ECS | User already has managed RDS and OSS; self-hosting would increase operations burden |
+| Production release before ICP filing completes | WeChat production request domain requires a valid HTTPS legal domain |
 
 ## Traceability
 
+Which phases cover which requirements. Updated during roadmap creation.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Implemented |
-| AUTH-02 | Phase 1 | Implemented |
-| CAT-01 | Phase 2 | Implemented |
-| CAT-02 | Phase 2 | Implemented |
-| CAT-03 | Phase 2 | Implemented |
-| CAT-04 | Phase 2 | Implemented |
-| CAT-05 | Phase 2 | Implemented |
-| CAT-06 | Phase 2 | Implemented |
-| CAT-07 | Phase 2 | Implemented |
-| CART-01 | Phase 3 | Pending |
-| CART-02 | Phase 3 | Pending |
-| CART-03 | Phase 3 | Pending |
-| CART-04 | Phase 3 | Pending |
-| PROF-01 | Phase 4 | Pending |
-| PROF-02 | Phase 4 | Pending |
-| PROF-03 | Phase 4 | Pending |
-| PROF-04 | Phase 4 | Pending |
-| PET-01 | Phase 4 | Pending |
-| ADDR-01 | Phase 4 | Pending |
-| ADDR-02 | Phase 4 | Pending |
-| ADDR-03 | Phase 4 | Pending |
-| BAL-01 | Phase 4 | Pending |
-| PET-02 | Phase 5 | Pending |
-| CHK-01 | Phase 5 | Pending |
-| CHK-02 | Phase 5 | Pending |
-| CHK-03 | Phase 5 | Pending |
-| CHK-04 | Phase 5 | Pending |
-| CHK-05 | Phase 5 | Pending |
-| CHK-06 | Phase 5 | Pending |
-| CHK-07 | Phase 5 | Pending |
-| CHK-08 | Phase 5 | Pending |
-| ORD-01 | Phase 5 | Pending |
-| ORD-02 | Phase 5 | Pending |
-| ORD-03 | Phase 5 | Pending |
-| MORD-01 | Phase 6 | Pending |
-| MORD-02 | Phase 6 | Pending |
-| MCAT-01 | Phase 6 | Pending |
-| MPRD-01 | Phase 6 | Pending |
-| MPRD-02 | Phase 6 | Pending |
-| MUSR-01 | Phase 6 | Pending |
-| MUSR-02 | Phase 6 | Pending |
-| OPS-01 | Phase 6 | Pending |
+| BE-01 | Phase 7 | Pending |
+| BE-02 | Phase 7 | Pending |
+| BE-03 | Phase 7 | Pending |
+| BE-04 | Phase 7 | Pending |
+| DB-01 | Phase 8 | Pending |
+| DB-02 | Phase 8 | Pending |
+| DB-03 | Phase 8 | Pending |
+| DB-04 | Phase 8 | Pending |
+| API-01 | Phase 9 | Pending |
+| API-02 | Phase 9 | Pending |
+| API-03 | Phase 9 | Pending |
+| API-04 | Phase 9 | Pending |
+| API-05 | Phase 9 | Pending |
+| API-06 | Phase 9 | Pending |
+| API-07 | Phase 9 | Pending |
+| API-08 | Phase 9 | Pending |
+| API-09 | Phase 9 | Pending |
+| API-10 | Phase 9 | Pending |
+| MP-01 | Phase 10 | Pending |
+| MP-02 | Phase 10 | Pending |
+| MP-03 | Phase 10 | Pending |
+| MP-04 | Phase 10 | Pending |
+| MP-05 | Phase 10 | Pending |
+| OSS-01 | Phase 11 | Pending |
+| OSS-02 | Phase 11 | Pending |
+| OSS-03 | Phase 11 | Pending |
+| DEP-01 | Phase 12 | Pending |
+| DEP-02 | Phase 12 | Pending |
+| DEP-03 | Phase 12 | Pending |
+| DEP-04 | Phase 12 | Pending |
+| DEP-05 | Phase 12 | Pending |
+| VER-01 | Phase 12 | Pending |
+| VER-02 | Phase 12 | Pending |
+| VER-03 | Phase 12 | Pending |
+| VER-04 | Phase 12 | Pending |
 
 **Coverage:**
-- v1 requirements: 42 total
-- Mapped to phases: 42
-- Unmapped: 0 ✓
+- v1.1 requirements: 35 total
+- Mapped to phases: 35
+- Unmapped: 0
 
 ---
-*Requirements defined: 2026-04-16*
-*Last updated: 2026-04-16 after initial definition*
+*Requirements defined: 2026-05-11*
+*Last updated: 2026-05-11 after milestone v1.1 definition*

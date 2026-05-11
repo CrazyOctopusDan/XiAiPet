@@ -1,160 +1,178 @@
-# Roadmap: XiAiPet 宠物烘焙
+# Roadmap: XiAiPet 独立 Node.js 后端迁移
 
 ## Overview
 
-这条路线以“先把交易可信边界做对，再把双端功能做完整”为原则推进。先建立微信小程序与 CloudBase 的环境、身份、数据模型和安全边界，再实现商品浏览、购物车、个人资料与地址，随后完成结算、支付和订单闭环，最后补齐商户端运营能力与运行时配置。
+这条路线以“先建立可部署的独立后端，再迁移可信数据与 API，最后切换小程序调用面和生产域名”为原则推进。迁移目标不是新增业务功能，而是在功能不变的前提下，把 CloudBase 云函数、文档数据库和云存储替换为阿里云 ECS 上的 Node.js API、RDS MySQL 8 和 OSS。
+
+当前 `xiaipet.vip` 正在备案，因此路线分成两条并行事实：备案期间先完成本地/API/开发者工具联调；备案通过后再完成 `https://api.xiaipet.vip`、HTTPS 证书和微信 request 合法域名配置。
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Integer phases continue from the previous milestone.
+- This milestone starts at Phase 7 because Phase 1-6 already cover the CloudBase-era product build.
 
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Foundation and Cloud Boundary** - 建立双端小程序基础骨架、CloudBase 环境边界与用户身份入口
-- [ ] **Phase 2: Catalog and Product Discovery** - 实现首页、分类浏览、搜索、详情和会员/库存展示
-- [ ] **Phase 3: Cart State and Product Selection** - 实现购物车、规格加购与跨页面状态同步
-- [ ] **Phase 4: Account, Pets and Address Context** - 实现个人中心、资料编辑、宠物、地址与余额流水
-- [ ] **Phase 5: Checkout, Payment and Orders** - 实现确认订单、预约履约、支付和订单查询闭环
-- [x] **Phase 6: Merchant Operations and Runtime Config** - 实现商户端订单、商品、用户、运营配置管理
+- [ ] **Phase 7: Node API Foundation and ECS Deployment Runway** - 建立独立后端工程、Docker Compose 部署骨架、配置安全和基础运维文档
+- [ ] **Phase 8: MySQL Data Model and Migration Pipeline** - 用 Prisma/RDS 建立可信数据模型，并提供 CloudBase 数据迁移脚本
+- [ ] **Phase 9: HTTP API Parity for Customer and Merchant Backend** - 将现有 CloudBase 云函数能力迁移为功能等价的 HTTP API
+- [ ] **Phase 10: Mini Program API Client Migration** - 将客户端与商户端小程序调用面从 CloudBase 切换到 HTTP API
+- [ ] **Phase 11: OSS Asset Migration and Upload Flow** - 将 CloudBase 文件能力迁移到 OSS，并接入受控上传和访问 URL
+- [ ] **Phase 12: Production Cutover, Security and Regression Verification** - 完成域名 HTTPS、微信合法域名、部署验收、安全校验和双端回归
 
 ## Phase Details
 
-### Phase 1: Foundation and Cloud Boundary
-**Goal**: 搭建客户端/商户端小程序基础工程、CloudBase 数据模型与权限边界，并打通微信身份引导。
-**Depends on**: Nothing (first phase)
-**Requirements**: [AUTH-01, AUTH-02]
+### Phase 7: Node API Foundation and ECS Deployment Runway
+
+**Goal:** 建立可以本地运行、测试、容器化和部署到 ECS 的独立 Node.js API 后端基础。
+**Depends on:** Milestone v1.1 requirements approval
+**Requirements:** [BE-01, BE-02, BE-03, BE-04]
+
 **Success Criteria** (what must be TRUE):
-  1. 用户首次进入客户端时，系统能建立或恢复其微信账户身份。
-  2. 小程序和云环境已分离出公开读数据与敏感交易写数据的边界。
-  3. 双端工程、共享模型与基础发布链路具备继续开发的稳定起点。
-  4. 敏感配置不再写入业务代码或规划文档。
-**UI hint**: yes
-**Plans**: 9 plans
+1. Developer can run `apps/api` locally and see a successful health check.
+2. API project uses Fastify, TypeScript, structured config and test scaffolding.
+3. Docker Compose can start the API stack without installing app dependencies directly on ECS.
+4. Secrets are loaded from environment or server-only files and are not committed.
+5. Deployment docs explain install, start, stop, logs, restart and rollback for a non-ops developer.
+
+**UI hint:** no
+**Plans:** 5 plans
 
 Plans:
-- [x] 01-01: 搭建根 workspace、敏感文件忽略规则与 shared Wave 0 测试脚手架
-- [x] 01-02: 显式建立客户端、商户端与云函数子工程壳层配置和 workspace manifests
-- [x] 01-03: 建立 `packages/shared` 的类型、schema、纯规则和导出边界
-- [x] 01-04: 定义 CloudBase `dev/prod` 环境、集合、索引与安全规则
-- [x] 01-05: 实现 `bootstrapUser`、`bindPhone`、`assertMerchantAccess` 云函数边界
-- [x] 01-06: 实现客户端启动壳层、身份引导与客户页面路由注册
-- [x] 01-07: 实现客户端手机号绑定页面与安全持久化链路
-- [x] 01-08: 实现商户端白名单入口与商户页面路由注册
-- [x] 01-09: 实现手动 `prod` 发布脚本、发布文档与敏感文件忽略规则
+- [ ] 07-01: Scaffold `apps/api` Fastify TypeScript project and shared package integration
+- [ ] 07-02: Add config, env validation, health checks, error envelope and request logging
+- [ ] 07-03: Add Dockerfile, Docker Compose and local production-like startup path
+- [ ] 07-04: Add ECS deployment documentation for Docker install, service startup, logs and rollback
+- [ ] 07-05: Add baseline tests, typecheck and root workspace scripts for the API
 
-### Phase 2: Catalog and Product Discovery
-**Goal**: 打通客户端商品发现链路，让用户能从首页进入分类、搜索和商品详情。
-**Depends on**: Phase 1
-**Requirements**: [CAT-01, CAT-02, CAT-03, CAT-04, CAT-05, CAT-06, CAT-07]
+### Phase 8: MySQL Data Model and Migration Pipeline
+
+**Goal:** 把 CloudBase 文档集合语义转成 MySQL 8 RDS schema，并保护订单、余额、库存和支付状态事务一致性。
+**Depends on:** Phase 7
+**Requirements:** [DB-01, DB-02, DB-03, DB-04]
+
 **Success Criteria** (what must be TRUE):
-  1. 用户可以从首页进入商品列表并按履约方式与分类浏览商品。
-  2. 商品列表支持左侧分类联动、售罄折叠和库存/会员门槛展示。
-  3. 用户可以搜索商品并在无结果时看到明确空状态。
-  4. 商品详情完整展示图片、规格配方、等级限制和分享能力。
-**UI hint**: yes
-**Plans**: 5 plans
+1. Prisma schema covers users, merchant users, categories, products, runtime config, orders, payments, balance accounts, balance ledgers and receipt print audit records.
+2. Order snapshots preserve product, spec, pet, address, fulfillment, remark and amount details without relying on live catalog reads.
+3. Balance payment, balance adjustment, stock deduction and payment state changes use MySQL transactions.
+4. Migration scripts can import CloudBase exports idempotently and produce a verification report.
+5. RDS setup docs describe connection string, migration commands and backup expectations.
+
+**UI hint:** no
+**Plans:** 5 plans
 
 Plans:
-- [x] 02-01: 实现首页、Banner、提前预定入口和列表页分类联动
-- [x] 02-02: 实现搜索、商品详情、分享和商品长图展示
-- [x] 02-03: 实现库存售罄、会员门槛、规格摘要等浏览态规则
-- [ ] 02-04: 恢复微信原生透明导航，并修复 catalog 尾部分类跳转导致的整页位移
-- [ ] 02-05: 统一 discovery 卡片 CTA、售罄视觉和详情页底部操作栏表现
+- [ ] 08-01: Design Prisma schema and map existing CloudBase collection shapes to MySQL tables
+- [ ] 08-02: Implement repository layer for users, catalog, runtime config, orders, payments, balances and print audit
+- [ ] 08-03: Implement transaction boundaries for order creation, payment, stock and balance ledger changes
+- [ ] 08-04: Build idempotent CloudBase-to-MySQL migration scripts with verification output
+- [ ] 08-05: Add RDS setup, migration, backup and local test database documentation
 
-### Phase 3: Cart State and Product Selection
-**Goal**: 建立可靠的购物车状态中心，支持规格商品快速加购和库存约束。
-**Depends on**: Phase 2
-**Requirements**: [CART-01, CART-02, CART-03, CART-04]
+### Phase 9: HTTP API Parity for Customer and Merchant Backend
+
+**Goal:** 将现有 23 个 CloudBase 云函数能力迁移为功能等价的 HTTP API，并保持统一鉴权、错误和响应格式。
+**Depends on:** Phase 8
+**Requirements:** [API-01, API-02, API-03, API-04, API-05, API-06, API-07, API-08, API-09, API-10]
+
 **Success Criteria** (what must be TRUE):
-  1. 用户可以在列表、详情和购物车页面一致地增减商品数量。
-  2. 规格配方商品可通过快速购买卡片完成选择后加入购物车。
-  3. 库存上限校验在所有加购入口表现一致。
-  4. 购物车角标、件数和金额在跨页面切换时保持同步。
-**UI hint**: yes
-**Plans**: 3 plans
+1. Customer API covers login/bootstrap, phone binding, catalog, runtime config, checkout, payment and order query flows.
+2. Merchant API covers access verification, order management, catalog admin, user search, balance adjustment, runtime config and print audit.
+3. API handlers reuse shared schemas and backend service modules instead of duplicating business rules in route files.
+4. Merchant-only routes reject unauthorized users before accessing sensitive data.
+5. Tests cover both success and failure cases for transaction-sensitive APIs.
+
+**UI hint:** no
+**Plans:** 6 plans
 
 Plans:
-- [ ] 03-01: 建立购物车数据模型、跨页面状态同步和库存校验
-- [ ] 03-02: 实现规格配方选择弹层和快速加购逻辑
-- [ ] 03-03: 实现购物车页、删除/清空逻辑和结算入口
+- [ ] 09-01: Implement auth, WeChat login code exchange and customer identity APIs
+- [ ] 09-02: Implement catalog and runtime config read APIs
+- [ ] 09-03: Implement order creation, payment start, payment sync and customer order query APIs
+- [ ] 09-04: Implement merchant access, merchant order query/detail/status APIs
+- [ ] 09-05: Implement merchant category/product/user/balance/runtime config APIs
+- [ ] 09-06: Implement receipt print preparation/result APIs and API parity test coverage
 
-### Phase 4: Account, Pets and Address Context
-**Goal**: 补齐订单前必需的用户上下文，包括资料、宠物、地址和余额流水。
-**Depends on**: Phase 3
-**Requirements**: [PROF-01, PROF-02, PROF-03, PROF-04, PET-01, ADDR-01, ADDR-02, ADDR-03, BAL-01]
+### Phase 10: Mini Program API Client Migration
+
+**Goal:** 将客户端和商户端小程序从 `wx.cloud.callFunction` / `wx.cloud.Cloud` 调用面切换到统一 HTTP API client，同时保持现有页面行为不变。
+**Depends on:** Phase 9
+**Requirements:** [MP-01, MP-02, MP-03, MP-04, MP-05]
+
 **Success Criteria** (what must be TRUE):
-  1. 用户可以在个人中心查看个人信息、余额、会员等级并进入相关管理页面。
-  2. 用户可以新增和编辑宠物资料，以及同城/快递地址。
-  3. 地址选择后能回填到订单确认链路，不需要重复录入。
-  4. 用户可以查看按月份汇总的余额流水。
-**UI hint**: yes
-**Plans**: 3 plans
+1. Customer mini program has a shared request client with dev and production base URL support.
+2. Merchant mini program has a shared request client and no longer depends on cross-environment CloudBase function calls for migrated operations.
+3. User-facing error messages remain stable or clearer when backend requests fail.
+4. Existing customer workflows for catalog, checkout, payment and orders pass regression tests.
+5. Existing merchant workflows for orders, catalog, users, balances, runtime config and printing pass regression tests.
+
+**UI hint:** no
+**Plans:** 5 plans
 
 Plans:
-- [ ] 04-01: 实现个人中心、个人信息页与生日一次性设置规则
-- [ ] 04-02: 实现同城/快递地址管理与回填链路
-- [ ] 04-03: 实现宠物资料管理和余额流水页面
+- [ ] 10-01: Add customer miniapp HTTP API client and migrate auth/catalog/runtime config services
+- [ ] 10-02: Migrate customer checkout, payment and order services to HTTP API
+- [ ] 10-03: Add merchant miniapp HTTP API client and migrate access/order services
+- [ ] 10-04: Migrate merchant catalog/user/balance/runtime config/print services to HTTP API
+- [ ] 10-05: Update miniapp tests and development configuration for API base URLs
 
-### Phase 5: Checkout, Payment and Orders
-**Goal**: 完成确认订单、预约履约、支付与订单查询闭环，并确保金额/库存一致性。
-**Depends on**: Phase 4
-**Requirements**: [PET-02, CHK-01, CHK-02, CHK-03, CHK-04, CHK-05, CHK-06, CHK-07, CHK-08, ORD-01, ORD-02, ORD-03]
+### Phase 11: OSS Asset Migration and Upload Flow
+
+**Goal:** 用阿里云 OSS 替代 CloudBase 存储，并保证商品图片、配置图片和详情资源在小程序中可展示、可迁移、可审计。
+**Depends on:** Phase 10
+**Requirements:** [OSS-01, OSS-02, OSS-03]
+
 **Success Criteria** (what must be TRUE):
-  1. 用户可以按配送、自取、快递三种模式完成订单确认和预约选择。
-  2. 系统能正确计算配送费、处理备注历史、校验已阅读提示并生成订单快照。
-  3. 用户可以通过微信支付或余额支付完成下单，并在支付后进入订单列表。
-  4. 订单列表与订单详情能准确反映订单状态、商品和金额信息。
-**UI hint**: yes
-**Plans**: 4 plans
+1. Backend can create controlled upload flow for merchant-managed assets without exposing long-lived OSS credentials.
+2. Mini programs can display product and runtime config assets through approved URLs.
+3. Existing CloudBase file references can be migrated to OSS references idempotently.
+4. Migration report identifies missing, failed or unmapped assets.
+5. Docs explain OSS bucket policy, CORS expectations and URL expiration behavior.
+
+**UI hint:** no
+**Plans:** 4 plans
 
 Plans:
-- [ ] 05-01: 实现确认订单页的三种履约模式、预约时间、地址/电话/宠物/备注交互
-- [ ] 05-02: 实现配送费计算、订单快照、微信支付/余额支付和支付回调链路
-- [ ] 05-03: 实现我的订单页、订单详情页和支付后跳转闭环
-- [ ] 05-04: 把 mock 订单/支付闭环修正为云端订单持久化、后端余额支付事务和微信支付正式骨架
+- [ ] 11-01: Add OSS service wrapper, bucket config and server-side credential handling
+- [ ] 11-02: Implement merchant asset upload/signing API and miniapp upload integration
+- [ ] 11-03: Implement CloudBase file reference to OSS migration script and report
+- [ ] 11-04: Update product/runtime config image display paths and asset tests
 
-### Phase 6: Merchant Operations and Runtime Config
-**Goal**: 完成商户端订单、商品、用户和运营配置管理，使店主可以独立运营业务。
-**Depends on**: Phase 5
-**Requirements**: [MORD-01, MORD-02, MCAT-01, MPRD-01, MPRD-02, MUSR-01, MUSR-02, OPS-01]
+### Phase 12: Production Cutover, Security and Regression Verification
+
+**Goal:** 完成 `api.xiaipet.vip` 生产链路、安全检查、部署验收和双端核心业务回归，确认可以脱离 CloudBase 后端运行。
+**Depends on:** Phase 11 and ICP filing approval for production domain tasks
+**Requirements:** [DEP-01, DEP-02, DEP-03, DEP-04, DEP-05, VER-01, VER-02, VER-03, VER-04]
+
 **Success Criteria** (what must be TRUE):
-  1. 商户可以查看订单并手动推进订单状态。
-  2. 商户可以管理品类、商品基础信息、规格定价和履约方式。
-  3. 商户可以搜索用户、调整余额并留下可追踪流水。
-  4. 店铺位置、Banner、配送费规则、会员阈值和定制提示可以在运行时调整。
-**UI hint**: yes
-**Plans**: 13 plans
+1. ECS Nginx/HTTPS reverse proxy is documented and ready for `https://api.xiaipet.vip`.
+2. WeChat request legal domain setup is documented and can be completed after ICP approval.
+3. Backend health checks and diagnostics work without leaking secrets.
+4. Security checks cover user identity, merchant authorization, secret handling and sensitive transaction paths.
+5. Automated tests and manual smoke checks pass for customer and merchant critical workflows.
+6. Cutover docs explain how to switch environments, verify production, and roll back.
+
+**UI hint:** no
+**Plans:** 5 plans
 
 Plans:
-- [x] 06-01-PLAN.md — 建立商户订单履约 contract、手工结算审计模型与 merchant miniapp 测试基线
-- [x] 06-02-PLAN.md — 建立品类/商品共享 contract，显式纳入 `iconToken` 与组合定价规则
-- [x] 06-03-PLAN.md — 建立用户管理与运行时配置分区共享 contract
-- [x] 06-04-PLAN.md — 实现商户订单查询、详情与状态流转云函数
-- [x] 06-05-PLAN.md — 实现品类/商品云函数与集合/索引/安全配置
-- [x] 06-06-PLAN.md — 实现用户搜索、余额调整与运行时配置云函数
-- [x] 06-07-PLAN.md — 实现商户订单列表/详情 UI
-- [x] 06-08-PLAN.md — 实现品类管理、商品列表与三步商品编辑 UI
-- [x] 06-09-PLAN.md — 实现用户搜索与余额调整 UI
-- [x] 06-10-PLAN.md — 实现商户运营配置管理页与分区保存 UI
-- [x] 06-11-PLAN.md — 把保存的运营配置与余额调整文案接入客户端展示
-- [x] 06-12-PLAN.md — 完成商户工作台入口、页面注册与云函数注册整合
-- [x] 06-13-PLAN.md — 接入商户端订单小票打印机、打印审计与蓝牙设备管理
+- [ ] 12-01: Configure production Nginx/HTTPS plan for `api.xiaipet.vip` and WeChat legal domain checklist
+- [ ] 12-02: Add security hardening for identity verification, merchant authorization, CORS/domain policy and diagnostics
+- [ ] 12-03: Add local integration and ECS post-deploy smoke test checklist
+- [ ] 12-04: Run customer and merchant critical workflow regression after API/OSS migration
+- [ ] 12-05: Write production cutover and rollback guide, then mark CloudBase backend dependency retired
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 7 → 8 → 9 → 10 → 11 → 12
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Cloud Boundary | 9/9 | Complete | 2026-04-16 |
-| 2. Catalog and Product Discovery | 3/5 | Gap fixes planned | - |
-| 3. Cart State and Product Selection | 0/3 | Not started | - |
-| 4. Account, Pets and Address Context | 0/3 | Not started | - |
-| 5. Checkout, Payment and Orders | 0/3 | Not started | - |
-| 6. Merchant Operations and Runtime Config | 13/13 | Complete | - |
+| 7. Node API Foundation and ECS Deployment Runway | 0/5 | Not started | - |
+| 8. MySQL Data Model and Migration Pipeline | 0/5 | Not started | - |
+| 9. HTTP API Parity for Customer and Merchant Backend | 0/6 | Not started | - |
+| 10. Mini Program API Client Migration | 0/5 | Not started | - |
+| 11. OSS Asset Migration and Upload Flow | 0/4 | Not started | - |
+| 12. Production Cutover, Security and Regression Verification | 0/5 | Not started | - |
 
 ## Backlog
 
@@ -166,3 +184,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 **Plans:**
 - [ ] 02-04: 恢复微信原生透明导航，并修复 catalog 尾部分类跳转导致的整页位移 (ran, no SUMMARY.md)
 - [ ] 02-05: 统一 discovery 卡片 CTA、售罄视觉和详情页底部操作栏表现 (ran, no SUMMARY.md)
+
+### Phase 999.2: Future Operations Hardening (BACKLOG)
+
+**Goal:** Add production-grade operations tooling after the first Alibaba Cloud migration is stable.
+**Source milestone:** v1.1
+**Plans:**
+- [ ] Add hosted CI/CD deployment pipeline
+- [ ] Add monitoring dashboards, alerting and centralized log search
+- [ ] Evaluate Redis/job queue only if payment or print workloads require asynchronous processing
