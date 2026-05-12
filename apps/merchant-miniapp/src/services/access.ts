@@ -17,6 +17,6 @@ export async function verifyMerchantAccess(
 ): Promise<MerchantAccessResult> {
   return request<MerchantAccessResult>('/api/v1/merchant/access', {
     method: 'GET',
-    auth: 'customer'
+    auth: 'merchant'
   });
 }

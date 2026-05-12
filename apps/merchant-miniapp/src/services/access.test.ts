@@ -25,7 +25,7 @@ describe('merchant access service', () => {
     });
     expect(request).toHaveBeenCalledWith('/api/v1/merchant/access', {
       method: 'GET',
-      auth: 'customer'
+      auth: 'merchant'
     });
   });
 
