@@ -9,8 +9,10 @@ describe('loadApiConfig', () => {
       API_SESSION_SECRET: 'dev-session-secret',
       OSS_ACCESS_KEY_ID: 'dev-oss-key-id',
       OSS_ACCESS_KEY_SECRET: 'dev-oss-key-secret',
-      WECHAT_APP_ID: 'dev-app-id',
-      WECHAT_APP_SECRET: 'dev-app-secret'
+      CUSTOMER_WECHAT_APP_ID: 'dev-customer-app-id',
+      CUSTOMER_WECHAT_APP_SECRET: 'dev-customer-app-secret',
+      MERCHANT_WECHAT_APP_ID: 'dev-merchant-app-id',
+      MERCHANT_WECHAT_APP_SECRET: 'dev-merchant-app-secret'
     })).toEqual({
       nodeEnv: 'development',
       host: '0.0.0.0',
@@ -27,8 +29,10 @@ describe('loadApiConfig', () => {
       ossAccessKeyId: 'dev-oss-key-id',
       ossAccessKeySecret: 'dev-oss-key-secret',
       ossUploadPolicyTtlSeconds: 900,
-      wechatAppId: 'dev-app-id',
-      wechatAppSecret: 'dev-app-secret'
+      customerWechatAppId: 'dev-customer-app-id',
+      customerWechatAppSecret: 'dev-customer-app-secret',
+      merchantWechatAppId: 'dev-merchant-app-id',
+      merchantWechatAppSecret: 'dev-merchant-app-secret'
     });
   });
 
@@ -50,8 +54,10 @@ describe('loadApiConfig', () => {
         OSS_ACCESS_KEY_ID: 'prod-oss-key-id',
         OSS_ACCESS_KEY_SECRET: 'prod-oss-key-secret',
         OSS_UPLOAD_POLICY_TTL_SECONDS: '600',
-        WECHAT_APP_ID: 'prod-app-id',
-        WECHAT_APP_SECRET: 'prod-app-secret'
+        CUSTOMER_WECHAT_APP_ID: 'prod-customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'prod-customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'prod-merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'prod-merchant-app-secret'
       })
     ).toEqual({
       nodeEnv: 'production',
@@ -69,8 +75,10 @@ describe('loadApiConfig', () => {
       ossAccessKeyId: 'prod-oss-key-id',
       ossAccessKeySecret: 'prod-oss-key-secret',
       ossUploadPolicyTtlSeconds: 600,
-      wechatAppId: 'prod-app-id',
-      wechatAppSecret: 'prod-app-secret'
+      customerWechatAppId: 'prod-customer-app-id',
+      customerWechatAppSecret: 'prod-customer-app-secret',
+      merchantWechatAppId: 'prod-merchant-app-id',
+      merchantWechatAppSecret: 'prod-merchant-app-secret'
     });
   });
 
@@ -85,8 +93,10 @@ describe('loadApiConfig', () => {
     expect(config.ossAccessKeyId).toBe('test-oss-access-key-id');
     expect(config.ossAccessKeySecret).toBe('test-oss-access-key-secret');
     expect(config.ossUploadPolicyTtlSeconds).toBe(900);
-    expect(config.wechatAppId).toBe('test-wechat-app-id');
-    expect(config.wechatAppSecret).toBe('test-wechat-app-secret');
+    expect(config.customerWechatAppId).toBe('test-customer-wechat-app-id');
+    expect(config.customerWechatAppSecret).toBe('test-customer-wechat-app-secret');
+    expect(config.merchantWechatAppId).toBe('test-merchant-wechat-app-id');
+    expect(config.merchantWechatAppSecret).toBe('test-merchant-wechat-app-secret');
   });
 
   it('rejects invalid ports', () => {
@@ -102,8 +112,10 @@ describe('loadApiConfig', () => {
         API_SESSION_SECRET: 'secret',
         OSS_ACCESS_KEY_ID: 'oss-id',
         OSS_ACCESS_KEY_SECRET: 'oss-secret',
-        WECHAT_APP_ID: 'app-id',
-        WECHAT_APP_SECRET: 'app-secret'
+        CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret'
       })
     ).toThrow('Invalid LOG_LEVEL');
   });
@@ -114,8 +126,10 @@ describe('loadApiConfig', () => {
         NODE_ENV: 'production',
         DATABASE_URL: 'mysql://xiaipet:secret@127.0.0.1:3307/xiaipet_dev',
         API_SESSION_SECRET: 'secret',
-        WECHAT_APP_ID: 'app-id',
-        WECHAT_APP_SECRET: 'app-secret'
+        CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret'
       })
     ).toThrow('Invalid OSS_ACCESS_KEY_ID: expected a non-empty value');
 
@@ -125,8 +139,10 @@ describe('loadApiConfig', () => {
         DATABASE_URL: 'mysql://xiaipet:secret@127.0.0.1:3307/xiaipet_dev',
         API_SESSION_SECRET: 'secret',
         OSS_ACCESS_KEY_ID: 'oss-id',
-        WECHAT_APP_ID: 'app-id',
-        WECHAT_APP_SECRET: 'app-secret'
+        CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret'
       })
     ).toThrow('Invalid OSS_ACCESS_KEY_SECRET: expected a non-empty value');
   });

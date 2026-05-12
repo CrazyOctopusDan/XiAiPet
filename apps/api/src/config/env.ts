@@ -14,8 +14,10 @@ export interface ApiConfig {
   ossAccessKeyId: string;
   ossAccessKeySecret: string;
   ossUploadPolicyTtlSeconds: number;
-  wechatAppId: string;
-  wechatAppSecret: string;
+  customerWechatAppId: string;
+  customerWechatAppSecret: string;
+  merchantWechatAppId: string;
+  merchantWechatAppSecret: string;
 }
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
@@ -105,7 +107,9 @@ export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
     ossAccessKeyId: parseRequiredSecret(raw.OSS_ACCESS_KEY_ID, nodeEnv, 'OSS_ACCESS_KEY_ID'),
     ossAccessKeySecret: parseRequiredSecret(raw.OSS_ACCESS_KEY_SECRET, nodeEnv, 'OSS_ACCESS_KEY_SECRET'),
     ossUploadPolicyTtlSeconds: parsePositiveInteger(raw.OSS_UPLOAD_POLICY_TTL_SECONDS, 900, 'OSS_UPLOAD_POLICY_TTL_SECONDS'),
-    wechatAppId: parseRequiredSecret(raw.WECHAT_APP_ID, nodeEnv, 'WECHAT_APP_ID'),
-    wechatAppSecret: parseRequiredSecret(raw.WECHAT_APP_SECRET, nodeEnv, 'WECHAT_APP_SECRET')
+    customerWechatAppId: parseRequiredSecret(raw.CUSTOMER_WECHAT_APP_ID, nodeEnv, 'CUSTOMER_WECHAT_APP_ID'),
+    customerWechatAppSecret: parseRequiredSecret(raw.CUSTOMER_WECHAT_APP_SECRET, nodeEnv, 'CUSTOMER_WECHAT_APP_SECRET'),
+    merchantWechatAppId: parseRequiredSecret(raw.MERCHANT_WECHAT_APP_ID, nodeEnv, 'MERCHANT_WECHAT_APP_ID'),
+    merchantWechatAppSecret: parseRequiredSecret(raw.MERCHANT_WECHAT_APP_SECRET, nodeEnv, 'MERCHANT_WECHAT_APP_SECRET')
   };
 }

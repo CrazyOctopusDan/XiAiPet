@@ -15,7 +15,11 @@ export function createLoggerOptions(config: ApiConfig): FastifyServerOptions['lo
       'DATABASE_URL',
       'OSS_ACCESS_KEY_SECRET',
       'ossAccessKeySecret',
-      'WECHAT_APP_SECRET'
+      'WECHAT_APP_SECRET',
+      'CUSTOMER_WECHAT_APP_SECRET',
+      'MERCHANT_WECHAT_APP_SECRET',
+      'customerWechatAppSecret',
+      'merchantWechatAppSecret'
     ]
   };
 }
