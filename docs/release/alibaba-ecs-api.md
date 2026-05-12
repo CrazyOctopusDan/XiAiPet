@@ -137,10 +137,21 @@ API_HOST=0.0.0.0
 API_PORT=3000
 LOG_LEVEL=info
 API_PUBLIC_BASE_URL=https://api.xiaipet.vip
-DATABASE_URL=mysql://<user>:<password>@<rds-host>:3306/<database>?sslaccept=strict
+DATABASE_URL=mysql://XiAiPet_db:<RDS password>@rm-bp15i4u17t16iwk4t.mysql.rds.aliyuncs.com:3306/xiaipet_db
+API_SESSION_SECRET=<session secret 32+ bytes>
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=xiaipet-assets-prod
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+OSS_PUBLIC_BASE_URL=https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com
+OSS_ACCESS_KEY_ID=<RAM user AccessKeyId>
+OSS_ACCESS_KEY_SECRET=<RAM user AccessKeySecret>
+CUSTOMER_WECHAT_APP_ID=<customer mini program AppID>
+CUSTOMER_WECHAT_APP_SECRET=<customer mini program AppSecret>
+MERCHANT_WECHAT_APP_ID=<merchant mini program AppID>
+MERCHANT_WECHAT_APP_SECRET=<merchant mini program AppSecret>
 ```
 
-Later phases will add OSS, WeChat and payment variables here. Keep real passwords, AK/SK, app secrets and certificates out of git. RDS setup and migration commands live in `docs/release/alibaba-rds.md`.
+Keep real RDS passwords, RAM AccessKey secrets, WeChat AppSecrets, payment keys and certificates out of git. `apps/api/.env.example` is placeholder-only; `apps/api/.env.production` exists only on ECS. RDS setup and migration commands live in `docs/release/alibaba-rds.md`.
 
 ## First Start
 
@@ -219,13 +230,14 @@ If the server uses uploaded release folders instead of git, switch the `/opt/xia
 
 ## Production Domain Checklist
 
-This checklist belongs to Phase 12, after ICP filing is approved:
+This checklist belongs to Phase 12 and is blocked until ICP filing is approved. Do not submit the production mini program release, and do not mark the WeChat legal-domain setup complete, while ICP approval is still pending.
 
 1. Point `api.xiaipet.vip` DNS to the ECS public IP.
 2. Configure HTTPS certificate and reverse proxy.
 3. Verify `https://api.xiaipet.vip/health`.
-4. Add `https://api.xiaipet.vip` to the WeChat mini program request legal domain.
-5. Switch mini program production base URL to `https://api.xiaipet.vip`.
+4. After ICP approval, add `https://api.xiaipet.vip` to both mini programs' WeChat request legal domain configuration.
+5. After ICP approval, add `https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com` wherever the mini programs require image/download legal-domain configuration for OSS-backed assets.
+6. Switch mini program production base URL to `https://api.xiaipet.vip`.
 
 Do not use IP-only access as the production mini program backend.
 
