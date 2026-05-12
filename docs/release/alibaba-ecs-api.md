@@ -5,7 +5,7 @@ This runbook deploys the unified XiAiPet backend from `apps/api` to Alibaba Clou
 ## Architecture
 
 - `apps/api`: one Fastify Node.js API used by both customer and merchant mini programs.
-- `docker-compose.yml`: starts the API container.
+- `docker-compose.yml`: starts the API container. On ECS, run only the Compose service named `api`.
 - `apps/api/.env.production`: server-only production environment file.
 - `https://api.xiaipet.vip`: planned production API domain after ICP filing and HTTPS setup.
 
@@ -24,14 +24,23 @@ Alibaba Cloud Docker reference: `https://help.aliyun.com/zh/ecs/user-guide/insta
 
 ## Directory Layout
 
-Recommended server path:
+Recommended server layout:
 
 ```bash
 /opt/xiaipet
-├── apps/api/.env.production
-├── docker-compose.yml
-└── ...
+├── repo
+│   ├── apps/api/.env.production
+│   ├── apps/api
+│   ├── packages/shared
+│   ├── docker-compose.yml
+│   ├── package.json
+│   ├── pnpm-workspace.yaml
+│   └── tsconfig.base.json
+├── releases
+└── backups
 ```
+
+Use `/opt/xiaipet/repo` for the full Git monorepo, `/opt/xiaipet/releases` for optional future release snapshots, and `/opt/xiaipet/backups` for deployment or configuration backups. The server clones the whole repository because `apps/api/Dockerfile` builds from root workspace files and `packages/shared`. Mini program and historical CloudBase source files may exist in the checkout as inert source files, but only the `api` Docker Compose service runs on ECS.
 
 ## Production Environment File
 
@@ -53,6 +62,7 @@ Later phases will add OSS, WeChat and payment variables here. Keep real password
 From the project root on ECS:
 
 ```bash
+cd /opt/xiaipet/repo
 docker compose up -d --build api
 ```
 
@@ -98,10 +108,13 @@ docker compose stop api
 
 ## Update Deployment
 
-Pull or copy the new project source, then rebuild:
+Pull the new project source, then rebuild only the API service:
 
 ```bash
+cd /opt/xiaipet/repo
+git pull
 docker compose up -d --build api
+docker compose ps
 docker compose logs api --tail=100
 curl http://127.0.0.1:3000/health
 ```
