@@ -59,6 +59,29 @@ Then verify the application gates:
 - Merchant order, catalog/product, OSS upload, user search, balance safeguard, runtime config and receipt workflows pass the regression checklist.
 - API logs do not contain RDS passwords, OSS AccessKeySecret values, WeChat AppSecrets, payment keys, request headers or raw customer credentials.
 
+## Rollback
+
+Default rollback is limited to application source and container runtime state. It does not reset, truncate or recreate production RDS.
+
+Use the previous known-good commit when the latest API deployment fails:
+
+```bash
+cd /opt/xiaipet/repo
+git log --oneline -5
+git checkout <previous-good-commit>
+docker compose up -d --build api
+docker compose logs api --tail=100
+curl https://api.xiaipet.vip/health
+```
+
+After rollback, repeat the `## Verify` checks and inspect API logs before sending mini program traffic back to the API.
+
+### Database Rollback Policy
+
+Do not run prisma migrate reset against RDS.
+
+RDS rollback is a separate manual decision only if forward fixes cannot recover the system. Prefer forward migrations, targeted data correction scripts with audit records, or application rollback first. If point-in-time restore or backup restore is required, stop cutover, name the exact backup/restore target, preserve the current RDS instance for forensic review where possible, and get explicit operator approval before changing production data.
+
 ## No-Go Criteria
 
 Stop the production cutover if any item is true:
