@@ -69,7 +69,7 @@ describe('merchant API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        url: 'http://127.0.0.1:3000/api/v1/customer/auth/login',
+        url: 'http://127.0.0.1:3000/api/v1/merchant/auth/login',
         method: 'POST',
         data: {
           code: 'wx-login-code'

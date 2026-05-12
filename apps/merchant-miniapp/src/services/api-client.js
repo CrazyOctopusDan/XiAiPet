@@ -7,7 +7,7 @@ exports.merchantLogin = merchantLogin;
 exports.merchantApiRequest = merchantApiRequest;
 const api_config_1 = require("./api-config");
 exports.MERCHANT_SESSION_STORAGE_KEY = 'xiaipet.merchant.apiSession';
-const MERCHANT_AUTH_LOGIN_PATH = '/api/v1/customer/auth/login';
+const MERCHANT_AUTH_LOGIN_PATH = '/api/v1/merchant/auth/login';
 const SESSION_EXPIRY_SKEW_MS = 30000;
 class MerchantApiError extends Error {
     constructor(code, message, statusCode = 0, details) {

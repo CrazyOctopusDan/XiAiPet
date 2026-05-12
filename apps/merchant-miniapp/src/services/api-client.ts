@@ -41,7 +41,7 @@ interface ApiErrorBody {
 }
 
 export const MERCHANT_SESSION_STORAGE_KEY = 'xiaipet.merchant.apiSession';
-const MERCHANT_AUTH_LOGIN_PATH = '/api/v1/customer/auth/login';
+const MERCHANT_AUTH_LOGIN_PATH = '/api/v1/merchant/auth/login';
 const SESSION_EXPIRY_SKEW_MS = 30_000;
 
 export class MerchantApiError extends Error {
