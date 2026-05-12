@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
-const shared_1 = require("@xiaipet/shared");
+const shared_1 = require('../../../../packages/shared/src/index.js');
 const auth_context_1 = require("../shared/auth-context");
 const env_1 = require("../shared/env");
 function createWechatPhoneResolver() {

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
-const shared_1 = require("@xiaipet/shared");
+const shared_1 = require('../../../../packages/shared/src/index.js');
 const index_1 = require("../assertMerchantAccess/index");
 const env_1 = require("../shared/env");
 const order_store_1 = require("../shared/order-store");

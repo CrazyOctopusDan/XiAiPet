@@ -23,12 +23,14 @@ else
   exit 1
 fi
 
+CLOUDBASE_DEPLOY_MODE="${CLOUDBASE_DEPLOY_MODE:-zip}"
+
 pnpm --filter @xiaipet/cloud-functions build
 pnpm --filter @xiaipet/cloud-functions render:prod
 
 (
   cd apps/cloud-functions/dist
-  "$CLOUDBASE_CLI" fn deploy --config-file cloudbaserc.json
+  "$CLOUDBASE_CLI" fn deploy --all --force --deployMode "$CLOUDBASE_DEPLOY_MODE" --config-file cloudbaserc.json
 )
 
 echo "[prod] apply collections, indexes, and security after final review"

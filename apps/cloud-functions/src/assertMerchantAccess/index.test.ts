@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { MerchantUserRecord } from '@xiaipet/shared';
 
-import { main } from './index';
+import { assertMerchantAccessWithStore } from './index';
 
 process.env.CLOUDBASE_ENV_NAME = 'dev';
 
@@ -19,7 +19,7 @@ function createMerchantUser(overrides: Partial<MerchantUserRecord> = {}): Mercha
 
 describe('assertMerchantAccess cloud function', () => {
   it('allows a merchant by looking up whitelist data from openid when no merchantUser payload is supplied', async () => {
-    const result = await main(
+    const result = await assertMerchantAccessWithStore(
       {},
       { OPENID: 'merchant-openid' },
       {
@@ -39,7 +39,7 @@ describe('assertMerchantAccess cloud function', () => {
   });
 
   it('denies a disabled whitelist entry even when auth openid matches', async () => {
-    const result = await main(
+    const result = await assertMerchantAccessWithStore(
       {},
       { OPENID: 'merchant-openid' },
       {

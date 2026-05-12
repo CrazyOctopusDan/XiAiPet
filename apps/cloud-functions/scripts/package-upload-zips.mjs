@@ -27,13 +27,36 @@ for (const name of readdirSync(distFunctionsDir)) {
     continue;
   }
   const zipPath = path.join(uploadDir, `${name}.zip`);
-  const result = spawnSync('zip', ['-qr', zipPath, '.'], {
+  const topLevelEntries = readdirSync(functionDir);
+
+  for (const requiredEntry of ['index.js', 'package.json']) {
+    if (!topLevelEntries.includes(requiredEntry)) {
+      throw new Error(`Missing ${requiredEntry} in ${functionDir}`);
+    }
+  }
+
+  const entries = [
+    'index.js',
+    'package.json',
+    ...topLevelEntries.filter((entry) => entry !== 'index.js' && entry !== 'package.json')
+  ];
+
+  // Keep pnpm dependency links as links; following them can make zip recurse for a long time.
+  const result = spawnSync('zip', ['-qry', zipPath, ...entries], {
     cwd: functionDir,
     stdio: 'inherit'
   });
 
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
+  }
+
+  const entryCheck = spawnSync('unzip', ['-p', zipPath, 'index.js'], {
+    stdio: 'ignore'
+  });
+
+  if (entryCheck.status !== 0) {
+    throw new Error(`Function ${name} upload zip does not expose index.js at archive root.`);
   }
 }
 

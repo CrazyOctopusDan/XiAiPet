@@ -29,7 +29,7 @@ async function resolveMerchantUser(
   return null;
 }
 
-export async function main(
+export async function assertMerchantAccessWithStore(
   event: AssertMerchantAccessEvent = {},
   context?: FunctionContextLike,
   store: Pick<MerchantUserStore, 'getByOpenid'> = createMerchantUserStore()
@@ -39,6 +39,13 @@ export async function main(
   const merchantUser = await resolveMerchantUser(event, auth.openid, store);
 
   if (!merchantUser || merchantUser.openid !== auth.openid || !merchantUser.enabled) {
+    console.warn('merchant access denied', {
+      openid: auth.openid,
+      foundMerchantUser: Boolean(merchantUser),
+      merchantUserOpenid: merchantUser?.openid,
+      enabled: merchantUser?.enabled
+    });
+
     return {
       ok: true,
       status: 'denied',
@@ -57,4 +64,8 @@ export async function main(
     },
     merchantUser
   };
+}
+
+export async function main(event: AssertMerchantAccessEvent = {}, context?: FunctionContextLike) {
+  return assertMerchantAccessWithStore(event, context, createMerchantUserStore());
 }

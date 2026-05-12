@@ -6,6 +6,23 @@ interface AccessGatePageInstance {
   setData(data: Record<string, unknown>): void;
 }
 
+function getAccessErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (error && typeof error === 'object') {
+    const candidate = error as Record<string, unknown>;
+    const errMsg = candidate.errMsg ?? candidate.errorMessage ?? candidate.message;
+
+    if (typeof errMsg === 'string' && errMsg) {
+      return errMsg;
+    }
+  }
+
+  return '请下拉重试';
+}
+
 Page({
   data: {
     statusText: '等待校验',
@@ -28,9 +45,10 @@ Page({
         });
       }
     } catch (error) {
+      console.error('merchant access verification failed', error);
       this.setData({
         accessResult: 'denied',
-        statusText: '身份同步失败，请下拉重试'
+        statusText: `身份同步失败：${getAccessErrorMessage(error)}`
       });
     }
   }

@@ -56,12 +56,18 @@ describe('createOrder cloud function', () => {
   };
 
   it('builds a frozen order snapshot and pricing breakdown from the payload', async () => {
+    const repository: OrderStore = {
+      getByOpenidAndIdempotencyKey: async () => null,
+      save: async (order: OrderRecord) => order
+    };
+
     const result = await main(
       {
         openid: 'user-openid',
         payload
       },
-      { OPENID: 'user-openid' }
+      { OPENID: 'user-openid' },
+      repository
     );
 
     expect(result).toMatchObject({

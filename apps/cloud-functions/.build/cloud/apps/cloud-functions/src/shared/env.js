@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveRuntimeEnv = resolveRuntimeEnv;
-const shared_1 = require("@xiaipet/shared");
+const shared_1 = require('../../../../packages/shared/src/index.js');
 function resolveRuntimeEnv(rawEnvName) {
     const envName = rawEnvName ?? process.env.CLOUDBASE_ENV_NAME;
     if (!envName || !shared_1.SUPPORTED_ENVIRONMENTS.includes(envName)) {

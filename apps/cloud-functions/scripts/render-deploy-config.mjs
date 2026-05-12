@@ -59,7 +59,7 @@ for (const key of requiredKeys) {
 
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 const releaseChannel = env.RELEASE_CHANNEL || `manual-${envName}`;
-const functionRuntime = env.CLOUDBASE_FUNCTION_RUNTIME || 'Nodejs20.19';
+const functionRuntime = env.CLOUDBASE_FUNCTION_RUNTIME || 'Nodejs24.11';
 
 const config = {
   version: '2.0',
@@ -71,7 +71,7 @@ const config = {
     runtime: functionRuntime,
     timeout: 10,
     memorySize: 256,
-    installDependency: false,
+    installDependency: true,
     envVariables: {
       CLOUDBASE_ENV_NAME: env.CLOUDBASE_ENV_NAME || envName,
       CLOUDBASE_ENV_ID: env.CLOUDBASE_ENV_ID,

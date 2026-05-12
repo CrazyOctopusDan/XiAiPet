@@ -8,6 +8,7 @@ const scriptsDir = path.dirname(__filename);
 const cloudFunctionsDir = path.resolve(scriptsDir, '..');
 const repoRoot = path.resolve(cloudFunctionsDir, '..', '..');
 const manifestPath = path.join(cloudFunctionsDir, 'cloudfunctions.json');
+const packagePath = path.join(cloudFunctionsDir, 'package.json');
 const buildRoot = path.join(cloudFunctionsDir, '.build');
 const distRoot = path.join(cloudFunctionsDir, 'dist');
 const functionsRoot = path.join(distRoot, 'functions');
@@ -32,7 +33,7 @@ function writeJson(filePath, value) {
   writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
-function removeCompiledTests(dir) {
+function visitFiles(dir, visitor) {
   if (!existsSync(dir)) {
     return;
   }
@@ -42,13 +43,11 @@ function removeCompiledTests(dir) {
     const stats = statSync(entryPath);
 
     if (stats.isDirectory()) {
-      removeCompiledTests(entryPath);
+      visitFiles(entryPath, visitor);
       continue;
     }
 
-    if (entry.endsWith('.test.js')) {
-      rmSync(entryPath, { force: true });
-    }
+    visitor(entryPath);
   }
 }
 
@@ -56,19 +55,45 @@ function compileTypescript(projectPath, outDir) {
   run('pnpm', ['exec', 'tsc', '--project', projectPath, '--outDir', outDir, '--declaration', 'false'], repoRoot);
 }
 
-function buildFunctionPackage(definition, compiledFunctionsDir, compiledSharedDir) {
+function rewriteSharedImports(compiledFunctionsDir) {
+  const cloudSourceDir = path.join(compiledFunctionsDir, 'apps', 'cloud-functions', 'src');
+  const sharedSourceDir = path.join(compiledFunctionsDir, 'packages', 'shared', 'src');
+
+  visitFiles(cloudSourceDir, (filePath) => {
+    if (!filePath.endsWith('.js')) {
+      return;
+    }
+
+    const source = readFileSync(filePath, 'utf8');
+    const rewritten = source.replace(/require\(["']@xiaipet\/shared(?<subpath>\/[^"']*)?["']\)/g, (...args) => {
+      const groups = args.at(-1);
+      const subpath = groups?.subpath || '/index';
+      const targetPath = path.join(sharedSourceDir, `${subpath.slice(1)}.js`);
+      let relativePath = path.relative(path.dirname(filePath), targetPath).replaceAll(path.sep, '/');
+
+      if (!relativePath.startsWith('.')) {
+        relativePath = `./${relativePath}`;
+      }
+
+      return `require('${relativePath}')`;
+    });
+
+    if (rewritten !== source) {
+      writeFileSync(filePath, rewritten, 'utf8');
+    }
+  });
+}
+
+function buildFunctionPackage(definition, compiledFunctionsDir, cloudPackage) {
   const entryRequirePath = `./cloud/${path
     .join('apps', 'cloud-functions', definition.source, 'index.js')
     .replaceAll(path.sep, '/')}`;
   const functionDir = path.join(functionsRoot, definition.name);
-  const sharedTargetDir = path.join(functionDir, 'node_modules', '@xiaipet', 'shared');
+  const wxServerSdkVersion = cloudPackage.dependencies?.['wx-server-sdk'] || '^3.0.4';
 
   ensureDir(functionDir);
-  ensureDir(path.dirname(sharedTargetDir));
 
   cpSync(compiledFunctionsDir, path.join(functionDir, 'cloud'), { recursive: true });
-  cpSync(compiledSharedDir, sharedTargetDir, { recursive: true });
-  removeCompiledTests(sharedTargetDir);
 
   writeFileSync(
     path.join(functionDir, 'index.js'),
@@ -79,13 +104,10 @@ function buildFunctionPackage(definition, compiledFunctionsDir, compiledSharedDi
   writeJson(path.join(functionDir, 'package.json'), {
     name: `xiaipet-cloud-${definition.name}`,
     private: true,
-    main: 'index.js'
-  });
-
-  writeJson(path.join(sharedTargetDir, 'package.json'), {
-    name: '@xiaipet/shared',
-    private: true,
-    main: 'index.js'
+    main: 'index.js',
+    dependencies: {
+      'wx-server-sdk': wxServerSdkVersion
+    }
   });
 }
 
@@ -100,15 +122,15 @@ writeJson(path.join(functionsRoot, 'package.json'), {
   private: true
 });
 
-const compiledSharedDir = path.join(buildRoot, 'shared');
 const compiledFunctionsDir = path.join(buildRoot, 'cloud');
+const cloudPackage = JSON.parse(readFileSync(packagePath, 'utf8'));
 
-compileTypescript(path.join(repoRoot, 'packages', 'shared', 'tsconfig.json'), compiledSharedDir);
 compileTypescript(path.join(cloudFunctionsDir, 'tsconfig.json'), compiledFunctionsDir);
+rewriteSharedImports(compiledFunctionsDir);
 
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 for (const definition of manifest.functions) {
-  buildFunctionPackage(definition, compiledFunctionsDir, compiledSharedDir);
+  buildFunctionPackage(definition, compiledFunctionsDir, cloudPackage);
 }
 
 writeFileSync(

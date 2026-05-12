@@ -11,5 +11,8 @@
     "lint": "echo 'cloud-functions lint: not configured'",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "wx-server-sdk": "^3.0.4"
   }
 }
