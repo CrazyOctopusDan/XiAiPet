@@ -6,6 +6,7 @@
 - 正式环境 API 域名为 `https://api.xiaipet.vip`；开发环境可通过小程序服务层的显式 override 指向本地或联调地址，不提交真实 ECS IP、RDS 账号、OSS 密钥或其他 secrets。
 - CloudBase function calls are not part of the target architecture。迁移后的登录、目录、运行配置、下单、支付同步、订单、商户权限、商户订单、商品管理、用户余额、运行配置管理和小票打印调用都不应再回到 `wx.cloud.callFunction`。
 - Phase 11 OSS 会接管商品图片、Banner 和其他对象资源上传/访问。Phase 10 不保留 CloudBase 存储作为隐藏后端依赖；上传能力在 OSS 接入前应显式不可用或走后端签名上传方案。
+- Phase 12 客户端与商户端小程序回归以 `docs/release/miniapp-regression.md` 为 source of truth；该清单同时记录自动化测试命令、手工验证步骤、ICP/legal-domain gate 和 real WeChat Pay gate。
 - 旧 CloudBase 后端代码可以在 Phase 10 HTTP 迁移和 Phase 11 OSS 迁移都验证通过后删除；删除前只保留为历史回滚参考，不作为发布链路的一部分。
 
 ## 环境约束

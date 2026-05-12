@@ -2,6 +2,23 @@
 
 This checklist is the Phase 12 manual regression source for the customer and merchant mini programs after the HTTP API and OSS migration. Run the automated references first, then use designated test users, test orders and non-production payment paths for manual checks.
 
+## Automated Regression Commands
+
+Run these before manual WeChat DevTools regression:
+
+```bash
+pnpm --filter @xiaipet/customer-miniapp test
+pnpm --filter @xiaipet/merchant-miniapp test
+pnpm --filter @xiaipet/api test
+```
+
+Passing automated tests are necessary but not sufficient for production cutover. Manual customer and merchant regression still needs WeChat DevTools, the intended API base URL, seeded test users and designated test orders.
+
+## Known Production Blockers
+
+- ICP/legal-domain approval is still pending. Production mini program release remains blocked until `https://api.xiaipet.vip` and the OSS asset domain can be configured and verified as WeChat legal domains.
+- real WeChat Pay production verification is blocked until the customer miniapp subject/payment activation is complete and API v3 key, merchant certificate/private key handling, and payment callback verification for `https://api.xiaipet.vip` are ready.
+
 ## Customer Mini Program Regression
 
 | Workflow | Automated reference | Manual steps | Expected result | Status |
