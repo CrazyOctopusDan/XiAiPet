@@ -162,6 +162,30 @@ cd /opt/xiaipet/repo
 docker compose up -d --build api
 ```
 
+## Local Smoke Checklist
+
+Run these checks from the repository root before copying changes to ECS or rebuilding the production container.
+
+| Check | Command | Expected pass result |
+|-------|---------|----------------------|
+| API type safety | `pnpm --filter @xiaipet/api typecheck` | Command exits 0 with no TypeScript errors. |
+| API regression tests | `pnpm --filter @xiaipet/api test` | Vitest exits 0. Any failing auth, order, payment, OSS or health test blocks deployment. |
+| API production build | `pnpm --filter @xiaipet/api build` | Command exits 0 and refreshes `apps/api/dist` without emitting secrets or environment values. |
+
+Do not run production write/payment tests from the local checklist. Real payment callback checks remain payment blocked until the WeChat Pay subject, API v3 key, merchant certificates and callback URL are configured with safe test data.
+
+## ECS Post-Deploy Smoke Checklist
+
+Run these checks on ECS after `docker compose up -d --build api`. Default smoke checks must be read-only: health, logs, process state and Nginx config. Do not create production orders, alter balances or trigger payment unless a separate manual test window and safe test data are prepared.
+
+| Check | Command | Expected pass result |
+|-------|---------|----------------------|
+| Container state | `docker compose ps` | The `api` service is `running` or `healthy`, maps `0.0.0.0:3000->3000/tcp`, and is not restarting. |
+| Recent API logs | `docker compose logs api --tail=100` | No uncaught exception, Prisma migration error, missing env error, secret value, request header dump, RDS password, OSS AccessKeySecret or WeChat AppSecret appears. |
+| Local health endpoint | `curl http://127.0.0.1:3000/health` | Returns JSON containing `"ok":true`, `"service":"xiaipet-api"` and `uptimeSeconds`; response has no secret fields. |
+| Public HTTPS health endpoint | `curl https://api.xiaipet.vip/health` | After ICP, DNS and HTTPS are complete, returns the same safe health JSON as local health. While ICP is pending, this check is expected to remain blocked for production release. |
+| Nginx config syntax | `nginx -t` | Prints syntax/test success and exits 0 before any `systemctl reload nginx`. |
+
 ## Health Check
 
 Check container status:
