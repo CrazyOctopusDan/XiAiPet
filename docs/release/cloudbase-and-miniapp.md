@@ -9,6 +9,23 @@
 - Phase 12 客户端与商户端小程序回归以 `docs/release/miniapp-regression.md` 为 source of truth；该清单同时记录自动化测试命令、手工验证步骤、ICP/legal-domain gate 和 real WeChat Pay gate。
 - 旧 CloudBase 后端代码可以在 Phase 10 HTTP 迁移和 Phase 11 OSS 迁移都验证通过后删除；删除前只保留为历史回滚参考，不作为发布链路的一部分。
 
+## CloudBase Backend Retirement Gate
+
+CloudBase backend dependency can be marked retired only after the production cutover gate in `docs/release/production-cutover.md` is satisfied. Source deletion remains a separate cleanup action after the rollback boundary is safe.
+
+Required evidence:
+
+- API HTTPS health pass: `curl https://api.xiaipet.vip/health` returns the safe health JSON from the independent API service.
+- RDS migration and verification pass: `pnpm --filter @xiaipet/api db:migrate:deploy` and `pnpm --filter @xiaipet/api db:verify` complete after RDS backup confirmation.
+- OSS upload and display pass: merchant upload policy, `wx.uploadFile`, upload confirmation and customer/merchant image rendering work through `xiaipet-assets-prod`.
+- customer regression pass according to `docs/release/miniapp-regression.md`.
+- merchant regression pass according to `docs/release/miniapp-regression.md`.
+- Security hardening tests pass, including separate customer/merchant WeChat credentials, merchant authorization boundaries and safe health diagnostics.
+- WeChat legal domains are configured after ICP approval for `https://api.xiaipet.vip` and the OSS asset domain.
+- payment gate is either passed with customer miniapp subject/payment activation, API v3 key, cert/private key handling and callback verification complete, or explicitly blocked from production payment launch.
+
+Current production status: `api.xiaipet.vip` DNS points to ECS, but ICP/legal-domain approval is still pending. Real WeChat Pay is blocked until customer miniapp subject/payment activation plus API v3 key, certificate/private key handling and callback verification are ready. Do not claim CloudBase backend dependency retirement for production payment or legal-domain readiness until those gates pass.
+
 ## 环境约束
 
 - CloudBase 只使用 `dev` 和 `prod` 两套环境。

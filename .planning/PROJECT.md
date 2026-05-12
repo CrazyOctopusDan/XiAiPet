@@ -74,14 +74,16 @@ XiAiPet 是一个围绕宠物烘焙商品销售与履约的双端微信小程序
 | 后端从 Tencent CloudBase 云函数迁移到 `apps/api` 统一独立 Node.js API | 用户已开通阿里云 ECS/RDS/OSS，并明确不再依赖腾讯云后端 | ✓ Good |
 | 后端不拆分客户端项目和商户端项目 | 双端共享同一套身份、商品、订单、余额、配置和存储边界，按端拆分会增加重复逻辑和部署复杂度 | ✓ Good |
 | 使用 Fastify + Prisma + MySQL 8 作为后端核心栈 | Fastify 轻量且适合 TypeScript API；Prisma 适合管理 MySQL schema、迁移和事务访问 | ✓ Good |
-| 使用 Docker Compose 单机部署，而不是 Kubernetes 或裸 PM2 | 用户没有运维经验，Compose 更容易形成可复制部署、日志和回滚流程 | — Pending |
-| RDS MySQL 8 成为订单、余额、库存和支付状态的可信数据源 | 这些数据需要事务、一致性和可审计性，不能继续依赖前端或分散存储 | — Pending |
-| OSS 使用后端签名或受控上传/访问路径 | 小程序端不能持有长期 OSS 凭证，图片资源也要能受控迁移和审计 | — Pending |
-| 正式 API 域名使用 `https://api.xiaipet.vip` | 微信小程序正式请求需要 HTTPS 合法域名，用户域名 `xiaipet.vip` 正在备案 | — Pending |
+| 使用 Docker Compose 单机部署，而不是 Kubernetes 或裸 PM2 | 用户没有运维经验，Compose 更容易形成可复制部署、日志和回滚流程 | — Pending: Phase 12 docs define the production cutover and rollback gate; ECS execution evidence is still required |
+| RDS MySQL 8 成为订单、余额、库存和支付状态的可信数据源 | 这些数据需要事务、一致性和可审计性，不能继续依赖前端或分散存储 | — Pending: Phase 12 docs define the migration/verification gate; production RDS backup and verify evidence is still required |
+| OSS 使用后端签名或受控上传/访问路径 | 小程序端不能持有长期 OSS 凭证，图片资源也要能受控迁移和审计 | — Pending: Phase 12 docs define the OSS upload/display gate; production CORS and legal-domain evidence is still required |
+| 正式 API 域名使用 `https://api.xiaipet.vip` | 微信小程序正式请求需要 HTTPS 合法域名，用户域名 `xiaipet.vip` 正在备案 | — Pending: DNS points to ECS, but ICP/legal-domain approval and production HTTPS health evidence are still required |
 | 原 “两个原生微信小程序共享一套 CloudBase 后端” 决策作废 | 平台边界已经从腾讯云后端迁移到阿里云独立服务 | ⚠️ Revisit |
 | 对订单、余额、支付、库存变更统一走受控服务端路径 | 无论后端部署在 CloudBase 还是 ECS，交易敏感写操作都必须后端托管 | ✓ Good |
 | 业务规则采用配置驱动 | 店铺位置、配送费、会员阈值、定制提示和 Banner 都来自配置，避免硬编码后难以运营调整 | ✓ Good |
 | 首发只做单店交易闭环，不做营销平台化能力 | 先验证宠物烘焙交易链路，而不是提前引入高复杂度营销系统 | ✓ Good |
+
+Phase 12 docs define the CloudBase backend retirement gate, but production legal-domain and payment blockers remain. Do not mark CloudBase backend dependency retired for production release until API HTTPS health, RDS migration/verification, OSS upload/display, customer regression, merchant regression, security tests, WeChat legal-domain setup after ICP approval and the payment gate all have recorded evidence.
 
 ## Evolution
 

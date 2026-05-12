@@ -19,6 +19,7 @@ Complete every item before production cutover:
 - [ ] Customer miniapp regression checklist passes according to `docs/release/miniapp-regression.md`.
 - [ ] Merchant miniapp regression checklist passes according to `docs/release/miniapp-regression.md`.
 - [ ] Real payment launch decision is recorded: either WeChat Pay production activation, API v3 key, merchant cert/private key handling and callback verification are complete, or production payment launch is explicitly blocked while non-payment cutover work continues.
+- [ ] CloudBase Backend Retirement Gate is satisfied according to `docs/release/cloudbase-and-miniapp.md`.
 
 ## Deploy
 
@@ -81,6 +82,21 @@ After rollback, repeat the `## Verify` checks and inspect API logs before sendin
 Do not run prisma migrate reset against RDS.
 
 RDS rollback is a separate manual decision only if forward fixes cannot recover the system. Prefer forward migrations, targeted data correction scripts with audit records, or application rollback first. If point-in-time restore or backup restore is required, stop cutover, name the exact backup/restore target, preserve the current RDS instance for forensic review where possible, and get explicit operator approval before changing production data.
+
+## CloudBase Backend Retirement Gate
+
+CloudBase backend dependency is retired only after these checks pass. Deleting old CloudBase source remains a separate cleanup action after rollback risk is acceptable.
+
+- API HTTPS health pass: `curl https://api.xiaipet.vip/health` returns safe health JSON from the independent API.
+- RDS migration and verification pass after backup confirmation.
+- OSS upload and display pass for merchant upload and customer/merchant image rendering.
+- customer regression pass.
+- merchant regression pass.
+- Security hardening tests pass for auth separation, merchant authorization and safe diagnostics.
+- WeChat legal domains are configured after ICP approval.
+- payment gate is either passed for real WeChat Pay production launch or explicitly blocked from production payment launch.
+
+Current status: DNS for `api.xiaipet.vip` points to ECS, but ICP/legal-domain approval is still pending. Real WeChat Pay remains blocked until the customer miniapp subject/payment activation, API v3 key, cert/private key handling and callback verification are ready.
 
 ## No-Go Criteria
 
