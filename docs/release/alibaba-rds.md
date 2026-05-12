@@ -50,6 +50,7 @@ Development reset commands are only for disposable local databases.
 ## Production Migration Commands
 
 Never run prisma migrate reset against RDS.
+Destructive production RDS resets are prohibited; use verified backups, forward fixes or an explicit point-in-time restore plan instead.
 
 On ECS or CI, run:
 
