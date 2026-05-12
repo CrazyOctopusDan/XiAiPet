@@ -20,13 +20,21 @@ DATABASE_URL=mysql://xiaipet:xiaipet_local_password@127.0.0.1:3307/xiaipet_dev
 
 ## RDS Connection String
 
-Use a placeholder shape like this in ECS environment files:
+Production RDS is confirmed as:
+
+| Field | Value |
+|-------|-------|
+| Internal endpoint | `rm-bp15i4u17t16iwk4t.mysql.rds.aliyuncs.com:3306` |
+| Database | `xiaipet_db` |
+| Application account | `XiAiPet_db` |
+
+Use this placeholder shape in ECS environment files:
 
 ```bash
-DATABASE_URL=mysql://<user>:<password>@<rds-host>:3306/<database>?sslaccept=strict
+DATABASE_URL=mysql://XiAiPet_db:<RDS_PASSWORD>@rm-bp15i4u17t16iwk4t.mysql.rds.aliyuncs.com:3306/xiaipet_db?sslaccept=strict
 ```
 
-Use an application database user, not the RDS root account. Keep the real password and host out of git.
+Use the application database user, not the RDS root account. Keep the real password out of git and server chat logs.
 
 ## Development Commands
 
@@ -52,6 +60,24 @@ pnpm --filter @xiaipet/api db:verify
 ```
 
 Run seed/import commands against RDS only when intentionally bootstrapping a new environment.
+
+## Production RDS Smoke Gate
+
+Before running production migrations or data verification:
+
+1. Confirm RDS automatic backups are enabled for `rm-bp15i4u17t16iwk4t.mysql.rds.aliyuncs.com:3306`.
+2. Confirm the latest automatic backup completed successfully after the most recent production data change.
+3. Confirm the operator has the current `<RDS_PASSWORD>` from the secret manager or ECS-only `.env.production`, not from git.
+4. Confirm the command target prints `xiaipet_db` and account `XiAiPet_db` before proceeding.
+
+Then run only the non-destructive production commands:
+
+```bash
+pnpm --filter @xiaipet/api db:migrate:deploy
+pnpm --filter @xiaipet/api db:verify
+```
+
+Expected pass result: Prisma reports migrations applied or already in sync, and `db:verify` exits 0 without modifying orders, balances, ledger rows, inventory or payment status. If verification fails, stop API cutover and inspect the report. Do not reset the RDS schema.
 
 ## Backup Expectations
 
