@@ -17,8 +17,10 @@ export const testConfig: ApiConfig = {
   ossAccessKeyId: 'test-oss-key-id',
   ossAccessKeySecret: 'test-oss-key-secret',
   ossUploadPolicyTtlSeconds: 900,
-  wechatAppId: 'test-app-id',
-  wechatAppSecret: 'test-app-secret'
+  customerWechatAppId: 'test-customer-app-id',
+  customerWechatAppSecret: 'test-customer-app-secret',
+  merchantWechatAppId: 'test-merchant-app-id',
+  merchantWechatAppSecret: 'test-merchant-app-secret'
 };
 
 export function authHeader(openid = 'customer-openid') {

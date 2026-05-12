@@ -8,7 +8,7 @@ describe('auth and identity routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        wechatLoginProvider: {
+        customerWechatLoginProvider: {
           exchangeLoginCode: async () => ({ openid: 'openid-login' })
         }
       }
@@ -23,6 +23,40 @@ describe('auth and identity routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ ok: true, openid: 'openid-login' });
     expect(response.json().token).toEqual(expect.any(String));
+  });
+
+  it('uses separate customer and merchant WeChat login providers', async () => {
+    const customerExchangeLoginCode = vi.fn(async () => ({ openid: 'customer-provider-openid' }));
+    const merchantExchangeLoginCode = vi.fn(async () => ({ openid: 'merchant-provider-openid' }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        customerWechatLoginProvider: {
+          exchangeLoginCode: customerExchangeLoginCode
+        },
+        merchantWechatLoginProvider: {
+          exchangeLoginCode: merchantExchangeLoginCode
+        }
+      }
+    });
+
+    const customerResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/customer/auth/login',
+      payload: { code: 'customer-wx-code' }
+    });
+    const merchantResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/merchant/auth/login',
+      payload: { code: 'merchant-wx-code' }
+    });
+
+    expect(customerResponse.statusCode).toBe(200);
+    expect(customerResponse.json()).toMatchObject({ ok: true, openid: 'customer-provider-openid' });
+    expect(merchantResponse.statusCode).toBe(200);
+    expect(merchantResponse.json()).toMatchObject({ ok: true, openid: 'merchant-provider-openid' });
+    expect(customerExchangeLoginCode).toHaveBeenCalledWith('customer-wx-code');
+    expect(merchantExchangeLoginCode).toHaveBeenCalledWith('merchant-wx-code');
   });
 
   it('rejects missing customer session', async () => {

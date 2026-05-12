@@ -67,13 +67,15 @@ export interface ApiRouteServices {
 
 export interface ApiRouteDependencies extends ApiRouteServices {
   config: ApiConfig;
-  wechatLoginProvider: WechatLoginProvider;
+  customerWechatLoginProvider: WechatLoginProvider;
+  merchantWechatLoginProvider: WechatLoginProvider;
   paymentProvider: PaymentProvider;
   guards: ReturnType<typeof createAuthGuards>;
 }
 
 export type ApiRouteDependencyOverrides = Partial<ApiRouteServices> & {
-  wechatLoginProvider?: WechatLoginProvider;
+  customerWechatLoginProvider?: WechatLoginProvider;
+  merchantWechatLoginProvider?: WechatLoginProvider;
   paymentProvider?: PaymentProvider;
   merchantAccessService?: MerchantAccessService;
 };
@@ -90,9 +92,13 @@ export function createApiRouteDependencies(
 
   return {
     config,
-    wechatLoginProvider: overrides.wechatLoginProvider ?? createWechatLoginProvider({
-      appId: config.wechatAppId,
-      appSecret: config.wechatAppSecret
+    customerWechatLoginProvider: overrides.customerWechatLoginProvider ?? createWechatLoginProvider({
+      appId: config.customerWechatAppId,
+      appSecret: config.customerWechatAppSecret
+    }),
+    merchantWechatLoginProvider: overrides.merchantWechatLoginProvider ?? createWechatLoginProvider({
+      appId: config.merchantWechatAppId,
+      appSecret: config.merchantWechatAppSecret
     }),
     paymentProvider,
     identityService,
