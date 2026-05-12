@@ -22,6 +22,91 @@ Read `docs/release/alibaba-rds.md` before configuring `DATABASE_URL`.
 
 Alibaba Cloud Docker reference: `https://help.aliyun.com/zh/ecs/user-guide/install-and-use-docker`
 
+## Alibaba Cloud Linux 3 First-Time Setup
+
+These commands target Alibaba Cloud Linux 3.2104 on ECS. Run them as `root` or with `sudo`.
+
+```bash
+dnf makecache
+dnf install -y git docker docker-compose-plugin nginx curl socat cronie
+systemctl enable --now docker
+systemctl enable --now nginx
+systemctl enable --now crond
+docker compose version
+nginx -v
+```
+
+If `docker-compose-plugin` is not available from the enabled package repositories, install Docker using the Alibaba Cloud ECS Docker guide linked above, then re-run `docker compose version` before continuing.
+
+Create the ACME challenge webroot and Nginx TLS directory:
+
+```bash
+mkdir -p /var/www/acme/.well-known/acme-challenge
+mkdir -p /etc/nginx/ssl/api.xiaipet.vip
+chown -R nginx:nginx /var/www/acme
+chmod 755 /var/www/acme
+```
+
+Create `/etc/nginx/conf.d/api.xiaipet.vip.conf`:
+
+```nginx
+server {
+    listen 80;
+    server_name api.xiaipet.vip;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/acme;
+        default_type "text/plain";
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name api.xiaipet.vip;
+
+    ssl_certificate /etc/nginx/ssl/api.xiaipet.vip/fullchain.cer;
+    ssl_certificate_key /etc/nginx/ssl/api.xiaipet.vip/api.xiaipet.vip.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Before the first certificate exists, keep only the port 80 server block enabled or temporarily comment out the 443 server block, then test and reload Nginx:
+
+```bash
+nginx -t
+systemctl reload nginx
+```
+
+Install `acme.sh`, issue the `api.xiaipet.vip` certificate with webroot mode, and install the certificate files into the stable Nginx path:
+
+```bash
+curl https://get.acme.sh | sh -s email=<operator email>
+~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+~/.acme.sh/acme.sh --issue -d api.xiaipet.vip -w /var/www/acme
+~/.acme.sh/acme.sh --install-cert -d api.xiaipet.vip \
+  --fullchain-file /etc/nginx/ssl/api.xiaipet.vip/fullchain.cer \
+  --key-file /etc/nginx/ssl/api.xiaipet.vip/api.xiaipet.vip.key \
+  --reloadcmd "systemctl reload nginx"
+nginx -t
+systemctl reload nginx
+```
+
+The `api.xiaipet.vip` DNS A record already points to ECS public IP `118.178.173.241`; certificate issuance still requires ports 80 and 443 to be reachable from the public internet.
+
 ## Directory Layout
 
 Recommended server layout:
