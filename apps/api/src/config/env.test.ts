@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { loadApiConfig } from './env';
 
+const PROD_SESSION_SECRET = 'prod-session-secret-with-32-plus-bytes';
+
 describe('loadApiConfig', () => {
   it('returns safe defaults for local development', () => {
     expect(loadApiConfig({
@@ -45,7 +47,7 @@ describe('loadApiConfig', () => {
         LOG_LEVEL: 'warn',
         API_PUBLIC_BASE_URL: 'https://api.xiaipet.vip',
         DATABASE_URL: 'mysql://api_user:secret@rm-test.mysql.rds.aliyuncs.com:3306/xiaipet',
-        API_SESSION_SECRET: 'prod-session-secret',
+        API_SESSION_SECRET: PROD_SESSION_SECRET,
         API_SESSION_TTL_SECONDS: '3600',
         OSS_REGION: 'oss-cn-hangzhou',
         OSS_BUCKET: 'xiaipet-assets',
@@ -66,7 +68,7 @@ describe('loadApiConfig', () => {
       logLevel: 'warn',
       publicBaseUrl: 'https://api.xiaipet.vip',
       databaseUrl: 'mysql://api_user:secret@rm-test.mysql.rds.aliyuncs.com:3306/xiaipet',
-      sessionSecret: 'prod-session-secret',
+      sessionSecret: PROD_SESSION_SECRET,
       sessionTtlSeconds: 3600,
       ossRegion: 'oss-cn-hangzhou',
       ossBucket: 'xiaipet-assets',
@@ -120,31 +122,93 @@ describe('loadApiConfig', () => {
     ).toThrow('Invalid LOG_LEVEL');
   });
 
-  it('rejects missing OSS secrets outside tests', () => {
+  it('rejects placeholder secrets outside tests', () => {
     expect(() =>
       loadApiConfig({
         NODE_ENV: 'production',
         DATABASE_URL: 'mysql://xiaipet:secret@127.0.0.1:3307/xiaipet_dev',
-        API_SESSION_SECRET: 'secret',
+        API_SESSION_SECRET: '<session secret 32+ bytes>',
+        OSS_REGION: 'oss-cn-hangzhou',
+        OSS_BUCKET: 'xiaipet-assets',
+        OSS_ENDPOINT: 'oss-cn-hangzhou.aliyuncs.com',
+        OSS_PUBLIC_BASE_URL: 'https://xiaipet-assets.oss-cn-hangzhou.aliyuncs.com',
+        OSS_ACCESS_KEY_ID: 'oss-id',
+        OSS_ACCESS_KEY_SECRET: 'oss-secret',
         CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
         CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
         MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
         MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret'
       })
-    ).toThrow('Invalid OSS_ACCESS_KEY_ID: expected a non-empty value');
+    ).toThrow('Invalid API_SESSION_SECRET: expected a real non-placeholder value');
+  });
 
+  it('rejects weak production session secrets', () => {
     expect(() =>
       loadApiConfig({
         NODE_ENV: 'production',
         DATABASE_URL: 'mysql://xiaipet:secret@127.0.0.1:3307/xiaipet_dev',
         API_SESSION_SECRET: 'secret',
+        OSS_REGION: 'oss-cn-hangzhou',
+        OSS_BUCKET: 'xiaipet-assets',
+        OSS_ENDPOINT: 'oss-cn-hangzhou.aliyuncs.com',
+        OSS_PUBLIC_BASE_URL: 'https://xiaipet-assets.oss-cn-hangzhou.aliyuncs.com',
+        OSS_ACCESS_KEY_ID: 'oss-id',
+        OSS_ACCESS_KEY_SECRET: 'oss-secret',
+        CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret'
+      })
+    ).toThrow('Invalid API_SESSION_SECRET: expected at least 32 bytes in production');
+  });
+
+  it('rejects missing production OSS routing values', () => {
+    expect(() =>
+      loadApiConfig({
+        NODE_ENV: 'production',
+        DATABASE_URL: 'mysql://xiaipet:secret@127.0.0.1:3307/xiaipet_dev',
+        API_SESSION_SECRET: PROD_SESSION_SECRET,
+        CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret'
+      })
+    ).toThrow('Invalid OSS_REGION: expected a real non-placeholder value');
+  });
+
+  it('rejects missing OSS secrets outside tests', () => {
+    expect(() =>
+      loadApiConfig({
+        NODE_ENV: 'production',
+        DATABASE_URL: 'mysql://xiaipet:secret@127.0.0.1:3307/xiaipet_dev',
+        API_SESSION_SECRET: PROD_SESSION_SECRET,
+        OSS_REGION: 'oss-cn-hangzhou',
+        OSS_BUCKET: 'xiaipet-assets',
+        OSS_ENDPOINT: 'oss-cn-hangzhou.aliyuncs.com',
+        OSS_PUBLIC_BASE_URL: 'https://xiaipet-assets.oss-cn-hangzhou.aliyuncs.com',
+        CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret'
+      })
+    ).toThrow('Invalid OSS_ACCESS_KEY_ID: expected a real non-placeholder value');
+
+    expect(() =>
+      loadApiConfig({
+        NODE_ENV: 'production',
+        DATABASE_URL: 'mysql://xiaipet:secret@127.0.0.1:3307/xiaipet_dev',
+        API_SESSION_SECRET: PROD_SESSION_SECRET,
+        OSS_REGION: 'oss-cn-hangzhou',
+        OSS_BUCKET: 'xiaipet-assets',
+        OSS_ENDPOINT: 'oss-cn-hangzhou.aliyuncs.com',
+        OSS_PUBLIC_BASE_URL: 'https://xiaipet-assets.oss-cn-hangzhou.aliyuncs.com',
         OSS_ACCESS_KEY_ID: 'oss-id',
         CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
         CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
         MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
         MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret'
       })
-    ).toThrow('Invalid OSS_ACCESS_KEY_SECRET: expected a non-empty value');
+    ).toThrow('Invalid OSS_ACCESS_KEY_SECRET: expected a real non-placeholder value');
   });
 
   it('rejects missing or non-MySQL database urls outside tests', () => {

@@ -8,7 +8,7 @@ export async function merchantAccessRoutes(
 ) {
   const { dependencies } = options;
 
-  app.get('/access', { preHandler: dependencies.guards.requireCustomerSession }, async (request) => {
+  app.get('/access', { preHandler: dependencies.guards.requireMerchantSession }, async (request) => {
     return dependencies.identityService.assertMerchantAccess(request.auth?.openid ?? '');
   });
 }

@@ -145,7 +145,7 @@ describe('auth and identity routes', () => {
     const accessResponse = await allowedApp.inject({
       method: 'GET',
       url: '/api/v1/merchant/access',
-      headers: authHeader('merchant-openid')
+      headers: authHeader('merchant-openid', 'merchant')
     });
     expect(accessResponse.json()).toMatchObject({ ok: true, status: 'allowed', allowed: true });
 
@@ -173,9 +173,41 @@ describe('auth and identity routes', () => {
     const deniedResponse = await deniedApp.inject({
       method: 'GET',
       url: '/api/v1/merchant/orders',
-      headers: authHeader('not-merchant')
+      headers: authHeader('not-merchant', 'merchant')
     });
     expect(deniedResponse.statusCode).toBe(403);
     expect(queryMerchantOrders).not.toHaveBeenCalled();
+  });
+
+  it('rejects customer tokens on merchant routes and merchant tokens on customer routes', async () => {
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        identityService: {
+          bootstrapUser: async () => ({ ok: true }),
+          bindPhone: async () => ({ ok: true }),
+          assertMerchantAccess: async () => ({
+            ok: true,
+            status: 'allowed',
+            allowed: true,
+            merchant: { merchantId: 'm1', storeName: 'store' }
+          })
+        }
+      }
+    });
+
+    const merchantWithCustomerToken = await app.inject({
+      method: 'GET',
+      url: '/api/v1/merchant/access',
+      headers: authHeader('merchant-openid', 'customer')
+    });
+    expect(merchantWithCustomerToken.statusCode).toBe(401);
+
+    const customerWithMerchantToken = await app.inject({
+      method: 'POST',
+      url: '/api/v1/customer/bootstrap',
+      headers: authHeader('customer-openid', 'merchant')
+    });
+    expect(customerWithMerchantToken.statusCode).toBe(401);
   });
 });

@@ -18,7 +18,7 @@ export async function merchantAuthRoutes(
 
     const login = await dependencies.merchantWechatLoginProvider.exchangeLoginCode(body.code);
     const token = createSessionToken(
-      { openid: login.openid, unionid: login.unionid },
+      { openid: login.openid, unionid: login.unionid, audience: 'merchant' },
       dependencies.config.sessionSecret,
       dependencies.config.sessionTtlSeconds
     );

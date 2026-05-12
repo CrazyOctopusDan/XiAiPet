@@ -2,7 +2,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { ApiError } from '../../lib/errors';
 import { verifySessionToken } from './session';
-import type { AuthenticatedRequest, MerchantAccessService } from './types';
+import type { AuthSessionAudience, AuthenticatedRequest, MerchantAccessService } from './types';
 
 export interface AuthGuardDependencies {
   sessionSecret: string;
@@ -18,18 +18,23 @@ function readBearerToken(request: FastifyRequest): string {
 }
 
 export function createAuthGuards(dependencies: AuthGuardDependencies) {
-  async function requireCustomerSession(request: FastifyRequest, _reply: FastifyReply) {
-    const payload = verifySessionToken(readBearerToken(request), dependencies.sessionSecret);
+  function authenticateSession(request: FastifyRequest, audience: AuthSessionAudience) {
+    const payload = verifySessionToken(readBearerToken(request), dependencies.sessionSecret, undefined, audience);
     const authenticated = request as AuthenticatedRequest;
     authenticated.auth = {
       openid: payload.openid,
-      unionid: payload.unionid
+      unionid: payload.unionid,
+      audience: payload.audience
     };
+    return authenticated;
   }
 
-  async function requireMerchantSession(request: FastifyRequest, reply: FastifyReply) {
-    await requireCustomerSession(request, reply);
-    const authenticated = request as AuthenticatedRequest;
+  async function requireCustomerSession(request: FastifyRequest, _reply: FastifyReply) {
+    authenticateSession(request, 'customer');
+  }
+
+  async function requireMerchantSession(request: FastifyRequest, _reply: FastifyReply) {
+    const authenticated = authenticateSession(request, 'merchant');
     const openid = authenticated.auth?.openid;
     if (!openid) {
       throw new ApiError('UNAUTHORIZED', 'Missing session', 401);

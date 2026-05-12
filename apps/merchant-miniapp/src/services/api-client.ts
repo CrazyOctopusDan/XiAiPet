@@ -3,7 +3,7 @@ import { getMerchantApiBaseUrl } from './api-config';
 declare const wx: any;
 
 export type MerchantApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-export type MerchantApiAuthMode = 'none' | 'customer' | 'merchant';
+export type MerchantApiAuthMode = 'none' | 'merchant';
 
 export interface MerchantApiRequestOptions {
   method?: MerchantApiMethod;
@@ -242,6 +242,9 @@ export async function merchantApiRequest<T>(
   options: MerchantApiRequestOptions = {}
 ): Promise<T> {
   const authMode = options.auth ?? 'merchant';
+  if (authMode !== 'none' && authMode !== 'merchant') {
+    throw new MerchantApiError('INVALID_AUTH_MODE', 'Merchant API requests only support merchant auth', 400);
+  }
   const session = authMode === 'none' ? null : await ensureMerchantSession();
 
   try {

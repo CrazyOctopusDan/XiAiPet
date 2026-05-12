@@ -41,7 +41,7 @@ describe('merchant admin routes', () => {
       }
     });
 
-    const headers = authHeader('merchant');
+    const headers = authHeader('merchant', 'merchant');
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/categories', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'PUT', url: '/api/v1/merchant/categories/cat-1', headers, payload: { name: 'Cat', iconToken: 'C' } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'DELETE', url: '/api/v1/merchant/categories/cat-1', headers })).statusCode).toBe(200);
@@ -80,7 +80,7 @@ describe('merchant admin routes', () => {
       }
     });
 
-    const response = await app.inject({ method: 'GET', url: '/api/v1/merchant/products', headers: authHeader('denied') });
+    const response = await app.inject({ method: 'GET', url: '/api/v1/merchant/products', headers: authHeader('denied', 'merchant') });
     expect(response.statusCode).toBe(403);
     expect(queryMerchantProducts).not.toHaveBeenCalled();
   });

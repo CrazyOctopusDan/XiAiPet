@@ -1,8 +1,11 @@
 import type { FastifyRequest } from 'fastify';
 
+export type AuthSessionAudience = 'customer' | 'merchant';
+
 export interface AuthSessionPayload {
   openid: string;
   unionid?: string;
+  audience: AuthSessionAudience;
   issuedAt: number;
   expiresAt: number;
 }
@@ -10,6 +13,7 @@ export interface AuthSessionPayload {
 export interface AuthContext {
   openid: string;
   unionid?: string;
+  audience: AuthSessionAudience;
 }
 
 export interface MerchantContext {

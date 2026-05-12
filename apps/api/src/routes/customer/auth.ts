@@ -17,7 +17,7 @@ export async function customerAuthRoutes(
     }
     const login = await dependencies.customerWechatLoginProvider.exchangeLoginCode(body.code);
     const token = createSessionToken(
-      { openid: login.openid, unionid: login.unionid },
+      { openid: login.openid, unionid: login.unionid, audience: 'customer' },
       dependencies.config.sessionSecret,
       dependencies.config.sessionTtlSeconds
     );

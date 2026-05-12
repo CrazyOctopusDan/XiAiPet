@@ -36,7 +36,7 @@ describe('merchant asset routes', () => {
         assetService
       }
     });
-    const headers = authHeader('merchant');
+    const headers = authHeader('merchant', 'merchant');
 
     const policy = await app.inject({
       method: 'POST',
@@ -83,7 +83,7 @@ describe('merchant asset routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/merchant/assets/upload-policies',
-      headers: authHeader('denied'),
+      headers: authHeader('denied', 'merchant'),
       payload: { role: 'product-cover', variantName: 'display' }
     });
 

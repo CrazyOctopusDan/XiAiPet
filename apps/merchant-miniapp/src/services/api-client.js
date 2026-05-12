@@ -165,6 +165,9 @@ async function ensureMerchantSession() {
 async function merchantApiRequest(path, options = {}) {
     var _a;
     const authMode = (_a = options.auth) !== null && _a !== void 0 ? _a : 'merchant';
+    if (authMode !== 'none' && authMode !== 'merchant') {
+        throw new MerchantApiError('INVALID_AUTH_MODE', 'Merchant API requests only support merchant auth', 400);
+    }
     const session = authMode === 'none' ? null : await ensureMerchantSession();
     try {
         return await sendMerchantApiRequest(path, options, session === null || session === void 0 ? void 0 : session.token);

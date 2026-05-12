@@ -1,5 +1,6 @@
 import type { ApiConfig } from '../config/env';
 import { createSessionToken } from '../modules/auth/session';
+import type { AuthSessionAudience } from '../modules/auth/types';
 
 export const testConfig: ApiConfig = {
   nodeEnv: 'test',
@@ -23,8 +24,8 @@ export const testConfig: ApiConfig = {
   merchantWechatAppSecret: 'test-merchant-app-secret'
 };
 
-export function authHeader(openid = 'customer-openid') {
+export function authHeader(openid = 'customer-openid', audience: AuthSessionAudience = 'customer') {
   return {
-    authorization: `Bearer ${createSessionToken({ openid }, testConfig.sessionSecret, testConfig.sessionTtlSeconds)}`
+    authorization: `Bearer ${createSessionToken({ openid, audience }, testConfig.sessionSecret, testConfig.sessionTtlSeconds)}`
   };
 }

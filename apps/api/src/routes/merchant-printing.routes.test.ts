@@ -21,7 +21,7 @@ describe('merchant printing routes', () => {
       }
     });
 
-    const headers = authHeader('merchant');
+    const headers = authHeader('merchant', 'merchant');
     expect((await app.inject({ method: 'POST', url: '/api/v1/merchant/orders/order-1/receipt-print/prepare', headers, payload: {} })).statusCode).toBe(200);
     expect((await app.inject({ method: 'POST', url: '/api/v1/merchant/orders/order-1/receipt-print/result', headers, payload: { result: 'success' } })).statusCode).toBe(200);
     expect(printingService.prepareOrderReceiptPrint).toHaveBeenCalled();
@@ -45,7 +45,7 @@ describe('merchant printing routes', () => {
       }
     });
 
-    const response = await app.inject({ method: 'POST', url: '/api/v1/merchant/orders/order-1/receipt-print/prepare', headers: authHeader('denied'), payload: {} });
+    const response = await app.inject({ method: 'POST', url: '/api/v1/merchant/orders/order-1/receipt-print/prepare', headers: authHeader('denied', 'merchant'), payload: {} });
     expect(response.statusCode).toBe(403);
     expect(prepareOrderReceiptPrint).not.toHaveBeenCalled();
   });

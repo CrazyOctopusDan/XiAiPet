@@ -78,13 +78,39 @@ function parsePositiveInteger(rawValue: string | undefined, fallback: number, na
 }
 
 function parseRequiredSecret(rawValue: string | undefined, nodeEnv: string, name: string): string {
-  if (rawValue) {
-    return rawValue;
-  }
+  const value = rawValue?.trim();
   if (nodeEnv === 'test') {
-    return `test-${name.toLowerCase().replaceAll('_', '-')}`;
+    return value || `test-${name.toLowerCase().replaceAll('_', '-')}`;
   }
-  throw new Error(`Invalid ${name}: expected a non-empty value`);
+  if (!value || /^<.*>$/.test(value)) {
+    throw new Error(`Invalid ${name}: expected a real non-placeholder value`);
+  }
+  if (nodeEnv === 'production' && name === 'API_SESSION_SECRET' && Buffer.byteLength(value, 'utf8') < 32) {
+    throw new Error('Invalid API_SESSION_SECRET: expected at least 32 bytes in production');
+  }
+  return value;
+}
+
+function parseProductionRequiredValue(
+  rawValue: string | undefined,
+  nodeEnv: string,
+  testFallback: string,
+  name: string,
+  devFallback = ''
+): string {
+  const value = rawValue?.trim() || (nodeEnv === 'test' ? testFallback : nodeEnv === 'production' ? '' : devFallback);
+  if (nodeEnv === 'production' && (!value || /^<.*>$/.test(value))) {
+    throw new Error(`Invalid ${name}: expected a real non-placeholder value`);
+  }
+  return value;
+}
+
+function parseOssPublicBaseUrl(rawValue: string | undefined, nodeEnv: string): string {
+  const value = parseProductionRequiredValue(rawValue, nodeEnv, TEST_OSS_PUBLIC_BASE_URL, 'OSS_PUBLIC_BASE_URL');
+  if (nodeEnv === 'production' && !value.startsWith('https://')) {
+    throw new Error('Invalid OSS_PUBLIC_BASE_URL: expected an HTTPS URL');
+  }
+  return value;
 }
 
 export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
@@ -100,10 +126,10 @@ export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
     databaseUrl: parseDatabaseUrl(raw.DATABASE_URL, nodeEnv),
     sessionSecret: parseRequiredSecret(raw.API_SESSION_SECRET, nodeEnv, 'API_SESSION_SECRET'),
     sessionTtlSeconds: parsePositiveInteger(raw.API_SESSION_TTL_SECONDS, 60 * 60 * 24 * 14, 'API_SESSION_TTL_SECONDS'),
-    ossRegion: raw.OSS_REGION ?? (nodeEnv === 'test' ? TEST_OSS_REGION : 'oss-cn-shanghai'),
-    ossBucket: raw.OSS_BUCKET ?? (nodeEnv === 'test' ? TEST_OSS_BUCKET : ''),
-    ossEndpoint: raw.OSS_ENDPOINT ?? (nodeEnv === 'test' ? TEST_OSS_ENDPOINT : 'oss-cn-shanghai.aliyuncs.com'),
-    ossPublicBaseUrl: raw.OSS_PUBLIC_BASE_URL ?? (nodeEnv === 'test' ? TEST_OSS_PUBLIC_BASE_URL : ''),
+    ossRegion: parseProductionRequiredValue(raw.OSS_REGION, nodeEnv, TEST_OSS_REGION, 'OSS_REGION', TEST_OSS_REGION),
+    ossBucket: parseProductionRequiredValue(raw.OSS_BUCKET, nodeEnv, TEST_OSS_BUCKET, 'OSS_BUCKET'),
+    ossEndpoint: parseProductionRequiredValue(raw.OSS_ENDPOINT, nodeEnv, TEST_OSS_ENDPOINT, 'OSS_ENDPOINT', TEST_OSS_ENDPOINT),
+    ossPublicBaseUrl: parseOssPublicBaseUrl(raw.OSS_PUBLIC_BASE_URL, nodeEnv),
     ossAccessKeyId: parseRequiredSecret(raw.OSS_ACCESS_KEY_ID, nodeEnv, 'OSS_ACCESS_KEY_ID'),
     ossAccessKeySecret: parseRequiredSecret(raw.OSS_ACCESS_KEY_SECRET, nodeEnv, 'OSS_ACCESS_KEY_SECRET'),
     ossUploadPolicyTtlSeconds: parsePositiveInteger(raw.OSS_UPLOAD_POLICY_TTL_SECONDS, 900, 'OSS_UPLOAD_POLICY_TTL_SECONDS'),

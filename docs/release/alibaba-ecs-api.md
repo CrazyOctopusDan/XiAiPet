@@ -137,7 +137,7 @@ API_HOST=0.0.0.0
 API_PORT=3000
 LOG_LEVEL=info
 API_PUBLIC_BASE_URL=https://api.xiaipet.vip
-DATABASE_URL=mysql://XiAiPet_db:<RDS password>@rm-bp15i4u17t16iwk4t.mysql.rds.aliyuncs.com:3306/xiaipet_db
+DATABASE_URL=mysql://XiAiPet_db:<RDS password>@rm-bp15i4u17t16iwk4t.mysql.rds.aliyuncs.com:3306/xiaipet_db?sslaccept=strict
 API_SESSION_SECRET=<session secret 32+ bytes>
 OSS_REGION=oss-cn-hangzhou
 OSS_BUCKET=xiaipet-assets-prod
@@ -180,7 +180,7 @@ Run these checks on ECS after `docker compose up -d --build api`. Default smoke 
 
 | Check | Command | Expected pass result |
 |-------|---------|----------------------|
-| Container state | `docker compose ps` | The `api` service is `running` or `healthy`, maps `0.0.0.0:3000->3000/tcp`, and is not restarting. |
+| Container state | `docker compose ps` | The `api` service is `running` or `healthy`, maps `127.0.0.1:3000->3000/tcp`, and is not restarting. ECS inbound rules expose only SSH from trusted sources plus HTTP/HTTPS for Nginx. |
 | Recent API logs | `docker compose logs api --tail=100` | No uncaught exception, Prisma migration error, missing env error, secret value, request header dump, RDS password, OSS AccessKeySecret or WeChat AppSecret appears. |
 | Local health endpoint | `curl http://127.0.0.1:3000/health` | Returns JSON containing `"ok":true`, `"service":"xiaipet-api"` and `uptimeSeconds`; response has no secret fields. |
 | Public HTTPS health endpoint | `curl https://api.xiaipet.vip/health` | After ICP, DNS and HTTPS are complete, returns the same safe health JSON as local health. While ICP is pending, this check is expected to remain blocked for production release. |

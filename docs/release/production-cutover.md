@@ -12,6 +12,7 @@ Complete every item before production cutover:
 - [ ] RDS migration and verification pass with non-destructive commands: `pnpm --filter @xiaipet/api db:migrate:deploy` and `pnpm --filter @xiaipet/api db:verify`.
 - [ ] `apps/api/.env.production` exists on ECS under `/opt/xiaipet/repo` and contains only server-side production values for RDS, OSS, session secret, customer WeChat credentials and merchant WeChat credentials.
 - [ ] Docker, Docker Compose, Nginx and `acme.sh` are installed and verified on ECS according to `docs/release/alibaba-ecs-api.md`.
+- [ ] Docker publishes the API only on `127.0.0.1:3000`; public traffic reaches the service through Nginx HTTPS on `api.xiaipet.vip`.
 - [ ] `api.xiaipet.vip` DNS points to ECS and `curl https://api.xiaipet.vip/health` returns safe health JSON with `ok`, `service` and `uptimeSeconds`.
 - [ ] OSS bucket/CORS ready: `xiaipet-assets-prod` uses the expected Hangzhou endpoint, merchant upload policy works, `wx.uploadFile` succeeds, and customer/merchant image display works from the OSS public URL.
 - [ ] Miniapp legal domains are ready after ICP approval: `https://api.xiaipet.vip` is configured as the request legal domain, and `https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com` is configured wherever WeChat requires image/download legal domains.

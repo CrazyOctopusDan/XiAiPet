@@ -28,7 +28,7 @@ describe('merchant order routes', () => {
       }
     });
 
-    const response = await app.inject({ method: 'GET', url: '/api/v1/merchant/orders', headers: authHeader('openid-1') });
+    const response = await app.inject({ method: 'GET', url: '/api/v1/merchant/orders', headers: authHeader('openid-1', 'merchant') });
     expect(response.statusCode).toBe(403);
     expect(queryMerchantOrders).not.toHaveBeenCalled();
   });
@@ -57,9 +57,9 @@ describe('merchant order routes', () => {
       }
     });
 
-    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders', headers: authHeader('m') })).statusCode).toBe(200);
-    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders/order-1', headers: authHeader('m') })).statusCode).toBe(200);
-    expect((await app.inject({ method: 'PATCH', url: '/api/v1/merchant/orders/order-1/status', headers: authHeader('m'), payload: { status: 'paid' } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders', headers: authHeader('m', 'merchant') })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders/order-1', headers: authHeader('m', 'merchant') })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'PATCH', url: '/api/v1/merchant/orders/order-1/status', headers: authHeader('m', 'merchant'), payload: { status: 'paid' } })).statusCode).toBe(200);
     expect(orderService.queryMerchantOrders).toHaveBeenCalled();
     expect(orderService.getMerchantOrderDetail).toHaveBeenCalled();
     expect(orderService.updateMerchantOrderStatus).toHaveBeenCalled();

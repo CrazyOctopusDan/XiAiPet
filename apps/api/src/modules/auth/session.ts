@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 
 import { ApiError } from '../../lib/errors';
-import type { AuthSessionPayload } from './types';
+import type { AuthSessionAudience, AuthSessionPayload } from './types';
 
 interface TokenEnvelope {
   payload: AuthSessionPayload;
@@ -27,7 +27,7 @@ function timingSafeEqual(left: string, right: string): boolean {
 }
 
 export function createSessionToken(
-  input: { openid: string; unionid?: string },
+  input: { openid: string; unionid?: string; audience: AuthSessionAudience },
   secret: string,
   ttlSeconds: number,
   nowSeconds = Math.floor(Date.now() / 1000)
@@ -35,6 +35,7 @@ export function createSessionToken(
   const payload: AuthSessionPayload = {
     openid: input.openid,
     unionid: input.unionid,
+    audience: input.audience,
     issuedAt: nowSeconds,
     expiresAt: nowSeconds + ttlSeconds
   };
@@ -49,7 +50,8 @@ export function createSessionToken(
 export function verifySessionToken(
   token: string,
   secret: string,
-  nowSeconds = Math.floor(Date.now() / 1000)
+  nowSeconds = Math.floor(Date.now() / 1000),
+  expectedAudience?: AuthSessionAudience
 ): AuthSessionPayload {
   try {
     const [payloadPart, envelopePart] = token.split('.');
@@ -62,13 +64,19 @@ export function verifySessionToken(
     const expectedSignature = signPayload(payloadPart, secret);
     if (
       envelope.payload.openid !== payload.openid ||
+      envelope.payload.unionid !== payload.unionid ||
+      envelope.payload.audience !== payload.audience ||
+      envelope.payload.issuedAt !== payload.issuedAt ||
       envelope.payload.expiresAt !== payload.expiresAt ||
       !timingSafeEqual(envelope.signature, expectedSignature)
     ) {
       throw new Error('invalid');
     }
-    if (!payload.openid || payload.expiresAt <= nowSeconds) {
+    if (!payload.openid || !payload.audience || payload.expiresAt <= nowSeconds) {
       throw new Error('expired');
+    }
+    if (expectedAudience && payload.audience !== expectedAudience) {
+      throw new Error('wrong audience');
     }
     return payload;
   } catch {

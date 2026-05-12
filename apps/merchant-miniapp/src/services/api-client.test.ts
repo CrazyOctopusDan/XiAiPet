@@ -113,6 +113,19 @@ describe('merchant API client', () => {
     } satisfies Partial<MerchantApiError>);
   });
 
+  it('rejects unsupported auth modes', async () => {
+    await expect(
+      merchantApiRequest('/api/v1/merchant/access', {
+        auth: 'customer' as never
+      })
+    ).rejects.toMatchObject({
+      code: 'INVALID_AUTH_MODE',
+      statusCode: 400
+    } satisfies Partial<MerchantApiError>);
+    expect(loginMock).not.toHaveBeenCalled();
+    expect(requestMock).not.toHaveBeenCalled();
+  });
+
   it('re-logins and retries once after a 401 response', async () => {
     storage.set(MERCHANT_SESSION_STORAGE_KEY, {
       token: 'expired-token',
