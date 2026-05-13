@@ -31,7 +31,7 @@ Page({
   data: {
     username: 'admin',
     password: '',
-    statusText: '请输入商户账号和密码',
+    statusText: '首次登录后需要修改密码',
     accessResult: 'unknown',
     submitting: false
   },
@@ -53,7 +53,7 @@ Page({
       return;
     }
 
-    this.setData({ statusText: '正在登录商户账号', submitting: true });
+    this.setData({ statusText: '正在登录', submitting: true });
 
     try {
       const session = await merchantLogin({ username, password });
