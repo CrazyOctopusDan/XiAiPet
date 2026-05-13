@@ -1,7 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import { loadApiConfig } from './config/env';
-import { toErrorResponse } from './lib/errors';
+import { ApiError, toErrorResponse } from './lib/errors';
 import { createLoggerOptions } from './lib/logger';
 import { createApiRouteDependencies, type ApiRouteDependencyOverrides } from './routes/dependencies';
 import { apiV1Routes } from './routes/api-v1';
@@ -19,7 +19,10 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     logger: createLoggerOptions(config)
   });
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
+    if (!(error instanceof ApiError)) {
+      request.log.error({ err: error }, 'api request failed');
+    }
     const response = toErrorResponse(error);
     reply.status(response.statusCode).send(response.body);
   });
