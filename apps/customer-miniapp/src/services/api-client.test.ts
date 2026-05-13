@@ -92,8 +92,10 @@ describe('customer API client', () => {
       2,
       expect.objectContaining({
         url: 'http://118.178.173.241/api/v1/customer/bootstrap',
+        data: {},
         header: expect.objectContaining({
-          Authorization: 'Bearer customer-token'
+          Authorization: 'Bearer customer-token',
+          'content-type': 'application/json'
         })
       })
     );

@@ -89,10 +89,46 @@ describe('merchant API client', () => {
         })
       })
     );
+    expect(requestMock.mock.calls[1][0].header).not.toHaveProperty('content-type');
     expect(getMerchantSession()).toMatchObject({
       token: 'merchant-token',
       openid: 'merchant-openid'
     });
+  });
+
+  it('sends an empty JSON object for no-body mutating requests', async () => {
+    storage.set(MERCHANT_SESSION_STORAGE_KEY, {
+      token: 'merchant-token',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      openid: 'merchant-openid'
+    });
+    requestMock.mockImplementationOnce((options) =>
+      options.success({
+        statusCode: 200,
+        data: {
+          ok: true
+        }
+      })
+    );
+
+    await expect(
+      merchantApiRequest('/api/v1/merchant/orders/order-1/receipt-print/prepare', {
+        method: 'POST'
+      })
+    ).resolves.toEqual({
+      ok: true
+    });
+
+    expect(requestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'POST',
+        data: {},
+        header: expect.objectContaining({
+          Authorization: 'Bearer merchant-token',
+          'content-type': 'application/json'
+        })
+      })
+    );
   });
 
   it('normalizes API errors into MerchantApiError', async () => {

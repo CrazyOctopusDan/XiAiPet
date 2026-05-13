@@ -99,10 +99,14 @@ function normalizeRequestFailure(error) {
 }
 async function sendCustomerApiRequest(path, options, token) {
     var _a, _b, _c, _d, _e, _f;
+    const method = (_a = options.method) !== null && _a !== void 0 ? _a : 'GET';
+    const body = options.body === undefined && method !== 'GET' ? {} : options.body;
     const headers = {
-        'content-type': 'application/json',
-        ...((_a = options.headers) !== null && _a !== void 0 ? _a : {})
+        ...((_b = options.headers) !== null && _b !== void 0 ? _b : {})
     };
+    if (body !== undefined && !headers['content-type']) {
+        headers['content-type'] = 'application/json';
+    }
     if (token) {
         headers.Authorization = `Bearer ${token}`;
     }
@@ -110,9 +114,9 @@ async function sendCustomerApiRequest(path, options, token) {
     try {
         response = await requestWithWx({
             url: buildUrl(path, options.query),
-            method: (_b = options.method) !== null && _b !== void 0 ? _b : 'GET',
+            method,
             headers,
-            body: options.body
+            body
         });
     }
     catch (error) {

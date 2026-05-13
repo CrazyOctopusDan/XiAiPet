@@ -153,10 +153,14 @@ async function sendMerchantApiRequest<T>(
   options: MerchantApiRequestOptions,
   token?: string
 ): Promise<T> {
+  const method = options.method ?? 'GET';
+  const body = options.body === undefined && method !== 'GET' ? {} : options.body;
   const headers: Record<string, string> = {
-    'content-type': 'application/json',
     ...(options.headers ?? {})
   };
+  if (body !== undefined && !headers['content-type']) {
+    headers['content-type'] = 'application/json';
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -166,9 +170,9 @@ async function sendMerchantApiRequest<T>(
   try {
     response = await requestWithWx<T | ApiErrorBody>({
       url: buildUrl(path, options.query),
-      method: options.method ?? 'GET',
+      method,
       headers,
-      body: options.body
+      body
     });
   } catch (error) {
     throw normalizeRequestFailure(error);

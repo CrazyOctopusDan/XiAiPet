@@ -19,6 +19,14 @@ export class ApiError extends Error {
   }
 }
 
+function getHttpStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object' || !('statusCode' in error)) {
+    return undefined;
+  }
+  const statusCode = (error as { statusCode?: unknown }).statusCode;
+  return typeof statusCode === 'number' && statusCode >= 400 && statusCode <= 599 ? statusCode : undefined;
+}
+
 export function toErrorResponse(error: unknown): ErrorHttpResponse {
   if (error instanceof ApiError) {
     return {
@@ -27,6 +35,18 @@ export function toErrorResponse(error: unknown): ErrorHttpResponse {
         ok: false,
         code: error.code,
         message: error.message
+      }
+    };
+  }
+
+  const statusCode = getHttpStatusCode(error);
+  if (statusCode && statusCode < 500) {
+    return {
+      statusCode,
+      body: {
+        ok: false,
+        code: `HTTP_${statusCode}`,
+        message: 'Bad request'
       }
     };
   }

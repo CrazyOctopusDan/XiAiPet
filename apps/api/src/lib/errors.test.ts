@@ -27,4 +27,20 @@ describe('toErrorResponse', () => {
     });
     expect(JSON.stringify(result)).not.toContain('database password leaked');
   });
+
+  it('preserves framework client error status without leaking parser details', () => {
+    const error = Object.assign(new Error('Body cannot be empty when content-type is application/json'), {
+      statusCode: 400
+    });
+
+    expect(toErrorResponse(error)).toEqual({
+      statusCode: 400,
+      body: {
+        ok: false,
+        code: 'HTTP_400',
+        message: 'Bad request'
+      }
+    });
+    expect(JSON.stringify(toErrorResponse(error))).not.toContain('Body cannot be empty');
+  });
 });
