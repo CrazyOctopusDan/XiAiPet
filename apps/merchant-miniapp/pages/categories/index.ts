@@ -9,6 +9,7 @@ interface CategoryPageData {
   loading: boolean;
   isEmpty: boolean;
   cards: ReturnType<typeof getCategoryPageViewModel>['cards'];
+  summary: ReturnType<typeof getCategoryPageViewModel>['summary'];
   draftId: string;
   draftName: string;
   draftIconToken: string;
@@ -30,6 +31,11 @@ Page({
     loading: true,
     isEmpty: true,
     cards: [],
+    summary: {
+      totalCategories: 0,
+      linkedProducts: 0,
+      lockedCategories: 0
+    },
     draftId: createDraftId(),
     draftName: '',
     draftIconToken: ''
@@ -43,7 +49,8 @@ Page({
     this.setData({
       loading: false,
       isEmpty: view.isEmpty,
-      cards: view.cards
+      cards: view.cards,
+      summary: view.summary
     });
   },
   handleNameInput(this: CategoryPageInstance, event: { detail?: { value?: string } }) {

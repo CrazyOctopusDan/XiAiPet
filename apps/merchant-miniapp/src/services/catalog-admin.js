@@ -128,6 +128,11 @@ async function deleteCategory(categoryId, request = api_client_1.merchantApiRequ
 function getCategoryPageViewModel(categories) {
     return {
         isEmpty: categories.length === 0,
+        summary: {
+            totalCategories: categories.length,
+            linkedProducts: categories.reduce((sum, category) => sum + category.linkedProductCount, 0),
+            lockedCategories: categories.filter((category) => !category.canDelete).length
+        },
         cards: categories.map((category) => ({
             id: category.id,
             name: category.name,

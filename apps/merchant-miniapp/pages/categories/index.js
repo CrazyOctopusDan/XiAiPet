@@ -9,6 +9,11 @@ Page({
         loading: true,
         isEmpty: true,
         cards: [],
+        summary: {
+            totalCategories: 0,
+            linkedProducts: 0,
+            lockedCategories: 0
+        },
         draftId: createDraftId(),
         draftName: '',
         draftIconToken: ''
@@ -22,7 +27,8 @@ Page({
         this.setData({
             loading: false,
             isEmpty: view.isEmpty,
-            cards: view.cards
+            cards: view.cards,
+            summary: view.summary
         });
     },
     handleNameInput(event) {

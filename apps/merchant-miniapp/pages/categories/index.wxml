@@ -1,22 +1,54 @@
 <view class="page">
-  <view class="hero-card">
-    <text class="page-title">品类管理</text>
-    <text class="page-subtitle">每个品类都显示 icon token、商品数量和删除品类守卫。</text>
+  <view class="summary-card">
+    <view class="summary-head">
+      <view class="page-mark">品</view>
+      <view class="summary-copy">
+        <text class="page-title">品类管理</text>
+        <text class="page-subtitle">先维护一级品类</text>
+      </view>
+    </view>
+
+    <view class="summary-metrics">
+      <view class="metric-chip accent">
+        <text class="metric-value">{{summary.totalCategories}}</text>
+        <text class="metric-label">品类</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{summary.linkedProducts}}</text>
+        <text class="metric-label">关联商品</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{summary.lockedCategories}}</text>
+        <text class="metric-label">需迁移</text>
+      </view>
+    </view>
   </view>
 
   <view class="editor-card">
-    <text class="section-title">品类编辑</text>
-    <input class="field-input" placeholder="品类名称" value="{{draftName}}" bindinput="handleNameInput" />
-    <input class="field-input" placeholder="icon token，例如 🎂" maxlength="4" value="{{draftIconToken}}" bindinput="handleIconInput" />
-    <view class="editor-actions">
-      <button class="secondary-button" bindtap="handleCreateTap">新建品类</button>
-      <button class="primary-button" bindtap="handleSaveTap">保存品类</button>
+    <view class="section-head">
+      <view>
+        <text class="section-title">编辑品类</text>
+        <text class="section-note">保存后同步商品筛选</text>
+      </view>
+      <button class="text-button" bindtap="handleCreateTap">新建</button>
     </view>
+
+    <view class="field-stack">
+      <input class="field-input" placeholder="品类名称" value="{{draftName}}" bindinput="handleNameInput" />
+      <input class="field-input token-input" placeholder="图标字，如 蛋" maxlength="4" value="{{draftIconToken}}" bindinput="handleIconInput" />
+    </view>
+
+    <button class="primary-button" bindtap="handleSaveTap">保存品类</button>
+  </view>
+
+  <view class="list-head">
+    <text class="section-title">品类列表</text>
+    <text class="section-note">商品入口保持独立</text>
   </view>
 
   <view class="empty-card" wx:if="{{isEmpty && !loading}}">
     <text class="empty-title">还没有品类</text>
-    <text class="empty-body">先创建一个带 icon 的一级品类。</text>
+    <text class="empty-body">先创建一个一级品类</text>
   </view>
 
   <view class="card-list" wx:elif="{{!loading}}">
@@ -25,13 +57,17 @@
         <view class="icon-badge">{{item.iconToken}}</view>
         <view class="category-meta">
           <text class="category-name">{{item.name}}</text>
-          <text class="category-copy">icon: {{item.iconToken}}</text>
-          <text class="category-copy">{{item.linkedProductCountLabel}}</text>
+          <view class="category-tags">
+            <text class="tag">{{item.linkedProductCountLabel}}</text>
+            <text class="tag {{item.deleteActionLabel === '先迁移商品' ? 'warning' : 'ready'}}">{{item.deleteActionLabel}}</text>
+          </view>
         </view>
       </view>
+
       <text class="helper-copy">{{item.helperText}}</text>
+
       <view class="card-actions">
-        <button class="ghost-button" data-id="{{item.id}}" bindtap="handleOpenProducts">查看商品</button>
+        <button class="secondary-button" data-id="{{item.id}}" bindtap="handleOpenProducts">商品</button>
         <button class="ghost-button" data-id="{{item.id}}" data-name="{{item.name}}" data-icon="{{item.iconToken}}" bindtap="handleEditTap">编辑</button>
         <button class="danger-button" data-id="{{item.id}}" data-name="{{item.name}}" data-action="{{item.deleteActionLabel}}" bindtap="handleDeleteTap">{{item.deleteActionLabel}}</button>
       </view>

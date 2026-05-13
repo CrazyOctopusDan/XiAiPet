@@ -120,6 +120,11 @@ describe('catalog admin service', () => {
       linkedProductCountLabel: '3 个商品',
       deleteActionLabel: '先迁移商品'
     });
+    expect(view.summary).toEqual({
+      totalCategories: 1,
+      linkedProducts: 3,
+      lockedCategories: 1
+    });
   });
 
   it('saves and deletes categories through merchant HTTP endpoints', async () => {

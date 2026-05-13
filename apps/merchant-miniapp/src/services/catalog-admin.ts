@@ -26,8 +26,15 @@ export interface CategoryCardViewModel {
   helperText: string;
 }
 
+export interface CategoryPageSummaryViewModel {
+  totalCategories: number;
+  linkedProducts: number;
+  lockedCategories: number;
+}
+
 export interface CategoryPageViewModel {
   isEmpty: boolean;
+  summary: CategoryPageSummaryViewModel;
   cards: CategoryCardViewModel[];
 }
 
@@ -233,6 +240,11 @@ export async function deleteCategory(categoryId: string, request: MerchantApiReq
 export function getCategoryPageViewModel(categories: MerchantCategoryListItem[]): CategoryPageViewModel {
   return {
     isEmpty: categories.length === 0,
+    summary: {
+      totalCategories: categories.length,
+      linkedProducts: categories.reduce((sum, category) => sum + category.linkedProductCount, 0),
+      lockedCategories: categories.filter((category) => !category.canDelete).length
+    },
     cards: categories.map((category) => ({
       id: category.id,
       name: category.name,
