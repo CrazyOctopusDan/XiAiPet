@@ -7,7 +7,11 @@ import {
   customerApiRequest,
   getCustomerSession
 } from './api-client';
-import { CUSTOMER_API_PRODUCTION_BASE_URL, getCustomerApiBaseUrl } from './api-config';
+import {
+  CUSTOMER_API_DEVELOPMENT_BASE_URL,
+  CUSTOMER_API_PRODUCTION_BASE_URL,
+  getCustomerApiBaseUrl
+} from './api-config';
 
 describe('customer API client', () => {
   const storage = new Map<string, unknown>();
@@ -77,7 +81,7 @@ describe('customer API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        url: 'http://127.0.0.1:3000/api/v1/customer/auth/login',
+        url: 'http://118.178.173.241/api/v1/customer/auth/login',
         method: 'POST',
         data: {
           code: 'wx-login-code'
@@ -87,7 +91,7 @@ describe('customer API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        url: 'http://127.0.0.1:3000/api/v1/customer/bootstrap',
+        url: 'http://118.178.173.241/api/v1/customer/bootstrap',
         header: expect.objectContaining({
           Authorization: 'Bearer customer-token'
         })
@@ -197,5 +201,10 @@ describe('customer API client', () => {
     expect(getCustomerApiBaseUrl()).toBe('https://temporary-api.example.com');
 
     clearCustomerSession();
+  });
+
+  it('uses the Alibaba ECS API for development builds', () => {
+    expect(CUSTOMER_API_DEVELOPMENT_BASE_URL).toBe('http://118.178.173.241');
+    expect(getCustomerApiBaseUrl()).toBe('http://118.178.173.241');
   });
 });

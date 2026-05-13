@@ -3,7 +3,7 @@ const MERCHANT_API_BASE_URL_OVERRIDE_KEY = '__XIAIPET_MERCHANT_API_BASE_URL__';
 declare const wx: any;
 
 export const MERCHANT_API_PRODUCTION_BASE_URL = 'https://api.xiaipet.vip';
-export const MERCHANT_API_DEVELOPMENT_BASE_URL = 'http://127.0.0.1:3000';
+export const MERCHANT_API_DEVELOPMENT_BASE_URL = 'http://118.178.173.241';
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');

@@ -4,7 +4,7 @@ exports.MERCHANT_API_BASE_URL = exports.MERCHANT_API_DEVELOPMENT_BASE_URL = expo
 exports.getMerchantApiBaseUrl = getMerchantApiBaseUrl;
 const MERCHANT_API_BASE_URL_OVERRIDE_KEY = '__XIAIPET_MERCHANT_API_BASE_URL__';
 exports.MERCHANT_API_PRODUCTION_BASE_URL = 'https://api.xiaipet.vip';
-exports.MERCHANT_API_DEVELOPMENT_BASE_URL = 'http://127.0.0.1:3000';
+exports.MERCHANT_API_DEVELOPMENT_BASE_URL = 'http://118.178.173.241';
 function trimTrailingSlash(value) {
     return value.replace(/\/+$/, '');
 }

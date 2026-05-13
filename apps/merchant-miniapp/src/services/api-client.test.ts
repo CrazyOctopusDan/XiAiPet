@@ -6,7 +6,11 @@ import {
   merchantApiRequest,
   getMerchantSession
 } from './api-client';
-import { MERCHANT_API_PRODUCTION_BASE_URL, getMerchantApiBaseUrl } from './api-config';
+import {
+  MERCHANT_API_DEVELOPMENT_BASE_URL,
+  MERCHANT_API_PRODUCTION_BASE_URL,
+  getMerchantApiBaseUrl
+} from './api-config';
 
 describe('merchant API client', () => {
   const storage = new Map<string, unknown>();
@@ -69,7 +73,7 @@ describe('merchant API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        url: 'http://127.0.0.1:3000/api/v1/merchant/auth/login',
+        url: 'http://118.178.173.241/api/v1/merchant/auth/login',
         method: 'POST',
         data: {
           code: 'wx-login-code'
@@ -79,7 +83,7 @@ describe('merchant API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        url: 'http://127.0.0.1:3000/api/v1/merchant/orders',
+        url: 'http://118.178.173.241/api/v1/merchant/orders',
         header: expect.objectContaining({
           Authorization: 'Bearer merchant-token'
         })
@@ -226,5 +230,10 @@ describe('merchant API client', () => {
     (globalThis as Record<string, unknown>).__XIAIPET_MERCHANT_API_BASE_URL__ =
       'https://temporary-merchant.example.com/';
     expect(getMerchantApiBaseUrl()).toBe('https://temporary-merchant.example.com');
+  });
+
+  it('uses the Alibaba ECS API for development builds', () => {
+    expect(MERCHANT_API_DEVELOPMENT_BASE_URL).toBe('http://118.178.173.241');
+    expect(getMerchantApiBaseUrl()).toBe('http://118.178.173.241');
   });
 });
