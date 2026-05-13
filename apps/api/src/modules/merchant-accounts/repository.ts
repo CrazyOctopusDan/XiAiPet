@@ -20,13 +20,75 @@ interface MerchantAccountRow {
   updatedAt: Date;
 }
 
+type PrismaMerchantAccountRole = 'ADMIN' | 'STAFF';
+type PrismaMerchantAccountStatus = 'ACTIVE' | 'DISABLED';
+
+const prismaRoleByPublicRole: Record<MerchantAccountRole, PrismaMerchantAccountRole> = {
+  admin: 'ADMIN',
+  staff: 'STAFF'
+};
+
+const publicRoleByPrismaRole: Record<string, MerchantAccountRole> = {
+  ADMIN: 'admin',
+  STAFF: 'staff',
+  admin: 'admin',
+  staff: 'staff'
+};
+
+const prismaStatusByPublicStatus: Record<MerchantAccountStatus, PrismaMerchantAccountStatus> = {
+  active: 'ACTIVE',
+  disabled: 'DISABLED'
+};
+
+const publicStatusByPrismaStatus: Record<string, MerchantAccountStatus> = {
+  ACTIVE: 'active',
+  DISABLED: 'disabled',
+  active: 'active',
+  disabled: 'disabled'
+};
+
+function toPrismaRole(role: MerchantAccountRole): PrismaMerchantAccountRole {
+  return prismaRoleByPublicRole[role];
+}
+
+function fromPrismaRole(role: string): MerchantAccountRole {
+  const mapped = publicRoleByPrismaRole[role];
+  if (!mapped) {
+    throw new Error(`Unknown merchant account role: ${role}`);
+  }
+  return mapped;
+}
+
+function toPrismaStatus(status: MerchantAccountStatus): PrismaMerchantAccountStatus {
+  return prismaStatusByPublicStatus[status];
+}
+
+function fromPrismaStatus(status: string): MerchantAccountStatus {
+  const mapped = publicStatusByPrismaStatus[status];
+  if (!mapped) {
+    throw new Error(`Unknown merchant account status: ${status}`);
+  }
+  return mapped;
+}
+
+function mapMerchantAccountUpdateData(data: Partial<Pick<
+  MerchantAccountRecord,
+  'passwordHash' | 'status' | 'mustChangePassword' | 'lastLoginAt'
+>>): Record<string, unknown> {
+  const mapped: Record<string, unknown> = { ...data };
+  if (data.status) {
+    mapped.status = toPrismaStatus(data.status);
+  }
+  return mapped;
+}
+
 function mapMerchantAccount(row: MerchantAccountRow): MerchantAccountRecord {
   return {
     id: row.id,
     username: row.username,
     passwordHash: row.passwordHash,
-    role: row.role as MerchantAccountRole,
-    status: row.status as MerchantAccountStatus,
+    role: fromPrismaRole(row.role),
+    status: fromPrismaStatus(row.status),
     mustChangePassword: row.mustChangePassword,
     createdBy: row.createdBy,
     lastLoginAt: row.lastLoginAt,
@@ -52,8 +114,8 @@ export function createMerchantAccountRepository(client: DbClient = getPrismaClie
         data: {
           username: input.username,
           passwordHash: input.passwordHash,
-          role: input.role,
-          status: input.status,
+          role: toPrismaRole(input.role),
+          status: toPrismaStatus(input.status),
           mustChangePassword: input.mustChangePassword,
           createdBy: input.createdBy ?? null
         }
@@ -81,7 +143,7 @@ export function createMerchantAccountRepository(client: DbClient = getPrismaClie
     async updateAccount(id, data) {
       const account = await merchantAccount.update({
         where: { id },
-        data
+        data: mapMerchantAccountUpdateData(data)
       });
       return account ? mapMerchantAccount(account) : null;
     }
