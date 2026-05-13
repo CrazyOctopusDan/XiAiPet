@@ -1,0 +1,24 @@
+<view class="page">
+  <view class="panel">
+    <text class="title">员工账号</text>
+    <text class="subtitle">管理员创建员工账号后，员工使用初始密码 staff 登录并修改密码。</text>
+    <view class="create-row">
+      <input class="input" value="{{username}}" placeholder="员工账号" bindinput="handleUsernameInput" />
+      <button class="primary-button" loading="{{loading}}" bindtap="handleCreateStaff">创建</button>
+    </view>
+    <text class="status">{{statusText}}</text>
+  </view>
+
+  <view class="account-list">
+    <view class="account-card" wx:for="{{accounts}}" wx:key="id">
+      <view class="account-main">
+        <text class="account-name">{{item.username}}</text>
+        <text class="account-meta">{{item.role}} · {{item.status}} · {{item.mustChangePassword ? '需改密' : '已改密'}}</text>
+      </view>
+      <view class="account-actions" wx:if="{{item.role === 'staff'}}">
+        <button class="secondary-button" data-id="{{item.id}}" bindtap="handleResetPassword">重置</button>
+        <button class="danger-button" data-id="{{item.id}}" bindtap="handleDisableStaff">停用</button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,4 +1,5 @@
-import { merchantApiRequest, type MerchantApiRequester } from './api-client';
+import { merchantApiRequest, MerchantApiError, type MerchantApiRequester } from './api-client';
+import type { MerchantSessionAccount } from './api-client';
 
 export interface MerchantAccessResult {
   ok?: boolean;
@@ -9,14 +10,28 @@ export interface MerchantAccessResult {
     merchantId: string;
     storeName: string;
   };
+  account?: MerchantSessionAccount | null;
   merchantUser?: unknown;
 }
 
 export async function verifyMerchantAccess(
   request: MerchantApiRequester = merchantApiRequest
 ): Promise<MerchantAccessResult> {
-  return request<MerchantAccessResult>('/api/v1/merchant/access', {
-    method: 'GET',
-    auth: 'merchant'
-  });
+  try {
+    return await request<MerchantAccessResult>('/api/v1/merchant/access', {
+      method: 'GET',
+      auth: 'merchant'
+    });
+  } catch (error) {
+    if (error instanceof MerchantApiError && (error.statusCode === 403 || error.code === 'MERCHANT_FORBIDDEN')) {
+      return {
+        ok: true,
+        status: 'denied',
+        allowed: false,
+        reason: error.message || '当前账号没有商户权限'
+      };
+    }
+
+    throw error;
+  }
 }

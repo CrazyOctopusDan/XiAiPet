@@ -29,3 +29,24 @@ export function authHeader(openid = 'customer-openid', audience: AuthSessionAudi
     authorization: `Bearer ${createSessionToken({ openid, audience }, testConfig.sessionSecret, testConfig.sessionTtlSeconds)}`
   };
 }
+
+export function merchantAccountAuthHeader(input: {
+  accountId?: string;
+  username?: string;
+  role?: 'admin' | 'staff';
+  mustChangePassword?: boolean;
+} = {}) {
+  return {
+    authorization: `Bearer ${createSessionToken(
+      {
+        merchantAccountId: input.accountId ?? 'acct-admin',
+        username: input.username ?? 'admin',
+        role: input.role ?? 'admin',
+        mustChangePassword: input.mustChangePassword ?? false,
+        audience: 'merchant'
+      },
+      testConfig.sessionSecret,
+      testConfig.sessionTtlSeconds
+    )}`
+  };
+}

@@ -1,6 +1,7 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
+import { getMerchantSession } from '../../src/services/api-client';
 import { getMerchantWorkspaceCards, type MerchantWorkspaceCard } from '../../src/services/workspace';
 
 interface WorkspacePageData {
@@ -17,8 +18,9 @@ Page({
     cards: getMerchantWorkspaceCards()
   },
   onShow(this: WorkspacePageInstance) {
+    const role = getMerchantSession()?.account?.role ?? 'admin';
     this.setData({
-      cards: getMerchantWorkspaceCards()
+      cards: getMerchantWorkspaceCards(role)
     });
   },
   handleActionTap(event: { currentTarget?: { dataset?: { url?: string } } }) {

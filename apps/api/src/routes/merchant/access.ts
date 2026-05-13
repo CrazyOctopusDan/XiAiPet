@@ -9,6 +9,22 @@ export async function merchantAccessRoutes(
   const { dependencies } = options;
 
   app.get('/access', { preHandler: dependencies.guards.requireMerchantSession }, async (request) => {
-    return dependencies.identityService.assertMerchantAccess(request.auth?.openid ?? '');
+    return {
+      ok: true,
+      status: 'allowed',
+      allowed: true,
+      merchant: {
+        merchantId: request.merchant?.merchantId,
+        storeName: request.merchant?.storeName
+      },
+      account: request.merchant
+        ? {
+            id: request.merchant.accountId,
+            username: request.merchant.username,
+            role: request.merchant.role,
+            mustChangePassword: request.merchant.mustChangePassword
+          }
+        : null
+    };
   });
 }

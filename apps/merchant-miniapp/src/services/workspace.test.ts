@@ -3,14 +3,24 @@ import { describe, expect, it } from 'vitest';
 import { getMerchantWorkspaceCards } from './workspace';
 
 describe('merchant workspace service', () => {
-  it('returns the four locked management cards for the merchant workspace', () => {
+  it('returns the admin management cards for the merchant workspace', () => {
     const cards = getMerchantWorkspaceCards();
 
     expect(cards.map((item) => item.title)).toEqual([
       '订单管理',
       '品类/商品管理',
+      '员工账号',
       '用户管理',
       '运营配置'
+    ]);
+  });
+
+  it('limits staff workspace cards to order and catalog work', () => {
+    const cards = getMerchantWorkspaceCards('staff');
+
+    expect(cards.map((item) => item.title)).toEqual([
+      '订单管理',
+      '品类/商品管理'
     ]);
   });
 

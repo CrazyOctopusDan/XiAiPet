@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../app';
-import { authHeader, testConfig } from './test-helpers';
+import { authHeader, merchantAccountAuthHeader, testConfig } from './test-helpers';
 
 const allowedIdentity = {
   bootstrapUser: async () => ({ ok: true }),
@@ -83,5 +83,62 @@ describe('merchant admin routes', () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/merchant/products', headers: authHeader('denied', 'merchant') });
     expect(response.statusCode).toBe(403);
     expect(queryMerchantProducts).not.toHaveBeenCalled();
+  });
+
+  it('allows admin to manage staff accounts and rejects staff balance adjustments', async () => {
+    const adminAccount = {
+      id: 'acct-admin',
+      username: 'admin',
+      passwordHash: 'hidden',
+      role: 'admin' as const,
+      status: 'active' as const,
+      mustChangePassword: false,
+      createdBy: null,
+      lastLoginAt: null,
+      createdAt: new Date('2026-05-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-13T00:00:00.000Z')
+    };
+    const staffAccount = {
+      ...adminAccount,
+      id: 'acct-staff',
+      username: 'staff01',
+      role: 'staff' as const
+    };
+    const merchantAccountService = {
+      bootstrapInitialAdmin: async () => ({ ok: true }),
+      login: async () => ({ ok: true as const, account: adminAccount }),
+      getActiveAccount: async (accountId: string) => (accountId === 'acct-staff' ? staffAccount : adminAccount),
+      changePassword: async () => ({ ok: true as const, account: adminAccount }),
+      listAccounts: vi.fn(async () => ({ ok: true, accounts: [adminAccount, staffAccount] })),
+      createStaffAccount: vi.fn(async () => ({ ok: true, account: staffAccount, initialPassword: 'staff' })),
+      disableStaffAccount: vi.fn(async () => ({ ok: true, account: { ...staffAccount, status: 'disabled' } })),
+      resetStaffPassword: vi.fn(async () => ({ ok: true, account: staffAccount, resetPassword: 'staff' }))
+    };
+    const adjustUserBalance = vi.fn(async () => ({ ok: true }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        merchantAccountService,
+        merchantUserService: {
+          searchMerchantUsers: async () => ({ ok: true, users: [] }),
+          adjustUserBalance
+        }
+      }
+    });
+
+    const adminHeaders = merchantAccountAuthHeader({ accountId: 'acct-admin', role: 'admin' });
+    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/accounts', headers: adminHeaders })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/merchant/accounts/staff', headers: adminHeaders, payload: { username: 'staff02' } })).statusCode).toBe(200);
+
+    const staffHeaders = merchantAccountAuthHeader({ accountId: 'acct-staff', username: 'staff01', role: 'staff' });
+    const balanceResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/merchant/users/openid-1/balance-adjustments',
+      headers: staffHeaders,
+      payload: { delta: 10 }
+    });
+
+    expect(balanceResponse.statusCode).toBe(403);
+    expect(adjustUserBalance).not.toHaveBeenCalled();
   });
 });

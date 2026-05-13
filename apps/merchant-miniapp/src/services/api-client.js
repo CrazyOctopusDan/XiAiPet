@@ -4,6 +4,7 @@ exports.MerchantApiError = exports.MERCHANT_SESSION_STORAGE_KEY = void 0;
 exports.clearMerchantSession = clearMerchantSession;
 exports.getMerchantSession = getMerchantSession;
 exports.merchantLogin = merchantLogin;
+exports.changeMerchantPassword = changeMerchantPassword;
 exports.merchantApiRequest = merchantApiRequest;
 const api_config_1 = require("./api-config");
 exports.MERCHANT_SESSION_STORAGE_KEY = 'xiaipet.merchant.apiSession';
@@ -132,16 +133,17 @@ async function sendMerchantApiRequest(path, options, token) {
     const errorBody = data;
     throw new MerchantApiError((_e = errorBody === null || errorBody === void 0 ? void 0 : errorBody.code) !== null && _e !== void 0 ? _e : `HTTP_${response.statusCode}`, (_f = errorBody === null || errorBody === void 0 ? void 0 : errorBody.message) !== null && _f !== void 0 ? _f : 'API request failed', response.statusCode, data);
 }
-async function merchantLogin() {
-    const loginResult = await getWxApi().login();
-    if (!(loginResult === null || loginResult === void 0 ? void 0 : loginResult.code)) {
-        throw new MerchantApiError('INVALID_LOGIN_CODE', 'wx.login did not return a code', 400);
+async function merchantLogin(credentials) {
+    var _a;
+    if (!((_a = credentials.username) === null || _a === void 0 ? void 0 : _a.trim()) || !credentials.password) {
+        throw new MerchantApiError('INVALID_MERCHANT_CREDENTIALS', '请输入账号和密码', 400);
     }
     try {
         const response = await sendMerchantApiRequest(MERCHANT_AUTH_LOGIN_PATH, {
             method: 'POST',
             body: {
-                code: loginResult.code
+                username: credentials.username.trim(),
+                password: credentials.password
             },
             auth: 'none',
             retryOnUnauthorized: false
@@ -149,7 +151,7 @@ async function merchantLogin() {
         const session = {
             token: response.token,
             expiresAt: response.expiresAt,
-            openid: response.openid
+            account: response.account
         };
         writeMerchantSession(session);
         return session;
@@ -164,7 +166,23 @@ async function ensureMerchantSession() {
     if (isSessionUsable(existingSession)) {
         return existingSession;
     }
-    return merchantLogin();
+    clearMerchantSession();
+    throw new MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
+}
+async function changeMerchantPassword(input) {
+    const response = await merchantApiRequest('/api/v1/merchant/auth/change-password', {
+        method: 'POST',
+        body: input,
+        auth: 'merchant',
+        retryOnUnauthorized: false
+    });
+    const session = {
+        token: response.token,
+        expiresAt: response.expiresAt,
+        account: response.account
+    };
+    writeMerchantSession(session);
+    return session;
 }
 async function merchantApiRequest(path, options = {}) {
     var _a;
@@ -182,8 +200,6 @@ async function merchantApiRequest(path, options = {}) {
             authMode !== 'none' &&
             options.retryOnUnauthorized !== false) {
             clearMerchantSession();
-            const nextSession = await merchantLogin();
-            return sendMerchantApiRequest(path, options, nextSession.token);
         }
         throw error;
     }

@@ -4,6 +4,7 @@ declare const wx: any;
 
 export type MerchantApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type MerchantApiAuthMode = 'none' | 'merchant';
+export type MerchantAccountRole = 'admin' | 'staff';
 
 export interface MerchantApiRequestOptions {
   method?: MerchantApiMethod;
@@ -19,14 +20,29 @@ export type MerchantApiRequester = <T>(path: string, options?: MerchantApiReques
 export interface MerchantApiSession {
   token: string;
   expiresAt: string;
-  openid?: string;
+  account?: MerchantSessionAccount;
+}
+
+export interface MerchantSessionAccount {
+  id: string;
+  username: string;
+  role: MerchantAccountRole;
+  status?: 'active' | 'disabled';
+  mustChangePassword: boolean;
 }
 
 interface MerchantLoginResponse {
   ok: boolean;
   token: string;
   expiresAt: string;
-  openid?: string;
+  account: MerchantSessionAccount;
+}
+
+interface MerchantPasswordChangeResponse {
+  ok: boolean;
+  token: string;
+  expiresAt: string;
+  account: MerchantSessionAccount;
 }
 
 interface WxRequestResponse<T> {
@@ -200,10 +216,9 @@ async function sendMerchantApiRequest<T>(
   );
 }
 
-export async function merchantLogin(): Promise<MerchantApiSession> {
-  const loginResult = await getWxApi().login();
-  if (!loginResult?.code) {
-    throw new MerchantApiError('INVALID_LOGIN_CODE', 'wx.login did not return a code', 400);
+export async function merchantLogin(credentials: { username?: string; password?: string }): Promise<MerchantApiSession> {
+  if (!credentials.username?.trim() || !credentials.password) {
+    throw new MerchantApiError('INVALID_MERCHANT_CREDENTIALS', '请输入账号和密码', 400);
   }
 
   try {
@@ -212,7 +227,8 @@ export async function merchantLogin(): Promise<MerchantApiSession> {
       {
         method: 'POST',
         body: {
-          code: loginResult.code
+          username: credentials.username.trim(),
+          password: credentials.password
         },
         auth: 'none',
         retryOnUnauthorized: false
@@ -222,7 +238,7 @@ export async function merchantLogin(): Promise<MerchantApiSession> {
     const session: MerchantApiSession = {
       token: response.token,
       expiresAt: response.expiresAt,
-      openid: response.openid
+      account: response.account
     };
     writeMerchantSession(session);
     return session;
@@ -238,7 +254,28 @@ async function ensureMerchantSession(): Promise<MerchantApiSession> {
     return existingSession;
   }
 
-  return merchantLogin();
+  clearMerchantSession();
+  throw new MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
+}
+
+export async function changeMerchantPassword(input: {
+  currentPassword?: string;
+  newPassword?: string;
+}): Promise<MerchantApiSession> {
+  const response = await merchantApiRequest<MerchantPasswordChangeResponse>('/api/v1/merchant/auth/change-password', {
+    method: 'POST',
+    body: input,
+    auth: 'merchant',
+    retryOnUnauthorized: false
+  });
+
+  const session: MerchantApiSession = {
+    token: response.token,
+    expiresAt: response.expiresAt,
+    account: response.account
+  };
+  writeMerchantSession(session);
+  return session;
 }
 
 export async function merchantApiRequest<T>(
@@ -261,8 +298,6 @@ export async function merchantApiRequest<T>(
       options.retryOnUnauthorized !== false
     ) {
       clearMerchantSession();
-      const nextSession = await merchantLogin();
-      return sendMerchantApiRequest<T>(path, options, nextSession.token);
     }
 
     throw error;

@@ -7,14 +7,14 @@ export async function merchantUserRoutes(
   options: { dependencies: ApiRouteDependencies }
 ) {
   const { dependencies } = options;
-  const merchantGuard = { preHandler: dependencies.guards.requireMerchantSession };
+  const adminGuard = { preHandler: dependencies.guards.requireMerchantRole(['admin']) };
 
-  app.get('/users', merchantGuard, async (request) => {
+  app.get('/users', adminGuard, async (request) => {
     const query = request.query as { query?: string; searchField?: string };
     return dependencies.merchantUserService.searchMerchantUsers(request.merchant, query);
   });
 
-  app.post('/users/:openid/balance-adjustments', merchantGuard, async (request) => {
+  app.post('/users/:openid/balance-adjustments', adminGuard, async (request) => {
     const params = request.params as { openid: string };
     return dependencies.merchantUserService.adjustUserBalance(request.merchant, params.openid, request.body);
   });

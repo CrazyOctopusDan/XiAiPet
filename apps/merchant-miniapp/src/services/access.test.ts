@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { MerchantApiRequester } from './api-client';
+import { MerchantApiError } from './api-client';
 import { verifyMerchantAccess } from './access';
 
 describe('merchant access service', () => {
@@ -41,6 +42,19 @@ describe('merchant access service', () => {
       status: 'denied',
       allowed: false,
       reason: '当前账号还没有商户权限'
+    });
+  });
+
+  it('turns merchant forbidden 403 into an actionable denied result', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValue(new MerchantApiError('MERCHANT_FORBIDDEN', '当前账号没有商户权限', 403));
+
+    await expect(verifyMerchantAccess(request as MerchantApiRequester)).resolves.toMatchObject({
+      ok: true,
+      status: 'denied',
+      allowed: false,
+      reason: '当前账号没有商户权限'
     });
   });
 });

@@ -6,6 +6,8 @@ import type { WechatLoginProvider } from '../modules/auth/wechat-login';
 import { createWechatLoginProvider } from '../modules/auth/wechat-login';
 import { createIdentityService } from '../modules/users/bootstrap-service';
 import { createMerchantUserService } from '../modules/users/admin-service';
+import { createMerchantAccountService } from '../modules/merchant-accounts/service';
+import type { MerchantAccountRecord } from '../modules/merchant-accounts/service';
 import { createOrderService } from '../modules/orders/service';
 import {
   createMockPaymentProvider,
@@ -43,6 +45,16 @@ export interface ApiRouteServices {
   merchantUserService: {
     searchMerchantUsers(merchantContext: unknown, query: { query?: string; searchField?: string }): AsyncResult;
     adjustUserBalance(merchantContext: unknown, openid: string, payload: unknown): AsyncResult;
+  };
+  merchantAccountService: {
+    bootstrapInitialAdmin(): AsyncResult;
+    login(payload: { username?: string; password?: string }): Promise<{ ok: true; account: MerchantAccountRecord }>;
+    getActiveAccount(accountId: string): Promise<MerchantAccountRecord>;
+    changePassword(accountId: string, payload: { currentPassword?: string; newPassword?: string }): Promise<{ ok: true; account: MerchantAccountRecord }>;
+    listAccounts(actor: MerchantAccountRecord): AsyncResult;
+    createStaffAccount(actor: MerchantAccountRecord, payload: { username?: string }): AsyncResult;
+    disableStaffAccount(actor: MerchantAccountRecord, accountId: string): AsyncResult;
+    resetStaffPassword(actor: MerchantAccountRecord, accountId: string): AsyncResult;
   };
   orderService: {
     createCustomerOrder(openid: string, payload: unknown): AsyncResult;
@@ -89,6 +101,7 @@ export function createApiRouteDependencies(
   );
   const identityService = overrides.identityService ?? createIdentityService();
   const merchantAccessService = overrides.merchantAccessService ?? identityService;
+  const merchantAccountService = overrides.merchantAccountService ?? createMerchantAccountService();
 
   return {
     config,
@@ -105,12 +118,14 @@ export function createApiRouteDependencies(
     catalogService: overrides.catalogService ?? createCatalogService(),
     runtimeConfigService: overrides.runtimeConfigService ?? createRuntimeConfigService(),
     merchantUserService: overrides.merchantUserService ?? createMerchantUserService(),
+    merchantAccountService,
     orderService: overrides.orderService ?? createOrderService(undefined, paymentProvider),
     printingService: overrides.printingService ?? createPrintingService(),
     assetService: overrides.assetService ?? createAssetService(config),
     guards: createAuthGuards({
       sessionSecret: config.sessionSecret,
-      merchantAccessService
+      merchantAccessService,
+      merchantAccountService
     })
   };
 }

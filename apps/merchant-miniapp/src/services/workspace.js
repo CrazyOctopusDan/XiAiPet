@@ -24,6 +24,22 @@ const WORKSPACE_CARDS = [
         ]
     },
     {
+        id: 'staff-accounts',
+        title: '员工账号',
+        subtitle: '创建、停用和重置员工密码',
+        description: '管理员给员工开账号，员工首次登录使用 staff 初始密码后必须修改。',
+        badge: '仅管理员',
+        accent: 'linear-gradient(135deg, #C4B5FD 0%, #7C3AED 100%)',
+        iconToken: '员',
+        actions: [
+            {
+                label: '管理员工',
+                url: '/pages/staff-accounts/index',
+                tone: 'primary'
+            }
+        ]
+    },
+    {
         id: 'catalog',
         title: '品类/商品管理',
         subtitle: '保持分开维护，不合并成 tab',
@@ -77,8 +93,11 @@ const WORKSPACE_CARDS = [
         ]
     }
 ];
-function getMerchantWorkspaceCards() {
-    return WORKSPACE_CARDS.map((card) => ({
+function getMerchantWorkspaceCards(role = 'admin') {
+    const allowedIds = role === 'staff'
+        ? new Set(['orders', 'catalog'])
+        : new Set(['orders', 'catalog', 'users', 'runtime-config', 'staff-accounts']);
+    return WORKSPACE_CARDS.filter((card) => allowedIds.has(card.id)).map((card) => ({
         ...card,
         actions: card.actions.map((action) => ({ ...action }))
     }));

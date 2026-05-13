@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MERCHANT_SESSION_STORAGE_KEY,
   MerchantApiError,
+  changeMerchantPassword,
+  getMerchantSession,
   merchantApiRequest,
-  getMerchantSession
+  merchantLogin
 } from './api-client';
 import {
   MERCHANT_API_DEVELOPMENT_BASE_URL,
@@ -14,16 +16,13 @@ import {
 
 describe('merchant API client', () => {
   const storage = new Map<string, unknown>();
-  let loginMock: ReturnType<typeof vi.fn>;
   let requestMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     storage.clear();
-    loginMock = vi.fn().mockResolvedValue({ code: 'wx-login-code' });
     requestMock = vi.fn();
 
     vi.stubGlobal('wx', {
-      login: loginMock,
       request: requestMock,
       getStorageSync: vi.fn((key: string) => storage.get(key)),
       setStorageSync: vi.fn((key: string, value: unknown) => storage.set(key, value)),
@@ -41,7 +40,7 @@ describe('merchant API client', () => {
     vi.unstubAllGlobals();
   });
 
-  it('logs in and sends a bearer token on merchant requests', async () => {
+  it('logs in with account password and sends a bearer token on merchant requests', async () => {
     requestMock
       .mockImplementationOnce((options) =>
         options.success({
@@ -50,7 +49,12 @@ describe('merchant API client', () => {
             ok: true,
             token: 'merchant-token',
             expiresAt: '2099-01-01T00:00:00.000Z',
-            openid: 'merchant-openid'
+            account: {
+              id: 'acct-admin',
+              username: 'admin',
+              role: 'admin',
+              mustChangePassword: true
+            }
           }
         })
       )
@@ -64,19 +68,27 @@ describe('merchant API client', () => {
         })
       );
 
+    await expect(merchantLogin({ username: 'admin', password: 'admin' })).resolves.toMatchObject({
+      token: 'merchant-token',
+      account: {
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: true
+      }
+    });
     await expect(merchantApiRequest('/api/v1/merchant/orders')).resolves.toEqual({
       ok: true,
       groups: []
     });
 
-    expect(loginMock).toHaveBeenCalledTimes(1);
     expect(requestMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         url: 'http://118.178.173.241/api/v1/merchant/auth/login',
         method: 'POST',
         data: {
-          code: 'wx-login-code'
+          username: 'admin',
+          password: 'admin'
         }
       })
     );
@@ -92,7 +104,9 @@ describe('merchant API client', () => {
     expect(requestMock.mock.calls[1][0].header).not.toHaveProperty('content-type');
     expect(getMerchantSession()).toMatchObject({
       token: 'merchant-token',
-      openid: 'merchant-openid'
+      account: {
+        id: 'acct-admin'
+      }
     });
   });
 
@@ -100,7 +114,12 @@ describe('merchant API client', () => {
     storage.set(MERCHANT_SESSION_STORAGE_KEY, {
       token: 'merchant-token',
       expiresAt: '2099-01-01T00:00:00.000Z',
-      openid: 'merchant-openid'
+      account: {
+        id: 'acct-admin',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: false
+      }
     });
     requestMock.mockImplementationOnce((options) =>
       options.success({
@@ -138,7 +157,7 @@ describe('merchant API client', () => {
         data: {
           ok: false,
           code: 'MERCHANT_FORBIDDEN',
-          message: '当前账号还未加入 merchant_users 白名单'
+          message: '当前账号没有商户权限'
         }
       })
     );
@@ -162,94 +181,79 @@ describe('merchant API client', () => {
       code: 'INVALID_AUTH_MODE',
       statusCode: 400
     } satisfies Partial<MerchantApiError>);
-    expect(loginMock).not.toHaveBeenCalled();
     expect(requestMock).not.toHaveBeenCalled();
   });
 
-  it('re-logins and retries once after a 401 response', async () => {
+  it('clears stored session and does not auto re-login after a 401 response', async () => {
     storage.set(MERCHANT_SESSION_STORAGE_KEY, {
       token: 'expired-token',
-      expiresAt: '2099-01-01T00:00:00.000Z'
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      account: {
+        id: 'acct-admin',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: false
+      }
     });
 
-    requestMock
-      .mockImplementationOnce((options) =>
-        options.success({
-          statusCode: 401,
-          data: {
-            ok: false,
-            code: 'UNAUTHORIZED',
-            message: 'Invalid session'
-          }
-        })
-      )
-      .mockImplementationOnce((options) =>
-        options.success({
-          statusCode: 200,
-          data: {
-            ok: true,
-            token: 'fresh-token',
-            expiresAt: '2099-01-01T00:00:00.000Z'
-          }
-        })
-      )
-      .mockImplementationOnce((options) =>
-        options.success({
-          statusCode: 200,
-          data: {
-            ok: true,
-            groups: []
-          }
-        })
-      );
-
-    await expect(merchantApiRequest('/api/v1/merchant/orders')).resolves.toEqual({
-      ok: true,
-      groups: []
-    });
-
-    expect(requestMock).toHaveBeenNthCalledWith(
-      3,
-      expect.objectContaining({
-        header: expect.objectContaining({
-          Authorization: 'Bearer fresh-token'
-        })
+    requestMock.mockImplementationOnce((options) =>
+      options.success({
+        statusCode: 401,
+        data: {
+          ok: false,
+          code: 'UNAUTHORIZED',
+          message: 'Invalid session'
+        }
       })
     );
-  });
-
-  it('clears stored session when re-login fails', async () => {
-    storage.set(MERCHANT_SESSION_STORAGE_KEY, {
-      token: 'expired-token',
-      expiresAt: '2099-01-01T00:00:00.000Z'
-    });
-
-    requestMock
-      .mockImplementationOnce((options) =>
-        options.success({
-          statusCode: 401,
-          data: {
-            ok: false,
-            code: 'UNAUTHORIZED',
-            message: 'Invalid session'
-          }
-        })
-      )
-      .mockImplementationOnce((options) =>
-        options.success({
-          statusCode: 400,
-          data: {
-            ok: false,
-            code: 'INVALID_LOGIN_CODE',
-            message: 'wx.login code is required'
-          }
-        })
-      );
 
     await expect(merchantApiRequest('/api/v1/merchant/orders')).rejects.toMatchObject({
-      code: 'INVALID_LOGIN_CODE'
+      code: 'UNAUTHORIZED'
     });
+    expect(requestMock).toHaveBeenCalledTimes(1);
     expect(storage.has(MERCHANT_SESSION_STORAGE_KEY)).toBe(false);
+  });
+
+  it('changes merchant password and stores the refreshed session', async () => {
+    storage.set(MERCHANT_SESSION_STORAGE_KEY, {
+      token: 'merchant-token',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      account: {
+        id: 'acct-admin',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: true
+      }
+    });
+    requestMock.mockImplementationOnce((options) =>
+      options.success({
+        statusCode: 200,
+        data: {
+          ok: true,
+          token: 'fresh-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          account: {
+            id: 'acct-admin',
+            username: 'admin',
+            role: 'admin',
+            mustChangePassword: false
+          }
+        }
+      })
+    );
+
+    await expect(changeMerchantPassword({ currentPassword: 'admin', newPassword: 'newpass' })).resolves.toMatchObject({
+      token: 'fresh-token',
+      account: {
+        mustChangePassword: false
+      }
+    });
+    expect(getMerchantSession()).toMatchObject({
+      token: 'fresh-token',
+      account: {
+        mustChangePassword: false
+      }
+    });
   });
 
   it('uses api.xiaipet.vip for release builds and supports local override', () => {

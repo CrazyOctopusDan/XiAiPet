@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../app';
-import { authHeader, testConfig } from './test-helpers';
+import { authHeader, merchantAccountAuthHeader, testConfig } from './test-helpers';
 
 describe('auth and identity routes', () => {
   it('logs in with wx code and returns a session token', async () => {
@@ -25,17 +25,38 @@ describe('auth and identity routes', () => {
     expect(response.json().token).toEqual(expect.any(String));
   });
 
-  it('uses separate customer and merchant WeChat login providers', async () => {
+  it('uses customer WeChat login and merchant account password login separately', async () => {
     const customerExchangeLoginCode = vi.fn(async () => ({ openid: 'customer-provider-openid' }));
-    const merchantExchangeLoginCode = vi.fn(async () => ({ openid: 'merchant-provider-openid' }));
+    const merchantLogin = vi.fn(async () => ({
+      ok: true as const,
+      account: {
+        id: 'acct-admin',
+        username: 'admin',
+        passwordHash: 'hidden',
+        role: 'admin' as const,
+        status: 'active' as const,
+        mustChangePassword: true,
+        createdBy: null,
+        lastLoginAt: null,
+        createdAt: new Date('2026-05-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-13T00:00:00.000Z')
+      }
+    }));
     const app = buildApp({
       config: testConfig,
       dependencies: {
         customerWechatLoginProvider: {
           exchangeLoginCode: customerExchangeLoginCode
         },
-        merchantWechatLoginProvider: {
-          exchangeLoginCode: merchantExchangeLoginCode
+        merchantAccountService: {
+          bootstrapInitialAdmin: async () => ({ ok: true }),
+          login: merchantLogin,
+          getActiveAccount: async () => merchantLogin.mock.results[0].value.then((result) => result.account),
+          changePassword: async () => merchantLogin.mock.results[0].value.then((result) => result.account).then((account) => ({ ok: true as const, account })),
+          listAccounts: async () => ({ ok: true, accounts: [] }),
+          createStaffAccount: async () => ({ ok: true }),
+          disableStaffAccount: async () => ({ ok: true }),
+          resetStaffPassword: async () => ({ ok: true })
         }
       }
     });
@@ -48,15 +69,65 @@ describe('auth and identity routes', () => {
     const merchantResponse = await app.inject({
       method: 'POST',
       url: '/api/v1/merchant/auth/login',
-      payload: { code: 'merchant-wx-code' }
+      payload: { username: 'admin', password: 'admin' }
     });
 
     expect(customerResponse.statusCode).toBe(200);
     expect(customerResponse.json()).toMatchObject({ ok: true, openid: 'customer-provider-openid' });
     expect(merchantResponse.statusCode).toBe(200);
-    expect(merchantResponse.json()).toMatchObject({ ok: true, openid: 'merchant-provider-openid' });
+    expect(merchantResponse.json()).toMatchObject({
+      ok: true,
+      account: {
+        id: 'acct-admin',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: true
+      }
+    });
     expect(customerExchangeLoginCode).toHaveBeenCalledWith('customer-wx-code');
-    expect(merchantExchangeLoginCode).toHaveBeenCalledWith('merchant-wx-code');
+    expect(merchantLogin).toHaveBeenCalledWith({ username: 'admin', password: 'admin' });
+  });
+
+  it('changes merchant password through merchant account session', async () => {
+    const account = {
+      id: 'acct-admin',
+      username: 'admin',
+      passwordHash: 'hidden',
+      role: 'admin' as const,
+      status: 'active' as const,
+      mustChangePassword: false,
+      createdBy: null,
+      lastLoginAt: null,
+      createdAt: new Date('2026-05-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-13T00:00:00.000Z')
+    };
+    const changePassword = vi.fn(async () => ({ ok: true as const, account }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        merchantAccountService: {
+          bootstrapInitialAdmin: async () => ({ ok: true }),
+          login: async () => ({ ok: true, account }),
+          getActiveAccount: async () => ({ ...account, mustChangePassword: true }),
+          changePassword,
+          listAccounts: async () => ({ ok: true, accounts: [] }),
+          createStaffAccount: async () => ({ ok: true }),
+          disableStaffAccount: async () => ({ ok: true }),
+          resetStaffPassword: async () => ({ ok: true })
+        }
+      }
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/merchant/auth/change-password',
+      headers: merchantAccountAuthHeader({ mustChangePassword: true }),
+      payload: { currentPassword: 'admin', newPassword: 'newpass' }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(changePassword).toHaveBeenCalledWith('acct-admin', { currentPassword: 'admin', newPassword: 'newpass' });
+    expect(response.json()).toMatchObject({ ok: true, account: { mustChangePassword: false } });
   });
 
   it('rejects missing customer session', async () => {

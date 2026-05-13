@@ -91,6 +91,20 @@ enum PrintResult {
   @@map("print_result")
 }
 
+enum MerchantAccountRole {
+  ADMIN @map("admin")
+  STAFF @map("staff")
+
+  @@map("merchant_account_role")
+}
+
+enum MerchantAccountStatus {
+  ACTIVE   @map("active")
+  DISABLED @map("disabled")
+
+  @@map("merchant_account_status")
+}
+
 model User {
   id                      String            @id @default(cuid())
   legacyId                String?           @unique @db.VarChar(191)
@@ -130,6 +144,22 @@ model MerchantUser {
 
   @@index([merchantId, enabled])
   @@map("merchant_users")
+}
+
+model MerchantAccount {
+  id                 String                @id @default(cuid())
+  username           String                @unique @db.VarChar(191)
+  passwordHash       String                @db.VarChar(512)
+  role               MerchantAccountRole
+  status             MerchantAccountStatus @default(ACTIVE)
+  mustChangePassword Boolean               @default(true)
+  createdBy          String?               @db.VarChar(191)
+  lastLoginAt        DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([role, status])
+  @@map("merchant_accounts")
 }
 
 model RuntimeConfigSection {

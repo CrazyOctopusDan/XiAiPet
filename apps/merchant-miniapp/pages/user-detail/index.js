@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const user_admin_1 = require("../../src/services/user-admin");
+const api_client_1 = require("../../src/services/api-client");
 Page({
     data: {
         user: null,
@@ -12,9 +13,14 @@ Page({
         note: '',
         resultingBalanceLabel: '￥0.00',
         disableSubmitReason: '请输入调整金额',
-        submitting: false
+        submitting: false,
+        canAdjustBalance: true
     },
     onLoad() {
+        var _a, _b;
+        this.setData({
+            canAdjustBalance: ((_b = (_a = (0, api_client_1.getMerchantSession)()) === null || _a === void 0 ? void 0 : _a.account) === null || _b === void 0 ? void 0 : _b.role) !== 'staff'
+        });
         this.refreshDetail();
     },
     refreshDetail() {
@@ -49,6 +55,13 @@ Page({
         });
     },
     handleOpenDrawer() {
+        if (!this.data.canAdjustBalance) {
+            wx.showToast({
+                title: '当前账号不能调整储值',
+                icon: 'none'
+            });
+            return;
+        }
         this.setData({
             drawerOpen: true
         });

@@ -5,7 +5,7 @@ export interface MerchantWorkspaceAction {
 }
 
 export interface MerchantWorkspaceCard {
-  id: 'orders' | 'catalog' | 'users' | 'runtime-config';
+  id: 'orders' | 'catalog' | 'users' | 'runtime-config' | 'staff-accounts';
   title: string;
   subtitle: string;
   description: string;
@@ -34,6 +34,22 @@ const WORKSPACE_CARDS: MerchantWorkspaceCard[] = [
         label: '打印机设置',
         url: '/pages/printer-settings/index',
         tone: 'secondary'
+      }
+    ]
+  },
+  {
+    id: 'staff-accounts',
+    title: '员工账号',
+    subtitle: '创建、停用和重置员工密码',
+    description: '管理员给员工开账号，员工首次登录使用 staff 初始密码后必须修改。',
+    badge: '仅管理员',
+    accent: 'linear-gradient(135deg, #C4B5FD 0%, #7C3AED 100%)',
+    iconToken: '员',
+    actions: [
+      {
+        label: '管理员工',
+        url: '/pages/staff-accounts/index',
+        tone: 'primary'
       }
     ]
   },
@@ -92,8 +108,13 @@ const WORKSPACE_CARDS: MerchantWorkspaceCard[] = [
   }
 ];
 
-export function getMerchantWorkspaceCards(): MerchantWorkspaceCard[] {
-  return WORKSPACE_CARDS.map((card) => ({
+export function getMerchantWorkspaceCards(role: 'admin' | 'staff' = 'admin'): MerchantWorkspaceCard[] {
+  const allowedIds =
+    role === 'staff'
+      ? new Set<MerchantWorkspaceCard['id']>(['orders', 'catalog'])
+      : new Set<MerchantWorkspaceCard['id']>(['orders', 'catalog', 'users', 'runtime-config', 'staff-accounts']);
+
+  return WORKSPACE_CARDS.filter((card) => allowedIds.has(card.id)).map((card) => ({
     ...card,
     actions: card.actions.map((action) => ({ ...action }))
   }));

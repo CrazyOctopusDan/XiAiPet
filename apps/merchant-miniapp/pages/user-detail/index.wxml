@@ -29,7 +29,7 @@
     </view>
   </view>
 
-  <view class="action-bar" wx:if="{{detail}}">
+  <view class="action-bar" wx:if="{{detail && canAdjustBalance}}">
     <button class="action-button" bindtap="handleOpenDrawer">调整余额</button>
   </view>
 

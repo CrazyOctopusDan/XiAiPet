@@ -1,9 +1,11 @@
 <view class="access-page">
   <view class="access-card">
-    <text class="heading">商户身份入口</text>
-    <text class="body">只有加入白名单的商户微信账号才允许继续进入商户端。</text>
+    <text class="heading">商户账号登录</text>
+    <text class="body">使用管理员或员工账号进入商户端。初始管理员账号为 admin，初始密码为 admin。</text>
+    <input class="login-input" value="{{username}}" placeholder="账号" bindinput="handleUsernameInput" />
+    <input class="login-input" value="{{password}}" password placeholder="密码" bindinput="handlePasswordInput" />
     <text class="status {{accessResult}}">{{statusText}}</text>
   </view>
-  <button class="primary-cta" bindtap="handleVerifyTap">验证商户身份</button>
-  <view class="meta-line">环境 dev · 通过 assertMerchantAccess 校验</view>
+  <button class="primary-cta" loading="{{submitting}}" bindtap="handleLoginTap">登录</button>
+  <view class="meta-line">首次登录后需要修改初始密码</view>
 </view>

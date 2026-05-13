@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const access_1 = require("../../src/services/access");
+const api_client_1 = require("../../src/services/api-client");
 function getAccessErrorMessage(error) {
     var _a, _b;
     if (error instanceof Error && error.message) {
@@ -17,29 +17,53 @@ function getAccessErrorMessage(error) {
 }
 Page({
     data: {
-        statusText: '等待校验',
-        accessResult: 'unknown'
+        username: 'admin',
+        password: '',
+        statusText: '请输入商户账号和密码',
+        accessResult: 'unknown',
+        submitting: false
     },
-    async handleVerifyTap() {
-        this.setData({ statusText: '正在校验商户权限' });
-        try {
-            const result = await (0, access_1.verifyMerchantAccess)();
-            const allowed = Boolean(result === null || result === void 0 ? void 0 : result.allowed);
-            this.setData({
-                accessResult: allowed ? 'allowed' : 'denied',
-                statusText: allowed ? '白名单已放行' : '当前账号还没有商户权限'
-            });
-            if (allowed) {
-                wx.redirectTo({
-                    url: '/pages/workspace/index'
-                });
-            }
-        }
-        catch (error) {
-            console.error('merchant access verification failed', error);
+    handleUsernameInput(event) {
+        var _a, _b;
+        this.setData({ username: (_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : '' });
+    },
+    handlePasswordInput(event) {
+        var _a, _b;
+        this.setData({ password: (_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : '' });
+    },
+    async handleLoginTap() {
+        var _a, _b, _c, _d, _e, _f;
+        const username = (_c = (_b = (_a = this.data) === null || _a === void 0 ? void 0 : _a.username) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : '';
+        const password = (_e = (_d = this.data) === null || _d === void 0 ? void 0 : _d.password) !== null && _e !== void 0 ? _e : '';
+        if (!username || !password) {
             this.setData({
                 accessResult: 'denied',
-                statusText: `身份同步失败：${getAccessErrorMessage(error)}`
+                statusText: '请输入账号和密码'
+            });
+            return;
+        }
+        this.setData({ statusText: '正在登录商户账号', submitting: true });
+        try {
+            const session = await (0, api_client_1.merchantLogin)({ username, password });
+            const mustChangePassword = Boolean((_f = session.account) === null || _f === void 0 ? void 0 : _f.mustChangePassword);
+            this.setData({
+                accessResult: 'allowed',
+                statusText: mustChangePassword ? '首次登录需要修改密码' : '登录成功',
+                submitting: false
+            });
+            wx.redirectTo({
+                url: mustChangePassword ? '/pages/password-change/index' : '/pages/workspace/index'
+            });
+        }
+        catch (error) {
+            console.error('merchant login failed', error);
+            const message = error instanceof api_client_1.MerchantApiError && error.message
+                ? error.message
+                : getAccessErrorMessage(error);
+            this.setData({
+                accessResult: 'denied',
+                statusText: `登录失败：${message}`,
+                submitting: false
             });
         }
     }

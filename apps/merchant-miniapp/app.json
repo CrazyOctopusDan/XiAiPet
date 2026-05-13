@@ -1,7 +1,9 @@
 {
   "pages": [
     "pages/access-gate/index",
+    "pages/password-change/index",
     "pages/workspace/index",
+    "pages/staff-accounts/index",
     "pages/orders/index",
     "pages/order-detail/index",
     "pages/printer-settings/index",

@@ -1,8 +1,12 @@
 declare function Page(options: Record<string, unknown>): void;
 
-import { verifyMerchantAccess } from '../../src/services/access';
+import { MerchantApiError, merchantLogin } from '../../src/services/api-client';
 
 interface AccessGatePageInstance {
+  data?: {
+    username?: string;
+    password?: string;
+  };
   setData(data: Record<string, unknown>): void;
 }
 
@@ -25,30 +29,54 @@ function getAccessErrorMessage(error: unknown) {
 
 Page({
   data: {
-    statusText: '等待校验',
-    accessResult: 'unknown'
+    username: 'admin',
+    password: '',
+    statusText: '请输入商户账号和密码',
+    accessResult: 'unknown',
+    submitting: false
   },
-  async handleVerifyTap(this: AccessGatePageInstance) {
-    this.setData({ statusText: '正在校验商户权限' });
+  handleUsernameInput(this: AccessGatePageInstance, event: { detail?: { value?: string } }) {
+    this.setData({ username: event.detail?.value ?? '' });
+  },
+  handlePasswordInput(this: AccessGatePageInstance, event: { detail?: { value?: string } }) {
+    this.setData({ password: event.detail?.value ?? '' });
+  },
+  async handleLoginTap(this: AccessGatePageInstance) {
+    const username = this.data?.username?.trim() ?? '';
+    const password = this.data?.password ?? '';
 
-    try {
-      const result = await verifyMerchantAccess();
-      const allowed = Boolean(result?.allowed);
-      this.setData({
-        accessResult: allowed ? 'allowed' : 'denied',
-        statusText: allowed ? '白名单已放行' : '当前账号还没有商户权限'
-      });
-
-      if (allowed) {
-        wx.redirectTo({
-          url: '/pages/workspace/index'
-        });
-      }
-    } catch (error) {
-      console.error('merchant access verification failed', error);
+    if (!username || !password) {
       this.setData({
         accessResult: 'denied',
-        statusText: `身份同步失败：${getAccessErrorMessage(error)}`
+        statusText: '请输入账号和密码'
+      });
+      return;
+    }
+
+    this.setData({ statusText: '正在登录商户账号', submitting: true });
+
+    try {
+      const session = await merchantLogin({ username, password });
+      const mustChangePassword = Boolean(session.account?.mustChangePassword);
+      this.setData({
+        accessResult: 'allowed',
+        statusText: mustChangePassword ? '首次登录需要修改密码' : '登录成功',
+        submitting: false
+      });
+
+      wx.redirectTo({
+        url: mustChangePassword ? '/pages/password-change/index' : '/pages/workspace/index'
+      });
+    } catch (error) {
+      console.error('merchant login failed', error);
+      const message =
+        error instanceof MerchantApiError && error.message
+          ? error.message
+          : getAccessErrorMessage(error);
+      this.setData({
+        accessResult: 'denied',
+        statusText: `登录失败：${message}`,
+        submitting: false
       });
     }
   }

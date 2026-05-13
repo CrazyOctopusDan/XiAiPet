@@ -13,6 +13,7 @@ import {
   getUserDetailViewModel,
   submitBalanceAdjustment
 } from '../../src/services/user-admin';
+import { getMerchantSession } from '../../src/services/api-client';
 
 interface UserDetailPageData {
   user: MerchantUserSearchListItem | null;
@@ -25,6 +26,7 @@ interface UserDetailPageData {
   resultingBalanceLabel: string;
   disableSubmitReason: string | null;
   submitting: boolean;
+  canAdjustBalance: boolean;
 }
 
 interface UserDetailPageInstance {
@@ -45,9 +47,13 @@ Page({
     note: '',
     resultingBalanceLabel: '￥0.00',
     disableSubmitReason: '请输入调整金额',
-    submitting: false
+    submitting: false,
+    canAdjustBalance: true
   },
   onLoad(this: UserDetailPageInstance) {
+    this.setData({
+      canAdjustBalance: getMerchantSession()?.account?.role !== 'staff'
+    });
     this.refreshDetail();
   },
   refreshDetail(this: UserDetailPageInstance) {
@@ -86,6 +92,13 @@ Page({
     });
   },
   handleOpenDrawer(this: UserDetailPageInstance) {
+    if (!this.data.canAdjustBalance) {
+      wx.showToast({
+        title: '当前账号不能调整储值',
+        icon: 'none'
+      });
+      return;
+    }
     this.setData({
       drawerOpen: true
     });

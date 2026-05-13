@@ -27,14 +27,30 @@ function timingSafeEqual(left: string, right: string): boolean {
 }
 
 export function createSessionToken(
-  input: { openid: string; unionid?: string; audience: AuthSessionAudience },
+  input: {
+    openid?: string;
+    unionid?: string;
+    merchantAccountId?: string;
+    username?: string;
+    role?: AuthSessionPayload['role'];
+    mustChangePassword?: boolean;
+    audience: AuthSessionAudience;
+  },
   secret: string,
   ttlSeconds: number,
   nowSeconds = Math.floor(Date.now() / 1000)
 ): string {
+  if (!input.openid && !input.merchantAccountId) {
+    throw new ApiError('INVALID_SESSION_SUBJECT', 'Session subject is required', 500);
+  }
+
   const payload: AuthSessionPayload = {
     openid: input.openid,
     unionid: input.unionid,
+    merchantAccountId: input.merchantAccountId,
+    username: input.username,
+    role: input.role,
+    mustChangePassword: input.mustChangePassword,
     audience: input.audience,
     issuedAt: nowSeconds,
     expiresAt: nowSeconds + ttlSeconds
@@ -65,6 +81,10 @@ export function verifySessionToken(
     if (
       envelope.payload.openid !== payload.openid ||
       envelope.payload.unionid !== payload.unionid ||
+      envelope.payload.merchantAccountId !== payload.merchantAccountId ||
+      envelope.payload.username !== payload.username ||
+      envelope.payload.role !== payload.role ||
+      envelope.payload.mustChangePassword !== payload.mustChangePassword ||
       envelope.payload.audience !== payload.audience ||
       envelope.payload.issuedAt !== payload.issuedAt ||
       envelope.payload.expiresAt !== payload.expiresAt ||
@@ -72,7 +92,7 @@ export function verifySessionToken(
     ) {
       throw new Error('invalid');
     }
-    if (!payload.openid || !payload.audience || payload.expiresAt <= nowSeconds) {
+    if ((!payload.openid && !payload.merchantAccountId) || !payload.audience || payload.expiresAt <= nowSeconds) {
       throw new Error('expired');
     }
     if (expectedAudience && payload.audience !== expectedAudience) {

@@ -7,20 +7,20 @@ export async function merchantRuntimeConfigRoutes(
   options: { dependencies: ApiRouteDependencies }
 ) {
   const { dependencies } = options;
-  const merchantGuard = { preHandler: dependencies.guards.requireMerchantSession };
+  const adminGuard = { preHandler: dependencies.guards.requireMerchantRole(['admin']) };
 
-  app.get('/runtime-config/sections', merchantGuard, async (request) => {
+  app.get('/runtime-config/sections', adminGuard, async (request) => {
     return dependencies.runtimeConfigService.getRuntimeConfigSections(request.merchant);
   });
 
-  app.get('/runtime-config', merchantGuard, async (request) => {
+  app.get('/runtime-config', adminGuard, async (request) => {
     const query = request.query as { sectionKeys?: string };
     return dependencies.runtimeConfigService.readMerchantRuntimeConfig(request.merchant, {
       sectionKeys: dependencies.runtimeConfigService.parseSectionKeys(query.sectionKeys)
     });
   });
 
-  app.put('/runtime-config/sections/:sectionKey', merchantGuard, async (request) => {
+  app.put('/runtime-config/sections/:sectionKey', adminGuard, async (request) => {
     const params = request.params as { sectionKey: string };
     return dependencies.runtimeConfigService.upsertRuntimeConfigSection(request.merchant, params.sectionKey, request.body);
   });
