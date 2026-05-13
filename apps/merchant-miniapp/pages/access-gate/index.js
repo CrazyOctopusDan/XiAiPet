@@ -17,9 +17,9 @@ function getAccessErrorMessage(error) {
 }
 Page({
     data: {
-        username: 'admin',
+        username: '',
         password: '',
-        statusText: '请输入商户账号和密码',
+        statusText: '首次登录后需要修改密码',
         accessResult: 'unknown',
         submitting: false
     },
@@ -42,7 +42,7 @@ Page({
             });
             return;
         }
-        this.setData({ statusText: '正在登录商户账号', submitting: true });
+        this.setData({ statusText: '正在登录', submitting: true });
         try {
             const session = await (0, api_client_1.merchantLogin)({ username, password });
             const mustChangePassword = Boolean((_f = session.account) === null || _f === void 0 ? void 0 : _f.mustChangePassword);
