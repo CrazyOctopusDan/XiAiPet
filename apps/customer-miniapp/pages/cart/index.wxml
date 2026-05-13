@@ -4,7 +4,7 @@
   <view class="cart-shell" wx:if="{{items.length}}">
     <view class="cart-toolbar">
       <view class="select-all" bindtap="handleToggleAll">
-        <view class="checkbox {{isAllSelected ? 'active' : ''}}">{{isAllSelected ? '✓' : ''}}</view>
+        <view class="checkbox {{isAllSelected ? 'active' : ''}}"></view>
         <text class="select-all-label">全选</text>
       </view>
       <text class="clear-action" bindtap="handleClearCart">清空</text>
@@ -30,7 +30,7 @@
             bindtouchcancel="handleRowSwipeEnd"
           >
             <view class="row-check" bindtap="handleToggleItem" data-item-id="{{item.id}}">
-              <view class="checkbox {{item.selected ? 'active' : ''}}">{{item.selected ? '✓' : ''}}</view>
+              <view class="checkbox {{item.selected ? 'active' : ''}}"></view>
             </view>
 
             <image class="row-image" mode="aspectFill" src="{{item.thumbnail}}" />
@@ -41,7 +41,6 @@
               <view class="row-meta">
                 <view class="row-spec-trigger" wx:if="{{item.specs.length}}" data-item-id="{{item.id}}" bindtap="handleOpenSpecModal">
                   <text class="row-spec-label">{{item.specLabel || '选择规格'}}</text>
-                  <text class="row-spec-arrow">∨</text>
                 </view>
                 <text class="row-stock">库存 {{item.stock}}</text>
               </view>
@@ -86,7 +85,7 @@
       <view class="quick-buy-content">
         <text class="quick-buy-name">{{editingItem.name}}</text>
         <text class="quick-buy-summary">{{editingItem.summary}}</text>
-        <text class="quick-buy-spec-title">尺寸&amp;口味选择</text>
+        <text class="quick-buy-spec-title">尺寸和口味选择</text>
         <view class="quick-buy-specs">
           <view class="quick-buy-spec {{editingSpecId === item.id ? 'active' : ''}}" wx:for="{{editingItem.specs}}" wx:key="id" data-spec-id="{{item.id}}" bindtap="handleEditingSpecTap">{{item.label}}</view>
         </view>

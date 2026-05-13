@@ -210,6 +210,32 @@ describe('cart checkout flow', () => {
     vi.unstubAllGlobals();
   });
 
+  it('keeps the cart page aligned with the refreshed warm commerce layout', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const cartTemplate = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.wxml',
+      'utf8'
+    );
+    const cartStyles = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.wxss',
+      'utf8'
+    );
+
+    expect(cartTemplate).toContain('class="checkbox {{isAllSelected ? \'active\' : \'\'}}"');
+    expect(cartTemplate).toContain('尺寸和口味选择');
+    expect(cartTemplate).not.toContain('row-spec-arrow');
+    expect(cartStyles).toContain('linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 58%, #F6E7C8 100%)');
+    expect(cartStyles).toContain('.checkbox.active::after');
+    expect(cartStyles).toMatch(/\.cart-row \{[\s\S]*?background: #FFFFFF/);
+    expect(cartStyles).toContain('.stepper-btn::before');
+    expect(cartStyles).toContain('.stepper-btn.plus::after');
+    expect(cartStyles).toMatch(/\.stepper-btn \{[\s\S]*?font-size: 0/);
+    expect(cartStyles).toContain('background: #3A2A1E');
+    expect(cartStyles).toContain('color: #FFE6A3');
+    expect(cartStyles).toContain('padding: calc(96rpx + env(safe-area-inset-top)) 24rpx calc(96rpx + env(safe-area-inset-bottom))');
+    expect(cartStyles).toContain('.checkout-button::after');
+  });
+
   it('clears cart page items and summary when the user empties the cart', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
     const { getProductById } = await import('../src/services/catalog');
