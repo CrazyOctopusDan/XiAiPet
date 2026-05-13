@@ -1,11 +1,53 @@
 <view class="access-page">
-  <view class="access-card">
-    <text class="heading">商户账号登录</text>
-    <text class="body">使用管理员或员工账号进入商户端。初始管理员账号为 admin，初始密码为 admin。</text>
-    <input class="login-input" value="{{username}}" placeholder="账号" bindinput="handleUsernameInput" />
-    <input class="login-input" value="{{password}}" password placeholder="密码" bindinput="handlePasswordInput" />
-    <text class="status {{accessResult}}">{{statusText}}</text>
+  <view class="brand-card">
+    <view class="brand-mark" aria-hidden="true">
+      <text class="brand-mark-main">喜</text>
+      <text class="brand-mark-sub">PET</text>
+    </view>
+    <view class="brand-copy">
+      <text class="brand-title">XiAiPet 商户端</text>
+      <text class="brand-subtitle">把订单和店务整理好</text>
+    </view>
   </view>
-  <button class="primary-cta" loading="{{submitting}}" bindtap="handleLoginTap">登录</button>
-  <view class="meta-line">首次登录后需要修改初始密码</view>
+
+  <view class="login-card">
+    <view class="login-head">
+      <view>
+        <text class="login-title">登录工作台</text>
+        <text class="login-subtitle">账号密码登录</text>
+      </view>
+      <text class="role-pill">店员 / 管理员</text>
+    </view>
+
+    <view class="field-group">
+      <text class="field-label">账号</text>
+      <input
+        class="login-input"
+        value="{{username}}"
+        placeholder="请输入账号"
+        placeholder-class="input-placeholder"
+        bindinput="handleUsernameInput"
+      />
+    </view>
+
+    <view class="field-group">
+      <text class="field-label">密码</text>
+      <input
+        class="login-input"
+        value="{{password}}"
+        password
+        placeholder="请输入密码"
+        placeholder-class="input-placeholder"
+        bindinput="handlePasswordInput"
+      />
+    </view>
+
+    <view class="status-strip {{accessResult}}">
+      <text class="status-text">{{statusText}}</text>
+    </view>
+
+    <button class="primary-cta" loading="{{submitting}}" bindtap="handleLoginTap">
+      登录
+    </button>
+  </view>
 </view>
