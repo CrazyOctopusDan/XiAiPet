@@ -33,6 +33,10 @@ export function createAuthGuards(dependencies: AuthGuardDependencies) {
     authenticated.auth = {
       openid: payload.openid,
       unionid: payload.unionid,
+      merchantAccountId: payload.merchantAccountId,
+      username: payload.username,
+      role: payload.role,
+      mustChangePassword: payload.mustChangePassword,
       audience: payload.audience
     };
     return authenticated;
