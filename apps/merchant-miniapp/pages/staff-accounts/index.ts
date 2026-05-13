@@ -5,13 +5,18 @@ import type { MerchantSessionAccount } from '../../src/services/api-client';
 import {
   createStaffAccount,
   disableStaffAccount,
+  formatMerchantAccountWorkspace,
   listMerchantAccounts,
-  resetStaffPassword
+  resetStaffPassword,
+  type MerchantAccountWorkspaceItem,
+  type MerchantAccountWorkspaceSummary
 } from '../../src/services/merchant-accounts';
 
 interface StaffAccountsPageInstance {
   data: {
     accounts: MerchantSessionAccount[];
+    accountCards: MerchantAccountWorkspaceItem[];
+    summary: MerchantAccountWorkspaceSummary;
     username: string;
     loading: boolean;
     statusText: string;
@@ -23,9 +28,15 @@ interface StaffAccountsPageInstance {
 Page({
   data: {
     accounts: [],
+    accountCards: [],
+    summary: {
+      total: 0,
+      staff: 0,
+      needsPasswordChange: 0
+    },
     username: '',
     loading: false,
-    statusText: '员工初始密码统一为 staff'
+    statusText: '初始密码 staff，首次登录需修改'
   },
   async onShow(this: StaffAccountsPageInstance) {
     await this.refreshAccounts();
@@ -37,10 +48,13 @@ Page({
     this.setData({ loading: true });
     try {
       const accounts = await listMerchantAccounts();
+      const workspace = formatMerchantAccountWorkspace(accounts);
       this.setData({
         accounts,
+        accountCards: workspace.items,
+        summary: workspace.summary,
         loading: false,
-        statusText: '员工初始密码统一为 staff'
+        statusText: '初始密码 staff，首次登录需修改'
       });
     } catch (error) {
       this.setData({

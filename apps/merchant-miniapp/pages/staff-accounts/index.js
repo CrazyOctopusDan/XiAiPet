@@ -4,9 +4,15 @@ const merchant_accounts_1 = require("../../src/services/merchant-accounts");
 Page({
     data: {
         accounts: [],
+        accountCards: [],
+        summary: {
+            total: 0,
+            staff: 0,
+            needsPasswordChange: 0
+        },
         username: '',
         loading: false,
-        statusText: '员工初始密码统一为 staff'
+        statusText: '初始密码 staff，首次登录需修改'
     },
     async onShow() {
         await this.refreshAccounts();
@@ -19,10 +25,13 @@ Page({
         this.setData({ loading: true });
         try {
             const accounts = await (0, merchant_accounts_1.listMerchantAccounts)();
+            const workspace = (0, merchant_accounts_1.formatMerchantAccountWorkspace)(accounts);
             this.setData({
                 accounts,
+                accountCards: workspace.items,
+                summary: workspace.summary,
                 loading: false,
-                statusText: '员工初始密码统一为 staff'
+                statusText: '初始密码 staff，首次登录需修改'
             });
         }
         catch (error) {

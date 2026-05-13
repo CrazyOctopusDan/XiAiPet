@@ -1,21 +1,69 @@
 <view class="page">
-  <view class="panel">
-    <text class="title">员工账号</text>
-    <text class="subtitle">管理员创建员工账号后，员工使用初始密码 staff 登录并修改密码。</text>
-    <view class="create-row">
-      <input class="input" value="{{username}}" placeholder="员工账号" bindinput="handleUsernameInput" />
-      <button class="primary-button" loading="{{loading}}" bindtap="handleCreateStaff">创建</button>
+  <view class="summary-card">
+    <view class="summary-head">
+      <view class="page-mark">员</view>
+      <view class="summary-copy">
+        <text class="page-title">员工账号</text>
+        <text class="page-subtitle">开账号、停用、重置密码</text>
+      </view>
     </view>
-    <text class="status">{{statusText}}</text>
+
+    <view class="summary-metrics">
+      <view class="metric-chip accent">
+        <text class="metric-value">{{summary.total}}</text>
+        <text class="metric-label">全部账号</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{summary.staff}}</text>
+        <text class="metric-label">员工账号</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{summary.needsPasswordChange}}</text>
+        <text class="metric-label">需改密</text>
+      </view>
+    </view>
   </view>
 
-  <view class="account-list">
-    <view class="account-card" wx:for="{{accounts}}" wx:key="id">
-      <view class="account-main">
-        <text class="account-name">{{item.username}}</text>
-        <text class="account-meta">{{item.role}} · {{item.status}} · {{item.mustChangePassword ? '需改密' : '已改密'}}</text>
+  <view class="create-card">
+    <view class="section-head">
+      <view>
+        <text class="section-title">新增员工</text>
+        <text class="section-note">初始密码 staff</text>
       </view>
-      <view class="account-actions" wx:if="{{item.role === 'staff'}}">
+      <text class="status-pill">{{statusText}}</text>
+    </view>
+
+    <view class="create-row">
+      <input class="input" value="{{username}}" placeholder="输入员工账号" bindinput="handleUsernameInput" />
+      <button class="primary-button" loading="{{loading}}" bindtap="handleCreateStaff">创建</button>
+    </view>
+  </view>
+
+  <view class="list-head">
+    <text class="section-title">账号列表</text>
+    <text class="section-note">只管理员工账号</text>
+  </view>
+
+  <view class="empty-card" wx:if="{{accountCards.length === 0 && !loading}}">
+    <text class="empty-title">暂无账号</text>
+    <text class="empty-note">创建员工账号后会显示在这里</text>
+  </view>
+
+  <view class="account-list" wx:else>
+    <view class="account-card {{item.statusTone === 'disabled' ? 'disabled' : ''}}" wx:for="{{accountCards}}" wx:key="id">
+      <view class="account-main">
+        <view class="account-avatar">{{item.initial}}</view>
+        <view class="account-copy">
+          <text class="account-name">{{item.username}}</text>
+          <view class="account-tags">
+            <text class="tag">{{item.roleLabel}}</text>
+            <text class="tag {{item.statusTone}}">{{item.statusLabel}}</text>
+            <text class="tag">{{item.passwordLabel}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="account-actions" wx:if="{{item.canManage}}">
         <button class="secondary-button" data-id="{{item.id}}" bindtap="handleResetPassword">重置</button>
         <button class="danger-button" data-id="{{item.id}}" bindtap="handleDisableStaff">停用</button>
       </view>
