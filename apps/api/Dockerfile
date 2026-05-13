@@ -23,6 +23,7 @@ RUN corepack enable
 COPY --from=build /app/package.json /app/pnpm-workspace.yaml /app/tsconfig.base.json ./
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/apps/api/package.json apps/api/package.json
+COPY --from=build /app/apps/api/node_modules apps/api/node_modules
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/packages/shared/package.json packages/shared/package.json
 
