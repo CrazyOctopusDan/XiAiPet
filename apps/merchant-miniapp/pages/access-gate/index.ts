@@ -29,7 +29,7 @@ function getAccessErrorMessage(error: unknown) {
 
 Page({
   data: {
-    username: 'admin',
+    username: '',
     password: '',
     statusText: '首次登录后需要修改密码',
     accessResult: 'unknown',
