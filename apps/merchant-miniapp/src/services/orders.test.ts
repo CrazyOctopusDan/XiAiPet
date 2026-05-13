@@ -4,6 +4,7 @@ import type { OrderFulfillmentStatus, OrderRecord } from '@xiaipet/shared';
 
 import { MERCHANT_SESSION_STORAGE_KEY, type MerchantApiRequester } from './api-client';
 import {
+  getMerchantOrderGroupSummary,
   getMerchantOrderDetail,
   getMerchantOrderDetailViewModel,
   getMerchantOrdersPageViewModel,
@@ -49,7 +50,7 @@ function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
         mode: 'delivery',
         address: {
           id: 'address-001',
-          recipientName: '虾衣妈妈',
+          recipientName: '喜爱妈妈',
           phoneNumber: '13800001234',
           regionLabel: '上海市 静安区',
           detailAddress: '南京西路 1266 号 8 楼',
@@ -62,7 +63,7 @@ function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
           timeLabel: '18:00'
         },
         store: {
-          name: '虾衣宠物烘焙工作室',
+          name: '喜爱宠物烘焙工作室',
           address: '上海市静安区南京西路 1266 号 8 楼'
         }
       },
@@ -236,6 +237,35 @@ describe('merchant orders service', () => {
       id: 'order-paid',
       statusLabel: '待处理',
       secondaryBadgeLabel: null
+    });
+  });
+
+  it('summarizes merchant order groups for the operations header', () => {
+    const view = getMerchantOrdersPageViewModel([
+      {
+        groupLabel: '待付款',
+        orders: [
+          createOrder({
+            id: 'order-unpaid',
+            status: 'pending_payment',
+            payment: {
+              method: 'wechat',
+              status: 'pending'
+            },
+            fulfillmentState: undefined
+          })
+        ]
+      },
+      {
+        groupLabel: '待处理',
+        orders: [createOrder({ id: 'order-paid' })]
+      }
+    ]);
+
+    expect(getMerchantOrderGroupSummary(view.groups)).toEqual({
+      totalOrders: 2,
+      activeGroups: 1,
+      pendingPayment: 1
     });
   });
 

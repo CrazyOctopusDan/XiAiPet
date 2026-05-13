@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.queryMerchantOrders = queryMerchantOrders;
 exports.getMerchantOrdersPageViewModel = getMerchantOrdersPageViewModel;
+exports.getMerchantOrderGroupSummary = getMerchantOrderGroupSummary;
 exports.getMerchantOrderDetail = getMerchantOrderDetail;
 exports.getMerchantOrderDetailViewModel = getMerchantOrderDetailViewModel;
 exports.updateMerchantOrderStatus = updateMerchantOrderStatus;
@@ -254,6 +255,17 @@ function getMerchantOrdersPageViewModel(groups) {
         isEmpty: grouped.length === 0,
         groups: grouped
     };
+}
+function getMerchantOrderGroupSummary(groups) {
+    return groups.reduce((summary, group) => ({
+        totalOrders: summary.totalOrders + group.orders.length,
+        activeGroups: summary.activeGroups + (group.groupLabel === '已取消' ? 0 : 1),
+        pendingPayment: summary.pendingPayment + group.orders.filter((order) => order.secondaryBadgeLabel === '待支付').length
+    }), {
+        totalOrders: 0,
+        activeGroups: 0,
+        pendingPayment: 0
+    });
 }
 async function getMerchantOrderDetail(orderId, request = api_client_1.merchantApiRequest) {
     var _a;

@@ -57,6 +57,11 @@ Page({
         activeMode: 'all',
         filters: FILTERS,
         groups: [],
+        summary: {
+            totalOrders: 0,
+            activeGroups: 0,
+            pendingPayment: 0
+        },
         emptyTitle: '还没有订单',
         emptyBody: '新订单会按履约进度分组显示在这里。'
     },
@@ -77,6 +82,7 @@ Page({
             loading: false,
             isEmpty: filteredGroups.length === 0,
             groups: filteredGroups,
+            summary: (0, orders_1.getMerchantOrderGroupSummary)(filteredGroups),
             emptyTitle: hasFilters ? '没有匹配的订单' : '还没有订单',
             emptyBody: hasFilters ? '换个关键词或履约方式再试一次。' : '新订单会按履约进度分组显示在这里。'
         });

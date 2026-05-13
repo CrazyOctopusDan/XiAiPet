@@ -62,6 +62,12 @@ export interface MerchantOrdersPageViewModel {
   groups: MerchantOrderGroupViewModel[];
 }
 
+export interface MerchantOrderGroupSummaryViewModel {
+  totalOrders: number;
+  activeGroups: number;
+  pendingPayment: number;
+}
+
 export interface MerchantOrderStatusOption {
   value: OrderFulfillmentStatus | 'cancelled';
   label: string;
@@ -441,6 +447,22 @@ export function getMerchantOrdersPageViewModel(groups: MerchantOrderQueryGroup[]
     isEmpty: grouped.length === 0,
     groups: grouped
   };
+}
+
+export function getMerchantOrderGroupSummary(groups: MerchantOrderGroupViewModel[]): MerchantOrderGroupSummaryViewModel {
+  return groups.reduce<MerchantOrderGroupSummaryViewModel>(
+    (summary, group) => ({
+      totalOrders: summary.totalOrders + group.orders.length,
+      activeGroups: summary.activeGroups + (group.groupLabel === '已取消' ? 0 : 1),
+      pendingPayment:
+        summary.pendingPayment + group.orders.filter((order) => order.secondaryBadgeLabel === '待支付').length
+    }),
+    {
+      totalOrders: 0,
+      activeGroups: 0,
+      pendingPayment: 0
+    }
+  );
 }
 
 export async function getMerchantOrderDetail(
