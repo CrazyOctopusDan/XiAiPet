@@ -4,11 +4,11 @@ exports.getMerchantWorkspaceCards = getMerchantWorkspaceCards;
 const WORKSPACE_CARDS = [
     {
         id: 'orders',
-        title: '订单管理',
-        subtitle: '按履约进度推进订单',
-        description: '查看待处理、制作中、待履约和历史订单，进入详情后继续人工推进状态。',
-        badge: '履约看板',
-        accent: 'linear-gradient(135deg, #F6B067 0%, #F18D52 100%)',
+        title: '订单',
+        subtitle: '履约看板',
+        description: '处理预约、制作、交付',
+        badge: '履约',
+        accent: '#F3B56F',
         iconToken: '单',
         actions: [
             {
@@ -25,11 +25,11 @@ const WORKSPACE_CARDS = [
     },
     {
         id: 'staff-accounts',
-        title: '员工账号',
-        subtitle: '创建、停用和重置员工密码',
-        description: '管理员给员工开账号，员工首次登录使用 staff 初始密码后必须修改。',
-        badge: '仅管理员',
-        accent: 'linear-gradient(135deg, #C4B5FD 0%, #7C3AED 100%)',
+        title: '员工',
+        subtitle: '账号权限',
+        description: '创建、停用、重置密码',
+        badge: '管理员',
+        accent: '#E98F78',
         iconToken: '员',
         actions: [
             {
@@ -41,11 +41,11 @@ const WORKSPACE_CARDS = [
     },
     {
         id: 'catalog',
-        title: '品类/商品管理',
-        subtitle: '保持分开维护，不合并成 tab',
-        description: '先管一级品类，再进入商品列表与三步编辑器，保持 D-11 的分离入口。',
+        title: '商品',
+        subtitle: '品类与商品',
+        description: '维护分类、价格、上下架',
         badge: '双入口',
-        accent: 'linear-gradient(135deg, #9FD7C6 0%, #5EA892 100%)',
+        accent: '#9BCFBC',
         iconToken: '品',
         actions: [
             {
@@ -54,7 +54,7 @@ const WORKSPACE_CARDS = [
                 tone: 'primary'
             },
             {
-                label: '商品管理',
+                label: '商品',
                 url: '/pages/products/index',
                 tone: 'secondary'
             }
@@ -62,11 +62,11 @@ const WORKSPACE_CARDS = [
     },
     {
         id: 'users',
-        title: '用户管理',
-        subtitle: '搜索用户并调整余额',
-        description: '按手机号或昵称检索会员，进入详情后执行带审计字段的余额操作。',
-        badge: '审计必填',
-        accent: 'linear-gradient(135deg, #7DB3D7 0%, #456E9A 100%)',
+        title: '用户',
+        subtitle: '会员余额',
+        description: '搜索会员、调整余额',
+        badge: '审计',
+        accent: '#8EB8D6',
         iconToken: '客',
         actions: [
             {
@@ -78,11 +78,11 @@ const WORKSPACE_CARDS = [
     },
     {
         id: 'runtime-config',
-        title: '运营配置',
-        subtitle: '一个入口，按分区保存',
-        description: '统一维护店铺信息、配送费规则、会员等级、Banner 和定制提示。',
-        badge: '配置驱动',
-        accent: 'linear-gradient(135deg, #D9C7A1 0%, #B69258 100%)',
+        title: '配置',
+        subtitle: '店务规则',
+        description: '配送费、等级、Banner',
+        badge: '店务',
+        accent: '#D8BE8A',
         iconToken: '配',
         actions: [
             {
@@ -97,8 +97,12 @@ function getMerchantWorkspaceCards(role = 'admin') {
     const allowedIds = role === 'staff'
         ? new Set(['orders', 'catalog'])
         : new Set(['orders', 'catalog', 'users', 'runtime-config', 'staff-accounts']);
-    return WORKSPACE_CARDS.filter((card) => allowedIds.has(card.id)).map((card) => ({
-        ...card,
-        actions: card.actions.map((action) => ({ ...action }))
-    }));
+    return WORKSPACE_CARDS.filter((card) => allowedIds.has(card.id)).map((card) => {
+        var _a, _b;
+        return ({
+            ...card,
+            primaryUrl: (_b = (_a = card.actions[0]) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '',
+            actions: card.actions.map((action) => ({ ...action }))
+        });
+    });
 }
