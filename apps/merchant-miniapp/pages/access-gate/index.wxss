@@ -19,7 +19,6 @@
 .brand-card {
   display: flex;
   align-items: center;
-  gap: 24rpx;
   padding: 32rpx;
 }
 
@@ -52,6 +51,7 @@
 .brand-copy {
   min-width: 0;
   flex: 1;
+  margin-left: 24rpx;
 }
 
 .brand-title,
@@ -86,8 +86,12 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20rpx;
   margin-bottom: 28rpx;
+}
+
+.login-copy {
+  min-width: 0;
+  flex: 1;
 }
 
 .login-title {
@@ -105,6 +109,7 @@
 
 .role-pill {
   flex: 0 0 auto;
+  margin-left: 20rpx;
   padding: 10rpx 18rpx;
   border-radius: 999rpx;
   background: #FFF3E6;
@@ -169,12 +174,14 @@
 }
 
 .primary-cta {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 92rpx;
   margin-top: 24rpx;
+  padding: 0;
   border: none;
   border-radius: 20rpx;
   background: #2E5B73;

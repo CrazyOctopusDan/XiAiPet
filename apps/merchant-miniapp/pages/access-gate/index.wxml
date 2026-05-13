@@ -12,7 +12,7 @@
 
   <view class="login-card">
     <view class="login-head">
-      <view>
+      <view class="login-copy">
         <text class="login-title">登录工作台</text>
         <text class="login-subtitle">账号密码登录</text>
       </view>
