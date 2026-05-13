@@ -14,8 +14,7 @@ import {
   isTerminalFulfillmentStatus
 } from '../shared/order-fulfillment';
 
-import { verifyMerchantAccess } from './access';
-import { merchantApiRequest, type MerchantApiRequester } from './api-client';
+import { MerchantApiError, getMerchantSession, merchantApiRequest, type MerchantApiRequester } from './api-client';
 
 export interface MerchantOrderTimelineEntry {
   type: 'created' | 'payment' | 'manual_settlement' | 'fulfillment' | 'cancelled' | 'print';
@@ -130,15 +129,6 @@ export interface UpdateMerchantOrderStatusInput {
   nextStatus: OrderFulfillmentStatus | 'cancelled';
   adjustmentMethod?: OrderManualSettlementMethod;
   reasonNote?: string;
-}
-
-interface MerchantAccessResult {
-  allowed?: boolean;
-  merchant?: {
-    merchantId: string;
-    storeName: string;
-  };
-  result?: MerchantAccessResult;
 }
 
 function formatMoney(value: number) {
@@ -400,17 +390,15 @@ function createStatusOptions(order: MerchantManagedOrderRecord): MerchantOrderSt
   return options;
 }
 
-async function resolveMerchantOperator(accessVerifier: () => Promise<MerchantAccessResult>) {
-  const response = await accessVerifier();
-  const access: MerchantAccessResult = response.result ?? response;
-
-  if (!access.allowed || !access.merchant?.merchantId || !access.merchant.storeName) {
-    throw new Error('MERCHANT_FORBIDDEN');
+function getCurrentMerchantOperator() {
+  const account = getMerchantSession()?.account;
+  if (!account?.id || !account.username) {
+    throw new MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
   }
 
   return {
-    id: access.merchant.merchantId,
-    name: access.merchant.storeName
+    id: account.id,
+    name: account.username
   };
 }
 
@@ -512,10 +500,9 @@ export function getMerchantOrderDetailViewModel(detail: MerchantOrderDetailRespo
 
 export async function updateMerchantOrderStatus(
   input: UpdateMerchantOrderStatusInput,
-  request: MerchantApiRequester = merchantApiRequest,
-  accessVerifier = verifyMerchantAccess
+  request: MerchantApiRequester = merchantApiRequest
 ) {
-  const operator = await resolveMerchantOperator(accessVerifier);
+  const operator = getCurrentMerchantOperator();
   const body: {
     status?: OrderStatus;
     paymentStatus?: 'paid';

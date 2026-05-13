@@ -1,6 +1,5 @@
 import { ApiError } from '../../lib/errors';
 import { createUserRepository } from './repository';
-import type { MerchantAccessResult } from '../auth/types';
 
 interface PhoneBindingInput {
   phoneNumber: string;
@@ -69,29 +68,6 @@ export function createIdentityService(userRepository = createUserRepository()) {
           contactPhoneMasked: normalized.maskedPhone,
           contactPhoneCountryCode: normalized.countryCode
         }
-      };
-    },
-
-    async assertMerchantAccess(openid: string): Promise<MerchantAccessResult> {
-      const merchantUser = await userRepository.getMerchantByOpenid(openid);
-      if (!merchantUser || !merchantUser.enabled) {
-        return {
-          ok: true,
-          status: 'denied',
-          allowed: false,
-          reason: '当前账号还未加入 merchant_users 白名单'
-        };
-      }
-
-      return {
-        ok: true,
-        status: 'allowed',
-        allowed: true,
-        merchant: {
-          merchantId: merchantUser.merchantId,
-          storeName: merchantUser.storeName
-        },
-        merchantUser
       };
     }
   };

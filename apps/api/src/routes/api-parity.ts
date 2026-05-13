@@ -12,7 +12,6 @@ export interface ApiParityEntry {
 export const apiParityEntries: ApiParityEntry[] = [
   { functionName: 'bootstrapUser', method: 'POST', path: '/api/v1/customer/bootstrap', authMode: 'customer-session', planId: '09-01', testGroup: 'auth.routes' },
   { functionName: 'bindPhone', method: 'POST', path: '/api/v1/customer/profile/phone', authMode: 'customer-session', planId: '09-01', testGroup: 'auth.routes' },
-  { functionName: 'assertMerchantAccess', method: 'GET', path: '/api/v1/merchant/access', authMode: 'merchant-session', planId: '09-01', testGroup: 'auth.routes' },
   { functionName: 'queryCategories', method: 'GET', path: '/api/v1/customer/catalog/categories', authMode: 'customer-public', planId: '09-02', testGroup: 'customer-catalog.routes' },
   { functionName: 'queryProducts', method: 'GET', path: '/api/v1/customer/catalog/products', authMode: 'customer-public', planId: '09-02', testGroup: 'customer-catalog.routes' },
   { functionName: 'readRuntimeConfig', method: 'GET', path: '/api/v1/customer/runtime-config', authMode: 'customer-public', planId: '09-02', testGroup: 'customer-catalog.routes' },

@@ -1,18 +1,8 @@
 import type { OrderReceiptPrintAuditPayload, OrderReceiptPrintJob } from '@xiaipet/shared';
 
-import { verifyMerchantAccess } from './access';
-import { merchantApiRequest, type MerchantApiRequester } from './api-client';
+import { MerchantApiError, getMerchantSession, merchantApiRequest, type MerchantApiRequester } from './api-client';
 import type { ReceiptPrinterConnection } from './printer';
 import { getStoredReceiptPrinterConnection, writeReceiptPrinterChunks } from './printer';
-
-interface MerchantAccessResult {
-  allowed?: boolean;
-  merchant?: {
-    merchantId: string;
-    storeName: string;
-  };
-  result?: MerchantAccessResult;
-}
 
 interface PrintOrderReceiptInput {
   orderId: string;
@@ -20,23 +10,20 @@ interface PrintOrderReceiptInput {
 
 interface PrintOrderReceiptDependencies {
   request?: MerchantApiRequester;
-  accessVerifier?: () => Promise<MerchantAccessResult>;
   getConnection?: () => ReceiptPrinterConnection | null;
   writeChunks?: (chunksBase64: string[], connection: ReceiptPrinterConnection) => Promise<void>;
   now?: () => string;
 }
 
-async function resolveMerchantOperator(accessVerifier: () => Promise<MerchantAccessResult>) {
-  const response = await accessVerifier();
-  const access: MerchantAccessResult = response.result ?? response;
-
-  if (!access.allowed || !access.merchant?.merchantId || !access.merchant.storeName) {
-    throw new Error('MERCHANT_FORBIDDEN');
+function getCurrentMerchantOperator() {
+  const account = getMerchantSession()?.account;
+  if (!account?.id || !account.username) {
+    throw new MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
   }
 
   return {
-    id: access.merchant.merchantId,
-    name: access.merchant.storeName
+    id: account.id,
+    name: account.username
   };
 }
 
@@ -91,7 +78,7 @@ function getErrorMessage(error: unknown) {
 
 export async function printOrderReceipt(input: PrintOrderReceiptInput, dependencies: PrintOrderReceiptDependencies = {}) {
   const request = dependencies.request ?? merchantApiRequest;
-  const operator = await resolveMerchantOperator(dependencies.accessVerifier ?? verifyMerchantAccess);
+  const operator = getCurrentMerchantOperator();
   const job = await prepareReceiptPrintJob(input.orderId, request);
   const connection = dependencies.getConnection ? dependencies.getConnection() : getStoredReceiptPrinterConnection();
   const printedAt = dependencies.now?.() ?? new Date().toISOString();

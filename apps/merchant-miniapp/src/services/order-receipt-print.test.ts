@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { OrderReceiptPrintJob } from '@xiaipet/shared';
 
-import type { MerchantApiRequester } from './api-client';
+import { MERCHANT_SESSION_STORAGE_KEY, type MerchantApiRequester } from './api-client';
 import { printOrderReceipt } from './order-receipt-print';
 
 const JOB: OrderReceiptPrintJob = {
@@ -14,18 +14,6 @@ const JOB: OrderReceiptPrintJob = {
   nextPrintCount: 1,
   isReprint: false
 };
-
-function createVerifyAccess() {
-  return vi.fn().mockResolvedValue({
-    result: {
-      allowed: true,
-      merchant: {
-        merchantId: 'merchant-001',
-        storeName: '虾衣宠物烘焙工作室'
-      }
-    }
-  });
-}
 
 function createRequest() {
   return vi.fn((path: string) => {
@@ -43,6 +31,29 @@ function createRequest() {
 }
 
 describe('merchant order receipt print service', () => {
+  beforeEach(() => {
+    vi.stubGlobal('wx', {
+      getStorageSync: vi.fn((key: string) =>
+        key === MERCHANT_SESSION_STORAGE_KEY
+          ? {
+              token: 'merchant-token',
+              expiresAt: '2099-01-01T00:00:00.000Z',
+              account: {
+                id: 'acct-admin',
+                username: 'admin',
+                role: 'admin',
+                mustChangePassword: false
+              }
+            }
+          : undefined
+      )
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('prepares a job, writes chunks, and records a successful print audit', async () => {
     const request = createRequest();
     const writeChunks = vi.fn().mockResolvedValue(undefined);
@@ -53,7 +64,6 @@ describe('merchant order receipt print service', () => {
       },
       {
         request: request as unknown as MerchantApiRequester,
-        accessVerifier: createVerifyAccess(),
         getConnection: () => ({
           deviceId: 'printer-001',
           name: '厨房小票机',
@@ -107,7 +117,6 @@ describe('merchant order receipt print service', () => {
         },
         {
           request: request as unknown as MerchantApiRequester,
-          accessVerifier: createVerifyAccess(),
           getConnection: () => ({
             deviceId: 'printer-001',
             name: '厨房小票机',
@@ -138,7 +147,6 @@ describe('merchant order receipt print service', () => {
         },
         {
           request: request as unknown as MerchantApiRequester,
-          accessVerifier: createVerifyAccess(),
           getConnection: () => null,
           now: () => '2026-04-18T11:00:00.000Z'
         }
@@ -165,11 +173,10 @@ describe('merchant order receipt print service', () => {
     await expect(
       printOrderReceipt(
         {
-          orderId: 'order-001',
+          orderId: 'order-001'
         },
         {
           request: request as unknown as MerchantApiRequester,
-          accessVerifier: createVerifyAccess(),
           getConnection: () => ({
             deviceId: 'printer-001',
             name: '厨房小票机',

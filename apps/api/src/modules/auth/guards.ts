@@ -5,14 +5,12 @@ import { verifySessionToken } from './session';
 import type {
   AuthSessionAudience,
   AuthenticatedRequest,
-  MerchantAccessService,
   MerchantAccountRole
 } from './types';
 import type { MerchantAccountRecord } from '../merchant-accounts/service';
 
 export interface AuthGuardDependencies {
   sessionSecret: string;
-  merchantAccessService: MerchantAccessService;
   merchantAccountService: {
     getActiveAccount(accountId: string): Promise<MerchantAccountRecord>;
   };
@@ -53,7 +51,7 @@ export function createAuthGuards(dependencies: AuthGuardDependencies) {
     const authenticated = authenticateSession(request, 'merchant');
     const accountId = authenticated.auth?.merchantAccountId;
     if (!accountId) {
-      return requireLegacyMerchantSession(request, _reply);
+      throw new ApiError('UNAUTHORIZED', 'Missing merchant account session', 401);
     }
 
     const account = await dependencies.merchantAccountService.getActiveAccount(accountId);
@@ -93,35 +91,10 @@ export function createAuthGuards(dependencies: AuthGuardDependencies) {
     };
   }
 
-  async function requireLegacyMerchantSession(request: FastifyRequest, _reply: FastifyReply) {
-    const authenticated = authenticateSession(request, 'merchant');
-    const openid = authenticated.auth?.openid;
-    if (!openid) {
-      throw new ApiError('UNAUTHORIZED', 'Missing session', 401);
-    }
-
-    const access = await dependencies.merchantAccessService.assertMerchantAccess(openid);
-    if (!access.allowed || !access.merchant) {
-      throw new ApiError('MERCHANT_FORBIDDEN', access.reason ?? '当前账号还未加入 merchant_users 白名单', 403);
-    }
-
-    authenticated.merchant = {
-      openid,
-      accountId: openid,
-      username: openid,
-      role: 'admin',
-      mustChangePassword: false,
-      merchantId: access.merchant.merchantId,
-      storeName: access.merchant.storeName,
-      merchantUser: access.merchantUser
-    };
-  }
-
   return {
     requireCustomerSession,
     requireMerchantAccountSession,
     requireMerchantSession,
-    requireMerchantRole,
-    requireLegacyMerchantSession
+    requireMerchantRole
   };
 }

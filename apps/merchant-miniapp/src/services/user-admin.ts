@@ -8,8 +8,7 @@ import type {
   MerchantUserSearchListItem
 } from '@xiaipet/shared/types/user-admin';
 
-import { verifyMerchantAccess } from './access';
-import { merchantApiRequest, type MerchantApiRequester } from './api-client';
+import { MerchantApiError, getMerchantSession, merchantApiRequest, type MerchantApiRequester } from './api-client';
 
 export interface UserCardViewModel {
   openid: string;
@@ -66,15 +65,6 @@ export interface BalanceAdjustmentDraft {
   disableSubmitReason: string | null;
 }
 
-interface MerchantAccessResult {
-  allowed?: boolean;
-  merchant?: {
-    merchantId: string;
-    storeName: string;
-  };
-  result?: MerchantAccessResult;
-}
-
 const USER_DETAIL_CACHE_KEY = 'merchant-user-detail-cache';
 
 function formatMoney(value: number) {
@@ -96,10 +86,6 @@ function formatDateTime(value: string) {
   return `${month}-${day} ${hours}:${minutes}`;
 }
 
-function resolveMerchantAccess(access: MerchantAccessResult) {
-  return access.result ?? access;
-}
-
 function readUserDetailCache(): Record<string, LatestAdjustmentSummary> {
   try {
     return wx.getStorageSync(USER_DETAIL_CACHE_KEY) ?? {};
@@ -115,6 +101,18 @@ function writeUserDetailCache(cache: Record<string, LatestAdjustmentSummary>, st
   }
 
   wx.setStorageSync(USER_DETAIL_CACHE_KEY, cache);
+}
+
+function getCurrentMerchantOperator() {
+  const account = getMerchantSession()?.account;
+  if (!account?.id || !account.username) {
+    throw new MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
+  }
+
+  return {
+    openid: account.id,
+    name: account.username
+  };
 }
 
 export async function queryMerchantUsers(input: MerchantUserSearchInput, request: MerchantApiRequester = merchantApiRequest) {
@@ -215,24 +213,16 @@ export function buildBalanceAdjustmentDraft(
 export async function submitBalanceAdjustment(
   draft: BalanceAdjustmentDraft,
   request: MerchantApiRequester = merchantApiRequest,
-  accessVerifier = verifyMerchantAccess,
   storage?: (key: string, value: unknown) => void
 ) {
-  const access = resolveMerchantAccess((await accessVerifier()) as MerchantAccessResult);
-
-  if (!access.allowed || !access.merchant?.merchantId || !access.merchant.storeName) {
-    throw new Error('MERCHANT_FORBIDDEN');
-  }
+  const operator = getCurrentMerchantOperator();
 
   const payload: MerchantUserBalanceAdjustmentPayload = {
     userOpenid: draft.user.openid,
     action: draft.action,
     reasonType: draft.reasonType,
     note: draft.note.trim(),
-    operator: {
-      openid: access.merchant.merchantId,
-      name: access.merchant.storeName
-    },
+    operator,
     operatedAt: new Date().toISOString(),
     beforeBalance: draft.beforeBalance,
     delta: draft.delta,
@@ -259,7 +249,7 @@ export async function submitBalanceAdjustment(
     normalizedTitle: response.ledger.normalizedTitle,
     shortNote: response.ledger.shortNote,
     operatedAt: payload.operatedAt,
-    operatorName: access.merchant.storeName
+    operatorName: operator.name
   };
   writeUserDetailCache(cache, storage);
 

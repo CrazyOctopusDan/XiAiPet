@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MerchantUserSearchListItem } from '@xiaipet/shared/types/user-admin';
 
+import { MERCHANT_SESSION_STORAGE_KEY } from './api-client';
 import {
   buildBalanceAdjustmentDraft,
   getUserDetailViewModel,
@@ -23,6 +24,31 @@ function createUser(overrides: Partial<MerchantUserSearchListItem> = {}): Mercha
 }
 
 describe('user admin service', () => {
+  const storage = new Map<string, unknown>();
+
+  beforeEach(() => {
+    storage.clear();
+    storage.set(MERCHANT_SESSION_STORAGE_KEY, {
+      token: 'merchant-token',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      account: {
+        id: 'acct-admin',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: false
+      }
+    });
+
+    vi.stubGlobal('wx', {
+      getStorageSync: vi.fn((key: string) => storage.get(key)),
+      setStorageSync: vi.fn((key: string, value: unknown) => storage.set(key, value))
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('queries merchant users only on explicit submit payloads', async () => {
     const request = vi.fn().mockResolvedValue({
       ok: true,
@@ -80,17 +106,7 @@ describe('user admin service', () => {
         shortNote: '增加 ￥50.00'
       }
     });
-    const verifyAccess = vi.fn().mockResolvedValue({
-      result: {
-        ok: true,
-        allowed: true,
-        merchant: {
-          merchantId: 'merchant-openid',
-          storeName: '虾衣宠物烘焙工作室'
-        }
-      }
-    });
-    const storage = vi.fn();
+    const storageWriter = vi.fn();
 
     const result = await submitBalanceAdjustment(
       buildBalanceAdjustmentDraft(createUser(), {
@@ -100,8 +116,7 @@ describe('user admin service', () => {
         note: '门店补充储值'
       }),
       request,
-      verifyAccess,
-      storage
+      storageWriter
     );
 
     expect(request).toHaveBeenCalledWith('/api/v1/merchant/users/user-openid/balance-adjustments', {
@@ -112,8 +127,8 @@ describe('user admin service', () => {
         reasonType: '充值',
         note: '门店补充储值',
         operator: {
-          openid: 'merchant-openid',
-          name: '虾衣宠物烘焙工作室'
+          openid: 'acct-admin',
+          name: 'admin'
         },
         operatedAt: expect.any(String),
         beforeBalance: 188,
@@ -124,7 +139,7 @@ describe('user admin service', () => {
       },
       auth: 'merchant'
     });
-    expect(storage).toHaveBeenCalled();
+    expect(storageWriter).toHaveBeenCalled();
     expect(result.balanceAfter).toBe(238);
   });
 

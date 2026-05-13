@@ -6,7 +6,6 @@ import { customerProfileRoutes } from './customer/profile';
 import { customerCatalogRoutes } from './customer/catalog';
 import { customerOrderRoutes } from './customer/orders';
 import { customerRuntimeConfigRoutes } from './customer/runtime-config';
-import { merchantAccessRoutes } from './merchant/access';
 import { merchantAccountRoutes } from './merchant/accounts';
 import { merchantAuthRoutes } from './merchant/auth';
 import { merchantAssetRoutes } from './merchant/assets';
@@ -27,7 +26,6 @@ export async function apiV1Routes(
   await app.register(customerRuntimeConfigRoutes, { prefix: '/api/v1/customer', dependencies });
   await app.register(customerOrderRoutes, { prefix: '/api/v1/customer', dependencies });
   await app.register(merchantAuthRoutes, { prefix: '/api/v1/merchant', dependencies });
-  await app.register(merchantAccessRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantAccountRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantAssetRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantOrderRoutes, { prefix: '/api/v1/merchant', dependencies });

@@ -40,12 +40,8 @@ describe('auth guards', () => {
     );
     const account = merchantAccount();
     const getActiveAccount = vi.fn(async () => account);
-    const assertMerchantAccess = vi.fn();
     const guards = createAuthGuards({
       sessionSecret,
-      merchantAccessService: {
-        assertMerchantAccess
-      },
       merchantAccountService: {
         getActiveAccount
       }
@@ -59,12 +55,42 @@ describe('auth guards', () => {
     await expect(guards.requireMerchantAccountSession(request, {} as never)).resolves.toBeUndefined();
 
     expect(getActiveAccount).toHaveBeenCalledWith('acct-admin');
-    expect(assertMerchantAccess).not.toHaveBeenCalled();
     expect(request.merchant).toMatchObject({
       accountId: 'acct-admin',
       username: 'admin',
       role: 'admin',
       mustChangePassword: true
     });
+  });
+
+  it('rejects legacy merchant openid sessions', async () => {
+    const sessionSecret = 'test-session-secret';
+    const token = createSessionToken(
+      {
+        openid: 'legacy-merchant-openid',
+        audience: 'merchant'
+      },
+      sessionSecret,
+      60,
+      100
+    );
+    const getActiveAccount = vi.fn(async () => merchantAccount());
+    const guards = createAuthGuards({
+      sessionSecret,
+      merchantAccountService: {
+        getActiveAccount
+      }
+    });
+    const request = {
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    } as FastifyRequest;
+
+    await expect(guards.requireMerchantAccountSession(request, {} as never)).rejects.toMatchObject({
+      code: 'UNAUTHORIZED'
+    });
+
+    expect(getActiveAccount).not.toHaveBeenCalled();
   });
 });

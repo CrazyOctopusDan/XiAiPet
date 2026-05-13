@@ -36,22 +36,6 @@ export interface MerchantContext {
   merchantUser?: unknown;
 }
 
-export interface MerchantAccessResult {
-  ok: true;
-  status: 'allowed' | 'denied';
-  allowed: boolean;
-  reason?: string;
-  merchant?: {
-    merchantId: string;
-    storeName: string;
-  };
-  merchantUser?: unknown;
-}
-
-export interface MerchantAccessService {
-  assertMerchantAccess(openid: string): Promise<MerchantAccessResult>;
-}
-
 export interface AuthenticatedRequest extends FastifyRequest {
   auth?: AuthContext;
   merchant?: MerchantContext;

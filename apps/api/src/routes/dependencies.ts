@@ -1,7 +1,6 @@
 import type { ApiConfig } from '../config/env';
 import { createCatalogService } from '../modules/catalog/service';
 import { createAuthGuards } from '../modules/auth/guards';
-import type { MerchantAccessService } from '../modules/auth/types';
 import type { WechatLoginProvider } from '../modules/auth/wechat-login';
 import { createWechatLoginProvider } from '../modules/auth/wechat-login';
 import { createIdentityService } from '../modules/users/bootstrap-service';
@@ -24,7 +23,6 @@ export interface ApiRouteServices {
   identityService: {
     bootstrapUser(openid: string): AsyncResult;
     bindPhone(openid: string, payload: unknown): AsyncResult;
-    assertMerchantAccess(openid: string): ReturnType<MerchantAccessService['assertMerchantAccess']>;
   };
   catalogService: {
     queryCustomerCategories(): AsyncResult;
@@ -89,7 +87,6 @@ export type ApiRouteDependencyOverrides = Partial<ApiRouteServices> & {
   customerWechatLoginProvider?: WechatLoginProvider;
   merchantWechatLoginProvider?: WechatLoginProvider;
   paymentProvider?: PaymentProvider;
-  merchantAccessService?: MerchantAccessService;
 };
 
 export function createApiRouteDependencies(
@@ -100,7 +97,6 @@ export function createApiRouteDependencies(
     config.nodeEnv === 'production' ? createUnconfiguredWechatPaymentProvider() : createMockPaymentProvider()
   );
   const identityService = overrides.identityService ?? createIdentityService();
-  const merchantAccessService = overrides.merchantAccessService ?? identityService;
   const merchantAccountService = overrides.merchantAccountService ?? createMerchantAccountService();
 
   return {
@@ -124,7 +120,6 @@ export function createApiRouteDependencies(
     assetService: overrides.assetService ?? createAssetService(config),
     guards: createAuthGuards({
       sessionSecret: config.sessionSecret,
-      merchantAccessService,
       merchantAccountService
     })
   };

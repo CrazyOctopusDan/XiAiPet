@@ -6,7 +6,6 @@ exports.getMerchantOrderDetail = getMerchantOrderDetail;
 exports.getMerchantOrderDetailViewModel = getMerchantOrderDetailViewModel;
 exports.updateMerchantOrderStatus = updateMerchantOrderStatus;
 const order_fulfillment_1 = require("../shared/order-fulfillment");
-const access_1 = require("./access");
 const api_client_1 = require("./api-client");
 function formatMoney(value) {
     return `￥${value.toFixed(2)}`;
@@ -212,16 +211,15 @@ function createStatusOptions(order) {
     });
     return options;
 }
-async function resolveMerchantOperator(accessVerifier) {
-    var _a, _b;
-    const response = await accessVerifier();
-    const access = (_a = response.result) !== null && _a !== void 0 ? _a : response;
-    if (!access.allowed || !((_b = access.merchant) === null || _b === void 0 ? void 0 : _b.merchantId) || !access.merchant.storeName) {
-        throw new Error('MERCHANT_FORBIDDEN');
+function getCurrentMerchantOperator() {
+    var _a;
+    const account = (_a = (0, api_client_1.getMerchantSession)()) === null || _a === void 0 ? void 0 : _a.account;
+    if (!(account === null || account === void 0 ? void 0 : account.id) || !account.username) {
+        throw new api_client_1.MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
     }
     return {
-        id: access.merchant.merchantId,
-        name: access.merchant.storeName
+        id: account.id,
+        name: account.username
     };
 }
 async function queryMerchantOrders(request = api_client_1.merchantApiRequest) {
@@ -303,8 +301,8 @@ function getMerchantOrderDetailViewModel(detail) {
         statusOptions: createStatusOptions(order)
     };
 }
-async function updateMerchantOrderStatus(input, request = api_client_1.merchantApiRequest, accessVerifier = access_1.verifyMerchantAccess) {
-    const operator = await resolveMerchantOperator(accessVerifier);
+async function updateMerchantOrderStatus(input, request = api_client_1.merchantApiRequest) {
+    const operator = getCurrentMerchantOperator();
     const body = {
         operator
     };

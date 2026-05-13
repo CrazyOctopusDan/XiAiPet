@@ -6,7 +6,6 @@ exports.getCachedLatestAdjustment = getCachedLatestAdjustment;
 exports.getUserDetailViewModel = getUserDetailViewModel;
 exports.buildBalanceAdjustmentDraft = buildBalanceAdjustmentDraft;
 exports.submitBalanceAdjustment = submitBalanceAdjustment;
-const access_1 = require("./access");
 const api_client_1 = require("./api-client");
 const USER_DETAIL_CACHE_KEY = 'merchant-user-detail-cache';
 function formatMoney(value) {
@@ -23,10 +22,6 @@ function formatDateTime(value) {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `${month}-${day} ${hours}:${minutes}`;
 }
-function resolveMerchantAccess(access) {
-    var _a;
-    return (_a = access.result) !== null && _a !== void 0 ? _a : access;
-}
 function readUserDetailCache() {
     var _a;
     try {
@@ -42,6 +37,17 @@ function writeUserDetailCache(cache, storage) {
         return;
     }
     wx.setStorageSync(USER_DETAIL_CACHE_KEY, cache);
+}
+function getCurrentMerchantOperator() {
+    var _a;
+    const account = (_a = (0, api_client_1.getMerchantSession)()) === null || _a === void 0 ? void 0 : _a.account;
+    if (!(account === null || account === void 0 ? void 0 : account.id) || !account.username) {
+        throw new api_client_1.MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
+    }
+    return {
+        openid: account.id,
+        name: account.username
+    };
 }
 async function queryMerchantUsers(input, request = api_client_1.merchantApiRequest) {
     var _a;
@@ -127,21 +133,14 @@ function buildBalanceAdjustmentDraft(user, input) {
         disableSubmitReason
     };
 }
-async function submitBalanceAdjustment(draft, request = api_client_1.merchantApiRequest, accessVerifier = access_1.verifyMerchantAccess, storage) {
-    var _a;
-    const access = resolveMerchantAccess((await accessVerifier()));
-    if (!access.allowed || !((_a = access.merchant) === null || _a === void 0 ? void 0 : _a.merchantId) || !access.merchant.storeName) {
-        throw new Error('MERCHANT_FORBIDDEN');
-    }
+async function submitBalanceAdjustment(draft, request = api_client_1.merchantApiRequest, storage) {
+    const operator = getCurrentMerchantOperator();
     const payload = {
         userOpenid: draft.user.openid,
         action: draft.action,
         reasonType: draft.reasonType,
         note: draft.note.trim(),
-        operator: {
-            openid: access.merchant.merchantId,
-            name: access.merchant.storeName
-        },
+        operator,
         operatedAt: new Date().toISOString(),
         beforeBalance: draft.beforeBalance,
         delta: draft.delta,
@@ -159,7 +158,7 @@ async function submitBalanceAdjustment(draft, request = api_client_1.merchantApi
         normalizedTitle: response.ledger.normalizedTitle,
         shortNote: response.ledger.shortNote,
         operatedAt: payload.operatedAt,
-        operatorName: access.merchant.storeName
+        operatorName: operator.name
     };
     writeUserDetailCache(cache, storage);
     return response;

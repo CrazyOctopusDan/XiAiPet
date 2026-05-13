@@ -1,19 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.printOrderReceipt = printOrderReceipt;
-const access_1 = require("./access");
 const api_client_1 = require("./api-client");
 const printer_1 = require("./printer");
-async function resolveMerchantOperator(accessVerifier) {
-    var _a, _b;
-    const response = await accessVerifier();
-    const access = (_a = response.result) !== null && _a !== void 0 ? _a : response;
-    if (!access.allowed || !((_b = access.merchant) === null || _b === void 0 ? void 0 : _b.merchantId) || !access.merchant.storeName) {
-        throw new Error('MERCHANT_FORBIDDEN');
+function getCurrentMerchantOperator() {
+    var _a;
+    const account = (_a = (0, api_client_1.getMerchantSession)()) === null || _a === void 0 ? void 0 : _a.account;
+    if (!(account === null || account === void 0 ? void 0 : account.id) || !account.username) {
+        throw new api_client_1.MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
     }
     return {
-        id: access.merchant.merchantId,
-        name: access.merchant.storeName
+        id: account.id,
+        name: account.username
     };
 }
 async function prepareReceiptPrintJob(orderId, request) {
@@ -50,12 +48,12 @@ function getErrorMessage(error) {
     return error instanceof Error ? error.message : 'UNKNOWN_PRINT_ERROR';
 }
 async function printOrderReceipt(input, dependencies = {}) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d;
     const request = (_a = dependencies.request) !== null && _a !== void 0 ? _a : api_client_1.merchantApiRequest;
-    const operator = await resolveMerchantOperator((_b = dependencies.accessVerifier) !== null && _b !== void 0 ? _b : access_1.verifyMerchantAccess);
+    const operator = getCurrentMerchantOperator();
     const job = await prepareReceiptPrintJob(input.orderId, request);
     const connection = dependencies.getConnection ? dependencies.getConnection() : (0, printer_1.getStoredReceiptPrinterConnection)();
-    const printedAt = (_d = (_c = dependencies.now) === null || _c === void 0 ? void 0 : _c.call(dependencies)) !== null && _d !== void 0 ? _d : new Date().toISOString();
+    const printedAt = (_c = (_b = dependencies.now) === null || _b === void 0 ? void 0 : _b.call(dependencies)) !== null && _c !== void 0 ? _c : new Date().toISOString();
     if (!connection) {
         await recordReceiptPrintResult(job, operator, {
             deviceId: 'unconfigured',
@@ -64,7 +62,7 @@ async function printOrderReceipt(input, dependencies = {}) {
         throw new Error('NO_PRINTER_CONNECTED');
     }
     try {
-        await ((_e = dependencies.writeChunks) !== null && _e !== void 0 ? _e : printer_1.writeReceiptPrinterChunks)(job.chunksBase64, connection);
+        await ((_d = dependencies.writeChunks) !== null && _d !== void 0 ? _d : printer_1.writeReceiptPrinterChunks)(job.chunksBase64, connection);
         await recordReceiptPrintResult(job, operator, connection, 'success', request, printedAt);
         return job;
     }
