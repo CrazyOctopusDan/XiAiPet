@@ -1,29 +1,57 @@
 <view class="page">
-  <view class="hero-card">
-    <text class="page-title">商户工作台</text>
-    <text class="page-subtitle">把订单、品类、商品、用户和运营配置统一收在一个 2x2 管理入口里，先做日常运营最常用的四件事。</text>
+  <view class="summary-card">
+    <view class="summary-head">
+      <view class="brand-mark">
+        <text class="brand-mark-main">喜</text>
+        <text class="brand-mark-sub">PET</text>
+      </view>
+      <view class="summary-copy">
+        <text class="page-title">商户工作台</text>
+        <text class="page-subtitle">今日店务从这里开始</text>
+      </view>
+    </view>
+
+    <view class="summary-metrics">
+      <view class="metric-chip accent">
+        <text class="metric-value">订单</text>
+        <text class="metric-label">优先处理</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">商品</text>
+        <text class="metric-label">保持可售</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">用户</text>
+        <text class="metric-label">余额审计</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-head">
+    <text class="section-title">常用入口</text>
+    <text class="section-note">点击卡片进入主页面</text>
   </view>
 
   <view class="workspace-grid">
-    <view class="workspace-card" wx:for="{{cards}}" wx:key="id">
-      <view class="card-accent" style="background: {{item.accent}};"></view>
+    <view class="workspace-card" wx:for="{{cards}}" wx:key="id" data-url="{{item.primaryUrl}}" bindtap="handleActionTap">
+      <view class="card-topline" style="background: {{item.accent}};"></view>
       <view class="card-head">
         <view class="icon-badge">{{item.iconToken}}</view>
-        <view class="card-meta">
-          <text class="card-title">{{item.title}}</text>
-          <text class="card-badge">{{item.badge}}</text>
-        </view>
+        <text class="card-badge">{{item.badge}}</text>
       </view>
+
+      <text class="card-title">{{item.title}}</text>
       <text class="card-subtitle">{{item.subtitle}}</text>
       <text class="card-description">{{item.description}}</text>
 
       <view class="card-actions">
         <button
           wx:for="{{item.actions}}"
+          wx:for-item="subItem"
           wx:key="url"
           class="{{subItem.tone === 'primary' ? 'primary-button' : 'secondary-button'}}"
           data-url="{{subItem.url}}"
-          bindtap="handleActionTap"
+          catchtap="handleActionTap"
         >
           {{subItem.label}}
         </button>
