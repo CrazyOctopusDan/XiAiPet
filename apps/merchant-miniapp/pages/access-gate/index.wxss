@@ -150,12 +150,13 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  min-height: 68rpx;
+  height: 88rpx;
   margin-top: 24rpx;
   padding: 12rpx 20rpx;
   border-radius: 16rpx;
   background: #F4F7F9;
   color: #697783;
+  overflow: hidden;
 }
 
 .status-strip.allowed {
@@ -171,6 +172,10 @@
 .status-text {
   font-size: 24rpx;
   line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .primary-cta {

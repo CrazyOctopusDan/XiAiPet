@@ -53,7 +53,7 @@ Page({
       return;
     }
 
-    this.setData({ statusText: '正在登录', submitting: true });
+    this.setData({ accessResult: 'unknown', statusText: '正在登录', submitting: true });
 
     try {
       const session = await merchantLogin({ username, password });

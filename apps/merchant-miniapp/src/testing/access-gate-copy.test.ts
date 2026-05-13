@@ -8,7 +8,7 @@ const accessGateSource = readFileSync(resolve(__dirname, '../../pages/access-gat
 describe('merchant access gate copy', () => {
   it('uses the approved neutral and loading status copy', () => {
     expect(accessGateSource).toContain("statusText: '首次登录后需要修改密码'");
-    expect(accessGateSource).toContain("statusText: '正在登录', submitting: true");
+    expect(accessGateSource).toContain("accessResult: 'unknown', statusText: '正在登录', submitting: true");
     expect(accessGateSource).toContain("username: ''");
     expect(accessGateSource).not.toContain("username: 'admin'");
     expect(accessGateSource).not.toContain('请输入商户账号和密码');

@@ -42,7 +42,7 @@ Page({
             });
             return;
         }
-        this.setData({ statusText: '正在登录', submitting: true });
+        this.setData({ accessResult: 'unknown', statusText: '正在登录', submitting: true });
         try {
             const session = await (0, api_client_1.merchantLogin)({ username, password });
             const mustChangePassword = Boolean((_f = session.account) === null || _f === void 0 ? void 0 : _f.mustChangePassword);
