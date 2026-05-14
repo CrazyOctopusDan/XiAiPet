@@ -1,54 +1,65 @@
 .page {
   min-height: 100vh;
-  padding: 32rpx 24rpx 180rpx;
-  background: linear-gradient(180deg, #F6EFE4 0%, #FCFAF5 100%);
-  color: #1F2A33;
+  padding: 28rpx 24rpx 180rpx;
+  box-sizing: border-box;
+  background: #F8F1E8;
+  color: #26333D;
 }
 
-.hero-card,
-.balance-card,
+.summary-card,
+.history-card,
+.empty-card,
+.drawer {
+  border: 2rpx solid #F0E2D0;
+  border-radius: 24rpx;
+  background: #FFFDF8;
+  box-shadow: 0 16rpx 36rpx rgba(46, 91, 115, 0.07);
+}
+
+.summary-card,
 .history-card,
 .empty-card,
 .drawer {
   padding: 28rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 18rpx 40rpx rgba(46, 91, 115, 0.08);
 }
 
-.balance-card,
 .history-card {
-  margin-top: 24rpx;
+  margin-top: 22rpx;
 }
 
-.hero-head,
+.summary-head,
+.summary-metrics,
+.section-head,
 .pill-row {
   display: flex;
-}
-
-.hero-head {
-  gap: 18rpx;
   align-items: center;
 }
 
-.pill-row {
-  gap: 14rpx;
-  flex-wrap: wrap;
-  margin-top: 18rpx;
+.section-head {
+  justify-content: space-between;
 }
 
 .avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 60rpx;
-  background: #EEF2F5;
+  flex: 0 0 auto;
+  width: 112rpx;
+  height: 112rpx;
+  border: 4rpx solid #F3EBDD;
+  border-radius: 56rpx;
+  background: #FBF6EE;
+}
+
+.summary-copy {
+  min-width: 0;
+  flex: 1;
+  margin-left: 20rpx;
 }
 
 .page-title,
 .page-subtitle,
-.balance-label,
-.balance-value,
+.metric-value,
+.metric-label,
 .section-title,
+.section-badge,
 .history-title,
 .error-copy {
   display: block;
@@ -57,26 +68,73 @@
 .page-title,
 .section-title,
 .history-title {
+  color: #26333D;
   font-size: 34rpx;
-  font-weight: 700;
+  line-height: 1.15;
+  font-weight: 800;
 }
 
 .page-subtitle {
-  margin-top: 10rpx;
-  font-size: 22rpx;
-  color: #7E8B95;
+  margin-top: 8rpx;
+  color: #756756;
+  font-size: 24rpx;
+  line-height: 1.35;
 }
 
-.balance-label {
-  font-size: 22rpx;
-  color: #7E8B95;
+.summary-metrics {
+  margin-top: 26rpx;
 }
 
-.balance-value {
-  margin-top: 12rpx;
-  font-size: 56rpx;
-  font-weight: 700;
+.metric-chip {
+  flex: 1;
+  min-width: 0;
+  height: 112rpx;
+  margin-left: 14rpx;
+  padding: 16rpx;
+  border: 2rpx solid #F0E2D0;
+  border-radius: 20rpx;
+  background: #FBF6EE;
+  box-sizing: border-box;
+}
+
+.metric-chip:first-child {
+  margin-left: 0;
+}
+
+.metric-chip-primary {
+  border-color: #F3B56F;
+  background: #FFF4E4;
+}
+
+.metric-value {
   color: #2E5B73;
+  font-size: 32rpx;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.metric-label {
+  margin-top: 10rpx;
+  color: #756756;
+  font-size: 22rpx;
+  line-height: 1.2;
+}
+
+.section-badge {
+  flex: 0 0 auto;
+  height: 44rpx;
+  margin-left: 18rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  background: #FFF4E4;
+  color: #9A6B28;
+  font-size: 22rpx;
+  line-height: 44rpx;
+}
+
+.history-title {
+  margin-top: 20rpx;
+  font-size: 30rpx;
 }
 
 .action-bar {
@@ -84,16 +142,23 @@
   left: 24rpx;
   right: 24rpx;
   bottom: calc(24rpx + env(safe-area-inset-bottom));
+  padding: 16rpx;
+  border: 2rpx solid #F0E2D0;
+  border-radius: 24rpx;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 16rpx 36rpx rgba(46, 91, 115, 0.12);
 }
 
 .action-button {
   width: 100%;
+  height: 72rpx;
   border: none;
-  border-radius: 999rpx;
+  border-radius: 18rpx;
   background: #2E5B73;
   color: #FFFFFF;
-  font-size: 28rpx;
-  font-weight: 600;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 72rpx;
 }
 
 .drawer-mask {
@@ -107,44 +172,62 @@
   left: 24rpx;
   right: 24rpx;
   bottom: calc(24rpx + env(safe-area-inset-bottom));
+  z-index: 10;
+}
+
+.pill-row {
+  flex-wrap: wrap;
+  margin-top: 18rpx;
 }
 
 .pill {
-  padding: 14rpx 22rpx;
-  border-radius: 999rpx;
-  background: #EEF2F5;
-  color: #5D6B75;
+  min-height: 56rpx;
+  margin-top: 12rpx;
+  margin-right: 12rpx;
+  padding: 0 18rpx;
+  border-radius: 18rpx;
+  background: #FBF6EE;
+  color: #756756;
   font-size: 24rpx;
+  line-height: 56rpx;
 }
 
 .pill.active {
-  background: rgba(46, 91, 115, 0.14);
+  background: #FFF4E4;
   color: #2E5B73;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .field-input,
 .field-area {
   width: 100%;
   margin-top: 18rpx;
-  padding: 0 24rpx;
-  border-radius: 22rpx;
-  background: #F4F6F8;
-  font-size: 28rpx;
+  border: 2rpx solid #E8DAC8;
+  border-radius: 18rpx;
+  background: #FFFDF8;
+  color: #26333D;
+  font-size: 26rpx;
   box-sizing: border-box;
 }
 
 .field-input {
-  min-height: 88rpx;
+  height: 72rpx;
+  padding: 0 22rpx;
 }
 
 .field-area {
-  min-height: 160rpx;
-  padding-top: 20rpx;
+  height: 164rpx;
+  padding: 18rpx 22rpx;
+  line-height: 1.45;
 }
 
 .error-copy {
   margin-top: 14rpx;
+  color: #B85D48;
   font-size: 22rpx;
-  color: #B6463A;
+  line-height: 1.35;
+}
+
+.drawer > .action-button {
+  margin-top: 20rpx;
 }
