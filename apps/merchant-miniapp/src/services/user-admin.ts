@@ -19,8 +19,15 @@ export interface UserCardViewModel {
   currentBalanceLabel: string;
 }
 
+export interface UsersPageSummaryViewModel {
+  totalUsers: number;
+  totalBalanceLabel: string;
+  tierCount: number;
+}
+
 export interface UsersPageViewModel {
   isEmpty: boolean;
+  summary: UsersPageSummaryViewModel;
   cards: UserCardViewModel[];
 }
 
@@ -134,6 +141,11 @@ export async function queryMerchantUsers(input: MerchantUserSearchInput, request
 export function getUsersPageViewModel(users: MerchantUserSearchListItem[]): UsersPageViewModel {
   return {
     isEmpty: users.length === 0,
+    summary: {
+      totalUsers: users.length,
+      totalBalanceLabel: formatMoney(users.reduce((sum, user) => sum + user.currentBalance, 0)),
+      tierCount: new Set(users.map((user) => user.membershipTierLabel)).size
+    },
     cards: users.map((user) => ({
       openid: user.openid,
       avatarUrl: user.avatarUrl,

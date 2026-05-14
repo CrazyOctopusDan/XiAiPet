@@ -64,6 +64,11 @@ async function queryMerchantUsers(input, request = api_client_1.merchantApiReque
 function getUsersPageViewModel(users) {
     return {
         isEmpty: users.length === 0,
+        summary: {
+            totalUsers: users.length,
+            totalBalanceLabel: formatMoney(users.reduce((sum, user) => sum + user.currentBalance, 0)),
+            tierCount: new Set(users.map((user) => user.membershipTierLabel)).size
+        },
         cards: users.map((user) => ({
             openid: user.openid,
             avatarUrl: user.avatarUrl,

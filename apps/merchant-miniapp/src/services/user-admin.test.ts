@@ -75,13 +75,26 @@ describe('user admin service', () => {
   });
 
   it('builds lightweight search cards with membership tier and current balance labels', () => {
-    const view = getUsersPageViewModel([createUser()]);
+    const view = getUsersPageViewModel([
+      createUser(),
+      createUser({
+        openid: 'user-openid-2',
+        nickname: '布丁妈妈',
+        membershipTierLabel: '银卡会员',
+        currentBalance: 12
+      })
+    ]);
 
     expect(view.isEmpty).toBe(false);
     expect(view.cards[0]).toMatchObject({
       nickname: '奶油妈妈',
       membershipTierLabel: '金卡会员',
       currentBalanceLabel: '￥188.00'
+    });
+    expect(view.summary).toEqual({
+      totalUsers: 2,
+      totalBalanceLabel: '￥200.00',
+      tierCount: 2
     });
   });
 
@@ -148,7 +161,7 @@ describe('user admin service', () => {
       normalizedTitle: '余额调整',
       shortNote: '增加 ￥50.00',
       operatedAt: '2026-04-18T10:00:00.000Z',
-      operatorName: '虾衣宠物烘焙工作室'
+      operatorName: '喜爱宠物烘焙工作室'
     });
 
     expect(view).toMatchObject({

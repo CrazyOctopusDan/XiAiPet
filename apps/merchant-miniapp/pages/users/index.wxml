@@ -1,36 +1,76 @@
 <view class="page">
-  <view class="hero-card">
-    <text class="page-title">用户管理</text>
-    <text class="page-subtitle">搜索会员并查看当前余额。</text>
+  <view class="summary-card">
+    <view class="summary-head">
+      <view class="page-mark">客</view>
+      <view class="summary-copy">
+        <text class="page-title">用户管理</text>
+        <text class="page-subtitle">搜索会员并审计余额</text>
+      </view>
+    </view>
+
+    <view class="summary-metrics">
+      <view class="metric-chip accent">
+        <text class="metric-value">{{summary.totalUsers}}</text>
+        <text class="metric-label">匹配用户</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value balance">{{summary.totalBalanceLabel}}</text>
+        <text class="metric-label">余额合计</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{summary.tierCount}}</text>
+        <text class="metric-label">会员等级</text>
+      </view>
+    </view>
   </view>
 
   <view class="toolbar-card">
-    <view class="pill-row">
-      <view class="pill {{searchField === 'phone' ? 'active' : ''}}" data-field="phone" bindtap="handleSearchFieldTap">手机号搜索</view>
-      <view class="pill {{searchField === 'name' ? 'active' : ''}}" data-field="name" bindtap="handleSearchFieldTap">昵称搜索</view>
+    <view class="toolbar-head">
+      <view>
+        <text class="section-title">会员检索</text>
+        <text class="section-note">进入详情后调整余额</text>
+      </view>
+      <view class="field-pills">
+        <view class="pill {{searchField === 'phone' ? 'active' : ''}}" data-field="phone" bindtap="handleSearchFieldTap">手机号</view>
+        <view class="pill {{searchField === 'name' ? 'active' : ''}}" data-field="name" bindtap="handleSearchFieldTap">昵称</view>
+      </view>
     </view>
-    <input class="field-input" placeholder="搜索" value="{{draftQuery}}" bindinput="handleQueryInput" confirm-type="search" bindconfirm="handleSearchSubmit" />
-    <button class="search-button" bindtap="handleSearchSubmit">搜索</button>
+
+    <view class="search-row">
+      <input class="field-input" placeholder="输入手机号或昵称" value="{{draftQuery}}" bindinput="handleQueryInput" confirm-type="search" bindconfirm="handleSearchSubmit" />
+      <button class="search-button" bindtap="handleSearchSubmit">搜索</button>
+    </view>
+
+    <text class="clear-link" wx:if="{{cards.length > 0 || draftQuery}}" bindtap="handleClearSearch">清空搜索</text>
   </view>
 
   <view class="empty-card" wx:if="{{isEmpty && !loading}}">
-    <text class="page-title">暂无搜索结果</text>
-    <text class="page-subtitle">输入手机号或昵称后点搜索。</text>
+    <text class="empty-title">暂无搜索结果</text>
+    <text class="empty-body">输入手机号或昵称后搜索</text>
   </view>
 
   <view class="card-list" wx:elif="{{!loading}}">
     <view class="user-card" wx:for="{{cards}}" wx:key="openid" data-openid="{{item.openid}}" bindtap="handleOpenUser">
       <image class="avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
       <view class="user-body">
-        <text class="user-name">{{item.nickname}}</text>
-        <text class="user-copy">{{item.contactPhoneMasked}}</text>
-        <text class="user-copy">会员等级：{{item.membershipTierLabel}}</text>
-        <text class="user-balance">当前余额 {{item.currentBalanceLabel}}</text>
+        <view class="user-head">
+          <text class="user-name">{{item.nickname}}</text>
+          <text class="tier-badge">{{item.membershipTierLabel}}</text>
+        </view>
+        <view class="user-meta">
+          <text class="meta-chip">{{item.contactPhoneMasked}}</text>
+          <text class="meta-chip audit">余额审计</text>
+        </view>
+        <view class="balance-row">
+          <text class="balance-label">当前余额</text>
+          <text class="user-balance">{{item.currentBalanceLabel}}</text>
+        </view>
       </view>
     </view>
   </view>
 
   <view class="empty-card" wx:else>
-    <text class="page-title">正在搜索用户</text>
+    <text class="empty-title">正在搜索用户</text>
+    <text class="empty-body">稍后显示匹配会员</text>
   </view>
 </view>

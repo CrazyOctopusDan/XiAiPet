@@ -11,6 +11,7 @@ interface UsersPageData {
   draftQuery: string;
   searchField: MerchantUserSearchField;
   cards: ReturnType<typeof getUsersPageViewModel>['cards'];
+  summary: ReturnType<typeof getUsersPageViewModel>['summary'];
 }
 
 interface UsersPageInstance {
@@ -26,7 +27,12 @@ Page({
     isEmpty: true,
     draftQuery: '',
     searchField: 'phone',
-    cards: []
+    cards: [],
+    summary: {
+      totalUsers: 0,
+      totalBalanceLabel: '￥0.00',
+      tierCount: 0
+    }
   },
   lastUsers: [],
   handleQueryInput(this: UsersPageInstance, event: { detail?: { value?: string } }) {
@@ -67,7 +73,21 @@ Page({
     this.setData({
       loading: false,
       isEmpty: view.isEmpty,
-      cards: view.cards
+      cards: view.cards,
+      summary: view.summary
+    });
+  },
+  handleClearSearch(this: UsersPageInstance) {
+    this.lastUsers = [];
+    this.setData({
+      draftQuery: '',
+      isEmpty: true,
+      cards: [],
+      summary: {
+        totalUsers: 0,
+        totalBalanceLabel: '￥0.00',
+        tierCount: 0
+      }
     });
   },
   handleOpenUser(this: UsersPageInstance, event: { currentTarget?: { dataset?: { openid?: string } } }) {

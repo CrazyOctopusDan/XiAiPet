@@ -7,7 +7,12 @@ Page({
         isEmpty: true,
         draftQuery: '',
         searchField: 'phone',
-        cards: []
+        cards: [],
+        summary: {
+            totalUsers: 0,
+            totalBalanceLabel: '￥0.00',
+            tierCount: 0
+        }
     },
     lastUsers: [],
     handleQueryInput(event) {
@@ -44,7 +49,21 @@ Page({
         this.setData({
             loading: false,
             isEmpty: view.isEmpty,
-            cards: view.cards
+            cards: view.cards,
+            summary: view.summary
+        });
+    },
+    handleClearSearch() {
+        this.lastUsers = [];
+        this.setData({
+            draftQuery: '',
+            isEmpty: true,
+            cards: [],
+            summary: {
+                totalUsers: 0,
+                totalBalanceLabel: '￥0.00',
+                tierCount: 0
+            }
         });
     },
     handleOpenUser(event) {
