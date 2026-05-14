@@ -165,6 +165,11 @@ function getProductPageViewModel(products, categories, activeCategoryId, keyword
     });
     return {
         isEmpty: filteredProducts.length === 0,
+        summary: {
+            totalProducts: filteredProducts.length,
+            publishedProducts: filteredProducts.filter((product) => product.status === 'published').length,
+            stockWarnings: filteredProducts.filter((product) => product.trackInventory && product.stock <= 0).length
+        },
         categoryFilters: categories.map((category) => ({
             id: category.id,
             label: category.name,

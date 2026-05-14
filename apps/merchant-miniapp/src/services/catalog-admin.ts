@@ -54,8 +54,15 @@ export interface ProductCardViewModel {
   imagePreviewUrl: string;
 }
 
+export interface ProductPageSummaryViewModel {
+  totalProducts: number;
+  publishedProducts: number;
+  stockWarnings: number;
+}
+
 export interface ProductPageViewModel {
   isEmpty: boolean;
+  summary: ProductPageSummaryViewModel;
   categoryFilters: ProductCategoryFilterViewModel[];
   cards: ProductCardViewModel[];
 }
@@ -290,6 +297,11 @@ export function getProductPageViewModel(
 
   return {
     isEmpty: filteredProducts.length === 0,
+    summary: {
+      totalProducts: filteredProducts.length,
+      publishedProducts: filteredProducts.filter((product) => product.status === 'published').length,
+      stockWarnings: filteredProducts.filter((product) => product.trackInventory && product.stock <= 0).length
+    },
     categoryFilters: categories.map((category) => ({
       id: category.id,
       label: category.name,

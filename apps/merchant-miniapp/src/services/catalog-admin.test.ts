@@ -11,6 +11,7 @@ import {
   createEmptyProductEditorPayload,
   deleteCategory,
   getCategoryPageViewModel,
+  getProductPageViewModel,
   getProductEditorViewModel,
   queryCategories,
   queryProducts,
@@ -203,6 +204,52 @@ describe('catalog admin service', () => {
       method: 'PUT',
       body: payload,
       auth: 'merchant'
+    });
+  });
+
+  it('summarizes filtered products for the merchant product list header', () => {
+    const view = getProductPageViewModel(
+      [
+        createProductRecord({
+          id: 'published-001',
+          status: 'published',
+          stock: 8,
+          trackInventory: true
+        }),
+        createProductRecord({
+          id: 'draft-001',
+          name: '低库存蛋糕',
+          status: 'draft',
+          stock: 0,
+          trackInventory: true
+        }),
+        createProductRecord({
+          id: 'archived-001',
+          categoryId: 'snacks',
+          status: 'archived',
+          trackInventory: false
+        })
+      ],
+      [
+        {
+          ...createCategory(),
+          linkedProductCount: 2,
+          canDelete: false
+        },
+        {
+          ...createCategory({ id: 'snacks', name: '零食', iconToken: '零' }),
+          linkedProductCount: 1,
+          canDelete: false
+        }
+      ],
+      'cakes',
+      ''
+    );
+
+    expect(view.summary).toEqual({
+      totalProducts: 2,
+      publishedProducts: 1,
+      stockWarnings: 1
     });
   });
 

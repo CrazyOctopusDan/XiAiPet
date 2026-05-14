@@ -9,7 +9,12 @@ Page({
         draftKeyword: '',
         keyword: '',
         categoryFilters: [],
-        cards: []
+        cards: [],
+        summary: {
+            totalProducts: 0,
+            publishedProducts: 0,
+            stockWarnings: 0
+        }
     },
     onLoad(options) {
         var _a;
@@ -28,6 +33,7 @@ Page({
         this.setData({
             loading: false,
             isEmpty: view.isEmpty,
+            summary: view.summary,
             categoryFilters: view.categoryFilters,
             cards: view.cards
         });
@@ -48,6 +54,13 @@ Page({
     handleKeywordConfirm() {
         this.setData({
             keyword: this.data.draftKeyword.trim()
+        });
+        void this.refreshProducts();
+    },
+    handleClearSearch() {
+        this.setData({
+            draftKeyword: '',
+            keyword: ''
         });
         void this.refreshProducts();
     },

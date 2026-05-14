@@ -15,6 +15,7 @@ interface ProductsPageData {
   keyword: string;
   categoryFilters: ReturnType<typeof getProductPageViewModel>['categoryFilters'];
   cards: ReturnType<typeof getProductPageViewModel>['cards'];
+  summary: ReturnType<typeof getProductPageViewModel>['summary'];
 }
 
 interface ProductsPageInstance {
@@ -31,7 +32,12 @@ Page({
     draftKeyword: '',
     keyword: '',
     categoryFilters: [],
-    cards: []
+    cards: [],
+    summary: {
+      totalProducts: 0,
+      publishedProducts: 0,
+      stockWarnings: 0
+    }
   },
   onLoad(this: ProductsPageInstance, options?: { categoryId?: string }) {
     this.setData({
@@ -51,6 +57,7 @@ Page({
     this.setData({
       loading: false,
       isEmpty: view.isEmpty,
+      summary: view.summary,
       categoryFilters: view.categoryFilters,
       cards: view.cards
     });
@@ -69,6 +76,13 @@ Page({
   handleKeywordConfirm(this: ProductsPageInstance) {
     this.setData({
       keyword: this.data.draftKeyword.trim()
+    });
+    void this.refreshProducts();
+  },
+  handleClearSearch(this: ProductsPageInstance) {
+    this.setData({
+      draftKeyword: '',
+      keyword: ''
     });
     void this.refreshProducts();
   },
