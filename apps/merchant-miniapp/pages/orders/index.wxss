@@ -55,6 +55,7 @@
 }
 
 .page-mark {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,8 +63,9 @@
   height: 84rpx;
   flex: 0 0 84rpx;
   border-radius: 26rpx;
-  background: linear-gradient(135deg, #F3B56F 0%, #E98F78 58%, #2E5B73 100%);
-  color: #FFFFFF;
+  border: 2rpx solid #F3B56F;
+  background: #FFF4E4;
+  color: #2E5B73;
   font-size: 34rpx;
   font-weight: 800;
 }
