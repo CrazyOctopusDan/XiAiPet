@@ -1,11 +1,26 @@
 <view class="page">
+  <view class="summary-card">
+    <view class="summary-head">
+      <view class="page-mark">密</view>
+      <view class="summary-copy">
+        <text class="page-title">修改密码</text>
+        <text class="page-subtitle">{{username ? username : '员工账号'}}</text>
+      </view>
+    </view>
+  </view>
+
   <view class="form-card">
-    <text class="title">修改初始密码</text>
-    <text class="subtitle">账号 {{username}} 首次登录前需要设置新密码。</text>
+    <view class="section-head">
+      <text class="section-title">设置新密码</text>
+      <text class="section-badge">首次登录</text>
+    </view>
+
     <input class="input" password placeholder="当前密码" bindinput="handleCurrentInput" />
     <input class="input" password placeholder="新密码" bindinput="handleNewInput" />
     <input class="input" password placeholder="确认新密码" bindinput="handleConfirmInput" />
+
     <text class="status">{{statusText}}</text>
   </view>
+
   <button class="primary-button" loading="{{submitting}}" bindtap="handleSubmit">保存并进入工作台</button>
 </view>
