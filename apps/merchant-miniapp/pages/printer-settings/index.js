@@ -7,15 +7,18 @@ Page({
         connecting: false,
         testing: false,
         connectedDeviceName: '未绑定',
-        devices: []
+        devices: [],
+        view: (0, printer_1.getReceiptPrinterSettingsViewModel)('未绑定', [])
     },
     onShow() {
         this.refreshConnection();
     },
     refreshConnection(connection = (0, printer_1.getStoredReceiptPrinterConnection)()) {
         var _a;
+        const connectedDeviceName = (_a = connection === null || connection === void 0 ? void 0 : connection.name) !== null && _a !== void 0 ? _a : '未绑定';
         this.setData({
-            connectedDeviceName: (_a = connection === null || connection === void 0 ? void 0 : connection.name) !== null && _a !== void 0 ? _a : '未绑定'
+            connectedDeviceName,
+            view: (0, printer_1.getReceiptPrinterSettingsViewModel)(connectedDeviceName, this.data.devices)
         });
     },
     handleBackTap() {
@@ -27,12 +30,14 @@ Page({
         }
         this.setData({
             searching: true,
-            devices: []
+            devices: [],
+            view: (0, printer_1.getReceiptPrinterSettingsViewModel)(this.data.connectedDeviceName, [])
         });
         try {
             const devices = await (0, printer_1.discoverReceiptPrinterDevices)();
             this.setData({
-                devices
+                devices,
+                view: (0, printer_1.getReceiptPrinterSettingsViewModel)(this.data.connectedDeviceName, devices)
             });
             if (devices.length === 0) {
                 wx.showToast({

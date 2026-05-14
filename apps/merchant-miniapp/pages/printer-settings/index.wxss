@@ -1,109 +1,290 @@
 .printer-page {
   min-height: 100vh;
-  padding: 32rpx 24rpx;
-  background: linear-gradient(180deg, #F6EFE4 0%, #FCFAF5 100%);
-  color: #1F2A33;
+  padding: 28rpx 24rpx 120rpx;
+  box-sizing: border-box;
+  background: #F8F1E8;
+  color: #26333D;
 }
 
-.hero-card,
+.summary-card,
 .content-card {
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 18rpx 40rpx rgba(46, 91, 115, 0.08);
+  border: 2rpx solid #F0E2D0;
+  border-radius: 24rpx;
+  background: #FFFDF8;
+  box-shadow: 0 16rpx 36rpx rgba(46, 91, 115, 0.07);
+}
+
+.summary-card,
+.content-card {
   padding: 28rpx;
 }
 
 .content-card {
-  margin-top: 24rpx;
+  margin-top: 22rpx;
 }
 
-.hero-card,
+.summary-head,
 .section-head,
-.meta-row,
-.button-row,
-.device-row {
+.summary-metrics,
+.device-row,
+.button-row {
   display: flex;
   align-items: center;
+}
+
+.summary-head,
+.section-head,
+.device-row {
   justify-content: space-between;
-  gap: 20rpx;
+}
+
+.page-mark {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 24rpx;
+  background: #F3EBDD;
+  color: #26333D;
+  font-size: 36rpx;
+  font-weight: 800;
+}
+
+.summary-copy {
+  min-width: 0;
+  flex: 1;
+  margin-left: 20rpx;
 }
 
 .page-title,
 .page-subtitle,
+.metric-value,
+.metric-label,
 .section-title,
+.section-meta,
 .empty-title,
 .empty-body,
 .device-name,
 .device-id,
 .device-action,
-.meta-label,
-.meta-value {
+.status-badge,
+.bound-label,
+.bound-value {
   display: block;
 }
 
 .page-title {
-  font-size: 46rpx;
-  font-weight: 700;
+  font-size: 40rpx;
+  line-height: 1.15;
+  font-weight: 800;
 }
 
-.page-subtitle,
-.empty-body,
-.device-id,
-.meta-label {
-  margin-top: 10rpx;
-  font-size: 22rpx;
-  color: #7E8B95;
+.page-subtitle {
+  margin-top: 8rpx;
+  color: #756756;
+  font-size: 24rpx;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.section-title,
-.empty-title {
+.icon-button,
+.small-button,
+.primary-button,
+.secondary-button {
+  border: none;
+  border-radius: 18rpx;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.icon-button {
+  flex: 0 0 auto;
+  width: 112rpx;
+  height: 64rpx;
+  margin-left: 18rpx;
+  background: #EEF3F4;
+  color: #2E5B73;
+  line-height: 64rpx;
+}
+
+.summary-metrics {
+  margin-top: 26rpx;
+}
+
+.metric-chip {
+  flex: 1;
+  min-width: 0;
+  height: 112rpx;
+  margin-left: 14rpx;
+  padding: 16rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #F0E2D0;
+  border-radius: 20rpx;
+  background: #FBF6EE;
+}
+
+.metric-chip:first-child {
+  margin-left: 0;
+}
+
+.metric-chip-primary {
+  border-color: #F3B56F;
+  background: #FFF4E4;
+}
+
+.metric-value {
+  color: #2E5B73;
   font-size: 32rpx;
-  font-weight: 700;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.metric-label {
+  margin-top: 12rpx;
+  color: #756756;
+  font-size: 22rpx;
+  line-height: 1.2;
+}
+
+.section-title {
+  color: #26333D;
+  font-size: 32rpx;
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.section-meta {
+  margin-top: 8rpx;
+  color: #756756;
+  font-size: 22rpx;
+  line-height: 1.3;
+}
+
+.small-button {
+  flex: 0 0 auto;
+  width: 128rpx;
+  height: 64rpx;
+  margin-left: 18rpx;
+  background: #2E5B73;
+  color: #FFFFFF;
+  line-height: 64rpx;
 }
 
 .empty-state,
-.device-row,
-.meta-row,
+.device-list,
+.bound-panel,
 .button-row {
   margin-top: 22rpx;
 }
 
-.empty-state {
-  padding: 28rpx;
-  border-radius: 22rpx;
-  background: #F8FBFC;
+.empty-state,
+.bound-panel {
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #FBF6EE;
+}
+
+.empty-title {
+  color: #26333D;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.empty-body {
+  margin-top: 8rpx;
+  color: #756756;
+  font-size: 24rpx;
+  line-height: 1.35;
 }
 
 .device-row {
-  padding: 22rpx 0;
-  border-bottom: 2rpx solid rgba(46, 91, 115, 0.08);
+  min-height: 88rpx;
+  margin-top: 12rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 18rpx;
+  background: #FBF6EE;
+  box-sizing: border-box;
+}
+
+.device-row:first-child {
+  margin-top: 0;
+}
+
+.device-copy {
+  min-width: 0;
+  flex: 1;
 }
 
 .device-name {
+  color: #26333D;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.device-action,
-.meta-value {
-  font-size: 24rpx;
+.device-id {
+  margin-top: 8rpx;
+  color: #756756;
+  font-size: 22rpx;
+  line-height: 1.3;
+  word-break: break-all;
+}
+
+.device-action {
+  flex: 0 0 auto;
+  margin-left: 18rpx;
   color: #2E5B73;
-  font-weight: 600;
+  font-size: 24rpx;
+  font-weight: 800;
 }
 
-.ghost-button,
-.primary-button,
-.secondary-button {
-  border: none;
+.status-badge {
+  flex: 0 0 auto;
+  min-width: 92rpx;
+  height: 44rpx;
+  margin-left: 18rpx;
+  padding: 0 14rpx;
   border-radius: 999rpx;
-  font-size: 26rpx;
-  font-weight: 600;
+  background: #FFECE5;
+  color: #B85D48;
+  font-size: 22rpx;
+  line-height: 44rpx;
+  text-align: center;
+  box-sizing: border-box;
 }
 
-.ghost-button,
-.secondary-button {
-  background: #EEF2F5;
-  color: #4C5A65;
+.status-badge-ready {
+  background: #EEF3F4;
+  color: #2E5B73;
+}
+
+.bound-label {
+  color: #756756;
+  font-size: 22rpx;
+}
+
+.bound-value {
+  margin-top: 8rpx;
+  color: #26333D;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.row-button {
+  flex: 1;
+  height: 72rpx;
+  margin-left: 14rpx;
+  line-height: 72rpx;
+}
+
+.row-button:first-child {
+  margin-left: 0;
 }
 
 .primary-button {
@@ -111,14 +292,7 @@
   color: #FFFFFF;
 }
 
-.small-button {
-  min-width: 140rpx;
-  min-height: 68rpx;
-  line-height: 68rpx;
-}
-
-.row-button {
-  flex: 1;
-  min-height: 76rpx;
-  line-height: 76rpx;
+.secondary-button {
+  background: #EEF3F4;
+  color: #2E5B73;
 }

@@ -6,6 +6,7 @@ import {
   connectReceiptPrinter,
   disconnectReceiptPrinter,
   discoverReceiptPrinterDevices,
+  getReceiptPrinterSettingsViewModel,
   getStoredReceiptPrinterConnection,
   printReceiptPrinterSelfTest
 } from '../../src/services/printer';
@@ -16,6 +17,7 @@ interface PrinterSettingsPageData {
   testing: boolean;
   connectedDeviceName: string;
   devices: ReceiptPrinterCandidate[];
+  view: ReturnType<typeof getReceiptPrinterSettingsViewModel>;
 }
 
 interface PrinterSettingsPageInstance {
@@ -30,14 +32,18 @@ Page({
     connecting: false,
     testing: false,
     connectedDeviceName: '未绑定',
-    devices: []
+    devices: [],
+    view: getReceiptPrinterSettingsViewModel('未绑定', [])
   },
   onShow(this: PrinterSettingsPageInstance) {
     this.refreshConnection();
   },
   refreshConnection(this: PrinterSettingsPageInstance, connection = getStoredReceiptPrinterConnection()) {
+    const connectedDeviceName = connection?.name ?? '未绑定';
+
     this.setData({
-      connectedDeviceName: connection?.name ?? '未绑定'
+      connectedDeviceName,
+      view: getReceiptPrinterSettingsViewModel(connectedDeviceName, this.data.devices)
     });
   },
   handleBackTap() {
@@ -50,14 +56,16 @@ Page({
 
     this.setData({
       searching: true,
-      devices: []
+      devices: [],
+      view: getReceiptPrinterSettingsViewModel(this.data.connectedDeviceName, [])
     });
 
     try {
       const devices = await discoverReceiptPrinterDevices();
 
       this.setData({
-        devices
+        devices,
+        view: getReceiptPrinterSettingsViewModel(this.data.connectedDeviceName, devices)
       });
 
       if (devices.length === 0) {

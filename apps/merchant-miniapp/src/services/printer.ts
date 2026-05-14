@@ -14,6 +14,12 @@ export interface ReceiptPrinterConnection {
   connectedAt: string;
 }
 
+export interface ReceiptPrinterSettingsViewModel {
+  statusLabel: string;
+  statusTone: 'ready' | 'empty';
+  deviceCountLabel: string;
+}
+
 interface BluetoothService {
   uuid: string;
   isPrimary?: boolean;
@@ -107,6 +113,17 @@ function base64ToArrayBuffer(client: any, base64: string) {
 
 export function getStoredReceiptPrinterConnection(client = getWxClient()) {
   return readStorage(client);
+}
+
+export function getReceiptPrinterSettingsViewModel(
+  connectedDeviceName: string,
+  devices: ReceiptPrinterCandidate[]
+): ReceiptPrinterSettingsViewModel {
+  return {
+    statusLabel: connectedDeviceName === '未绑定' ? '未绑定' : '已绑定',
+    statusTone: connectedDeviceName === '未绑定' ? 'empty' : 'ready',
+    deviceCountLabel: devices.length === 0 ? '暂无设备' : `${devices.length} 台设备`
+  };
 }
 
 export function clearStoredReceiptPrinterConnection(client = getWxClient()) {

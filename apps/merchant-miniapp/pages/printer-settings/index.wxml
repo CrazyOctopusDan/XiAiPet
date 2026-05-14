@@ -1,44 +1,65 @@
 <view class="printer-page">
-  <view class="hero-card">
-    <view>
-      <text class="page-title">打印机设置</text>
-      <text class="page-subtitle">当前设备：{{connectedDeviceName}}</text>
+  <view class="summary-card">
+    <view class="summary-head">
+      <view class="page-mark">印</view>
+      <view class="summary-copy">
+        <text class="page-title">打印机设置</text>
+        <text class="page-subtitle">{{connectedDeviceName}}</text>
+      </view>
+      <button class="icon-button" bindtap="handleBackTap">返回</button>
     </view>
-    <button class="ghost-button" bindtap="handleBackTap">返回</button>
+
+    <view class="summary-metrics">
+      <view class="metric-chip metric-chip-primary">
+        <text class="metric-value">{{view.statusLabel}}</text>
+        <text class="metric-label">绑定状态</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{view.deviceCountLabel}}</text>
+        <text class="metric-label">搜索结果</text>
+      </view>
+    </view>
   </view>
 
   <view class="content-card">
     <view class="section-head">
-      <text class="section-title">蓝牙设备</text>
-      <button class="primary-button small-button" loading="{{searching}}" bindtap="handleSearchTap">搜索</button>
+      <view>
+        <text class="section-title">蓝牙设备</text>
+        <text class="section-meta">打开小票机后搜索附近设备</text>
+      </view>
+      <button class="small-button" loading="{{searching}}" bindtap="handleSearchTap">搜索</button>
     </view>
 
     <view class="empty-state" wx:if="{{devices.length === 0}}">
       <text class="empty-title">暂无设备</text>
-      <text class="empty-body">打开小票机电源后搜索附近蓝牙设备。</text>
+      <text class="empty-body">搜索后会显示可绑定的小票机。</text>
     </view>
 
-    <view
-      class="device-row"
-      wx:for="{{devices}}"
-      wx:key="deviceId"
-      data-index="{{index}}"
-      bindtap="handleDeviceTap"
-    >
-      <view>
-        <text class="device-name">{{item.name}}</text>
-        <text class="device-id">{{item.deviceId}}</text>
+    <view class="device-list" wx:else>
+      <view class="device-row" wx:for="{{devices}}" wx:key="deviceId" data-index="{{index}}" bindtap="handleDeviceTap">
+        <view class="device-copy">
+          <text class="device-name">{{item.name}}</text>
+          <text class="device-id">{{item.deviceId}}</text>
+        </view>
+        <text class="device-action">{{connecting ? '连接中' : '绑定'}}</text>
       </view>
-      <text class="device-action">{{connecting ? '连接中' : '绑定'}}</text>
     </view>
   </view>
 
   <view class="content-card">
-    <text class="section-title">已绑定设备</text>
-    <view class="meta-row">
-      <text class="meta-label">设备名称</text>
-      <text class="meta-value">{{connectedDeviceName}}</text>
+    <view class="section-head">
+      <view>
+        <text class="section-title">已绑定设备</text>
+        <text class="section-meta">用于订单小票和测试打印</text>
+      </view>
+      <text class="status-badge {{view.statusTone === 'ready' ? 'status-badge-ready' : ''}}">{{view.statusLabel}}</text>
     </view>
+
+    <view class="bound-panel">
+      <text class="bound-label">设备名称</text>
+      <text class="bound-value">{{connectedDeviceName}}</text>
+    </view>
+
     <view class="button-row">
       <button class="primary-button row-button" loading="{{testing}}" bindtap="handleTestPrintTap">测试打印</button>
       <button class="secondary-button row-button" bindtap="handleDisconnectTap">解绑打印机</button>

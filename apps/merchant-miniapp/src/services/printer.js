@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getStoredReceiptPrinterConnection = getStoredReceiptPrinterConnection;
+exports.getReceiptPrinterSettingsViewModel = getReceiptPrinterSettingsViewModel;
 exports.clearStoredReceiptPrinterConnection = clearStoredReceiptPrinterConnection;
 exports.discoverReceiptPrinterDevices = discoverReceiptPrinterDevices;
 exports.connectReceiptPrinter = connectReceiptPrinter;
@@ -72,6 +73,13 @@ function base64ToArrayBuffer(client, base64) {
 }
 function getStoredReceiptPrinterConnection(client = getWxClient()) {
     return readStorage(client);
+}
+function getReceiptPrinterSettingsViewModel(connectedDeviceName, devices) {
+    return {
+        statusLabel: connectedDeviceName === '未绑定' ? '未绑定' : '已绑定',
+        statusTone: connectedDeviceName === '未绑定' ? 'empty' : 'ready',
+        deviceCountLabel: devices.length === 0 ? '暂无设备' : `${devices.length} 台设备`
+    };
 }
 function clearStoredReceiptPrinterConnection(client = getWxClient()) {
     var _a;

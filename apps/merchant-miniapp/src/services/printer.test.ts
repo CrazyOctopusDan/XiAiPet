@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   connectReceiptPrinter,
   disconnectReceiptPrinter,
+  getReceiptPrinterSettingsViewModel,
   getStoredReceiptPrinterConnection,
   printReceiptPrinterSelfTest,
   writeReceiptPrinterChunks
@@ -61,6 +62,30 @@ function createWxClient() {
 }
 
 describe('merchant printer service', () => {
+  it('formats printer settings status and discovered device count for the page header', () => {
+    expect(getReceiptPrinterSettingsViewModel('未绑定', [])).toEqual({
+      statusLabel: '未绑定',
+      statusTone: 'empty',
+      deviceCountLabel: '暂无设备'
+    });
+    expect(
+      getReceiptPrinterSettingsViewModel('厨房小票机', [
+        {
+          deviceId: 'printer-001',
+          name: '厨房小票机'
+        },
+        {
+          deviceId: 'printer-002',
+          name: '前台小票机'
+        }
+      ])
+    ).toEqual({
+      statusLabel: '已绑定',
+      statusTone: 'ready',
+      deviceCountLabel: '2 台设备'
+    });
+  });
+
   it('connects to the first writable BLE characteristic and stores the binding locally', async () => {
     const wxClient = createWxClient();
 
