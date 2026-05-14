@@ -1,19 +1,19 @@
 .access-page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 44rpx 32rpx 72rpx;
+  padding: 28rpx 24rpx 72rpx;
   background: #F8F1E8;
-  color: #1F2A33;
+  color: #26333D;
 }
 
 .brand-card,
 .login-card {
   box-sizing: border-box;
   width: 100%;
-  border: 1rpx solid #F0E2D0;
-  border-radius: 32rpx;
-  background: #FFFFFF;
-  box-shadow: 0 18rpx 44rpx rgba(80, 52, 22, 0.1);
+  border: 2rpx solid #F0E2D0;
+  border-radius: 24rpx;
+  background: #FFFDF8;
+  box-shadow: 0 16rpx 36rpx rgba(46, 91, 115, 0.07);
 }
 
 .brand-card {
@@ -27,12 +27,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100rpx;
-  height: 100rpx;
-  flex: 0 0 100rpx;
-  border-radius: 30rpx;
-  background: linear-gradient(135deg, #F3B56F 0%, #E98F78 54%, #2E5B73 100%);
-  color: #FFFFFF;
+  width: 88rpx;
+  height: 88rpx;
+  flex: 0 0 88rpx;
+  border: 2rpx solid #F3B56F;
+  border-radius: 24rpx;
+  background: #FFF4E4;
+  color: #2E5B73;
   line-height: 1;
 }
 
@@ -65,7 +66,8 @@
 }
 
 .brand-title {
-  font-size: 42rpx;
+  color: #26333D;
+  font-size: 40rpx;
   font-weight: 800;
   line-height: 1.15;
 }
@@ -78,8 +80,8 @@
 }
 
 .login-card {
-  margin-top: 24rpx;
-  padding: 32rpx;
+  margin-top: 22rpx;
+  padding: 28rpx;
 }
 
 .login-head {
@@ -95,7 +97,8 @@
 }
 
 .login-title {
-  font-size: 36rpx;
+  color: #26333D;
+  font-size: 34rpx;
   font-weight: 800;
   line-height: 1.2;
 }
@@ -110,13 +113,14 @@
 .role-pill {
   flex: 0 0 auto;
   margin-left: 20rpx;
-  padding: 10rpx 18rpx;
+  height: 44rpx;
+  padding: 0 14rpx;
   border-radius: 999rpx;
-  background: #FFF3E6;
-  color: #8A5F35;
+  background: #FFF4E4;
+  color: #9A6B28;
   font-size: 22rpx;
-  font-weight: 600;
-  line-height: 1.2;
+  font-weight: 800;
+  line-height: 44rpx;
 }
 
 .field-group {
@@ -133,13 +137,13 @@
 .login-input {
   box-sizing: border-box;
   width: 100%;
-  height: 88rpx;
-  padding: 0 24rpx;
-  border: 1rpx solid #D8D0C5;
-  border-radius: 20rpx;
-  background: #FBFCFD;
-  color: #1F2A33;
-  font-size: 30rpx;
+  height: 72rpx;
+  padding: 0 22rpx;
+  border: 2rpx solid #E8DAC8;
+  border-radius: 18rpx;
+  background: #FFFDF8;
+  color: #26333D;
+  font-size: 26rpx;
 }
 
 .input-placeholder {
@@ -150,12 +154,12 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  height: 88rpx;
+  min-height: 72rpx;
   margin-top: 24rpx;
   padding: 12rpx 20rpx;
-  border-radius: 16rpx;
-  background: #F4F7F9;
-  color: #697783;
+  border-radius: 18rpx;
+  background: #FBF6EE;
+  color: #756756;
   overflow: hidden;
 }
 
@@ -184,16 +188,16 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 92rpx;
+  height: 72rpx;
   margin-top: 24rpx;
   padding: 0;
   border: none;
-  border-radius: 20rpx;
+  border-radius: 18rpx;
   background: #2E5B73;
   color: #FFFFFF;
-  font-size: 30rpx;
+  font-size: 26rpx;
   font-weight: 800;
-  line-height: 1;
+  line-height: 72rpx;
 }
 
 .primary-cta::after {
