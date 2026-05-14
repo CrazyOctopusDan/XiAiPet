@@ -1,9 +1,9 @@
 .page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 32rpx 24rpx 80rpx;
+  padding: 28rpx 24rpx 80rpx;
   background: #F8F1E8;
-  color: #1F2A33;
+  color: #26333D;
 }
 
 .summary-card,
@@ -11,15 +11,15 @@
 .account-card,
 .empty-card {
   box-sizing: border-box;
-  border: 1rpx solid #F0E2D0;
-  background: #FFFFFF;
-  box-shadow: 0 16rpx 38rpx rgba(80, 52, 22, 0.09);
+  border: 2rpx solid #F0E2D0;
+  background: #FFFDF8;
+  box-shadow: 0 16rpx 36rpx rgba(46, 91, 115, 0.07);
 }
 
 .summary-card,
 .create-card,
 .empty-card {
-  border-radius: 32rpx;
+  border-radius: 24rpx;
 }
 
 .summary-card,
@@ -106,7 +106,7 @@
   min-width: 0;
   padding: 16rpx;
   border-radius: 20rpx;
-  background: #F4F7F9;
+  background: #FBF6EE;
 }
 
 .metric-chip + .metric-chip {
@@ -118,7 +118,7 @@
 }
 
 .metric-value {
-  color: #1F2A33;
+  color: #26333D;
   font-size: 30rpx;
   font-weight: 800;
   line-height: 1.15;
@@ -157,7 +157,7 @@
   margin-left: 20rpx;
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
-  background: #F4F7F9;
+  background: #FBF6EE;
   color: #2E5B73;
   font-size: 20rpx;
   font-weight: 700;
@@ -180,7 +180,7 @@
   border: 1rpx solid #E3D5C4;
   border-radius: 18rpx;
   background: #FFFDF8;
-  color: #1F2A33;
+  color: #26333D;
   font-size: 26rpx;
   line-height: 72rpx;
 }
@@ -251,7 +251,7 @@
 }
 
 .account-name {
-  color: #1F2A33;
+  color: #26333D;
   font-size: 30rpx;
   font-weight: 800;
   line-height: 1.2;
@@ -270,7 +270,7 @@
   margin-bottom: 8rpx;
   padding: 6rpx 12rpx;
   border-radius: 999rpx;
-  background: #F4F7F9;
+  background: #FBF6EE;
   color: #697783;
   font-size: 20rpx;
   font-weight: 600;
@@ -294,7 +294,7 @@
 .secondary-button,
 .danger-button {
   flex: 1;
-  background: #F4F7F9;
+  background: #FBF6EE;
 }
 
 .secondary-button {
@@ -318,7 +318,7 @@
 }
 
 .empty-title {
-  color: #1F2A33;
+  color: #26333D;
   font-size: 30rpx;
   font-weight: 800;
   line-height: 1.2;
