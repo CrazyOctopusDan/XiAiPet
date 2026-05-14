@@ -158,6 +158,7 @@ describe('catalog admin service', () => {
     const view = getProductEditorViewModel(createProductPayload(), 'pricing');
 
     expect(view.steps.map((item) => item.label)).toEqual(['基础信息', '规格配方与价格', '上架设置']);
+    expect(view.activeStepLabel).toBe('规格配方与价格');
     expect(view.ctaLabel).toBe('保存规格配方并继续');
     expect(view.purchaseLimitLabel).toBe('限购 2 件');
     expect(view.detailContentLabel).toBe('详情内容已填写');

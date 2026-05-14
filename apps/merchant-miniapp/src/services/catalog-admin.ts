@@ -83,6 +83,7 @@ export interface ProductPricePreviewRowViewModel {
 
 export interface ProductEditorViewModel {
   steps: ProductEditorStepViewModel[];
+  activeStepLabel: string;
   ctaLabel: string;
   purchaseLimitLabel: string;
   detailContentLabel: string;
@@ -390,6 +391,7 @@ export function getProductEditorViewModel(
   const steps: CatalogProductEditorStep[] = ['basicInfo', 'pricing', 'publishSettings'];
 
   return {
+    activeStepLabel: getStepLabel(activeStep),
     steps: steps.map((step, index) => ({
       value: step,
       label: getStepLabel(step),

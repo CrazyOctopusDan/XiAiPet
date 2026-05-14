@@ -256,6 +256,7 @@ function getProductEditorViewModel(payload, activeStep) {
     var _a;
     const steps = ['basicInfo', 'pricing', 'publishSettings'];
     return {
+        activeStepLabel: getStepLabel(activeStep),
         steps: steps.map((step, index) => ({
             value: step,
             label: getStepLabel(step),
