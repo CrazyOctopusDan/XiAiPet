@@ -1,7 +1,8 @@
 <view class="detail-page">
-  <view class="hero-card" wx:if="{{!loading && !isEmpty}}">
-    <view class="hero-head">
-      <view>
+  <view class="summary-card" wx:if="{{!loading && !isEmpty}}">
+    <view class="summary-head">
+      <view class="page-mark">单</view>
+      <view class="summary-copy">
         <text class="page-title">订单详情</text>
         <text class="page-subtitle">{{detail.orderIdLabel}}</text>
       </view>
@@ -10,17 +11,20 @@
         <text class="payment-badge" wx:if="{{detail.paymentBadgeLabel}}">{{detail.paymentBadgeLabel}}</text>
       </view>
     </view>
-    <view class="meta-row">
-      <text class="meta-label">履约方式</text>
-      <text class="meta-value">{{detail.fulfillmentLabel}}</text>
-    </view>
-    <view class="meta-row">
-      <text class="meta-label">预约时间</text>
-      <text class="meta-value">{{detail.scheduleLabel}}</text>
-    </view>
-    <view class="meta-row">
-      <text class="meta-label">支付方式</text>
-      <text class="meta-value">{{detail.paymentMethodLabel}}</text>
+
+    <view class="summary-metrics">
+      <view class="metric-chip metric-chip-primary">
+        <text class="metric-value">{{detail.fulfillmentLabel}}</text>
+        <text class="metric-label">履约方式</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{detail.scheduleLabel}}</text>
+        <text class="metric-label">预约时间</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{detail.paymentMethodLabel}}</text>
+        <text class="metric-label">支付方式</text>
+      </view>
     </view>
   </view>
 
@@ -34,7 +38,7 @@
     <text class="loading-body">稍后会展示状态、审计和时间线。</text>
   </view>
 
-  <view wx:else>
+  <view class="content-list" wx:else>
     <view class="content-card">
       <text class="section-title">履约信息</text>
       <view class="meta-row">
@@ -112,7 +116,7 @@
     <view class="content-card">
       <text class="section-title">商品清单</text>
       <view class="product-row" wx:for="{{detail.items}}" wx:key="name">
-        <view>
+        <view class="product-copy">
           <text class="product-name">{{item.name}}</text>
           <text class="product-meta">{{item.specLabel}} {{item.quantityLabel}}</text>
         </view>
