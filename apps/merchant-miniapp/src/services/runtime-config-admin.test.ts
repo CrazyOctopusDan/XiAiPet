@@ -40,7 +40,7 @@ describe('runtime config admin service', () => {
           updatedAt: '2026-04-18T10:00:00.000Z',
           updatedBy: {
             openid: 'merchant-openid',
-            name: '虾衣宠物烘焙工作室'
+            name: '喜爱宠物烘焙工作室'
           },
           value: {
             tiers: [
@@ -67,6 +67,11 @@ describe('runtime config admin service', () => {
         })
       ]
     });
+    expect(view.summary).toEqual({
+      totalSections: 5,
+      dirtySections: 1,
+      deliveryRuleCount: LOCKED_DELIVERY_RULE_ROWS.length
+    });
   });
 
   it('exposes delivery fees as exact locked explainer rows instead of generic blobs', () => {
@@ -90,7 +95,7 @@ describe('runtime config admin service', () => {
         updatedAt: '2026-04-18T10:00:00.000Z',
         updatedBy: {
           openid: 'merchant-openid',
-          name: '虾衣宠物烘焙工作室'
+          name: '喜爱宠物烘焙工作室'
         },
         value: {
           enabled: true,
@@ -105,7 +110,7 @@ describe('runtime config admin service', () => {
         updatedAt: '2026-04-18T10:00:00.000Z',
         updatedBy: {
           openid: 'merchant-openid',
-          name: '虾衣宠物烘焙工作室'
+          name: '喜爱宠物烘焙工作室'
         },
         value: {
           enabled: true,

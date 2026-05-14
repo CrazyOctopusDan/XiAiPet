@@ -4,7 +4,6 @@ declare function Page(options: Record<string, unknown>): void;
 import type { RuntimeConfigSectionDocument, RuntimeConfigSectionId } from '@xiaipet/shared/types/runtime-config';
 
 import {
-  LOCKED_DELIVERY_RULE_ROWS,
   buildRuntimeConfigSectionDocument,
   getRuntimeConfigAdminViewModel,
   queryRuntimeConfigSections,
@@ -44,6 +43,11 @@ Page({
     dirty: {},
     sections: [],
     view: {
+      summary: {
+        totalSections: 0,
+        dirtySections: 0,
+        deliveryRuleCount: 0
+      },
       sections: []
     }
   },
@@ -217,7 +221,7 @@ Page({
   handleOpenDeliveryNotice() {
     wx.showModal({
       title: '配送费说明',
-      content: '说明弹层：配送费按距离和价格阶梯录入，下列每一档都会直接展示给商户。',
+      content: '配送费按距离和价格阶梯展示，保存后会同步到下单页。',
       showCancel: false
     });
   },

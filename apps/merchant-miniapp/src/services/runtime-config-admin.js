@@ -35,7 +35,7 @@ function formatDateTime(value) {
 function createUpdatedBy() {
     return {
         openid: 'merchant-openid',
-        name: '虾衣宠物烘焙工作室'
+        name: '喜爱宠物烘焙工作室'
     };
 }
 function getNow() {
@@ -119,6 +119,36 @@ function getSectionTitle(sectionId) {
     }
     return '定制提示';
 }
+function getSectionIconToken(sectionId) {
+    if (sectionId === 'store-profile') {
+        return '店';
+    }
+    if (sectionId === 'delivery-rules') {
+        return '费';
+    }
+    if (sectionId === 'membership-tiers') {
+        return '级';
+    }
+    if (sectionId === 'banner') {
+        return '图';
+    }
+    return '提';
+}
+function getSectionSummaryLabel(section) {
+    if (section.sectionId === 'store-profile') {
+        return section.value.contactPhone ? '地址与电话已配置' : '补全地址与电话';
+    }
+    if (section.sectionId === 'delivery-rules') {
+        return `${section.value.tiers.length} 个配送档`;
+    }
+    if (section.sectionId === 'membership-tiers') {
+        return `${section.value.tiers.length} 个等级`;
+    }
+    if (section.sectionId === 'banner') {
+        return section.value.fileId ? '首页展示图已配置' : '上传首页展示图';
+    }
+    return section.value.enabled ? '定制提示已开启' : '定制提示已关闭';
+}
 async function queryRuntimeConfigSections(request = api_client_1.merchantApiRequest) {
     var _a;
     const response = await request('/api/v1/merchant/runtime-config/sections', {
@@ -143,10 +173,19 @@ async function uploadRuntimeBannerAsset(filePath, request) {
     });
 }
 function getRuntimeConfigAdminViewModel(sections, dirty) {
+    const mergedSections = mergeSections(sections);
+    const deliverySection = mergedSections.find((section) => section.sectionId === 'delivery-rules');
     return {
-        sections: mergeSections(sections).map((section) => ({
+        summary: {
+            totalSections: mergedSections.length,
+            dirtySections: mergedSections.filter((section) => dirty[section.sectionId]).length,
+            deliveryRuleCount: (deliverySection === null || deliverySection === void 0 ? void 0 : deliverySection.sectionId) === 'delivery-rules' ? deliverySection.value.tiers.length : 0
+        },
+        sections: mergedSections.map((section) => ({
             sectionId: section.sectionId,
             title: getSectionTitle(section.sectionId),
+            iconToken: getSectionIconToken(section.sectionId),
+            summaryLabel: getSectionSummaryLabel(section),
             dirtyLabel: dirty[section.sectionId] ? '未保存' : null,
             updatedLabel: `已保存 ${formatDateTime(section.updatedAt)}`,
             storeFields: section.sectionId === 'store-profile' ? section.value : undefined,
