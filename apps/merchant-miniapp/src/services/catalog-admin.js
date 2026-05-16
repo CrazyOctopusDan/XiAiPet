@@ -36,6 +36,14 @@ function getFulfillmentModeLabel(mode) {
     }
     return '配送';
 }
+function getFulfillmentModeOptions(activeModes) {
+    const modes = ['delivery', 'pickup', 'express'];
+    return modes.map((mode) => ({
+        value: mode,
+        label: getFulfillmentModeLabel(mode),
+        isActive: activeModes.includes(mode)
+    }));
+}
 function getPriceRangeLabel(product) {
     const resolvedPrices = [product.basePrice];
     product.specs.forEach((spec) => {
@@ -268,6 +276,7 @@ function getProductEditorViewModel(payload, activeStep) {
             ? `限购 ${(_a = payload.pricing.purchaseLimit.maxQuantity) !== null && _a !== void 0 ? _a : 0} 件`
             : '不限购',
         detailContentLabel: payload.pricing.detailContent ? '详情内容已填写' : '详情内容待填写',
+        fulfillmentModeOptions: getFulfillmentModeOptions(payload.publishSettings.fulfillmentModes),
         fulfillmentModeLabels: payload.publishSettings.fulfillmentModes.map(getFulfillmentModeLabel),
         pricePreviewRows: createPricePreviewRows(payload.pricing.basePrice, payload.pricing.specs, payload.pricing.formulas, payload.pricing.overrides)
     };

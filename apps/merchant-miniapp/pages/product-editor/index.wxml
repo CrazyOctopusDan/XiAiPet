@@ -113,9 +113,15 @@
 
       <text class="field-label">履约方式</text>
       <view class="pill-row">
-        <view class="pill {{draft.publishSettings.fulfillmentModes.indexOf('delivery') > -1 ? 'active' : ''}}" data-mode="delivery" bindtap="handleFulfillmentTap">配送</view>
-        <view class="pill {{draft.publishSettings.fulfillmentModes.indexOf('pickup') > -1 ? 'active' : ''}}" data-mode="pickup" bindtap="handleFulfillmentTap">自取</view>
-        <view class="pill {{draft.publishSettings.fulfillmentModes.indexOf('express') > -1 ? 'active' : ''}}" data-mode="express" bindtap="handleFulfillmentTap">快递</view>
+        <view
+          class="pill {{item.isActive ? 'active' : ''}}"
+          wx:for="{{editorView.fulfillmentModeOptions}}"
+          wx:key="value"
+          data-mode="{{item.value}}"
+          bindtap="handleFulfillmentTap"
+        >
+          {{item.label}}
+        </view>
       </view>
 
       <view class="toggle-row" bindtap="handleTrackInventoryToggle">

@@ -81,12 +81,19 @@ export interface ProductPricePreviewRowViewModel {
   overrideLabel: string | null;
 }
 
+export interface ProductFulfillmentModeOptionViewModel {
+  value: OrderFulfillmentMode;
+  label: string;
+  isActive: boolean;
+}
+
 export interface ProductEditorViewModel {
   steps: ProductEditorStepViewModel[];
   activeStepLabel: string;
   ctaLabel: string;
   purchaseLimitLabel: string;
   detailContentLabel: string;
+  fulfillmentModeOptions: ProductFulfillmentModeOptionViewModel[];
   fulfillmentModeLabels: string[];
   pricePreviewRows: ProductPricePreviewRowViewModel[];
 }
@@ -117,6 +124,16 @@ function getFulfillmentModeLabel(mode: OrderFulfillmentMode) {
   }
 
   return '配送';
+}
+
+function getFulfillmentModeOptions(activeModes: OrderFulfillmentMode[]): ProductFulfillmentModeOptionViewModel[] {
+  const modes: OrderFulfillmentMode[] = ['delivery', 'pickup', 'express'];
+
+  return modes.map((mode) => ({
+    value: mode,
+    label: getFulfillmentModeLabel(mode),
+    isActive: activeModes.includes(mode)
+  }));
 }
 
 function getPriceRangeLabel(product: CatalogProductAdminRecord) {
@@ -403,6 +420,7 @@ export function getProductEditorViewModel(
       ? `限购 ${payload.pricing.purchaseLimit.maxQuantity ?? 0} 件`
       : '不限购',
     detailContentLabel: payload.pricing.detailContent ? '详情内容已填写' : '详情内容待填写',
+    fulfillmentModeOptions: getFulfillmentModeOptions(payload.publishSettings.fulfillmentModes),
     fulfillmentModeLabels: payload.publishSettings.fulfillmentModes.map(getFulfillmentModeLabel),
     pricePreviewRows: createPricePreviewRows(
       payload.pricing.basePrice,

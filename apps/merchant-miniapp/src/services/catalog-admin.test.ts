@@ -162,6 +162,11 @@ describe('catalog admin service', () => {
     expect(view.ctaLabel).toBe('保存规格配方并继续');
     expect(view.purchaseLimitLabel).toBe('限购 2 件');
     expect(view.detailContentLabel).toBe('详情内容已填写');
+    expect(view.fulfillmentModeOptions).toEqual([
+      { value: 'delivery', label: '配送', isActive: true },
+      { value: 'pickup', label: '自取', isActive: true },
+      { value: 'express', label: '快递', isActive: false }
+    ]);
     expect(view.pricePreviewRows).toContainEqual(
       expect.objectContaining({
         label: '6 寸 × 羊奶配方',
