@@ -4,6 +4,7 @@ declare function Page(options: Record<string, unknown>): void;
 import {
   getBalanceOverview,
   getMonthlyBalanceGroups,
+  hydrateBalance,
   type MonthlyBalanceGroup
 } from '../../src/services/balance';
 
@@ -19,7 +20,7 @@ interface BalancePageData {
 interface BalancePageInstance {
   data: BalancePageData;
   setData(data: Record<string, unknown>): void;
-  refreshBalance(): void;
+  refreshBalance(): Promise<void>;
 }
 
 Page({
@@ -28,9 +29,19 @@ Page({
     groups: []
   },
   onShow(this: BalancePageInstance) {
-    this.refreshBalance();
+    void this.refreshBalance();
   },
-  refreshBalance(this: BalancePageInstance) {
+  async refreshBalance(this: BalancePageInstance) {
+    this.setData({
+      overview: getBalanceOverview(),
+      groups: getMonthlyBalanceGroups()
+    });
+
+    try {
+      await hydrateBalance();
+    } catch {
+      // Keep the latest local ledger snapshot visible if the network is unavailable.
+    }
     this.setData({
       overview: getBalanceOverview(),
       groups: getMonthlyBalanceGroups()

@@ -3,6 +3,7 @@ declare function Page(options: Record<string, unknown>): void;
 
 import {
   getProfile,
+  saveProfile,
   setBirthday,
   updateProfile,
   type CustomerProfile,
@@ -73,7 +74,7 @@ Page({
       }
     });
   },
-  handleSave(this: ProfileDetailPageInstance) {
+  async handleSave(this: ProfileDetailPageInstance) {
     const birthday = this.data.profile.birthday.trim();
 
     updateProfile({
@@ -91,8 +92,23 @@ Page({
       }
     }
 
+    const nextProfile = getProfile();
     this.refreshProfile();
-    wx.showToast({ title: '资料已更新', icon: 'none' });
+
+    try {
+      await saveProfile({
+        nickname: nextProfile.nickname,
+        gender: nextProfile.gender,
+        birthday: nextProfile.birthday,
+        birthdayLocked: nextProfile.birthdayLocked,
+        contactPhoneMasked: nextProfile.contactPhoneMasked
+      });
+      wx.showToast({ title: '资料已同步', icon: 'none' });
+    } catch {
+      wx.showToast({ title: '资料已保存本地，稍后同步', icon: 'none' });
+    }
+
+    this.refreshProfile();
   },
   handleContactTap() {
     wx.navigateTo({

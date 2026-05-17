@@ -1,7 +1,49 @@
 import { ApiError } from '../../lib/errors';
-import { createCatalogRepository, type CatalogProductRecord } from './repository';
+import { createCatalogRepository, type CatalogCategoryRecord, type CatalogProductRecord } from './repository';
 import type { MerchantContext } from '../auth/types';
 import type { CatalogOssAssetReference } from './repository';
+
+type CustomerDeliveryMode = 'pickup' | 'delivery' | 'express';
+
+interface CustomerCatalogCategory {
+  id: string;
+  name: string;
+  shortName: string;
+  iconText: string;
+  sectionTitle: string;
+}
+
+interface MerchantCatalogCategory extends CatalogCategoryRecord {
+  linkedProductCount: number;
+  canDelete: boolean;
+}
+
+interface CustomerProductSpecOption {
+  id: string;
+  label: string;
+  price: number;
+}
+
+interface CustomerCatalogProduct {
+  id: string;
+  name: string;
+  summary: string;
+  description: string;
+  price: number;
+  stock: number;
+  soldOut: boolean;
+  cartActionLabel: '选规格' | '直接加购';
+  memberLevelLabel: string;
+  categoryId: string;
+  deliveryModes: CustomerDeliveryMode[];
+  thumbnail: string;
+  imageAsset?: CatalogOssAssetReference;
+  gallery: string[];
+  introductionImageAssets?: CatalogOssAssetReference[];
+  detailImages: string[];
+  detailImageAssets?: CatalogOssAssetReference[];
+  specs: CustomerProductSpecOption[];
+}
 
 interface CatalogProductEditorPayload {
   basicInfo: {
@@ -33,6 +75,155 @@ interface CatalogProductEditorPayload {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isCustomerDeliveryMode(value: unknown): value is CustomerDeliveryMode {
+  return value === 'pickup' || value === 'delivery' || value === 'express';
+}
+
+interface PricingOption {
+  id: string;
+  label: string;
+  surcharge?: number;
+}
+
+interface PriceOverride {
+  specId: string;
+  formulaId: string;
+  price: number;
+}
+
+function roundCurrency(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function isPricingOption(value: unknown): value is PricingOption {
+  return (
+    isObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.label === 'string' &&
+    (value.surcharge === undefined || (typeof value.surcharge === 'number' && Number.isFinite(value.surcharge)))
+  );
+}
+
+function isPriceOverride(value: unknown): value is PriceOverride {
+  return (
+    isObject(value) &&
+    typeof value.specId === 'string' &&
+    typeof value.formulaId === 'string' &&
+    typeof value.price === 'number' &&
+    Number.isFinite(value.price)
+  );
+}
+
+function getAssetUrl(asset: CatalogOssAssetReference | undefined, variantName: string) {
+  if (!asset) {
+    return undefined;
+  }
+
+  const variants = Array.isArray(asset.variants) ? asset.variants : [];
+  const variant = variants.find(
+    (item): item is { name: string; url: string } =>
+      isObject(item) && item.name === variantName && typeof item.url === 'string'
+  );
+
+  return variant?.url ?? asset.url;
+}
+
+function getAssetUrls(assets: CatalogOssAssetReference[] | undefined, variantName: string) {
+  return (assets ?? []).map((asset) => getAssetUrl(asset, variantName) ?? asset.url);
+}
+
+function mapCustomerCategory(category: CatalogCategoryRecord): CustomerCatalogCategory {
+  return {
+    id: category.id,
+    name: category.name,
+    shortName: category.name,
+    iconText: category.iconToken,
+    sectionTitle: category.name
+  };
+}
+
+async function mapMerchantCategory(
+  category: CatalogCategoryRecord,
+  countProductsByCategory: (categoryId: string) => Promise<number>
+): Promise<MerchantCatalogCategory> {
+  const linkedProductCount = await countProductsByCategory(category.id);
+
+  return {
+    ...category,
+    linkedProductCount,
+    canDelete: linkedProductCount === 0
+  };
+}
+
+function getCustomerDeliveryModes(product: CatalogProductRecord): CustomerDeliveryMode[] {
+  const modes = product.fulfillmentModes.filter(isCustomerDeliveryMode);
+  return modes.length ? modes : ['pickup', 'delivery', 'express'];
+}
+
+function getPriceOverride(product: CatalogProductRecord, specId: string, formulaId: string) {
+  return product.priceOverrides.find(
+    (override): override is PriceOverride =>
+      isPriceOverride(override) && override.specId === specId && override.formulaId === formulaId
+  )?.price;
+}
+
+function getCustomerSpecs(product: CatalogProductRecord): CustomerProductSpecOption[] {
+  const specs = product.specs.filter(isPricingOption);
+  const formulas = product.formulas.filter(isPricingOption);
+
+  if (specs.length && formulas.length) {
+    return specs.flatMap((spec) =>
+      formulas.map((formula) => ({
+        id: `${spec.id}__${formula.id}`,
+        label: `${spec.label} ${formula.label}`,
+        price: roundCurrency(
+          getPriceOverride(product, spec.id, formula.id) ??
+            product.basePrice + (spec.surcharge ?? 0) + (formula.surcharge ?? 0)
+        )
+      }))
+    );
+  }
+
+  const singleAxisOptions = specs.length ? specs : formulas;
+  return singleAxisOptions.map((option) => ({
+    id: option.id,
+    label: option.label,
+    price: roundCurrency(product.basePrice + (option.surcharge ?? 0))
+  }));
+}
+
+function mapCustomerProduct(product: CatalogProductRecord): CustomerCatalogProduct {
+  const specs = getCustomerSpecs(product);
+  const thumbnail =
+    getAssetUrl(product.imageAsset, 'thumbnail') ??
+    product.imagePreviewUrl ??
+    product.imageAsset?.url ??
+    product.imageFileId;
+  const gallery = getAssetUrls(product.introductionImageAssets, 'display');
+  const detailImages = getAssetUrls(product.detailImageAssets, 'detail');
+
+  return {
+    id: product.id,
+    name: product.name,
+    summary: product.description,
+    description: product.detailContent || product.description,
+    price: roundCurrency(product.basePrice),
+    stock: product.stock,
+    soldOut: product.trackInventory && product.stock <= 0,
+    cartActionLabel: specs.length ? '选规格' : '直接加购',
+    memberLevelLabel: product.memberLevelId ? '会员可购' : '普通会员可购',
+    categoryId: product.categoryId,
+    deliveryModes: getCustomerDeliveryModes(product),
+    thumbnail,
+    imageAsset: product.imageAsset,
+    gallery: gallery.length ? gallery : [thumbnail],
+    introductionImageAssets: product.introductionImageAssets,
+    detailImages: detailImages.length ? detailImages : [thumbnail],
+    detailImageAssets: product.detailImageAssets,
+    specs
+  };
 }
 
 function isOssAssetReference(value: unknown): value is CatalogOssAssetReference {
@@ -94,7 +285,7 @@ export function createCatalogService(catalogRepository = createCatalogRepository
   return {
     async queryCustomerCategories() {
       const categories = await catalogRepository.listCategories();
-      return { ok: true as const, categories };
+      return { ok: true as const, categories: categories.map(mapCustomerCategory) };
     },
 
     async queryCustomerProducts(filters: { categoryId?: string } = {}) {
@@ -102,12 +293,19 @@ export function createCatalogService(catalogRepository = createCatalogRepository
         categoryId: filters.categoryId,
         status: 'published'
       });
-      return { ok: true as const, products };
+      return { ok: true as const, products: products.map(mapCustomerProduct) };
     },
 
     async queryMerchantCategories(_filters: Record<string, unknown> = {}) {
       const categories = await catalogRepository.listCategories();
-      return { ok: true as const, categories };
+      return {
+        ok: true as const,
+        categories: await Promise.all(
+          categories.map((category) =>
+            mapMerchantCategory(category, catalogRepository.countProductsByCategory)
+          )
+        )
+      };
     },
 
     async upsertMerchantCategory(
@@ -144,6 +342,14 @@ export function createCatalogService(catalogRepository = createCatalogRepository
     async queryMerchantProducts(filters: { categoryId?: string } = {}) {
       const products = await catalogRepository.listProducts({ categoryId: filters.categoryId });
       return { ok: true as const, products };
+    },
+
+    async deleteMerchantProduct(
+      _merchantContext: MerchantContext,
+      productId: string
+    ) {
+      await catalogRepository.deleteProduct(productId);
+      return { ok: true as const, deletedProductId: productId };
     },
 
     async upsertMerchantProduct(

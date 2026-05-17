@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 
 import type { ApiRouteDependencies } from './dependencies';
 import { customerAuthRoutes } from './customer/auth';
+import { customerAccountRoutes } from './customer/account';
 import { customerProfileRoutes } from './customer/profile';
 import { customerCatalogRoutes } from './customer/catalog';
 import { customerOrderRoutes } from './customer/orders';
@@ -21,6 +22,7 @@ export async function apiV1Routes(
 ) {
   const { dependencies } = options;
   await app.register(customerAuthRoutes, { prefix: '/api/v1/customer', dependencies });
+  await app.register(customerAccountRoutes, { prefix: '/api/v1/customer', dependencies });
   await app.register(customerProfileRoutes, { prefix: '/api/v1/customer', dependencies });
   await app.register(customerCatalogRoutes, { prefix: '/api/v1/customer', dependencies });
   await app.register(customerRuntimeConfigRoutes, { prefix: '/api/v1/customer', dependencies });

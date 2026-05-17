@@ -7,6 +7,15 @@ interface PhoneBindingInput {
   source: 'wechat' | 'manual';
 }
 
+interface ProfileUpdateInput {
+  nickname?: string;
+  gender?: 'unknown' | 'female' | 'male';
+  birthday?: string;
+  birthdayLocked?: boolean;
+  contactPhoneMasked?: string;
+  avatarText?: string;
+}
+
 function isPhoneBindingInput(value: unknown): value is PhoneBindingInput {
   if (!value || typeof value !== 'object') {
     return false;
@@ -32,6 +41,32 @@ function normalizePhoneBinding(input: PhoneBindingInput) {
   };
 }
 
+function isProfileUpdateInput(value: unknown): value is ProfileUpdateInput {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return (
+    (candidate.nickname === undefined || typeof candidate.nickname === 'string') &&
+    (
+      candidate.gender === undefined ||
+      candidate.gender === 'unknown' ||
+      candidate.gender === 'female' ||
+      candidate.gender === 'male'
+    ) &&
+    (candidate.birthday === undefined || typeof candidate.birthday === 'string') &&
+    (candidate.birthdayLocked === undefined || typeof candidate.birthdayLocked === 'boolean') &&
+    (candidate.contactPhoneMasked === undefined || typeof candidate.contactPhoneMasked === 'string') &&
+    (candidate.avatarText === undefined || typeof candidate.avatarText === 'string')
+  );
+}
+
+function getProfilePayload(payload: unknown) {
+  return typeof payload === 'object' && payload && 'profile' in payload
+    ? (payload as { profile?: unknown }).profile
+    : payload;
+}
+
 export function createIdentityService(userRepository = createUserRepository()) {
   return {
     async bootstrapUser(openid: string) {
@@ -42,6 +77,15 @@ export function createIdentityService(userRepository = createUserRepository()) {
         operation: existing ? 'updated' : 'created',
         user,
         skippedCollections: []
+      };
+    },
+
+    async getProfile(openid: string) {
+      const profile = await userRepository.getCustomerProfile(openid);
+      return {
+        ok: true as const,
+        openid,
+        profile
       };
     },
 
@@ -68,6 +112,22 @@ export function createIdentityService(userRepository = createUserRepository()) {
           contactPhoneMasked: normalized.maskedPhone,
           contactPhoneCountryCode: normalized.countryCode
         }
+      };
+    },
+
+    async updateProfile(openid: string, payload: unknown) {
+      const input = getProfilePayload(payload);
+
+      if (!isProfileUpdateInput(input)) {
+        throw new ApiError('INVALID_PROFILE', 'Invalid profile payload', 400);
+      }
+
+      await userRepository.updateProfile(openid, input);
+
+      return {
+        ok: true as const,
+        openid,
+        profile: input
       };
     }
   };

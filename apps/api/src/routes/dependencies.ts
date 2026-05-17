@@ -16,13 +16,26 @@ import {
 import { createRuntimeConfigService } from '../modules/runtime-config/service';
 import { createPrintingService } from '../modules/printing/service';
 import { createAssetService } from '../modules/assets/service';
+import { createCustomerAccountService } from '../modules/customer-account/service';
 
 type AsyncResult = Promise<unknown>;
 
 export interface ApiRouteServices {
   identityService: {
     bootstrapUser(openid: string): AsyncResult;
+    getProfile(openid: string): AsyncResult;
     bindPhone(openid: string, payload: unknown): AsyncResult;
+    updateProfile(openid: string, payload: unknown): AsyncResult;
+  };
+  customerAccountService: {
+    listAddresses(openid: string, filters?: { type?: 'city' | 'express' }): AsyncResult;
+    createAddress(openid: string, payload: unknown): AsyncResult;
+    updateAddress(openid: string, addressId: string, payload: unknown): AsyncResult;
+    setDefaultAddress(openid: string, addressId: string): AsyncResult;
+    listPets(openid: string): AsyncResult;
+    createPet(openid: string, payload: unknown): AsyncResult;
+    updatePet(openid: string, petId: string, payload: unknown): AsyncResult;
+    getBalance(openid: string): AsyncResult;
   };
   catalogService: {
     queryCustomerCategories(): AsyncResult;
@@ -32,6 +45,7 @@ export interface ApiRouteServices {
     deleteMerchantCategory(merchantContext: unknown, categoryId: string): AsyncResult;
     queryMerchantProducts(filters?: { categoryId?: string }): AsyncResult;
     upsertMerchantProduct(merchantContext: unknown, productId: string, payload: unknown): AsyncResult;
+    deleteMerchantProduct(merchantContext: unknown, productId: string): AsyncResult;
   };
   runtimeConfigService: {
     parseSectionKeys(input?: string | string[]): string[] | undefined;
@@ -111,6 +125,7 @@ export function createApiRouteDependencies(
     }),
     paymentProvider,
     identityService,
+    customerAccountService: overrides.customerAccountService ?? createCustomerAccountService(),
     catalogService: overrides.catalogService ?? createCatalogService(),
     runtimeConfigService: overrides.runtimeConfigService ?? createRuntimeConfigService(),
     merchantUserService: overrides.merchantUserService ?? createMerchantUserService(),

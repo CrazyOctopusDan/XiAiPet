@@ -1,7 +1,34 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../app';
-import { authHeader, testConfig } from './test-helpers';
+import { merchantAccountAuthHeader, testConfig } from './test-helpers';
+
+const merchantAccount = {
+  id: 'acct-admin',
+  username: 'admin',
+  passwordHash: 'hidden',
+  role: 'admin' as const,
+  status: 'active' as const,
+  mustChangePassword: false,
+  createdBy: null,
+  lastLoginAt: null,
+  createdAt: new Date('2026-05-13T00:00:00.000Z'),
+  updatedAt: new Date('2026-05-13T00:00:00.000Z')
+};
+
+function merchantAccountService(overrides: Partial<typeof merchantAccount> = {}) {
+  const account = { ...merchantAccount, ...overrides };
+  return {
+    bootstrapInitialAdmin: async () => ({ ok: true }),
+    login: async () => ({ ok: true as const, account }),
+    getActiveAccount: async () => account,
+    changePassword: async () => ({ ok: true as const, account }),
+    listAccounts: async () => ({ ok: true, accounts: [] }),
+    createStaffAccount: async () => ({ ok: true }),
+    disableStaffAccount: async () => ({ ok: true }),
+    resetStaffPassword: async () => ({ ok: true })
+  };
+}
 
 describe('merchant order routes', () => {
   it('rejects before merchant order service when access is denied', async () => {
@@ -9,11 +36,7 @@ describe('merchant order routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: {
-          bootstrapUser: async () => ({ ok: true }),
-          bindPhone: async () => ({ ok: true }),
-          assertMerchantAccess: async () => ({ ok: true, status: 'denied', allowed: false, reason: 'denied' })
-        },
+        merchantAccountService: merchantAccountService({ mustChangePassword: true }),
         orderService: {
           createCustomerOrder: async () => ({ ok: true }),
           startCustomerPayment: async () => ({ ok: true }),
@@ -28,7 +51,11 @@ describe('merchant order routes', () => {
       }
     });
 
-    const response = await app.inject({ method: 'GET', url: '/api/v1/merchant/orders', headers: authHeader('openid-1', 'merchant') });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/merchant/orders',
+      headers: merchantAccountAuthHeader({ accountId: 'acct-admin', mustChangePassword: true })
+    });
     expect(response.statusCode).toBe(403);
     expect(queryMerchantOrders).not.toHaveBeenCalled();
   });
@@ -48,18 +75,15 @@ describe('merchant order routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: {
-          bootstrapUser: async () => ({ ok: true }),
-          bindPhone: async () => ({ ok: true }),
-          assertMerchantAccess: async () => ({ ok: true, status: 'allowed', allowed: true, merchant: { merchantId: 'm1', storeName: 'store' } })
-        },
+        merchantAccountService: merchantAccountService(),
         orderService
       }
     });
 
-    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders', headers: authHeader('m', 'merchant') })).statusCode).toBe(200);
-    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders/order-1', headers: authHeader('m', 'merchant') })).statusCode).toBe(200);
-    expect((await app.inject({ method: 'PATCH', url: '/api/v1/merchant/orders/order-1/status', headers: authHeader('m', 'merchant'), payload: { status: 'paid' } })).statusCode).toBe(200);
+    const headers = merchantAccountAuthHeader({ accountId: 'acct-admin' });
+    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders', headers })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders/order-1', headers })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'PATCH', url: '/api/v1/merchant/orders/order-1/status', headers, payload: { status: 'paid' } })).statusCode).toBe(200);
     expect(orderService.queryMerchantOrders).toHaveBeenCalled();
     expect(orderService.getMerchantOrderDetail).toHaveBeenCalled();
     expect(orderService.updateMerchantOrderStatus).toHaveBeenCalled();

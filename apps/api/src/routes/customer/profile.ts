@@ -8,7 +8,15 @@ export async function customerProfileRoutes(
 ) {
   const { dependencies } = options;
 
+  app.get('/profile', { preHandler: dependencies.guards.requireCustomerSession }, async (request) => {
+    return dependencies.identityService.getProfile(request.auth?.openid ?? '');
+  });
+
   app.post('/profile/phone', { preHandler: dependencies.guards.requireCustomerSession }, async (request) => {
     return dependencies.identityService.bindPhone(request.auth?.openid ?? '', request.body);
+  });
+
+  app.put('/profile', { preHandler: dependencies.guards.requireCustomerSession }, async (request) => {
+    return dependencies.identityService.updateProfile(request.auth?.openid ?? '', request.body);
   });
 }

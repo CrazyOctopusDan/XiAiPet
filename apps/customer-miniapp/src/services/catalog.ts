@@ -20,12 +20,12 @@ type CatalogApiRequester = <T>(path: string, options?: CustomerApiRequestOptions
 
 interface CatalogCategoriesResponse {
   ok?: boolean;
-  categories?: CatalogCategory[];
+  categories?: unknown[];
 }
 
 interface CatalogProductsResponse {
   ok?: boolean;
-  products?: CatalogProduct[];
+  products?: unknown[];
 }
 
 let cachedCatalogCategories = cloneCategories(catalogCategories);
@@ -116,6 +116,154 @@ export function getProductSelectedSpecLabel(product: CatalogProduct, specId: str
   return resolveProductSpec(product, specId)?.label ?? '';
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function asString(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  return fallback;
+}
+
+function isDeliveryMode(value: unknown): value is DeliveryMode {
+  return value === 'pickup' || value === 'delivery' || value === 'express';
+}
+
+function getArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeCategory(category: unknown): CatalogCategory | null {
+  if (!isObject(category)) {
+    return null;
+  }
+
+  const id = asString(category.id, asString(category._id));
+  const name = asString(category.name);
+
+  if (!id || !name) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    shortName: asString(category.shortName, name),
+    iconText: asString(category.iconText, asString(category.iconToken, name.slice(0, 1))),
+    sectionTitle: asString(category.sectionTitle, name)
+  };
+}
+
+function isAssetReference(value: unknown): value is OssAssetReference {
+  return (
+    isObject(value) &&
+    value.provider === 'oss' &&
+    typeof value.url === 'string' &&
+    Array.isArray(value.variants)
+  );
+}
+
+function getVariantUrl(asset: OssAssetReference | undefined, variantName: OssAssetVariantName) {
+  if (!asset) {
+    return undefined;
+  }
+
+  return asset.variants.find((variant) => variant.name === variantName)?.url ?? asset.url;
+}
+
+function normalizeAssetArray(value: unknown): OssAssetReference[] | undefined {
+  const assets = getArray(value).filter(isAssetReference);
+  return assets.length ? assets : undefined;
+}
+
+function normalizeDeliveryModes(product: Record<string, unknown>) {
+  const source = getArray(product.deliveryModes).length ? product.deliveryModes : product.fulfillmentModes;
+  const modes = getArray(source).filter(isDeliveryMode);
+  return modes.length ? modes : (['pickup', 'delivery', 'express'] satisfies DeliveryMode[]);
+}
+
+function normalizeProductSpecs(product: Record<string, unknown>, basePrice: number): ProductSpecOption[] {
+  return getArray(product.specs)
+    .filter(isObject)
+    .map((spec) => {
+      const price = asNumber(spec.price, basePrice + asNumber(spec.surcharge));
+      return {
+        id: asString(spec.id),
+        label: asString(spec.label),
+        price
+      };
+    })
+    .filter((spec) => spec.id && spec.label);
+}
+
+function normalizeProduct(product: unknown): CatalogProduct | null {
+  if (!isObject(product)) {
+    return null;
+  }
+
+  const id = asString(product.id, asString(product._id));
+  const name = asString(product.name);
+  const categoryId = asString(product.categoryId);
+
+  if (!id || !name || !categoryId) {
+    return null;
+  }
+
+  const imageAsset = isAssetReference(product.imageAsset) ? product.imageAsset : undefined;
+  const introductionImageAssets = normalizeAssetArray(product.introductionImageAssets);
+  const detailImageAssets = normalizeAssetArray(product.detailImageAssets);
+  const price = asNumber(product.price, asNumber(product.basePrice));
+  const specs = normalizeProductSpecs(product, price);
+  const thumbnail =
+    getVariantUrl(imageAsset, 'thumbnail') ??
+    asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId)));
+
+  return {
+    id,
+    name,
+    summary: asString(product.summary, asString(product.description)),
+    description: asString(product.detailContent, asString(product.description, asString(product.summary))),
+    price,
+    stock: asNumber(product.stock),
+    soldOut:
+      typeof product.soldOut === 'boolean'
+        ? product.soldOut
+        : Boolean(product.trackInventory) && asNumber(product.stock) <= 0,
+    cartActionLabel:
+      product.cartActionLabel === '直接加购' || product.cartActionLabel === '选规格'
+        ? product.cartActionLabel
+        : specs.length
+          ? '选规格'
+          : '直接加购',
+    memberLevelLabel: asString(product.memberLevelLabel, product.memberLevelId ? '会员可购' : '普通会员可购'),
+    categoryId,
+    deliveryModes: normalizeDeliveryModes(product),
+    thumbnail,
+    imageAsset,
+    gallery: introductionImageAssets?.length
+      ? introductionImageAssets.map((asset) => getVariantUrl(asset, 'display') ?? asset.url)
+      : getArray(product.gallery).filter((item): item is string => typeof item === 'string'),
+    introductionImageAssets,
+    detailImages: detailImageAssets?.length
+      ? detailImageAssets.map((asset) => getVariantUrl(asset, 'detail') ?? asset.url)
+      : getArray(product.detailImages).filter((item): item is string => typeof item === 'string'),
+    detailImageAssets,
+    specs
+  };
+}
+
 function cloneCategories(categories: CatalogCategory[]): CatalogCategory[] {
   return categories.map((category) => ({ ...category }));
 }
@@ -133,21 +281,13 @@ function cloneProducts(products: CatalogProduct[]): CatalogProduct[] {
   });
 }
 
-function getAssetUrl(asset: OssAssetReference | undefined, variantName: OssAssetVariantName) {
-  if (!asset) {
-    return undefined;
-  }
-
-  return asset.variants.find((variant) => variant.name === variantName)?.url ?? asset.url;
-}
-
 export function resolveCatalogProductAssetUrls(product: CatalogProduct): CatalogProduct {
-  const thumbnail = getAssetUrl(product.imageAsset, 'thumbnail') ?? product.imageAsset?.url ?? product.thumbnail;
+  const thumbnail = getVariantUrl(product.imageAsset, 'thumbnail') ?? product.imageAsset?.url ?? product.thumbnail;
   const gallery = product.introductionImageAssets?.length
-    ? product.introductionImageAssets.map((asset) => getAssetUrl(asset, 'display') ?? asset.url)
+    ? product.introductionImageAssets.map((asset) => getVariantUrl(asset, 'display') ?? asset.url)
     : product.gallery;
   const detailImages = product.detailImageAssets?.length
-    ? product.detailImageAssets.map((asset) => getAssetUrl(asset, 'detail') ?? asset.url)
+    ? product.detailImageAssets.map((asset) => getVariantUrl(asset, 'detail') ?? asset.url)
     : product.detailImages;
 
   return {
@@ -176,10 +316,10 @@ export async function hydrateCatalog(request: CatalogApiRequester = customerApiR
   ]);
 
   if (Array.isArray(categoriesResponse.categories)) {
-    cachedCatalogCategories = cloneCategories(categoriesResponse.categories);
+    cachedCatalogCategories = cloneCategories(categoriesResponse.categories.map(normalizeCategory).filter(Boolean) as CatalogCategory[]);
   }
   if (Array.isArray(productsResponse.products)) {
-    cachedCatalogProducts = cloneProducts(productsResponse.products);
+    cachedCatalogProducts = cloneProducts(productsResponse.products.map(normalizeProduct).filter(Boolean) as CatalogProduct[]);
   }
 
   return {

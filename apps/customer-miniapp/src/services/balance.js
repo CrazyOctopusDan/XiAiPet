@@ -1,9 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.resetBalance = resetBalance;
 exports.getBalanceRecords = getBalanceRecords;
+exports.hydrateBalance = hydrateBalance;
 exports.getMonthlyBalanceGroups = getMonthlyBalanceGroups;
 exports.getBalanceOverview = getBalanceOverview;
-const records = [
+const api_client_1 = require("./api-client");
+const initialRecords = [
     {
         id: 'balance-2026-04-1',
         title: '后台人工调整',
@@ -63,6 +66,12 @@ const records = [
         amount: 300
     }
 ];
+let records = initialRecords.map((item) => ({ ...item }));
+let remoteOverview = null;
+function resetBalance() {
+    records = initialRecords.map((item) => ({ ...item }));
+    remoteOverview = null;
+}
 function compareDescending(left, right) {
     return right.date.localeCompare(left.date);
 }
@@ -87,6 +96,27 @@ function getBalanceRecords() {
         .sort(compareDescending)
         .map((item) => ({ ...item }));
 }
+async function hydrateBalance(request = api_client_1.customerApiRequest) {
+    var _a, _b;
+    const response = await request('/api/v1/customer/balance', {
+        method: 'GET',
+        auth: 'customer'
+    });
+    records = ((_a = response.records) !== null && _a !== void 0 ? _a : []).map((item) => ({
+        id: item.id,
+        title: item.rawTitle,
+        normalizedTitle: item.title,
+        shortNote: item.note,
+        date: item.date,
+        type: item.type,
+        amount: item.amount
+    }));
+    remoteOverview = (_b = response.overview) !== null && _b !== void 0 ? _b : null;
+    return {
+        overview: getBalanceOverview(),
+        groups: getMonthlyBalanceGroups()
+    };
+}
 function getMonthlyBalanceGroups() {
     const groupMap = new Map();
     getBalanceRecords().forEach((record) => {
@@ -107,6 +137,9 @@ function getMonthlyBalanceGroups() {
     }));
 }
 function getBalanceOverview() {
+    if (remoteOverview) {
+        return { ...remoteOverview };
+    }
     const allRecords = getBalanceRecords();
     const totalIncome = allRecords
         .filter((item) => item.type === 'income')

@@ -76,7 +76,7 @@ Page({
             }
         });
     },
-    handleSubmit() {
+    async handleSubmit() {
         const recipientName = this.data.form.recipientName.trim();
         const phoneNumber = this.data.form.phoneNumber.trim();
         const regionLabel = this.data.form.regionLabel.trim();
@@ -86,24 +86,30 @@ Page({
             wx.showToast({ title: '请补齐地址信息', icon: 'none' });
             return;
         }
-        if (this.data.mode === 'edit' && this.data.form.id) {
-            (0, address_1.updateAddress)(this.data.form.id, {
-                recipientName,
-                phoneNumber,
-                regionLabel,
-                detailAddress,
-                tag
-            });
+        try {
+            if (this.data.mode === 'edit' && this.data.form.id) {
+                await (0, address_1.updateAddressRemote)(this.data.form.id, {
+                    recipientName,
+                    phoneNumber,
+                    regionLabel,
+                    detailAddress,
+                    tag
+                });
+            }
+            else {
+                await (0, address_1.createAddressRemote)({
+                    type: this.data.form.type,
+                    recipientName,
+                    phoneNumber,
+                    regionLabel,
+                    detailAddress,
+                    tag
+                });
+            }
         }
-        else {
-            (0, address_1.createAddress)({
-                type: this.data.form.type,
-                recipientName,
-                phoneNumber,
-                regionLabel,
-                detailAddress,
-                tag
-            });
+        catch (_a) {
+            wx.showToast({ title: '地址保存失败', icon: 'none' });
+            return;
         }
         wx.showToast({ title: this.data.mode === 'edit' ? '地址已更新' : '地址已新增', icon: 'none' });
         wx.navigateBack();

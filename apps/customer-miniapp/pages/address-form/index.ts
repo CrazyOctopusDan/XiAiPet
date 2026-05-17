@@ -2,9 +2,9 @@ declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
 import {
-  createAddress,
+  createAddressRemote,
   getAddressById,
-  updateAddress,
+  updateAddressRemote,
   type AddressType
 } from '../../src/services/address';
 
@@ -101,7 +101,7 @@ Page({
       }
     });
   },
-  handleSubmit(this: AddressFormPageInstance) {
+  async handleSubmit(this: AddressFormPageInstance) {
     const recipientName = this.data.form.recipientName.trim();
     const phoneNumber = this.data.form.phoneNumber.trim();
     const regionLabel = this.data.form.regionLabel.trim();
@@ -113,23 +113,28 @@ Page({
       return;
     }
 
-    if (this.data.mode === 'edit' && this.data.form.id) {
-      updateAddress(this.data.form.id, {
-        recipientName,
-        phoneNumber,
-        regionLabel,
-        detailAddress,
-        tag
-      });
-    } else {
-      createAddress({
-        type: this.data.form.type,
-        recipientName,
-        phoneNumber,
-        regionLabel,
-        detailAddress,
-        tag
-      });
+    try {
+      if (this.data.mode === 'edit' && this.data.form.id) {
+        await updateAddressRemote(this.data.form.id, {
+          recipientName,
+          phoneNumber,
+          regionLabel,
+          detailAddress,
+          tag
+        });
+      } else {
+        await createAddressRemote({
+          type: this.data.form.type,
+          recipientName,
+          phoneNumber,
+          regionLabel,
+          detailAddress,
+          tag
+        });
+      }
+    } catch {
+      wx.showToast({ title: '地址保存失败', icon: 'none' });
+      return;
     }
 
     wx.showToast({ title: this.data.mode === 'edit' ? '地址已更新' : '地址已新增', icon: 'none' });

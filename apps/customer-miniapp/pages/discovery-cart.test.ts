@@ -19,6 +19,17 @@ async function loadPageModule(modulePath: string) {
     getWindowInfo: () => ({ statusBarHeight: 20 }),
     getSystemInfoSync: () => ({ statusBarHeight: 20 }),
     getMenuButtonBoundingClientRect: () => null,
+    createSelectorQuery: () => {
+      const query = {
+        select: vi.fn(() => query),
+        selectAll: vi.fn(() => query),
+        boundingClientRect: vi.fn(() => query),
+        exec: vi.fn((callback?: (result: unknown[]) => void) => {
+          callback?.([{ top: 0 }, []]);
+        })
+      };
+      return query;
+    },
     showToast: vi.fn(),
     navigateTo: vi.fn(),
     navigateBack: vi.fn(),
@@ -95,6 +106,135 @@ describe('discovery cart pages', () => {
     expect(catalogStyles).toContain('align-items: center');
     expect(catalogStyles).toContain('padding: calc(96rpx + env(safe-area-inset-top)) 24rpx calc(96rpx + env(safe-area-inset-bottom))');
     expect(catalogStyles).toContain('.quick-buy-submit::after');
+  });
+
+  it('hydrates the catalog page with merchant-configured customer categories on load', async () => {
+    const apiRequest = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/catalog/categories') {
+        return {
+          ok: true,
+          categories: [
+            {
+              id: 'merchant-seasonal',
+              name: '节日限定',
+              iconToken: '节',
+              sortOrder: 0,
+              createdAt: '2026-05-16T00:00:00.000Z',
+              updatedAt: '2026-05-16T00:00:00.000Z'
+            }
+          ]
+        };
+      }
+
+      if (path === '/api/v1/customer/catalog/products') {
+        return {
+          ok: true,
+          products: [
+            {
+              id: 'merchant-seasonal-cake',
+              name: '南瓜小蛋糕',
+              description: '商户配置商品',
+              detailContent: '适合节日加餐',
+              categoryId: 'merchant-seasonal',
+              imageFileId: '/assets/catalog/product-card-reference.png',
+              imagePreviewUrl: '/assets/catalog/product-card-reference.png',
+              memberLevelId: null,
+              status: 'published',
+              stock: 8,
+              trackInventory: true,
+              fulfillmentModes: ['delivery'],
+              basePrice: 98,
+              specs: [],
+              formulas: [],
+              priceOverrides: [],
+              purchaseLimit: { enabled: false, maxQuantity: null },
+              gallery: [],
+              detailImages: [],
+              createdAt: '2026-05-16T00:00:00.000Z',
+              updatedAt: '2026-05-16T00:00:00.000Z'
+            }
+          ]
+        };
+      }
+
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    vi.doMock('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/src/services/api-client.ts', () => ({
+      customerApiRequest: apiRequest
+    }));
+
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.ts');
+    const instance = createPageInstance(page);
+
+    await instance.onLoad();
+
+    expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/catalog/categories', {
+      method: 'GET',
+      auth: 'none'
+    });
+    expect(instance.data.categories).toEqual([
+      expect.objectContaining({
+        id: 'merchant-seasonal',
+        name: '节日限定',
+        shortName: '节日限定',
+        iconText: '节'
+      })
+    ]);
+    expect(instance.data.sections[0]?.category.id).toBe('merchant-seasonal');
+    expect(instance.data.sections[0]?.availableProducts[0]?.name).toBe('南瓜小蛋糕');
+  });
+
+  it('rebuilds hydrated catalog sections when returning from product detail', async () => {
+    const apiRequest = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/catalog/categories') {
+        return {
+          ok: true,
+          categories: [
+            {
+              id: 'merchant-seasonal',
+              name: '节日限定',
+              iconToken: '节'
+            }
+          ]
+        };
+      }
+
+      if (path === '/api/v1/customer/catalog/products') {
+        return {
+          ok: true,
+          products: [
+            {
+              id: 'merchant-seasonal-cake',
+              name: '南瓜小蛋糕',
+              description: '商户配置商品',
+              categoryId: 'merchant-seasonal',
+              imageFileId: '/assets/catalog/product-card-reference.png',
+              stock: 8,
+              trackInventory: true,
+              fulfillmentModes: ['delivery'],
+              basePrice: 98,
+              specs: []
+            }
+          ]
+        };
+      }
+
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    vi.doMock('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/src/services/api-client.ts', () => ({
+      customerApiRequest: apiRequest
+    }));
+
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.ts');
+    const instance = createPageInstance(page);
+
+    await instance.onLoad();
+    instance.setData({ sections: [] });
+    instance.onShow();
+
+    expect(instance.data.sections[0]?.availableProducts[0]?.id).toBe('merchant-seasonal-cake');
   });
 
   it('keeps the product detail page aligned with the refreshed warm commerce layout', async () => {

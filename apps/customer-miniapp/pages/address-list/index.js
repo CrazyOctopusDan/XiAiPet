@@ -23,17 +23,27 @@ Page({
         });
     },
     onShow() {
-        this.refreshAddresses();
+        void this.refreshAddresses();
     },
-    refreshAddresses() {
-        var _a;
-        const selectedAddress = (0, address_1.getSelectedAddress)(this.data.activeType);
-        const request = (0, address_1.getAddressSelectionRequest)();
-        this.setData({
-            addresses: (0, address_1.getAddresses)(this.data.activeType),
-            selectedAddressId: (_a = selectedAddress === null || selectedAddress === void 0 ? void 0 : selectedAddress.id) !== null && _a !== void 0 ? _a : '',
-            isCheckoutSelection: (request === null || request === void 0 ? void 0 : request.target) === 'checkout'
-        });
+    async refreshAddresses() {
+        const render = () => {
+            var _a;
+            const selectedAddress = (0, address_1.getSelectedAddress)(this.data.activeType);
+            const request = (0, address_1.getAddressSelectionRequest)();
+            this.setData({
+                addresses: (0, address_1.getAddresses)(this.data.activeType),
+                selectedAddressId: (_a = selectedAddress === null || selectedAddress === void 0 ? void 0 : selectedAddress.id) !== null && _a !== void 0 ? _a : '',
+                isCheckoutSelection: (request === null || request === void 0 ? void 0 : request.target) === 'checkout'
+            });
+        };
+        render();
+        try {
+            await (0, address_1.hydrateAddresses)();
+        }
+        catch (_a) {
+            // Keep the last local address snapshot visible if the network is unavailable.
+        }
+        render();
     },
     handleTypeTap(event) {
         var _a, _b;
@@ -43,7 +53,7 @@ Page({
         }
         (0, address_1.setCheckoutAddressType)(type);
         this.setData({ activeType: type });
-        this.refreshAddresses();
+        void this.refreshAddresses();
     },
     handleAddAddress() {
         wx.navigateTo({
@@ -60,7 +70,7 @@ Page({
             url: `/pages/address-form/index?id=${addressId}`
         });
     },
-    handleSelectAddress(event) {
+    async handleSelectAddress(event) {
         var _a, _b;
         const addressId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.addressId;
         if (!addressId) {
@@ -68,12 +78,20 @@ Page({
         }
         const selected = (0, address_1.selectAddress)(addressId);
         (0, address_1.setCheckoutAddressType)(selected.type);
+        try {
+            await (0, address_1.persistSelectedAddress)(addressId);
+        }
+        catch (_c) {
+            wx.showToast({ title: '默认地址同步失败', icon: 'none' });
+            this.refreshAddresses();
+            return;
+        }
         if (this.data.isCheckoutSelection) {
             (0, address_1.clearAddressSelectionRequest)();
             wx.navigateBack();
             return;
         }
-        this.refreshAddresses();
+        void this.refreshAddresses();
         wx.showToast({ title: '默认地址已更新', icon: 'none' });
     }
 });

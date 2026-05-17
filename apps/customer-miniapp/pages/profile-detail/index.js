@@ -53,7 +53,7 @@ Page({
             }
         });
     },
-    handleSave() {
+    async handleSave() {
         const birthday = this.data.profile.birthday.trim();
         (0, profile_1.updateProfile)({
             nickname: this.data.profile.nickname.trim() || '虾衣宠家长',
@@ -67,8 +67,22 @@ Page({
                 return;
             }
         }
+        const nextProfile = (0, profile_1.getProfile)();
         this.refreshProfile();
-        wx.showToast({ title: '资料已更新', icon: 'none' });
+        try {
+            await (0, profile_1.saveProfile)({
+                nickname: nextProfile.nickname,
+                gender: nextProfile.gender,
+                birthday: nextProfile.birthday,
+                birthdayLocked: nextProfile.birthdayLocked,
+                contactPhoneMasked: nextProfile.contactPhoneMasked
+            });
+            wx.showToast({ title: '资料已同步', icon: 'none' });
+        }
+        catch (_a) {
+            wx.showToast({ title: '资料已保存本地，稍后同步', icon: 'none' });
+        }
+        this.refreshProfile();
     },
     handleContactTap() {
         wx.navigateTo({

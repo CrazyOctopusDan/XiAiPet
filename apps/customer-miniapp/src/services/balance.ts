@@ -1,5 +1,7 @@
 export type BalanceRecordType = 'income' | 'expense';
 
+import { customerApiRequest, type CustomerApiRequestOptions } from './api-client';
+
 export interface BalanceRecord {
   id: string;
   title: string;
@@ -28,7 +30,21 @@ interface BalanceLedgerFixture {
   amount: number;
 }
 
-const records: BalanceLedgerFixture[] = [
+type BalanceApiRequester = <T>(path: string, options?: CustomerApiRequestOptions) => Promise<T>;
+
+interface BalanceOverview {
+  currentBalance: number;
+  totalIncome: number;
+  totalExpense: number;
+}
+
+interface BalanceResponse {
+  ok?: boolean;
+  overview?: BalanceOverview;
+  records?: BalanceRecord[];
+}
+
+const initialRecords: BalanceLedgerFixture[] = [
   {
     id: 'balance-2026-04-1',
     title: '后台人工调整',
@@ -89,6 +105,14 @@ const records: BalanceLedgerFixture[] = [
   }
 ];
 
+let records: BalanceLedgerFixture[] = initialRecords.map((item) => ({ ...item }));
+let remoteOverview: BalanceOverview | null = null;
+
+export function resetBalance() {
+  records = initialRecords.map((item) => ({ ...item }));
+  remoteOverview = null;
+}
+
 function compareDescending(left: BalanceRecord, right: BalanceRecord) {
   return right.date.localeCompare(left.date);
 }
@@ -113,6 +137,27 @@ export function getBalanceRecords() {
     .map((item) => ({ ...item }));
 }
 
+export async function hydrateBalance(request: BalanceApiRequester = customerApiRequest) {
+  const response = await request<BalanceResponse>('/api/v1/customer/balance', {
+    method: 'GET',
+    auth: 'customer'
+  });
+  records = (response.records ?? []).map((item) => ({
+    id: item.id,
+    title: item.rawTitle,
+    normalizedTitle: item.title,
+    shortNote: item.note,
+    date: item.date,
+    type: item.type,
+    amount: item.amount
+  }));
+  remoteOverview = response.overview ?? null;
+  return {
+    overview: getBalanceOverview(),
+    groups: getMonthlyBalanceGroups()
+  };
+}
+
 export function getMonthlyBalanceGroups(): MonthlyBalanceGroup[] {
   const groupMap = new Map<string, BalanceRecord[]>();
 
@@ -135,6 +180,10 @@ export function getMonthlyBalanceGroups(): MonthlyBalanceGroup[] {
 }
 
 export function getBalanceOverview() {
+  if (remoteOverview) {
+    return { ...remoteOverview };
+  }
+
   const allRecords = getBalanceRecords();
   const totalIncome = allRecords
     .filter((item) => item.type === 'income')

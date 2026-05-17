@@ -185,20 +185,102 @@ describe('auth and identity routes', () => {
     expect(bindPhone).toHaveBeenCalledWith('phone-openid', expect.any(Object));
   });
 
-  it('returns merchant allowed and rejects merchant routes before sensitive service call', async () => {
-    const queryMerchantOrders = vi.fn(async () => ({ ok: true, orders: [] }));
-    const allowedApp = buildApp({
+  it('updates customer profile through customer session openid', async () => {
+    const updateProfile = vi.fn(async (openid: string, payload: unknown) => ({
+      ok: true,
+      openid,
+      profile: payload
+    }));
+    const app = buildApp({
       config: testConfig,
       dependencies: {
         identityService: {
           bootstrapUser: async () => ({ ok: true }),
           bindPhone: async () => ({ ok: true }),
-          assertMerchantAccess: async () => ({
-            ok: true,
-            status: 'allowed',
-            allowed: true,
-            merchant: { merchantId: 'm1', storeName: 'store' }
-          })
+          updateProfile,
+          assertMerchantAccess: async () => ({ ok: true, status: 'denied', allowed: false })
+        }
+      }
+    });
+
+    const payload = {
+      profile: {
+        nickname: 'Lucky 家长',
+        gender: 'female',
+        birthday: '2024-05-09',
+        birthdayLocked: true
+      }
+    };
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/customer/profile',
+      headers: authHeader('profile-openid'),
+      payload
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(updateProfile).toHaveBeenCalledWith('profile-openid', payload);
+  });
+
+  it('reads customer profile through customer session openid', async () => {
+    const getProfile = vi.fn(async (openid: string) => ({
+      ok: true,
+      openid,
+      profile: {
+        nickname: 'Lucky 家长',
+        balance: 180
+      }
+    }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        identityService: {
+          bootstrapUser: async () => ({ ok: true }),
+          getProfile,
+          bindPhone: async () => ({ ok: true }),
+          updateProfile: async () => ({ ok: true }),
+          assertMerchantAccess: async () => ({ ok: true, status: 'denied', allowed: false })
+        }
+      }
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/customer/profile',
+      headers: authHeader('profile-openid')
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(getProfile).toHaveBeenCalledWith('profile-openid');
+    expect(response.json()).toMatchObject({ profile: { nickname: 'Lucky 家长', balance: 180 } });
+  });
+
+  it('returns merchant allowed and rejects merchant routes before sensitive service call', async () => {
+    const queryMerchantOrders = vi.fn(async () => ({ ok: true, orders: [] }));
+    const merchantAccount = {
+      id: 'acct-admin',
+      username: 'admin',
+      passwordHash: 'hidden',
+      role: 'admin' as const,
+      status: 'active' as const,
+      mustChangePassword: false,
+      createdBy: null,
+      lastLoginAt: null,
+      createdAt: new Date('2026-05-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-13T00:00:00.000Z')
+    };
+    const allowedApp = buildApp({
+      config: testConfig,
+      dependencies: {
+        merchantAccountService: {
+          bootstrapInitialAdmin: async () => ({ ok: true }),
+          login: async () => ({ ok: true, account: merchantAccount }),
+          getActiveAccount: async () => merchantAccount,
+          changePassword: async () => ({ ok: true, account: merchantAccount }),
+          listAccounts: async () => ({ ok: true, accounts: [] }),
+          createStaffAccount: async () => ({ ok: true }),
+          disableStaffAccount: async () => ({ ok: true }),
+          resetStaffPassword: async () => ({ ok: true })
         },
         orderService: {
           createCustomerOrder: async () => ({ ok: true }),
@@ -216,7 +298,7 @@ describe('auth and identity routes', () => {
     const accessResponse = await allowedApp.inject({
       method: 'GET',
       url: '/api/v1/merchant/access',
-      headers: authHeader('merchant-openid', 'merchant')
+      headers: merchantAccountAuthHeader({ accountId: 'acct-admin' })
     });
     expect(accessResponse.json()).toMatchObject({ ok: true, status: 'allowed', allowed: true });
 
@@ -246,23 +328,35 @@ describe('auth and identity routes', () => {
       url: '/api/v1/merchant/orders',
       headers: authHeader('not-merchant', 'merchant')
     });
-    expect(deniedResponse.statusCode).toBe(403);
+    expect(deniedResponse.statusCode).toBe(401);
     expect(queryMerchantOrders).not.toHaveBeenCalled();
   });
 
   it('rejects customer tokens on merchant routes and merchant tokens on customer routes', async () => {
+    const account = {
+      id: 'acct-admin',
+      username: 'admin',
+      passwordHash: 'hidden',
+      role: 'admin' as const,
+      status: 'active' as const,
+      mustChangePassword: false,
+      createdBy: null,
+      lastLoginAt: null,
+      createdAt: new Date('2026-05-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-13T00:00:00.000Z')
+    };
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: {
-          bootstrapUser: async () => ({ ok: true }),
-          bindPhone: async () => ({ ok: true }),
-          assertMerchantAccess: async () => ({
-            ok: true,
-            status: 'allowed',
-            allowed: true,
-            merchant: { merchantId: 'm1', storeName: 'store' }
-          })
+        merchantAccountService: {
+          bootstrapInitialAdmin: async () => ({ ok: true }),
+          login: async () => ({ ok: true, account }),
+          getActiveAccount: async () => account,
+          changePassword: async () => ({ ok: true, account }),
+          listAccounts: async () => ({ ok: true, accounts: [] }),
+          createStaffAccount: async () => ({ ok: true }),
+          disableStaffAccount: async () => ({ ok: true }),
+          resetStaffPassword: async () => ({ ok: true })
         }
       }
     });

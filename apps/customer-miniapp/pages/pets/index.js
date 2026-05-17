@@ -6,9 +6,18 @@ Page({
         pets: []
     },
     onShow() {
-        this.refreshPets();
+        void this.refreshPets();
     },
-    refreshPets() {
+    async refreshPets() {
+        this.setData({
+            pets: (0, pets_1.getPets)()
+        });
+        try {
+            await (0, pets_1.hydratePets)();
+        }
+        catch (_a) {
+            // Keep the latest local snapshot visible if the network is unavailable.
+        }
         this.setData({
             pets: (0, pets_1.getPets)()
         });

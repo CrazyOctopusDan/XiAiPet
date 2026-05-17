@@ -1,7 +1,34 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../app';
-import { authHeader, testConfig } from './test-helpers';
+import { merchantAccountAuthHeader, testConfig } from './test-helpers';
+
+const merchantAccount = {
+  id: 'acct-admin',
+  username: 'admin',
+  passwordHash: 'hidden',
+  role: 'admin' as const,
+  status: 'active' as const,
+  mustChangePassword: false,
+  createdBy: null,
+  lastLoginAt: null,
+  createdAt: new Date('2026-05-13T00:00:00.000Z'),
+  updatedAt: new Date('2026-05-13T00:00:00.000Z')
+};
+
+function merchantAccountService(overrides: Partial<typeof merchantAccount> = {}) {
+  const account = { ...merchantAccount, ...overrides };
+  return {
+    bootstrapInitialAdmin: async () => ({ ok: true }),
+    login: async () => ({ ok: true as const, account }),
+    getActiveAccount: async () => account,
+    changePassword: async () => ({ ok: true as const, account }),
+    listAccounts: async () => ({ ok: true, accounts: [] }),
+    createStaffAccount: async () => ({ ok: true }),
+    disableStaffAccount: async () => ({ ok: true }),
+    resetStaffPassword: async () => ({ ok: true })
+  };
+}
 
 describe('merchant printing routes', () => {
   it('routes prepare and result calls for allowed merchants', async () => {
@@ -12,16 +39,12 @@ describe('merchant printing routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: {
-          bootstrapUser: async () => ({ ok: true }),
-          bindPhone: async () => ({ ok: true }),
-          assertMerchantAccess: async () => ({ ok: true, status: 'allowed', allowed: true, merchant: { merchantId: 'm1', storeName: 'store' } })
-        },
+        merchantAccountService: merchantAccountService(),
         printingService
       }
     });
 
-    const headers = authHeader('merchant', 'merchant');
+    const headers = merchantAccountAuthHeader({ accountId: 'acct-admin' });
     expect((await app.inject({ method: 'POST', url: '/api/v1/merchant/orders/order-1/receipt-print/prepare', headers, payload: {} })).statusCode).toBe(200);
     expect((await app.inject({ method: 'POST', url: '/api/v1/merchant/orders/order-1/receipt-print/result', headers, payload: { result: 'success' } })).statusCode).toBe(200);
     expect(printingService.prepareOrderReceiptPrint).toHaveBeenCalled();
@@ -33,11 +56,7 @@ describe('merchant printing routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: {
-          bootstrapUser: async () => ({ ok: true }),
-          bindPhone: async () => ({ ok: true }),
-          assertMerchantAccess: async () => ({ ok: true, status: 'denied', allowed: false })
-        },
+        merchantAccountService: merchantAccountService({ mustChangePassword: true }),
         printingService: {
           prepareOrderReceiptPrint,
           recordOrderReceiptPrintResult: async () => ({ ok: true })
@@ -45,7 +64,12 @@ describe('merchant printing routes', () => {
       }
     });
 
-    const response = await app.inject({ method: 'POST', url: '/api/v1/merchant/orders/order-1/receipt-print/prepare', headers: authHeader('denied', 'merchant'), payload: {} });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/merchant/orders/order-1/receipt-print/prepare',
+      headers: merchantAccountAuthHeader({ accountId: 'acct-admin', mustChangePassword: true }),
+      payload: {}
+    });
     expect(response.statusCode).toBe(403);
     expect(prepareOrderReceiptPrint).not.toHaveBeenCalled();
   });

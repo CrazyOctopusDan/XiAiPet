@@ -67,7 +67,7 @@ Page({
             }
         });
     },
-    handleSubmit() {
+    async handleSubmit() {
         const name = this.data.form.name.trim();
         const birthday = this.data.form.birthday.trim();
         const allergyNotes = this.data.form.allergyNotes.trim();
@@ -75,21 +75,27 @@ Page({
             wx.showToast({ title: '请填写宠物名字', icon: 'none' });
             return;
         }
-        if (this.data.mode === 'edit' && this.data.form.id) {
-            (0, pets_1.updatePet)(this.data.form.id, {
-                name,
-                gender: this.data.form.gender,
-                birthday,
-                allergyNotes
-            });
+        try {
+            if (this.data.mode === 'edit' && this.data.form.id) {
+                await (0, pets_1.updatePetRemote)(this.data.form.id, {
+                    name,
+                    gender: this.data.form.gender,
+                    birthday,
+                    allergyNotes
+                });
+            }
+            else {
+                await (0, pets_1.createPetRemote)({
+                    name,
+                    gender: this.data.form.gender,
+                    birthday,
+                    allergyNotes
+                });
+            }
         }
-        else {
-            (0, pets_1.createPet)({
-                name,
-                gender: this.data.form.gender,
-                birthday,
-                allergyNotes
-            });
+        catch (_a) {
+            wx.showToast({ title: '宠物档案保存失败', icon: 'none' });
+            return;
         }
         wx.showToast({ title: this.data.mode === 'edit' ? '宠物档案已更新' : '宠物档案已新增', icon: 'none' });
         wx.navigateBack();

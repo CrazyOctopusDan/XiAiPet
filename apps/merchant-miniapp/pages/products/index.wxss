@@ -9,7 +9,8 @@
 .summary-card,
 .toolbar-card,
 .product-card,
-.empty-card {
+.empty-card,
+.product-delete-action {
   box-sizing: border-box;
   border: 2rpx solid #F0E2D0;
   background: #FFFDF8;
@@ -30,7 +31,8 @@
 .pill-row,
 .product-card,
 .product-head,
-.product-meta {
+.product-meta,
+.product-delete-action {
   display: flex;
 }
 
@@ -228,13 +230,47 @@
   line-height: 56rpx;
 }
 
-.product-card {
-  padding: 20rpx;
+.product-swipe-row {
+  position: relative;
+  overflow: hidden;
   border-radius: 28rpx;
 }
 
-.product-card + .product-card {
+.product-swipe-row + .product-swipe-row {
   margin-top: 16rpx;
+}
+
+.product-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 20rpx;
+  border-radius: 28rpx;
+  transition: transform 180ms ease;
+}
+
+.product-swipe-row.active .product-card {
+  transform: translateX(-156rpx);
+}
+
+.product-delete-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  align-items: center;
+  justify-content: center;
+  width: 148rpx;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border-color: #F0D4CC;
+  border-radius: 28rpx;
+  background: #B6463A;
+  color: #FFFFFF;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .product-image {
@@ -334,6 +370,7 @@
 }
 
 .primary-button::after,
-.search-button::after {
+.search-button::after,
+.product-delete-action::after {
   border: none;
 }

@@ -3,8 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetProfile = resetProfile;
 exports.getProfile = getProfile;
 exports.updateProfile = updateProfile;
+exports.saveProfile = saveProfile;
+exports.hydrateProfile = hydrateProfile;
 exports.setBirthday = setBirthday;
 exports.getProfileSummary = getProfileSummary;
+const api_client_1 = require("./api-client");
 const initialProfile = {
     avatarText: '虾',
     nickname: '虾衣宠家长',
@@ -29,6 +32,25 @@ function updateProfile(input) {
         ...input
     };
     return getProfile();
+}
+async function saveProfile(input, request = api_client_1.customerApiRequest) {
+    var _a;
+    const response = await request('/api/v1/customer/profile', {
+        method: 'PUT',
+        auth: 'customer',
+        body: {
+            profile: input
+        }
+    });
+    return updateProfile((_a = response.profile) !== null && _a !== void 0 ? _a : input);
+}
+async function hydrateProfile(request = api_client_1.customerApiRequest) {
+    var _a;
+    const response = await request('/api/v1/customer/profile', {
+        method: 'GET',
+        auth: 'customer'
+    });
+    return updateProfile((_a = response.profile) !== null && _a !== void 0 ? _a : {});
 }
 function setBirthday(birthday) {
     if (profile.birthdayLocked) {

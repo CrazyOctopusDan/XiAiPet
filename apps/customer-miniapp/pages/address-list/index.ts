@@ -7,6 +7,8 @@ import {
   getAddresses,
   getCheckoutAddressType,
   getSelectedAddress,
+  hydrateAddresses,
+  persistSelectedAddress,
   selectAddress,
   setCheckoutAddressType,
   type AddressType,
@@ -24,7 +26,7 @@ interface AddressListPageData {
 interface AddressListPageInstance {
   data: AddressListPageData;
   setData(data: Record<string, unknown>): void;
-  refreshAddresses(): void;
+  refreshAddresses(): Promise<void>;
 }
 
 Page({
@@ -49,17 +51,28 @@ Page({
     });
   },
   onShow(this: AddressListPageInstance) {
-    this.refreshAddresses();
+    void this.refreshAddresses();
   },
-  refreshAddresses(this: AddressListPageInstance) {
-    const selectedAddress = getSelectedAddress(this.data.activeType);
-    const request = getAddressSelectionRequest();
+  async refreshAddresses(this: AddressListPageInstance) {
+    const render = () => {
+      const selectedAddress = getSelectedAddress(this.data.activeType);
+      const request = getAddressSelectionRequest();
 
-    this.setData({
-      addresses: getAddresses(this.data.activeType),
-      selectedAddressId: selectedAddress?.id ?? '',
-      isCheckoutSelection: request?.target === 'checkout'
-    });
+      this.setData({
+        addresses: getAddresses(this.data.activeType),
+        selectedAddressId: selectedAddress?.id ?? '',
+        isCheckoutSelection: request?.target === 'checkout'
+      });
+    };
+
+    render();
+
+    try {
+      await hydrateAddresses();
+    } catch {
+      // Keep the last local address snapshot visible if the network is unavailable.
+    }
+    render();
   },
   handleTypeTap(this: AddressListPageInstance, event: { currentTarget?: { dataset?: { type?: AddressType } } }) {
     const type = event.currentTarget?.dataset?.type;
@@ -70,7 +83,7 @@ Page({
 
     setCheckoutAddressType(type);
     this.setData({ activeType: type });
-    this.refreshAddresses();
+    void this.refreshAddresses();
   },
   handleAddAddress(this: AddressListPageInstance) {
     wx.navigateTo({
@@ -88,7 +101,7 @@ Page({
       url: `/pages/address-form/index?id=${addressId}`
     });
   },
-  handleSelectAddress(this: AddressListPageInstance, event: { currentTarget?: { dataset?: { addressId?: string } } }) {
+  async handleSelectAddress(this: AddressListPageInstance, event: { currentTarget?: { dataset?: { addressId?: string } } }) {
     const addressId = event.currentTarget?.dataset?.addressId;
 
     if (!addressId) {
@@ -98,13 +111,21 @@ Page({
     const selected = selectAddress(addressId);
     setCheckoutAddressType(selected.type);
 
+    try {
+      await persistSelectedAddress(addressId);
+    } catch {
+      wx.showToast({ title: '默认地址同步失败', icon: 'none' });
+      this.refreshAddresses();
+      return;
+    }
+
     if (this.data.isCheckoutSelection) {
       clearAddressSelectionRequest();
       wx.navigateBack();
       return;
     }
 
-    this.refreshAddresses();
+    void this.refreshAddresses();
     wx.showToast({ title: '默认地址已更新', icon: 'none' });
   }
 });

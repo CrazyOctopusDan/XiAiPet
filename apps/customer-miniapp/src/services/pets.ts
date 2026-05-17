@@ -1,5 +1,7 @@
 export type PetGender = 'female' | 'male' | 'unknown';
 
+import { customerApiRequest, type CustomerApiRequestOptions } from './api-client';
+
 export interface PetProfile {
   id: string;
   name: string;
@@ -20,6 +22,18 @@ interface UpdatePetInput {
   gender?: PetGender;
   birthday?: string;
   allergyNotes?: string;
+}
+
+type PetApiRequester = <T>(path: string, options?: CustomerApiRequestOptions) => Promise<T>;
+
+interface PetListResponse {
+  ok?: boolean;
+  pets?: PetProfile[];
+}
+
+interface PetMutationResponse {
+  ok?: boolean;
+  pet?: PetProfile;
 }
 
 const initialPets: PetProfile[] = [
@@ -46,6 +60,14 @@ function clonePet(pet: PetProfile) {
   return { ...pet };
 }
 
+function replacePet(pet: PetProfile) {
+  const index = pets.findIndex((item) => item.id === pet.id);
+  pets = index >= 0
+    ? pets.map((item) => (item.id === pet.id ? { ...pet } : item))
+    : [{ ...pet }, ...pets];
+  return clonePet(pet);
+}
+
 export function resetPets() {
   pets = initialPets.map((item) => ({ ...item }));
   nextPetId = 1;
@@ -60,6 +82,15 @@ export function getPetById(petId: string) {
   return pet ? clonePet(pet) : null;
 }
 
+export async function hydratePets(request: PetApiRequester = customerApiRequest) {
+  const response = await request<PetListResponse>('/api/v1/customer/pets', {
+    method: 'GET',
+    auth: 'customer'
+  });
+  pets = (response.pets ?? []).map((item) => ({ ...item }));
+  return getPets();
+}
+
 export function createPet(input: CreatePetInput) {
   const created: PetProfile = {
     id: `pet-${nextPetId++}`,
@@ -68,6 +99,15 @@ export function createPet(input: CreatePetInput) {
 
   pets = [created, ...pets];
   return clonePet(created);
+}
+
+export async function createPetRemote(input: CreatePetInput, request: PetApiRequester = customerApiRequest) {
+  const response = await request<PetMutationResponse>('/api/v1/customer/pets', {
+    method: 'POST',
+    auth: 'customer',
+    body: input
+  });
+  return replacePet(response.pet ?? createPet(input));
 }
 
 export function updatePet(petId: string, updates: UpdatePetInput) {
@@ -85,4 +125,17 @@ export function updatePet(petId: string, updates: UpdatePetInput) {
 
   pets = pets.map((item) => (item.id === petId ? updated : item));
   return clonePet(updated);
+}
+
+export async function updatePetRemote(
+  petId: string,
+  updates: UpdatePetInput,
+  request: PetApiRequester = customerApiRequest
+) {
+  const response = await request<PetMutationResponse>(`/api/v1/customer/pets/${petId}`, {
+    method: 'PUT',
+    auth: 'customer',
+    body: updates
+  });
+  return replacePet(response.pet ?? updatePet(petId, updates));
 }

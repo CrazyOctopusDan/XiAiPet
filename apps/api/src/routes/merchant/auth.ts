@@ -33,6 +33,28 @@ export async function merchantAuthRoutes(
 ) {
   const { dependencies } = options;
 
+  app.get('/access', { preHandler: dependencies.guards.requireMerchantAccountSession }, async (request) => {
+    if (!request.merchant?.merchantUser) {
+      throw new ApiError('UNAUTHORIZED', 'Missing merchant account session', 401);
+    }
+
+    return {
+      ok: true,
+      status: 'allowed',
+      allowed: true,
+      merchant: {
+        merchantId: request.merchant.merchantId,
+        storeName: request.merchant.storeName
+      },
+      account: {
+        id: request.merchant.accountId,
+        username: request.merchant.username,
+        role: request.merchant.role,
+        mustChangePassword: request.merchant.mustChangePassword
+      }
+    };
+  });
+
   app.post('/auth/login', async (request) => {
     const body = request.body as { username?: string; password?: string } | undefined;
     if (!body?.username || !body.password) {

@@ -8,6 +8,7 @@ Page({
         activeCategoryId: '',
         draftKeyword: '',
         keyword: '',
+        swipedProductId: '',
         categoryFilters: [],
         cards: [],
         summary: {
@@ -72,8 +73,60 @@ Page({
     handleEditTap(event) {
         var _a, _b, _c;
         const productId = (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.id) !== null && _c !== void 0 ? _c : '';
+        this.setData({ swipedProductId: '' });
         wx.navigateTo({
             url: `/pages/product-editor/index?productId=${productId}`
+        });
+    },
+    handleProductTouchStart(event) {
+        var _a, _b, _c;
+        this.productTouchStartX = (_c = (_b = (_a = event.touches) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.clientX) !== null && _c !== void 0 ? _c : 0;
+    },
+    handleProductTouchEnd(event) {
+        var _a, _b, _c, _d, _e, _f;
+        const productId = (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.id) !== null && _c !== void 0 ? _c : '';
+        const endX = (_f = (_e = (_d = event.changedTouches) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.clientX) !== null && _f !== void 0 ? _f : this.productTouchStartX;
+        const deltaX = endX - this.productTouchStartX;
+        if (!productId || Math.abs(deltaX) < 36) {
+            return;
+        }
+        this.setData({
+            swipedProductId: deltaX < 0 ? productId : ''
+        });
+    },
+    handleDeleteTap(event) {
+        var _a, _b, _c, _d, _e, _f;
+        const productId = (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.id) !== null && _c !== void 0 ? _c : '';
+        const productName = (_f = (_e = (_d = event.currentTarget) === null || _d === void 0 ? void 0 : _d.dataset) === null || _e === void 0 ? void 0 : _e.name) !== null && _f !== void 0 ? _f : '当前商品';
+        if (!productId) {
+            return;
+        }
+        wx.showModal({
+            title: '删除商品',
+            content: `确认删除 ${productName}？删除后用户端将不再展示该商品。`,
+            confirmText: '删除',
+            confirmColor: '#B6463A',
+            success: async (result) => {
+                if (!result.confirm) {
+                    this.setData({ swipedProductId: '' });
+                    return;
+                }
+                try {
+                    await (0, catalog_admin_1.deleteProduct)(productId);
+                    wx.showToast({
+                        title: '已删除',
+                        icon: 'success'
+                    });
+                    this.setData({ swipedProductId: '' });
+                    await this.refreshProducts();
+                }
+                catch (error) {
+                    wx.showToast({
+                        title: '删除失败',
+                        icon: 'none'
+                    });
+                }
+            }
         });
     }
 });

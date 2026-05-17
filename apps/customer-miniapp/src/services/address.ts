@@ -1,5 +1,7 @@
 export type AddressType = 'city' | 'express';
 
+import { customerApiRequest, type CustomerApiRequestOptions } from './api-client';
+
 export type AddressSelectionTarget = 'checkout';
 
 export interface CustomerAddress {
@@ -10,6 +12,7 @@ export interface CustomerAddress {
   regionLabel: string;
   detailAddress: string;
   tag: string;
+  isDefault?: boolean;
 }
 
 interface CreateAddressInput {
@@ -27,6 +30,18 @@ interface UpdateAddressInput {
   regionLabel?: string;
   detailAddress?: string;
   tag?: string;
+}
+
+type AddressApiRequester = <T>(path: string, options?: CustomerApiRequestOptions) => Promise<T>;
+
+interface AddressListResponse {
+  ok?: boolean;
+  addresses?: Array<CustomerAddress & { isDefault?: boolean }>;
+}
+
+interface AddressMutationResponse {
+  ok?: boolean;
+  address?: CustomerAddress & { isDefault?: boolean };
 }
 
 interface AddressSelectionRequest {
@@ -109,6 +124,30 @@ function getAddressIndexById(addressId: string) {
   return addresses.findIndex((item) => item.id === addressId);
 }
 
+function replaceAddress(address: CustomerAddress) {
+  const index = getAddressIndexById(address.id);
+  addresses = index >= 0
+    ? addresses.map((item) => (item.id === address.id ? { ...address } : item))
+    : [{ ...address }, ...addresses];
+  if (address.isDefault) {
+    selectedIds = {
+      ...selectedIds,
+      [address.type]: address.id
+    };
+  }
+  return cloneAddress(address);
+}
+
+function replaceAddresses(nextAddresses: CustomerAddress[]) {
+  addresses = nextAddresses.map((item) => ({ ...item }));
+  selectedIds = nextAddresses.reduce(
+    (current, address) => address.isDefault
+      ? { ...current, [address.type]: address.id }
+      : current,
+    {} as Record<AddressType, string>
+  );
+}
+
 export function resetAddresses() {
   addresses = initialAddresses.map((item) => ({ ...item }));
   selectedIds = { ...initialSelectedIds };
@@ -140,6 +179,27 @@ export function createAddress(input: CreateAddressInput) {
   return cloneAddress(created);
 }
 
+export async function hydrateAddresses(request: AddressApiRequester = customerApiRequest) {
+  const response = await request<AddressListResponse>('/api/v1/customer/addresses', {
+    method: 'GET',
+    auth: 'customer'
+  });
+  replaceAddresses(response.addresses ?? []);
+  return getAddresses();
+}
+
+export async function createAddressRemote(
+  input: CreateAddressInput,
+  request: AddressApiRequester = customerApiRequest
+) {
+  const response = await request<AddressMutationResponse>('/api/v1/customer/addresses', {
+    method: 'POST',
+    auth: 'customer',
+    body: input
+  });
+  return replaceAddress(response.address ?? createAddress(input));
+}
+
 export function updateAddress(addressId: string, updates: UpdateAddressInput) {
   const index = getAddressIndexById(addressId);
 
@@ -158,6 +218,19 @@ export function updateAddress(addressId: string, updates: UpdateAddressInput) {
   return cloneAddress(updated);
 }
 
+export async function updateAddressRemote(
+  addressId: string,
+  updates: UpdateAddressInput,
+  request: AddressApiRequester = customerApiRequest
+) {
+  const response = await request<AddressMutationResponse>(`/api/v1/customer/addresses/${addressId}`, {
+    method: 'PUT',
+    auth: 'customer',
+    body: updates
+  });
+  return replaceAddress(response.address ?? updateAddress(addressId, updates));
+}
+
 export function selectAddress(addressId: string) {
   const address = addresses.find((item) => item.id === addressId);
 
@@ -171,6 +244,20 @@ export function selectAddress(addressId: string) {
   };
 
   return cloneAddress(address);
+}
+
+export async function persistSelectedAddress(
+  addressId: string,
+  request: AddressApiRequester = customerApiRequest
+) {
+  const response = await request<AddressMutationResponse>(`/api/v1/customer/addresses/${addressId}/default`, {
+    method: 'PUT',
+    auth: 'customer'
+  });
+  if (response.address) {
+    replaceAddress(response.address);
+  }
+  return selectAddress((response.address ?? { id: addressId }).id);
 }
 
 export function getSelectedAddress(type: AddressType) {

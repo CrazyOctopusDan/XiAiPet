@@ -1,5 +1,7 @@
 export type ProfileGender = 'unknown' | 'female' | 'male';
 
+import { customerApiRequest, type CustomerApiRequestOptions } from './api-client';
+
 export interface CustomerProfile {
   avatarText: string;
   nickname: string;
@@ -18,6 +20,18 @@ interface UpdateProfileInput {
   birthday?: string;
   birthdayLocked?: boolean;
   contactPhoneMasked?: string;
+}
+
+type ProfileApiRequester = <T>(path: string, options?: CustomerApiRequestOptions) => Promise<T>;
+
+interface SaveProfileResponse {
+  ok?: boolean;
+  profile?: UpdateProfileInput;
+}
+
+interface HydrateProfileResponse {
+  ok?: boolean;
+  profile?: Partial<CustomerProfile>;
 }
 
 const initialProfile: CustomerProfile = {
@@ -49,6 +63,30 @@ export function updateProfile(input: UpdateProfileInput) {
   };
 
   return getProfile();
+}
+
+export async function saveProfile(
+  input: UpdateProfileInput,
+  request: ProfileApiRequester = customerApiRequest
+) {
+  const response = await request<SaveProfileResponse>('/api/v1/customer/profile', {
+    method: 'PUT',
+    auth: 'customer',
+    body: {
+      profile: input
+    }
+  });
+
+  return updateProfile(response.profile ?? input);
+}
+
+export async function hydrateProfile(request: ProfileApiRequester = customerApiRequest) {
+  const response = await request<HydrateProfileResponse>('/api/v1/customer/profile', {
+    method: 'GET',
+    auth: 'customer'
+  });
+
+  return updateProfile(response.profile ?? {});
 }
 
 export function setBirthday(birthday: string) {

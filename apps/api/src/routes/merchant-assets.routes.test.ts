@@ -1,18 +1,34 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../app';
-import { authHeader, testConfig } from './test-helpers';
+import { merchantAccountAuthHeader, testConfig } from './test-helpers';
 
-const allowedIdentity = {
-  bootstrapUser: async () => ({ ok: true }),
-  bindPhone: async () => ({ ok: true }),
-  assertMerchantAccess: async () => ({
-    ok: true,
-    status: 'allowed',
-    allowed: true,
-    merchant: { merchantId: 'm1', storeName: 'store' }
-  })
+const merchantAccount = {
+  id: 'acct-admin',
+  username: 'admin',
+  passwordHash: 'hidden',
+  role: 'admin' as const,
+  status: 'active' as const,
+  mustChangePassword: false,
+  createdBy: null,
+  lastLoginAt: null,
+  createdAt: new Date('2026-05-13T00:00:00.000Z'),
+  updatedAt: new Date('2026-05-13T00:00:00.000Z')
 };
+
+function merchantAccountService(overrides: Partial<typeof merchantAccount> = {}) {
+  const account = { ...merchantAccount, ...overrides };
+  return {
+    bootstrapInitialAdmin: async () => ({ ok: true }),
+    login: async () => ({ ok: true as const, account }),
+    getActiveAccount: async () => account,
+    changePassword: async () => ({ ok: true as const, account }),
+    listAccounts: async () => ({ ok: true, accounts: [] }),
+    createStaffAccount: async () => ({ ok: true }),
+    disableStaffAccount: async () => ({ ok: true }),
+    resetStaffPassword: async () => ({ ok: true })
+  };
+}
 
 describe('merchant asset routes', () => {
   it('routes upload policy and confirm calls through merchant auth', async () => {
@@ -32,11 +48,11 @@ describe('merchant asset routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: allowedIdentity,
+        merchantAccountService: merchantAccountService(),
         assetService
       }
     });
-    const headers = authHeader('merchant', 'merchant');
+    const headers = merchantAccountAuthHeader({ accountId: 'acct-admin' });
 
     const policy = await app.inject({
       method: 'POST',
@@ -54,11 +70,11 @@ describe('merchant asset routes', () => {
     expect(policy.statusCode).toBe(200);
     expect(confirm.statusCode).toBe(200);
     expect(assetService.createUploadPolicy).toHaveBeenCalledWith(
-      expect.objectContaining({ merchantId: 'm1' }),
+      expect.objectContaining({ merchantId: 'default-merchant' }),
       { role: 'product-cover', variantName: 'display' }
     );
     expect(assetService.confirmUpload).toHaveBeenCalledWith(
-      expect.objectContaining({ merchantId: 'm1' }),
+      expect.objectContaining({ merchantId: 'default-merchant' }),
       { objectKey: 'merchant/m1/assets/product-cover/2026/a-display.jpg' }
     );
   });
@@ -71,11 +87,7 @@ describe('merchant asset routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: {
-          bootstrapUser: async () => ({ ok: true }),
-          bindPhone: async () => ({ ok: true }),
-          assertMerchantAccess: async () => ({ ok: true, status: 'denied', allowed: false })
-        },
+        merchantAccountService: merchantAccountService({ mustChangePassword: true }),
         assetService
       }
     });
@@ -83,7 +95,7 @@ describe('merchant asset routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/merchant/assets/upload-policies',
-      headers: authHeader('denied', 'merchant'),
+      headers: merchantAccountAuthHeader({ accountId: 'acct-admin', mustChangePassword: true }),
       payload: { role: 'product-cover', variantName: 'display' }
     });
 

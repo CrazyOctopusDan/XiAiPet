@@ -1,13 +1,34 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../app';
-import { authHeader, merchantAccountAuthHeader, testConfig } from './test-helpers';
+import { merchantAccountAuthHeader, testConfig } from './test-helpers';
 
-const allowedIdentity = {
-  bootstrapUser: async () => ({ ok: true }),
-  bindPhone: async () => ({ ok: true }),
-  assertMerchantAccess: async () => ({ ok: true, status: 'allowed', allowed: true, merchant: { merchantId: 'm1', storeName: 'store' } })
+const defaultMerchantAccount = {
+  id: 'acct-admin',
+  username: 'admin',
+  passwordHash: 'hidden',
+  role: 'admin' as const,
+  status: 'active' as const,
+  mustChangePassword: false,
+  createdBy: null,
+  lastLoginAt: null,
+  createdAt: new Date('2026-05-13T00:00:00.000Z'),
+  updatedAt: new Date('2026-05-13T00:00:00.000Z')
 };
+
+function createMerchantAccountService(overrides: Partial<typeof defaultMerchantAccount> = {}) {
+  const account = { ...defaultMerchantAccount, ...overrides };
+  return {
+    bootstrapInitialAdmin: async () => ({ ok: true }),
+    login: async () => ({ ok: true as const, account }),
+    getActiveAccount: async () => account,
+    changePassword: async () => ({ ok: true as const, account }),
+    listAccounts: async () => ({ ok: true, accounts: [] }),
+    createStaffAccount: async () => ({ ok: true }),
+    disableStaffAccount: async () => ({ ok: true }),
+    resetStaffPassword: async () => ({ ok: true })
+  };
+}
 
 describe('merchant admin routes', () => {
   it('routes catalog, user, balance and runtime config admin calls', async () => {
@@ -18,7 +39,8 @@ describe('merchant admin routes', () => {
       upsertMerchantCategory: vi.fn(async () => ({ ok: true, category: { id: 'cat-1' } })),
       deleteMerchantCategory: vi.fn(async () => ({ ok: true, deletedCategoryId: 'cat-1' })),
       queryMerchantProducts: vi.fn(async () => ({ ok: true, products: [] })),
-      upsertMerchantProduct: vi.fn(async () => ({ ok: true, product: { id: 'p1' } }))
+      upsertMerchantProduct: vi.fn(async () => ({ ok: true, product: { id: 'p1' } })),
+      deleteMerchantProduct: vi.fn(async () => ({ ok: true, deletedProductId: 'p1' }))
     };
     const merchantUserService = {
       searchMerchantUsers: vi.fn(async () => ({ ok: true, users: [] })),
@@ -34,19 +56,20 @@ describe('merchant admin routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: allowedIdentity,
+        merchantAccountService: createMerchantAccountService(),
         catalogService,
         merchantUserService,
         runtimeConfigService
       }
     });
 
-    const headers = authHeader('merchant', 'merchant');
+    const headers = merchantAccountAuthHeader({ accountId: 'acct-admin', role: 'admin' });
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/categories', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'PUT', url: '/api/v1/merchant/categories/cat-1', headers, payload: { name: 'Cat', iconToken: 'C' } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'DELETE', url: '/api/v1/merchant/categories/cat-1', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/products', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'PUT', url: '/api/v1/merchant/products/p1', headers, payload: { invalid: true } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'DELETE', url: '/api/v1/merchant/products/p1', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/users?query=138', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'POST', url: '/api/v1/merchant/users/openid-1/balance-adjustments', headers, payload: { delta: 20 } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/runtime-config/sections', headers })).statusCode).toBe(200);
@@ -54,6 +77,7 @@ describe('merchant admin routes', () => {
     expect((await app.inject({ method: 'PUT', url: '/api/v1/merchant/runtime-config/sections/banner', headers, payload: { value: {} } })).statusCode).toBe(200);
 
     expect(catalogService.upsertMerchantProduct).toHaveBeenCalled();
+    expect(catalogService.deleteMerchantProduct).toHaveBeenCalled();
     expect(merchantUserService.adjustUserBalance).toHaveBeenCalled();
     expect(runtimeConfigService.upsertRuntimeConfigSection).toHaveBeenCalled();
   });
@@ -63,11 +87,7 @@ describe('merchant admin routes', () => {
     const app = buildApp({
       config: testConfig,
       dependencies: {
-        identityService: {
-          bootstrapUser: async () => ({ ok: true }),
-          bindPhone: async () => ({ ok: true }),
-          assertMerchantAccess: async () => ({ ok: true, status: 'denied', allowed: false })
-        },
+        merchantAccountService: createMerchantAccountService({ mustChangePassword: true }),
         catalogService: {
           queryCustomerCategories: async () => ({ ok: true }),
           queryCustomerProducts: async () => ({ ok: true }),
@@ -75,12 +95,17 @@ describe('merchant admin routes', () => {
           upsertMerchantCategory: async () => ({ ok: true }),
           deleteMerchantCategory: async () => ({ ok: true }),
           queryMerchantProducts,
-          upsertMerchantProduct: async () => ({ ok: true })
+          upsertMerchantProduct: async () => ({ ok: true }),
+          deleteMerchantProduct: async () => ({ ok: true })
         }
       }
     });
 
-    const response = await app.inject({ method: 'GET', url: '/api/v1/merchant/products', headers: authHeader('denied', 'merchant') });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/merchant/products',
+      headers: merchantAccountAuthHeader({ accountId: 'acct-admin', mustChangePassword: true })
+    });
     expect(response.statusCode).toBe(403);
     expect(queryMerchantProducts).not.toHaveBeenCalled();
   });

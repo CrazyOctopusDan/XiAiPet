@@ -4,14 +4,18 @@ import {
   beginAddressSelection,
   clearAddressSelectionRequest,
   createAddress,
+  createAddressRemote,
   getAddressSelectionRequest,
   getAddresses,
   getCheckoutAddressType,
   getSelectedAddress,
+  hydrateAddresses,
+  persistSelectedAddress,
   resetAddresses,
   selectAddress,
   setCheckoutAddressType,
-  updateAddress
+  updateAddress,
+  updateAddressRemote
 } from './address';
 
 describe('address service', () => {
@@ -85,5 +89,105 @@ describe('address service', () => {
     clearAddressSelectionRequest();
 
     expect(getAddressSelectionRequest()).toBe(null);
+  });
+
+  it('hydrates addresses from the customer address API', async () => {
+    const request = async <T>(path: string, options?: { method?: string; auth?: string }) => {
+      expect(path).toBe('/api/v1/customer/addresses');
+      expect(options).toMatchObject({ method: 'GET', auth: 'customer' });
+      return {
+        ok: true,
+        addresses: [
+          {
+            id: 'addr-api-city',
+            type: 'city',
+            recipientName: 'Lucky',
+            phoneNumber: '13800138000',
+            regionLabel: '上海市 徐汇区',
+            detailAddress: '永嘉路 88 号',
+            tag: '家',
+            isDefault: true
+          }
+        ]
+      } as T;
+    };
+
+    await hydrateAddresses(request);
+
+    expect(getAddresses('city')).toEqual([
+      expect.objectContaining({
+        id: 'addr-api-city',
+        recipientName: 'Lucky'
+      })
+    ]);
+    expect(getSelectedAddress('city')).toMatchObject({ id: 'addr-api-city' });
+  });
+
+  it('persists address create, update and default selection through the API', async () => {
+    const calls: Array<{ path: string; options?: { method?: string; body?: unknown; auth?: string } }> = [];
+    const request = async <T>(path: string, options?: { method?: string; body?: unknown; auth?: string }) => {
+      calls.push({ path, options });
+      if (options?.method === 'POST') {
+        return {
+          ok: true,
+          address: {
+            id: 'addr-created',
+            type: 'express',
+            recipientName: '奶油',
+            phoneNumber: '13900001111',
+            regionLabel: '浙江省 杭州市',
+            detailAddress: '文三路 90 号',
+            tag: '家',
+            isDefault: false
+          }
+        } as T;
+      }
+      if (options?.method === 'PUT') {
+        return {
+          ok: true,
+          address: {
+            id: 'addr-created',
+            type: 'express',
+            recipientName: '奶油',
+            phoneNumber: '13900001111',
+            regionLabel: '浙江省 杭州市',
+            detailAddress: '文三路 91 号',
+            tag: '家',
+            isDefault: false
+          }
+        } as T;
+      }
+      return {
+        ok: true,
+        address: {
+          id: 'addr-created',
+          type: 'express',
+          recipientName: '奶油',
+          phoneNumber: '13900001111',
+          regionLabel: '浙江省 杭州市',
+          detailAddress: '文三路 91 号',
+          tag: '家',
+          isDefault: true
+        }
+      } as T;
+    };
+
+    await createAddressRemote({
+      type: 'express',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '浙江省 杭州市',
+      detailAddress: '文三路 90 号',
+      tag: '家'
+    }, request);
+    await updateAddressRemote('addr-created', { detailAddress: '文三路 91 号' }, request);
+    await persistSelectedAddress('addr-created', request);
+
+    expect(calls.map((call) => [call.path, call.options?.method])).toEqual([
+      ['/api/v1/customer/addresses', 'POST'],
+      ['/api/v1/customer/addresses/addr-created', 'PUT'],
+      ['/api/v1/customer/addresses/addr-created/default', 'PUT']
+    ]);
+    expect(getSelectedAddress('express')).toMatchObject({ id: 'addr-created' });
   });
 });

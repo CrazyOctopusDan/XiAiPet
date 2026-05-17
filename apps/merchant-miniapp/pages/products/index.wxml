@@ -50,26 +50,36 @@
   </view>
 
   <view class="card-list" wx:elif="{{!loading}}">
-    <view class="product-card" wx:for="{{cards}}" wx:key="id" data-id="{{item.id}}" bindtap="handleEditTap">
-      <image class="product-image" src="{{item.imagePreviewUrl}}" mode="aspectFill"></image>
-      <view class="product-body">
-        <view class="product-head">
-          <text class="product-name">{{item.name}}</text>
-          <text class="status-badge">{{item.statusLabel}}</text>
-        </view>
+    <view
+      class="product-swipe-row {{swipedProductId === item.id ? 'active' : ''}}"
+      wx:for="{{cards}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtouchstart="handleProductTouchStart"
+      bindtouchend="handleProductTouchEnd"
+    >
+      <button class="product-delete-action" data-id="{{item.id}}" data-name="{{item.name}}" catchtap="handleDeleteTap">删除</button>
+      <view class="product-card" data-id="{{item.id}}" bindtap="handleEditTap">
+        <image class="product-image" src="{{item.imagePreviewUrl}}" mode="aspectFill"></image>
+        <view class="product-body">
+          <view class="product-head">
+            <text class="product-name">{{item.name}}</text>
+            <text class="status-badge">{{item.statusLabel}}</text>
+          </view>
 
-        <view class="product-meta">
-          <view class="meta-chip">
-            <text class="meta-label">价格</text>
-            <text class="meta-value">{{item.priceRangeLabel}}</text>
-          </view>
-          <view class="meta-chip">
-            <text class="meta-label">库存</text>
-            <text class="meta-value">{{item.stockLabel}}</text>
-          </view>
-          <view class="meta-chip full">
-            <text class="meta-label">履约</text>
-            <text class="meta-value">{{item.fulfillmentModesLabel}}</text>
+          <view class="product-meta">
+            <view class="meta-chip">
+              <text class="meta-label">价格</text>
+              <text class="meta-value">{{item.priceRangeLabel}}</text>
+            </view>
+            <view class="meta-chip">
+              <text class="meta-label">库存</text>
+              <text class="meta-value">{{item.stockLabel}}</text>
+            </view>
+            <view class="meta-chip full">
+              <text class="meta-label">履约</text>
+              <text class="meta-value">{{item.fulfillmentModesLabel}}</text>
+            </view>
           </view>
         </view>
       </view>

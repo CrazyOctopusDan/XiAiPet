@@ -221,6 +221,14 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       });
     },
 
+    async deleteProduct(productId: string): Promise<void> {
+      await client.product.delete({
+        where: {
+          id: productId
+        }
+      });
+    },
+
     async upsertProduct(input: CatalogProductRecord): Promise<CatalogProductRecord> {
       const product = await client.product.upsert({
         where: { id: input.id },

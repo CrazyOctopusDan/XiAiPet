@@ -16,14 +16,21 @@ Page({
         },
         draftId: createDraftId(),
         draftName: '',
-        draftIconToken: ''
+        draftIconToken: '',
+        isEditorOpen: false,
+        editorTitle: '新建品类',
+        editorSubtitle: '保存后同步商品筛选'
     },
     async onShow() {
         await this.refreshCategories();
     },
     async refreshCategories() {
         this.setData({ loading: true });
-        const view = (0, catalog_admin_1.getCategoryPageViewModel)(await (0, catalog_admin_1.queryCategories)());
+        const [categories, products] = await Promise.all([
+            (0, catalog_admin_1.queryCategories)(),
+            (0, catalog_admin_1.queryProducts)()
+        ]);
+        const view = (0, catalog_admin_1.getCategoryPageViewModel)((0, catalog_admin_1.applyProductCountsToCategories)(categories, products));
         this.setData({
             loading: false,
             isEmpty: view.isEmpty,
@@ -44,16 +51,33 @@ Page({
         this.setData({
             draftId: (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.id) !== null && _c !== void 0 ? _c : createDraftId(),
             draftName: (_f = (_e = (_d = event.currentTarget) === null || _d === void 0 ? void 0 : _d.dataset) === null || _e === void 0 ? void 0 : _e.name) !== null && _f !== void 0 ? _f : '',
-            draftIconToken: (_j = (_h = (_g = event.currentTarget) === null || _g === void 0 ? void 0 : _g.dataset) === null || _h === void 0 ? void 0 : _h.icon) !== null && _j !== void 0 ? _j : ''
+            draftIconToken: (_j = (_h = (_g = event.currentTarget) === null || _g === void 0 ? void 0 : _g.dataset) === null || _h === void 0 ? void 0 : _h.icon) !== null && _j !== void 0 ? _j : '',
+            isEditorOpen: true,
+            editorTitle: '编辑品类',
+            editorSubtitle: '更新后商品筛选会同步变化'
         });
     },
     handleCreateTap() {
         this.setData({
             draftId: createDraftId(),
             draftName: '',
-            draftIconToken: ''
+            draftIconToken: '',
+            isEditorOpen: true,
+            editorTitle: '新建品类',
+            editorSubtitle: '创建一级品类后即可维护商品'
         });
     },
+    closeEditor() {
+        this.setData({
+            isEditorOpen: false,
+            draftId: createDraftId(),
+            draftName: '',
+            draftIconToken: '',
+            editorTitle: '新建品类',
+            editorSubtitle: '保存后同步商品筛选'
+        });
+    },
+    handleEditorPanelTap() { },
     async handleSaveTap() {
         if (!this.data.draftName.trim() || !this.data.draftIconToken.trim()) {
             wx.showToast({
@@ -76,7 +100,7 @@ Page({
             title: '品类已保存',
             icon: 'success'
         });
-        this.handleCreateTap();
+        this.closeEditor();
         await this.refreshCategories();
     },
     handleDeleteTap(event) {

@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   getProfile,
   getProfileSummary,
+  hydrateProfile,
   resetProfile,
+  saveProfile,
   setBirthday,
   updateProfile
 } from './profile';
@@ -72,5 +74,79 @@ describe('profile service', () => {
 
     expect(summary.birthdayLabel).toBe('2020-08-18');
     expect(summary.contactPhoneLabel).toBe('138****1234');
+  });
+
+  it('persists profile updates through the customer profile API', async () => {
+    const request = async <T>(path: string, options?: { method?: string; body?: unknown; auth?: string }) => {
+      expect(path).toBe('/api/v1/customer/profile');
+      expect(options).toMatchObject({
+        method: 'PUT',
+        auth: 'customer',
+        body: {
+          profile: {
+            nickname: 'Lucky 家长',
+            gender: 'female',
+            birthday: '2024-05-09',
+            birthdayLocked: true
+          }
+        }
+      });
+
+      return {
+        ok: true,
+        profile: {
+          nickname: 'Lucky 家长',
+          gender: 'female',
+          birthday: '2024-05-09',
+          birthdayLocked: true
+        }
+      } as T;
+    };
+
+    await saveProfile(
+      {
+        nickname: 'Lucky 家长',
+        gender: 'female',
+        birthday: '2024-05-09',
+        birthdayLocked: true
+      },
+      request
+    );
+
+    expect(getProfile()).toMatchObject({
+      nickname: 'Lucky 家长',
+      gender: 'female',
+      birthday: '2024-05-09',
+      birthdayLocked: true
+    });
+  });
+
+  it('hydrates profile and balance summary from the customer profile API', async () => {
+    const request = async <T>(path: string, options?: { method?: string; auth?: string }) => {
+      expect(path).toBe('/api/v1/customer/profile');
+      expect(options).toMatchObject({ method: 'GET', auth: 'customer' });
+      return {
+        ok: true,
+        profile: {
+          avatarText: 'L',
+          nickname: 'Lucky 家长',
+          gender: 'female',
+          memberLevel: '普通会员',
+          balance: 180,
+          totalSpent: 520,
+          birthday: '2024-05-09',
+          birthdayLocked: true,
+          contactPhoneMasked: '138****8000'
+        }
+      } as T;
+    };
+
+    await hydrateProfile(request);
+
+    expect(getProfileSummary()).toMatchObject({
+      nickname: 'Lucky 家长',
+      balance: 180,
+      contactPhoneLabel: '138****8000'
+    });
   });
 });

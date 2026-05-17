@@ -3,7 +3,14 @@ declare function Page(options: Record<string, unknown>): void;
 
 import type { CatalogCategoryRecord } from '@xiaipet/shared/types/catalog-admin';
 
-import { deleteCategory, getCategoryPageViewModel, queryCategories, saveCategory } from '../../src/services/catalog-admin';
+import {
+  applyProductCountsToCategories,
+  deleteCategory,
+  getCategoryPageViewModel,
+  queryCategories,
+  queryProducts,
+  saveCategory
+} from '../../src/services/catalog-admin';
 
 interface CategoryPageData {
   loading: boolean;
@@ -13,6 +20,9 @@ interface CategoryPageData {
   draftId: string;
   draftName: string;
   draftIconToken: string;
+  isEditorOpen: boolean;
+  editorTitle: string;
+  editorSubtitle: string;
 }
 
 interface CategoryPageInstance {
@@ -20,6 +30,7 @@ interface CategoryPageInstance {
   setData(updates: Record<string, unknown>): void;
   refreshCategories(): Promise<void>;
   handleCreateTap(): void;
+  closeEditor(): void;
 }
 
 function createDraftId() {
@@ -38,14 +49,21 @@ Page({
     },
     draftId: createDraftId(),
     draftName: '',
-    draftIconToken: ''
+    draftIconToken: '',
+    isEditorOpen: false,
+    editorTitle: '新建品类',
+    editorSubtitle: '保存后同步商品筛选'
   },
   async onShow(this: CategoryPageInstance) {
     await this.refreshCategories();
   },
   async refreshCategories(this: CategoryPageInstance) {
     this.setData({ loading: true });
-    const view = getCategoryPageViewModel(await queryCategories());
+    const [categories, products] = await Promise.all([
+      queryCategories(),
+      queryProducts()
+    ]);
+    const view = getCategoryPageViewModel(applyProductCountsToCategories(categories, products));
     this.setData({
       loading: false,
       isEmpty: view.isEmpty,
@@ -66,16 +84,33 @@ Page({
     this.setData({
       draftId: event.currentTarget?.dataset?.id ?? createDraftId(),
       draftName: event.currentTarget?.dataset?.name ?? '',
-      draftIconToken: event.currentTarget?.dataset?.icon ?? ''
+      draftIconToken: event.currentTarget?.dataset?.icon ?? '',
+      isEditorOpen: true,
+      editorTitle: '编辑品类',
+      editorSubtitle: '更新后商品筛选会同步变化'
     });
   },
   handleCreateTap(this: CategoryPageInstance) {
     this.setData({
       draftId: createDraftId(),
       draftName: '',
-      draftIconToken: ''
+      draftIconToken: '',
+      isEditorOpen: true,
+      editorTitle: '新建品类',
+      editorSubtitle: '创建一级品类后即可维护商品'
     });
   },
+  closeEditor(this: CategoryPageInstance) {
+    this.setData({
+      isEditorOpen: false,
+      draftId: createDraftId(),
+      draftName: '',
+      draftIconToken: '',
+      editorTitle: '新建品类',
+      editorSubtitle: '保存后同步商品筛选'
+    });
+  },
+  handleEditorPanelTap() {},
   async handleSaveTap(this: CategoryPageInstance) {
     if (!this.data.draftName.trim() || !this.data.draftIconToken.trim()) {
       wx.showToast({
@@ -101,7 +136,7 @@ Page({
       icon: 'success'
     });
 
-    this.handleCreateTap();
+    this.closeEditor();
     await this.refreshCategories();
   },
   handleDeleteTap(

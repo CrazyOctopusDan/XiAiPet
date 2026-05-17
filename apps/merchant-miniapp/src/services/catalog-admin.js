@@ -5,6 +5,7 @@ exports.saveCategory = saveCategory;
 exports.deleteCategory = deleteCategory;
 exports.getCategoryPageViewModel = getCategoryPageViewModel;
 exports.queryProducts = queryProducts;
+exports.applyProductCountsToCategories = applyProductCountsToCategories;
 exports.getProductPageViewModel = getProductPageViewModel;
 exports.createEmptyProductEditorPayload = createEmptyProductEditorPayload;
 exports.splitProductEditorPayload = splitProductEditorPayload;
@@ -12,6 +13,7 @@ exports.getProductEditorViewModel = getProductEditorViewModel;
 exports.uploadProductImage = uploadProductImage;
 exports.uploadProductCoverAsset = uploadProductCoverAsset;
 exports.saveProduct = saveProduct;
+exports.deleteProduct = deleteProduct;
 const product_pricing_1 = require("../shared/product-pricing");
 const api_client_1 = require("./api-client");
 const assets_1 = require("./assets");
@@ -160,6 +162,22 @@ async function queryProducts(categoryId = '', request = api_client_1.merchantApi
     });
     return (_a = response.products) !== null && _a !== void 0 ? _a : [];
 }
+function applyProductCountsToCategories(categories, products) {
+    const productCounts = products.reduce((counts, product) => {
+        var _a;
+        counts[product.categoryId] = ((_a = counts[product.categoryId]) !== null && _a !== void 0 ? _a : 0) + 1;
+        return counts;
+    }, {});
+    return categories.map((category) => {
+        var _a;
+        const linkedProductCount = (_a = productCounts[category.id]) !== null && _a !== void 0 ? _a : 0;
+        return {
+            ...category,
+            linkedProductCount,
+            canDelete: linkedProductCount === 0
+        };
+    });
+}
 function getProductPageViewModel(products, categories, activeCategoryId, keyword) {
     const normalizedKeyword = keyword.trim();
     const filteredProducts = products.filter((product) => {
@@ -304,4 +322,11 @@ async function saveProduct(payload, request = api_client_1.merchantApiRequest) {
         auth: 'merchant'
     });
     return response.product;
+}
+async function deleteProduct(productId, request = api_client_1.merchantApiRequest) {
+    await request(`/api/v1/merchant/products/${productId}`, {
+        method: 'DELETE',
+        auth: 'merchant'
+    });
+    return productId;
 }

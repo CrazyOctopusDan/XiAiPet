@@ -8,8 +8,10 @@ import type {
 import type { MerchantApiRequester } from './api-client';
 
 import {
+  applyProductCountsToCategories,
   createEmptyProductEditorPayload,
   deleteCategory,
+  deleteProduct,
   getCategoryPageViewModel,
   getProductPageViewModel,
   getProductEditorViewModel,
@@ -128,6 +130,45 @@ describe('catalog admin service', () => {
     });
   });
 
+  it('recomputes category counts from actual products when category responses are stale', () => {
+    const categories = applyProductCountsToCategories(
+      [
+        {
+          ...createCategory({ id: 'cakes', name: '宠物蛋糕' }),
+          linkedProductCount: 0,
+          canDelete: true
+        },
+        {
+          ...createCategory({ id: 'snacks', name: '零食', iconToken: '零' }),
+          linkedProductCount: 9,
+          canDelete: false
+        }
+      ],
+      [
+        createProductRecord({ id: 'cake-1', categoryId: 'cakes' }),
+        createProductRecord({ id: 'cake-2', categoryId: 'cakes' })
+      ]
+    );
+    const view = getCategoryPageViewModel(categories);
+
+    expect(view.cards).toEqual([
+      expect.objectContaining({
+        id: 'cakes',
+        linkedProductCountLabel: '2 个商品',
+        deleteActionLabel: '先迁移商品'
+      }),
+      expect.objectContaining({
+        id: 'snacks',
+        linkedProductCountLabel: '0 个商品',
+        deleteActionLabel: '删除品类'
+      })
+    ]);
+    expect(view.summary).toMatchObject({
+      linkedProducts: 2,
+      lockedCategories: 1
+    });
+  });
+
   it('saves and deletes categories through merchant HTTP endpoints', async () => {
     const category = createCategory();
     const request = vi
@@ -198,6 +239,7 @@ describe('catalog admin service', () => {
 
     await expect(queryProducts('cakes', request)).resolves.toEqual([product]);
     await saveProduct(payload, request);
+    await expect(deleteProduct(product.id, request)).resolves.toBe(product.id);
 
     expect(request).toHaveBeenNthCalledWith(1, '/api/v1/merchant/products', {
       method: 'GET',
@@ -209,6 +251,10 @@ describe('catalog admin service', () => {
     expect(request).toHaveBeenNthCalledWith(2, '/api/v1/merchant/products/product-001', {
       method: 'PUT',
       body: payload,
+      auth: 'merchant'
+    });
+    expect(request).toHaveBeenNthCalledWith(3, '/api/v1/merchant/products/product-001', {
+      method: 'DELETE',
       auth: 'merchant'
     });
   });

@@ -1,7 +1,7 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import { getProfileSummary } from '../../src/services/profile';
+import { getProfileSummary, hydrateProfile } from '../../src/services/profile';
 
 interface ProfilePageData {
   summary: ReturnType<typeof getProfileSummary>;
@@ -11,7 +11,7 @@ interface ProfilePageData {
 interface ProfilePageInstance {
   data: ProfilePageData;
   setData(data: Record<string, unknown>): void;
-  refreshSummary(): void;
+  refreshSummary(): Promise<void>;
   refreshLayoutMetrics(): void;
   getTabBar?(): { setSelectedKey?: (key: string) => void } | undefined;
 }
@@ -38,14 +38,19 @@ Page({
   onShow(this: ProfilePageInstance) {
     this.getTabBar?.()?.setSelectedKey?.('profile');
     this.refreshLayoutMetrics();
-    this.refreshSummary();
+    void this.refreshSummary();
   },
   refreshLayoutMetrics(this: ProfilePageInstance) {
     this.setData({
       profileSafeTop: resolveProfileSafeTop()
     });
   },
-  refreshSummary(this: ProfilePageInstance) {
+  async refreshSummary(this: ProfilePageInstance) {
+    try {
+      await hydrateProfile();
+    } catch {
+      // Keep the latest local profile snapshot visible if the network is unavailable.
+    }
     this.setData({
       summary: getProfileSummary()
     });

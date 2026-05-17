@@ -3,7 +3,7 @@ declare function Page(options: Record<string, unknown>): void;
 
 import type { PaymentMethod } from '@xiaipet/shared';
 
-import { beginAddressSelection, type CustomerAddress } from '../../src/services/address';
+import { beginAddressSelection, hydrateAddresses, type CustomerAddress } from '../../src/services/address';
 import {
   getCheckoutViewModel,
   getFulfillmentModes,
@@ -18,7 +18,7 @@ import {
   type ReservationDayOption
 } from '../../src/services/checkout';
 import { getCartItems, getCartSummary, type CartItem } from '../../src/services/cart';
-import { getPets, type PetProfile } from '../../src/services/pets';
+import { getPets, hydratePets, type PetProfile } from '../../src/services/pets';
 import { getCheckoutPricingPreview, submitOrder } from '../../src/services/order-submit';
 import { hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 import { setPendingOrdersHighlight } from '../../src/services/tab-navigation';
@@ -72,6 +72,7 @@ interface CheckoutPageInstance {
   data: CheckoutPageData;
   setData(data: Record<string, unknown>): void;
   refreshCheckout(): void;
+  refreshCustomerContext(): Promise<void>;
   refreshRuntimeConfig(): Promise<void>;
   handleSubmit(): Promise<void>;
 }
@@ -167,7 +168,20 @@ Page({
   },
   onShow(this: CheckoutPageInstance) {
     this.refreshCheckout();
+    void this.refreshCustomerContext();
     void this.refreshRuntimeConfig();
+  },
+  async refreshCustomerContext(this: CheckoutPageInstance) {
+    try {
+      await Promise.all([
+        hydrateAddresses(),
+        hydratePets()
+      ]);
+    } catch {
+      // Checkout can still render with the last local snapshot.
+    } finally {
+      this.refreshCheckout();
+    }
   },
   async refreshRuntimeConfig(this: CheckoutPageInstance) {
     try {

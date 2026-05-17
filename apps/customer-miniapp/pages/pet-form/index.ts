@@ -2,9 +2,9 @@ declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
 import {
-  createPet,
+  createPetRemote,
   getPetById,
-  updatePet,
+  updatePetRemote,
   type PetGender
 } from '../../src/services/pets';
 
@@ -93,7 +93,7 @@ Page({
       }
     });
   },
-  handleSubmit(this: PetFormPageInstance) {
+  async handleSubmit(this: PetFormPageInstance) {
     const name = this.data.form.name.trim();
     const birthday = this.data.form.birthday.trim();
     const allergyNotes = this.data.form.allergyNotes.trim();
@@ -103,20 +103,25 @@ Page({
       return;
     }
 
-    if (this.data.mode === 'edit' && this.data.form.id) {
-      updatePet(this.data.form.id, {
-        name,
-        gender: this.data.form.gender,
-        birthday,
-        allergyNotes
-      });
-    } else {
-      createPet({
-        name,
-        gender: this.data.form.gender,
-        birthday,
-        allergyNotes
-      });
+    try {
+      if (this.data.mode === 'edit' && this.data.form.id) {
+        await updatePetRemote(this.data.form.id, {
+          name,
+          gender: this.data.form.gender,
+          birthday,
+          allergyNotes
+        });
+      } else {
+        await createPetRemote({
+          name,
+          gender: this.data.form.gender,
+          birthday,
+          allergyNotes
+        });
+      }
+    } catch {
+      wx.showToast({ title: '宠物档案保存失败', icon: 'none' });
+      return;
     }
 
     wx.showToast({ title: this.data.mode === 'edit' ? '宠物档案已更新' : '宠物档案已新增', icon: 'none' });

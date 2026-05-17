@@ -6,7 +6,8 @@ import {
   getCatalogCategories,
   getDeliveryModes,
   getProductById,
-  getProductDisplayPrice
+  getProductDisplayPrice,
+  hydrateCatalog
 } from '../../src/services/catalog';
 import {
   addCartItem,
@@ -89,7 +90,12 @@ Page({
     expandedSoldOutCategoryIds: [],
     scrollIntoViewTarget: ''
   },
-  onLoad(this: CatalogPageInstance) {
+  async onLoad(this: CatalogPageInstance) {
+    try {
+      await hydrateCatalog();
+    } catch {
+      // Keep the local fallback catalog usable when the customer API is unreachable.
+    }
     this.refreshSections(this.data.activeDeliveryMode);
   },
   onReady(this: CatalogPageInstance) {
@@ -101,6 +107,7 @@ Page({
   refreshSections(this: CatalogPageInstance, mode: DeliveryMode, expandedCategoryIds: string[] = []) {
     const sections = toPageSections(mode, expandedCategoryIds);
     this.setData({
+      categories: getCatalogCategories(),
       sections,
       activeDeliveryMode: mode,
       activeCategoryId: sections[0]?.category.id ?? '',
@@ -112,13 +119,18 @@ Page({
     });
   },
   syncCartState(this: CatalogPageInstance) {
+    const sections = toPageSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
     this.setData({
       cartCount: getCartCount(),
-      sections: this.data.sections.map((section) => ({
-        ...section,
-        availableProducts: section.availableProducts.map(withCartQuantity),
-        soldOutProducts: section.soldOutProducts.map(withCartQuantity)
-      }))
+      categories: getCatalogCategories(),
+      sections,
+      activeCategoryId: sections.some((section) => section.category.id === this.data.activeCategoryId)
+        ? this.data.activeCategoryId
+        : sections[0]?.category.id ?? '',
+      activeSectionSubtitle:
+        sections.find((section) => section.category.id === this.data.activeCategoryId)?.category.sectionTitle ??
+        sections[0]?.category.sectionTitle ??
+        ''
     }, () => {
       this.updateSectionMetrics();
     });

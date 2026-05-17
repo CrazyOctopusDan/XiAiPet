@@ -4,14 +4,19 @@ exports.resetAddresses = resetAddresses;
 exports.getAddresses = getAddresses;
 exports.getAddressById = getAddressById;
 exports.createAddress = createAddress;
+exports.hydrateAddresses = hydrateAddresses;
+exports.createAddressRemote = createAddressRemote;
 exports.updateAddress = updateAddress;
+exports.updateAddressRemote = updateAddressRemote;
 exports.selectAddress = selectAddress;
+exports.persistSelectedAddress = persistSelectedAddress;
 exports.getSelectedAddress = getSelectedAddress;
 exports.setCheckoutAddressType = setCheckoutAddressType;
 exports.getCheckoutAddressType = getCheckoutAddressType;
 exports.beginAddressSelection = beginAddressSelection;
 exports.getAddressSelectionRequest = getAddressSelectionRequest;
 exports.clearAddressSelectionRequest = clearAddressSelectionRequest;
+const api_client_1 = require("./api-client");
 const initialAddresses = [
     {
         id: 'address-city-home',
@@ -78,6 +83,25 @@ function sortAddresses(list) {
 function getAddressIndexById(addressId) {
     return addresses.findIndex((item) => item.id === addressId);
 }
+function replaceAddress(address) {
+    const index = getAddressIndexById(address.id);
+    addresses = index >= 0
+        ? addresses.map((item) => (item.id === address.id ? { ...address } : item))
+        : [{ ...address }, ...addresses];
+    if (address.isDefault) {
+        selectedIds = {
+            ...selectedIds,
+            [address.type]: address.id
+        };
+    }
+    return cloneAddress(address);
+}
+function replaceAddresses(nextAddresses) {
+    addresses = nextAddresses.map((item) => ({ ...item }));
+    selectedIds = nextAddresses.reduce((current, address) => address.isDefault
+        ? { ...current, [address.type]: address.id }
+        : current, {});
+}
 function resetAddresses() {
     addresses = initialAddresses.map((item) => ({ ...item }));
     selectedIds = { ...initialSelectedIds };
@@ -103,6 +127,24 @@ function createAddress(input) {
     addresses = [created, ...addresses];
     return cloneAddress(created);
 }
+async function hydrateAddresses(request = api_client_1.customerApiRequest) {
+    var _a;
+    const response = await request('/api/v1/customer/addresses', {
+        method: 'GET',
+        auth: 'customer'
+    });
+    replaceAddresses((_a = response.addresses) !== null && _a !== void 0 ? _a : []);
+    return getAddresses();
+}
+async function createAddressRemote(input, request = api_client_1.customerApiRequest) {
+    var _a;
+    const response = await request('/api/v1/customer/addresses', {
+        method: 'POST',
+        auth: 'customer',
+        body: input
+    });
+    return replaceAddress((_a = response.address) !== null && _a !== void 0 ? _a : createAddress(input));
+}
 function updateAddress(addressId, updates) {
     const index = getAddressIndexById(addressId);
     if (index < 0) {
@@ -117,6 +159,15 @@ function updateAddress(addressId, updates) {
     addresses = addresses.map((item, itemIndex) => (itemIndex === index ? updated : item));
     return cloneAddress(updated);
 }
+async function updateAddressRemote(addressId, updates, request = api_client_1.customerApiRequest) {
+    var _a;
+    const response = await request(`/api/v1/customer/addresses/${addressId}`, {
+        method: 'PUT',
+        auth: 'customer',
+        body: updates
+    });
+    return replaceAddress((_a = response.address) !== null && _a !== void 0 ? _a : updateAddress(addressId, updates));
+}
 function selectAddress(addressId) {
     const address = addresses.find((item) => item.id === addressId);
     if (!address) {
@@ -127,6 +178,17 @@ function selectAddress(addressId) {
         [address.type]: address.id
     };
     return cloneAddress(address);
+}
+async function persistSelectedAddress(addressId, request = api_client_1.customerApiRequest) {
+    var _a;
+    const response = await request(`/api/v1/customer/addresses/${addressId}/default`, {
+        method: 'PUT',
+        auth: 'customer'
+    });
+    if (response.address) {
+        replaceAddress(response.address);
+    }
+    return selectAddress(((_a = response.address) !== null && _a !== void 0 ? _a : { id: addressId }).id);
 }
 function getSelectedAddress(type) {
     const selectedId = selectedIds[type];

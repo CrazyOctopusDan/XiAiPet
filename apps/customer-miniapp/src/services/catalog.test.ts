@@ -142,6 +142,221 @@ describe('catalog service', () => {
     expect(buildCatalogSections('delivery')[0]?.availableProducts[0]?.name).toBe('鲜奶小蛋糕');
   });
 
+  it('normalizes merchant-shaped catalog API records before rendering customer sections', async () => {
+    const apiRequest = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/catalog/categories') {
+        return {
+          ok: true,
+          categories: [
+            {
+              id: 'category-1778893800973',
+              name: '娜塔莎',
+              iconToken: '塔',
+              sortOrder: 0,
+              createdAt: '2026-05-16T00:00:00.000Z',
+              updatedAt: '2026-05-16T00:00:00.000Z'
+            }
+          ]
+        };
+      }
+      if (path === '/api/v1/customer/catalog/products') {
+        return {
+          ok: true,
+          products: [
+            {
+              id: 'natasha-cake',
+              name: '娜塔莎蛋糕',
+              description: '后台商品描述',
+              detailContent: '用户端详情',
+              categoryId: 'category-1778893800973',
+              imageFileId: '/assets/catalog/product-card-reference.png',
+              imagePreviewUrl: '/assets/catalog/product-card-reference.png',
+              memberLevelId: null,
+              status: 'published',
+              stock: 5,
+              trackInventory: true,
+              fulfillmentModes: ['delivery'],
+              basePrice: 168,
+              specs: [{ id: 'small', label: '小份', surcharge: 20 }],
+              formulas: [],
+              priceOverrides: [],
+              purchaseLimit: { enabled: false, maxQuantity: null },
+              createdAt: '2026-05-16T00:00:00.000Z',
+              updatedAt: '2026-05-16T00:00:00.000Z'
+            }
+          ]
+        };
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    await hydrateCatalog(apiRequest as Parameters<typeof hydrateCatalog>[0]);
+
+    expect(getCatalogCategories()).toEqual([
+      expect.objectContaining({
+        id: 'category-1778893800973',
+        name: '娜塔莎',
+        shortName: '娜塔莎',
+        iconText: '塔',
+        sectionTitle: '娜塔莎'
+      })
+    ]);
+    expect(buildCatalogSections('delivery')[0]).toMatchObject({
+      category: expect.objectContaining({ id: 'category-1778893800973' }),
+      availableProducts: [
+        expect.objectContaining({
+          id: 'natasha-cake',
+          name: '娜塔莎蛋糕',
+          summary: '后台商品描述',
+          description: '用户端详情',
+          price: 168,
+          deliveryModes: ['delivery'],
+          specs: [{ id: 'small', label: '小份', price: 188 }]
+        })
+      ]
+    });
+  });
+
+  it('keeps merchant products visible when old records have no fulfillment modes', async () => {
+    const apiRequest = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/catalog/categories') {
+        return {
+          ok: true,
+          categories: [
+            {
+              id: 'legacy-category',
+              name: '历史商品',
+              iconToken: '旧'
+            }
+          ]
+        };
+      }
+      if (path === '/api/v1/customer/catalog/products') {
+        return {
+          ok: true,
+          products: [
+            {
+              id: 'legacy-cake',
+              name: '历史蛋糕',
+              description: '早期保存的商品',
+              categoryId: 'legacy-category',
+              imageFileId: '/assets/catalog/product-card-reference.png',
+              stock: 3,
+              trackInventory: true,
+              fulfillmentModes: [],
+              basePrice: 88,
+              specs: []
+            }
+          ]
+        };
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    await hydrateCatalog(apiRequest as Parameters<typeof hydrateCatalog>[0]);
+
+    expect(buildCatalogSections('delivery')[0]?.availableProducts[0]).toMatchObject({
+      id: 'legacy-cake',
+      deliveryModes: ['pickup', 'delivery', 'express']
+    });
+    expect(buildCatalogSections('pickup')[0]?.availableProducts[0]?.id).toBe('legacy-cake');
+    expect(buildCatalogSections('express')[0]?.availableProducts[0]?.id).toBe('legacy-cake');
+  });
+
+  it('renders all matching published products from raw catalog API records', async () => {
+    const apiRequest = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/catalog/categories') {
+        return {
+          ok: true,
+          categories: [
+            { id: 'cakes', name: '宠物蛋糕', iconToken: '糕' },
+            { id: 'cat-cakes', name: 'Pet Cakes', iconToken: 'CAKE' },
+            { id: 'cat-snacks', name: 'Pet Snacks', iconToken: 'BONE' }
+          ]
+        };
+      }
+      if (path === '/api/v1/customer/catalog/products') {
+        return {
+          ok: true,
+          products: [
+            {
+              id: 'ocean-party',
+              name: '海洋派对生日蛋糕',
+              description: '生日预约款宠物蛋糕。',
+              categoryId: 'cakes',
+              imagePreviewUrl: 'https://oss.xiaipet.vip/catalog/ocean-party.png',
+              status: 'PUBLISHED',
+              stock: 12,
+              trackInventory: true,
+              fulfillmentModes: ['delivery', 'pickup'],
+              basePrice: '168.00',
+              specs: [{ id: '4-inch', label: '4 寸', surcharge: 0 }],
+              formulas: [{ id: 'chicken', label: '鸡肉南瓜', surcharge: 0 }],
+              priceOverrides: []
+            },
+            {
+              id: 'prod-birthday-cake',
+              name: 'Birthday Cake',
+              description: 'Local birthday cake seed product.',
+              categoryId: 'cat-cakes',
+              imagePreviewUrl: 'https://oss.xiaipet.vip/catalog/prod-birthday-cake.png',
+              status: 'PUBLISHED',
+              stock: 12,
+              trackInventory: true,
+              fulfillmentModes: ['delivery', 'pickup'],
+              basePrice: '168.00',
+              specs: [{ id: '4-inch', label: '4 inch', surcharge: 0 }],
+              formulas: [{ id: 'chicken', label: 'Chicken', surcharge: 0 }],
+              priceOverrides: []
+            },
+            {
+              id: 'prod-paw-cookie',
+              name: 'Paw Cookie',
+              description: 'Local snack seed product.',
+              categoryId: 'cat-snacks',
+              imagePreviewUrl: 'https://oss.xiaipet.vip/catalog/prod-paw-cookie.png',
+              status: 'PUBLISHED',
+              stock: 50,
+              trackInventory: true,
+              fulfillmentModes: ['pickup', 'express'],
+              basePrice: '38.00',
+              specs: []
+            },
+            {
+              id: 'sea-sponge',
+              name: '海盐芝士小方',
+              description: '适合小型犬猫的低糖烘焙点心。',
+              categoryId: 'cakes',
+              imagePreviewUrl: 'https://oss.xiaipet.vip/catalog/sea-sponge.png',
+              status: 'PUBLISHED',
+              stock: 30,
+              trackInventory: true,
+              fulfillmentModes: ['delivery', 'pickup', 'express'],
+              basePrice: '68.00',
+              specs: []
+            }
+          ]
+        };
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    await hydrateCatalog(apiRequest as Parameters<typeof hydrateCatalog>[0]);
+
+    expect(buildCatalogSections('delivery').flatMap((section) => section.availableProducts.map((product) => product.id))).toEqual([
+      'ocean-party',
+      'sea-sponge',
+      'prod-birthday-cake'
+    ]);
+    expect(buildCatalogSections('pickup').flatMap((section) => section.availableProducts.map((product) => product.id))).toEqual([
+      'ocean-party',
+      'sea-sponge',
+      'prod-birthday-cake',
+      'prod-paw-cookie'
+    ]);
+    expect(getProductDisplayPrice(getProductById('prod-birthday-cake')!, '4-inch')).toBe(168);
+  });
+
   it('resolves OSS product asset references to role-specific display URLs', () => {
     const product = resolveCatalogProductAssetUrls({
       id: 'asset-cake',

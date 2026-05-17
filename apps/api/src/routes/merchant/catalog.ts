@@ -32,4 +32,9 @@ export async function merchantCatalogRoutes(
     const params = request.params as { productId: string };
     return dependencies.catalogService.upsertMerchantProduct(request.merchant, params.productId, request.body);
   });
+
+  app.delete('/products/:productId', merchantGuard, async (request) => {
+    const params = request.params as { productId: string };
+    return dependencies.catalogService.deleteMerchantProduct(request.merchant, params.productId);
+  });
 }

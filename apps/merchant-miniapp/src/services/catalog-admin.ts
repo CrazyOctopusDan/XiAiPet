@@ -294,6 +294,26 @@ export async function queryProducts(categoryId = '', request: MerchantApiRequest
   return response.products ?? [];
 }
 
+export function applyProductCountsToCategories(
+  categories: MerchantCategoryListItem[],
+  products: Pick<CatalogProductAdminRecord, 'categoryId'>[]
+): MerchantCategoryListItem[] {
+  const productCounts = products.reduce<Record<string, number>>((counts, product) => {
+    counts[product.categoryId] = (counts[product.categoryId] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  return categories.map((category) => {
+    const linkedProductCount = productCounts[category.id] ?? 0;
+
+    return {
+      ...category,
+      linkedProductCount,
+      canDelete: linkedProductCount === 0
+    };
+  });
+}
+
 export function getProductPageViewModel(
   products: CatalogProductAdminRecord[],
   categories: MerchantCategoryListItem[],
@@ -464,4 +484,13 @@ export async function saveProduct(payload: CatalogProductEditorPayload, request:
   });
 
   return response.product;
+}
+
+export async function deleteProduct(productId: string, request: MerchantApiRequester = merchantApiRequest) {
+  await request<{ ok?: boolean; deletedProductId?: string }>(`/api/v1/merchant/products/${productId}`, {
+    method: 'DELETE',
+    auth: 'merchant'
+  });
+
+  return productId;
 }

@@ -1,7 +1,7 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import { getPets, type PetProfile } from '../../src/services/pets';
+import { getPets, hydratePets, type PetProfile } from '../../src/services/pets';
 
 interface PetsPageData {
   pets: PetProfile[];
@@ -10,7 +10,7 @@ interface PetsPageData {
 interface PetsPageInstance {
   data: PetsPageData;
   setData(data: Record<string, unknown>): void;
-  refreshPets(): void;
+  refreshPets(): Promise<void>;
 }
 
 Page({
@@ -18,9 +18,18 @@ Page({
     pets: []
   },
   onShow(this: PetsPageInstance) {
-    this.refreshPets();
+    void this.refreshPets();
   },
-  refreshPets(this: PetsPageInstance) {
+  async refreshPets(this: PetsPageInstance) {
+    this.setData({
+      pets: getPets()
+    });
+
+    try {
+      await hydratePets();
+    } catch {
+      // Keep the latest local snapshot visible if the network is unavailable.
+    }
     this.setData({
       pets: getPets()
     });

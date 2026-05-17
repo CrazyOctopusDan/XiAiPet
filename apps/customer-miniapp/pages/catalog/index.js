@@ -35,7 +35,13 @@ Page({
         expandedSoldOutCategoryIds: [],
         scrollIntoViewTarget: ''
     },
-    onLoad() {
+    async onLoad() {
+        try {
+            await (0, catalog_1.hydrateCatalog)();
+        }
+        catch (_a) {
+            // Keep the local fallback catalog usable when the customer API is unreachable.
+        }
         this.refreshSections(this.data.activeDeliveryMode);
     },
     onReady() {
@@ -48,6 +54,7 @@ Page({
         var _a, _b, _c, _d;
         const sections = toPageSections(mode, expandedCategoryIds);
         this.setData({
+            categories: (0, catalog_1.getCatalogCategories)(),
             sections,
             activeDeliveryMode: mode,
             activeCategoryId: (_b = (_a = sections[0]) === null || _a === void 0 ? void 0 : _a.category.id) !== null && _b !== void 0 ? _b : '',
@@ -59,13 +66,16 @@ Page({
         });
     },
     syncCartState() {
+        var _a, _b, _c, _d, _e, _f;
+        const sections = toPageSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
         this.setData({
             cartCount: (0, cart_1.getCartCount)(),
-            sections: this.data.sections.map((section) => ({
-                ...section,
-                availableProducts: section.availableProducts.map(withCartQuantity),
-                soldOutProducts: section.soldOutProducts.map(withCartQuantity)
-            }))
+            categories: (0, catalog_1.getCatalogCategories)(),
+            sections,
+            activeCategoryId: sections.some((section) => section.category.id === this.data.activeCategoryId)
+                ? this.data.activeCategoryId
+                : (_b = (_a = sections[0]) === null || _a === void 0 ? void 0 : _a.category.id) !== null && _b !== void 0 ? _b : '',
+            activeSectionSubtitle: (_f = (_d = (_c = sections.find((section) => section.category.id === this.data.activeCategoryId)) === null || _c === void 0 ? void 0 : _c.category.sectionTitle) !== null && _d !== void 0 ? _d : (_e = sections[0]) === null || _e === void 0 ? void 0 : _e.category.sectionTitle) !== null && _f !== void 0 ? _f : ''
         }, () => {
             this.updateSectionMetrics();
         });

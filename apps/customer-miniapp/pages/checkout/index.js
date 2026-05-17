@@ -90,7 +90,22 @@ Page({
     },
     onShow() {
         this.refreshCheckout();
+        void this.refreshCustomerContext();
         void this.refreshRuntimeConfig();
+    },
+    async refreshCustomerContext() {
+        try {
+            await Promise.all([
+                (0, address_1.hydrateAddresses)(),
+                (0, pets_1.hydratePets)()
+            ]);
+        }
+        catch (_a) {
+            // Checkout can still render with the last local snapshot.
+        }
+        finally {
+            this.refreshCheckout();
+        }
     },
     async refreshRuntimeConfig() {
         try {
