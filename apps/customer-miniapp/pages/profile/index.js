@@ -69,6 +69,12 @@ Page({
         });
     },
     handleBalanceTap() {
+        if (!(0, profile_1.hasBoundPhone)()) {
+            wx.navigateTo({
+                url: (0, profile_1.getPhoneBindingRedirectUrl)('/pages/balance/index')
+            });
+            return;
+        }
         wx.navigateTo({
             url: '/pages/balance/index'
         });

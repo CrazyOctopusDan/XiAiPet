@@ -7,6 +7,7 @@ import {
   hydrateBalance,
   type MonthlyBalanceGroup
 } from '../../src/services/balance';
+import { getPhoneBindingRedirectUrl, hasBoundPhone, hydrateProfile } from '../../src/services/profile';
 
 interface BalancePageData {
   overview: {
@@ -36,6 +37,19 @@ Page({
       overview: getBalanceOverview(),
       groups: getMonthlyBalanceGroups()
     });
+
+    try {
+      await hydrateProfile();
+    } catch {
+      // Keep the local profile snapshot when the network is unavailable.
+    }
+
+    if (!hasBoundPhone()) {
+      wx.redirectTo({
+        url: getPhoneBindingRedirectUrl('/pages/balance/index')
+      });
+      return;
+    }
 
     try {
       await hydrateBalance();

@@ -7,6 +7,8 @@ exports.saveProfile = saveProfile;
 exports.hydrateProfile = hydrateProfile;
 exports.setBirthday = setBirthday;
 exports.getProfileSummary = getProfileSummary;
+exports.hasBoundPhone = hasBoundPhone;
+exports.getPhoneBindingRedirectUrl = getPhoneBindingRedirectUrl;
 const api_client_1 = require("./api-client");
 const initialProfile = {
     avatarText: '虾',
@@ -79,4 +81,11 @@ function getProfileSummary() {
         birthdayLabel: profile.birthday || '未设置生日',
         contactPhoneLabel: profile.contactPhoneMasked || '未绑定手机号'
     };
+}
+function hasBoundPhone(input = profile) {
+    return Boolean(input.contactPhoneMasked.trim());
+}
+function getPhoneBindingRedirectUrl(redirectUrl) {
+    const baseUrl = '/pages/contact-bind/index';
+    return redirectUrl ? `${baseUrl}?redirect=${encodeURIComponent(redirectUrl)}` : baseUrl;
 }

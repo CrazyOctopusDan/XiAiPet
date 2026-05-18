@@ -1,7 +1,7 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import { getProfileSummary, hydrateProfile } from '../../src/services/profile';
+import { getPhoneBindingRedirectUrl, getProfileSummary, hasBoundPhone, hydrateProfile } from '../../src/services/profile';
 
 interface ProfilePageData {
   summary: ReturnType<typeof getProfileSummary>;
@@ -84,6 +84,13 @@ Page({
     });
   },
   handleBalanceTap() {
+    if (!hasBoundPhone()) {
+      wx.navigateTo({
+        url: getPhoneBindingRedirectUrl('/pages/balance/index')
+      });
+      return;
+    }
+
     wx.navigateTo({
       url: '/pages/balance/index'
     });

@@ -84,6 +84,15 @@ function normalizeProfile(value: unknown): CustomerProfileRecord | undefined {
   };
 }
 
+function toMaskedPhoneSearchQuery(query: string) {
+  const digits = query.replace(/\D/g, '');
+  if (digits.length < 7) {
+    return null;
+  }
+  const localDigits = digits.length > 11 ? digits.slice(-11) : digits;
+  return `${localDigits.slice(0, 3)}****${localDigits.slice(-4)}`;
+}
+
 export function mapUser(row: UserRow): UserRecord {
   return {
     openid: row.openid,
@@ -184,12 +193,16 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
     },
 
     async searchUsers(query: string, limit = 20): Promise<MerchantUserSearchItem[]> {
+      const trimmedQuery = query.trim();
+      const maskedPhoneQuery = toMaskedPhoneSearchQuery(trimmedQuery);
       const users = await client.user.findMany({
         where: {
+          phoneBindingState: PHONE_BINDING_STATE.bound,
           OR: [
-            { openid: { contains: query } },
-            { contactPhoneMasked: { contains: query } },
-            { profile: { path: '$.nickname', string_contains: query } }
+            { openid: { contains: trimmedQuery } },
+            { contactPhoneMasked: { contains: trimmedQuery } },
+            ...(maskedPhoneQuery ? [{ contactPhoneMasked: { contains: maskedPhoneQuery } }] : []),
+            { profile: { path: '$.nickname', string_contains: trimmedQuery } }
           ]
         },
         include: {

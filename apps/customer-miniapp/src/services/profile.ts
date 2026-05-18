@@ -120,3 +120,12 @@ export function getProfileSummary() {
     contactPhoneLabel: profile.contactPhoneMasked || '未绑定手机号'
   };
 }
+
+export function hasBoundPhone(input: Pick<CustomerProfile, 'contactPhoneMasked'> = profile) {
+  return Boolean(input.contactPhoneMasked.trim());
+}
+
+export function getPhoneBindingRedirectUrl(redirectUrl?: string) {
+  const baseUrl = '/pages/contact-bind/index';
+  return redirectUrl ? `${baseUrl}?redirect=${encodeURIComponent(redirectUrl)}` : baseUrl;
+}

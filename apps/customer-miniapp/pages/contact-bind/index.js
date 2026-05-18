@@ -8,6 +8,18 @@ function maskPhone(phoneNumber) {
     }
     return `${phoneNumber.slice(0, 3)}****${phoneNumber.slice(-4)}`;
 }
+function resolveRedirectUrl(value) {
+    if (!value) {
+        return '';
+    }
+    try {
+        const decoded = decodeURIComponent(value);
+        return decoded.startsWith('/pages/') ? decoded : '';
+    }
+    catch (_a) {
+        return '';
+    }
+}
 Page({
     data: {
         submitting: false,
@@ -16,7 +28,13 @@ Page({
         privacyAuthorizationRequired: false,
         privacyContractName: '隐私保护指引',
         manualPhone: '',
-        manualCountryCode: '+86'
+        manualCountryCode: '+86',
+        redirectUrl: ''
+    },
+    onLoad(options) {
+        this.setData({
+            redirectUrl: resolveRedirectUrl(options === null || options === void 0 ? void 0 : options.redirect)
+        });
     },
     onShow() {
         var _a;
@@ -97,6 +115,11 @@ Page({
                 contactPhoneMasked: (_b = (_a = result.update) === null || _a === void 0 ? void 0 : _a.contactPhoneMasked) !== null && _b !== void 0 ? _b : fallbackMaskedPhone
             });
             this.setData({ submitting: false, statusText: '联系方式已安全保存', statusTone: 'success' });
+            if (this.data.redirectUrl) {
+                wx.redirectTo({
+                    url: this.data.redirectUrl
+                });
+            }
         }
         catch (error) {
             console.error('contact bind failed', error);

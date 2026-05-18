@@ -992,6 +992,7 @@ describe('cart checkout flow', () => {
 
   it('renders the profile hub as a balance-first account dashboard without the intro copy', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile/index.ts');
+    const { updateProfile } = await import('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/src/services/profile');
     const { readFile } = await import('node:fs/promises');
     const instance = createPageInstance(page);
 
@@ -1031,6 +1032,13 @@ describe('cart checkout flow', () => {
     instance.handleBalanceTap();
 
     expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/contact-bind/index?redirect=%2Fpages%2Fbalance%2Findex'
+    });
+
+    updateProfile({ contactPhoneMasked: '138****1234' });
+    instance.handleBalanceTap();
+
+    expect(wx.navigateTo).toHaveBeenLastCalledWith({
       url: '/pages/balance/index'
     });
 
@@ -1049,9 +1057,11 @@ describe('cart checkout flow', () => {
 
   it('renders the balance ledger page without the old hero title copy', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/balance/index.ts');
+    const { updateProfile } = await import('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/src/services/profile');
     const { readFile } = await import('node:fs/promises');
     const instance = createPageInstance(page);
 
+    updateProfile({ contactPhoneMasked: '138****1234' });
     instance.onShow();
 
     expect(instance.data.overview).toMatchObject({
@@ -1085,6 +1095,17 @@ describe('cart checkout flow', () => {
     expect(balanceStyles).toContain('.ledger-amount-wrap.income .ledger-amount');
     expect(balanceStyles).not.toContain('.balance-hero');
     expect(balanceStyles).not.toContain('.balance-title');
+  });
+
+  it('redirects unbound users from the balance page to phone binding before recharge context', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/balance/index.ts');
+    const instance = createPageInstance(page);
+
+    await instance.refreshBalance();
+
+    expect(wx.redirectTo).toHaveBeenCalledWith({
+      url: '/pages/contact-bind/index?redirect=%2Fpages%2Fbalance%2Findex'
+    });
   });
 
   it('derives profile top spacing from the WeChat capsule metrics instead of a fixed rpx value', async () => {
@@ -1141,6 +1162,25 @@ describe('cart checkout flow', () => {
     expect(contactStyles).toContain('background: linear-gradient(180deg, #FFF7ED 0%, #FFFDF4 64%, #F8E7C3 100%)');
     expect(contactStyles).toContain('.status-card.error');
     expect(detailStyles).toContain('background: radial-gradient(circle at 12% 0%, #FFE6A3 0, transparent 34%)');
+  });
+
+  it('returns to the requested balance page after phone binding succeeds', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.onLoad({
+      redirect: encodeURIComponent('/pages/balance/index')
+    });
+    await instance.handleWechatPhone({
+      detail: {
+        errMsg: 'getPhoneNumber:ok',
+        code: 'wechat-phone-code'
+      }
+    });
+
+    expect(wx.redirectTo).toHaveBeenCalledWith({
+      url: '/pages/balance/index'
+    });
   });
 
   it('does not call bindPhone or expose cloud errors when WeChat returns neither code nor phone number', async () => {

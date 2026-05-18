@@ -12,11 +12,13 @@ interface ContactBindPageData {
   privacyContractName: string;
   manualPhone: string;
   manualCountryCode: string;
+  redirectUrl: string;
 }
 
 interface ContactBindPageInstance {
   data: ContactBindPageData;
   setData(data: Record<string, unknown>): void;
+  onLoad(options?: { redirect?: string }): void;
   commit(action: () => Promise<unknown>, fallbackMaskedPhone?: string): Promise<void>;
 }
 
@@ -28,6 +30,19 @@ function maskPhone(phoneNumber: string) {
   return `${phoneNumber.slice(0, 3)}****${phoneNumber.slice(-4)}`;
 }
 
+function resolveRedirectUrl(value?: string) {
+  if (!value) {
+    return '';
+  }
+
+  try {
+    const decoded = decodeURIComponent(value);
+    return decoded.startsWith('/pages/') ? decoded : '';
+  } catch {
+    return '';
+  }
+}
+
 Page({
   data: {
     submitting: false,
@@ -36,7 +51,13 @@ Page({
     privacyAuthorizationRequired: false,
     privacyContractName: '隐私保护指引',
     manualPhone: '',
-    manualCountryCode: '+86'
+    manualCountryCode: '+86',
+    redirectUrl: ''
+  },
+  onLoad(this: ContactBindPageInstance, options?: { redirect?: string }) {
+    this.setData({
+      redirectUrl: resolveRedirectUrl(options?.redirect)
+    });
   },
   onShow(this: ContactBindPageInstance) {
     wx.getPrivacySetting?.({
@@ -126,6 +147,11 @@ Page({
         contactPhoneMasked: result.update?.contactPhoneMasked ?? fallbackMaskedPhone
       });
       this.setData({ submitting: false, statusText: '联系方式已安全保存', statusTone: 'success' });
+      if (this.data.redirectUrl) {
+        wx.redirectTo({
+          url: this.data.redirectUrl
+        });
+      }
     } catch (error) {
       console.error('contact bind failed', error);
       this.setData({

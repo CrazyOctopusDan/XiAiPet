@@ -4,6 +4,8 @@ import {
   getProfile,
   getProfileSummary,
   hydrateProfile,
+  hasBoundPhone,
+  getPhoneBindingRedirectUrl,
   resetProfile,
   saveProfile,
   setBirthday,
@@ -74,6 +76,14 @@ describe('profile service', () => {
 
     expect(summary.birthdayLabel).toBe('2020-08-18');
     expect(summary.contactPhoneLabel).toBe('138****1234');
+    expect(hasBoundPhone()).toBe(true);
+  });
+
+  it('builds a phone binding redirect for balance entry when the profile is unbound', () => {
+    expect(hasBoundPhone()).toBe(false);
+    expect(getPhoneBindingRedirectUrl('/pages/balance/index')).toBe(
+      '/pages/contact-bind/index?redirect=%2Fpages%2Fbalance%2Findex'
+    );
   });
 
   it('persists profile updates through the customer profile API', async () => {
