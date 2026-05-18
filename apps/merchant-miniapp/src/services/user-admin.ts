@@ -122,6 +122,16 @@ function getCurrentMerchantOperator() {
   };
 }
 
+function getBalanceAdjustmentShortNote(delta: number) {
+  if (delta > 0) {
+    return `增加 ${formatMoney(delta)}`;
+  }
+  if (delta < 0) {
+    return `扣减 ${formatMoney(Math.abs(delta))}`;
+  }
+  return '余额未变化';
+}
+
 export async function queryMerchantUsers(input: MerchantUserSearchInput, request: MerchantApiRequester = merchantApiRequest) {
   const response = await request<{
     ok?: boolean;
@@ -247,8 +257,8 @@ export async function submitBalanceAdjustment(
     ok?: boolean;
     balanceAfter: number;
     ledger: {
-      normalizedTitle: string;
-      shortNote: string;
+      normalizedTitle?: string;
+      shortNote?: string;
     };
   }>(`/api/v1/merchant/users/${draft.user.openid}/balance-adjustments`, {
     method: 'POST',
@@ -258,8 +268,8 @@ export async function submitBalanceAdjustment(
 
   const cache = readUserDetailCache();
   cache[draft.user.openid] = {
-    normalizedTitle: response.ledger.normalizedTitle,
-    shortNote: response.ledger.shortNote,
+    normalizedTitle: response.ledger.normalizedTitle ?? draft.reasonType,
+    shortNote: response.ledger.shortNote ?? getBalanceAdjustmentShortNote(draft.delta),
     operatedAt: payload.operatedAt,
     operatorName: operator.name
   };

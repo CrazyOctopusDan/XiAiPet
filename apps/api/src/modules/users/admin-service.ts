@@ -11,6 +11,20 @@ interface MerchantUserBalanceAdjustmentPayload {
   delta: number;
 }
 
+function formatMoney(value: number) {
+  return `￥${Math.abs(value).toFixed(2)}`;
+}
+
+function getBalanceAdjustmentShortNote(delta: number) {
+  if (delta > 0) {
+    return `增加 ${formatMoney(delta)}`;
+  }
+  if (delta < 0) {
+    return `扣减 ${formatMoney(delta)}`;
+  }
+  return '余额未变化';
+}
+
 function isMerchantUserBalanceAdjustmentPayload(value: unknown): value is MerchantUserBalanceAdjustmentPayload {
   if (!value || typeof value !== 'object') {
     return false;
@@ -32,7 +46,7 @@ export function createMerchantUserService(
 ) {
   return {
     async searchMerchantUsers(_merchantContext: MerchantContext, query: { query?: string; searchField?: string }) {
-      const users = query.query ? await userRepository.searchUsers(query.query, 20) : [];
+      const users = await userRepository.searchUsers(query.query ?? '', 20);
       return { ok: true as const, users };
     },
 
@@ -56,7 +70,11 @@ export function createMerchantUserService(
       return {
         ok: true as const,
         balanceAfter: ledger.balanceAfter,
-        ledger
+        ledger: {
+          ...ledger,
+          normalizedTitle: payload.reasonType || '余额调整',
+          shortNote: getBalanceAdjustmentShortNote(payload.delta)
+        }
       };
     }
   };

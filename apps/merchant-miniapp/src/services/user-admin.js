@@ -49,6 +49,15 @@ function getCurrentMerchantOperator() {
         name: account.username
     };
 }
+function getBalanceAdjustmentShortNote(delta) {
+    if (delta > 0) {
+        return `增加 ${formatMoney(delta)}`;
+    }
+    if (delta < 0) {
+        return `扣减 ${formatMoney(Math.abs(delta))}`;
+    }
+    return '余额未变化';
+}
 async function queryMerchantUsers(input, request = api_client_1.merchantApiRequest) {
     var _a;
     const response = await request('/api/v1/merchant/users', {
@@ -139,6 +148,7 @@ function buildBalanceAdjustmentDraft(user, input) {
     };
 }
 async function submitBalanceAdjustment(draft, request = api_client_1.merchantApiRequest, storage) {
+    var _a, _b;
     const operator = getCurrentMerchantOperator();
     const payload = {
         userOpenid: draft.user.openid,
@@ -160,8 +170,8 @@ async function submitBalanceAdjustment(draft, request = api_client_1.merchantApi
     });
     const cache = readUserDetailCache();
     cache[draft.user.openid] = {
-        normalizedTitle: response.ledger.normalizedTitle,
-        shortNote: response.ledger.shortNote,
+        normalizedTitle: (_a = response.ledger.normalizedTitle) !== null && _a !== void 0 ? _a : draft.reasonType,
+        shortNote: (_b = response.ledger.shortNote) !== null && _b !== void 0 ? _b : getBalanceAdjustmentShortNote(draft.delta),
         operatedAt: payload.operatedAt,
         operatorName: operator.name
     };

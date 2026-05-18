@@ -3,6 +3,25 @@ import { describe, expect, it, vi } from 'vitest';
 import { createUserRepository } from './repository';
 
 describe('user repository', () => {
+  it('lists bound merchant users when no search query is provided', async () => {
+    const findMany = vi.fn(async () => []);
+    const repository = createUserRepository({
+      user: {
+        findMany
+      }
+    } as any);
+
+    await expect(repository.searchUsers('')).resolves.toEqual([]);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          phoneBindingState: 'BOUND'
+        },
+        take: 20
+      })
+    );
+  });
+
   it('matches merchant user search by a full phone number against the masked phone stored on users', async () => {
     const findMany = vi.fn(async () => [
       {

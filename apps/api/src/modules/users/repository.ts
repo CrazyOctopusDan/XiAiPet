@@ -195,16 +195,21 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
     async searchUsers(query: string, limit = 20): Promise<MerchantUserSearchItem[]> {
       const trimmedQuery = query.trim();
       const maskedPhoneQuery = toMaskedPhoneSearchQuery(trimmedQuery);
+      const where = trimmedQuery
+        ? {
+            phoneBindingState: PHONE_BINDING_STATE.bound,
+            OR: [
+              { openid: { contains: trimmedQuery } },
+              { contactPhoneMasked: { contains: trimmedQuery } },
+              ...(maskedPhoneQuery ? [{ contactPhoneMasked: { contains: maskedPhoneQuery } }] : []),
+              { profile: { path: '$.nickname', string_contains: trimmedQuery } }
+            ]
+          }
+        : {
+            phoneBindingState: PHONE_BINDING_STATE.bound
+          };
       const users = await client.user.findMany({
-        where: {
-          phoneBindingState: PHONE_BINDING_STATE.bound,
-          OR: [
-            { openid: { contains: trimmedQuery } },
-            { contactPhoneMasked: { contains: trimmedQuery } },
-            ...(maskedPhoneQuery ? [{ contactPhoneMasked: { contains: maskedPhoneQuery } }] : []),
-            { profile: { path: '$.nickname', string_contains: trimmedQuery } }
-          ]
-        },
+        where,
         include: {
           balanceAccount: true
         },

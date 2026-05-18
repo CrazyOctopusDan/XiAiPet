@@ -15,6 +15,9 @@ Page({
         }
     },
     lastUsers: [],
+    onLoad() {
+        void this.refreshUsers();
+    },
     handleQueryInput(event) {
         var _a, _b;
         this.setData({
@@ -29,13 +32,6 @@ Page({
         });
     },
     async handleSearchSubmit() {
-        if (!this.data.draftQuery.trim()) {
-            wx.showToast({
-                title: '请输入搜索关键词',
-                icon: 'none'
-            });
-            return;
-        }
         await this.refreshUsers();
     },
     async refreshUsers() {
@@ -65,6 +61,7 @@ Page({
                 tierCount: 0
             }
         });
+        void this.refreshUsers();
     },
     handleOpenUser(event) {
         var _a, _b;

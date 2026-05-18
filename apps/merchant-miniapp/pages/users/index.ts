@@ -35,6 +35,9 @@ Page({
     }
   },
   lastUsers: [],
+  onLoad(this: UsersPageInstance) {
+    void this.refreshUsers();
+  },
   handleQueryInput(this: UsersPageInstance, event: { detail?: { value?: string } }) {
     this.setData({
       draftQuery: event.detail?.value ?? ''
@@ -50,14 +53,6 @@ Page({
     });
   },
   async handleSearchSubmit(this: UsersPageInstance) {
-    if (!this.data.draftQuery.trim()) {
-      wx.showToast({
-        title: '请输入搜索关键词',
-        icon: 'none'
-      });
-      return;
-    }
-
     await this.refreshUsers();
   },
   async refreshUsers(this: UsersPageInstance) {
@@ -89,6 +84,7 @@ Page({
         tierCount: 0
       }
     });
+    void this.refreshUsers();
   },
   handleOpenUser(this: UsersPageInstance, event: { currentTarget?: { dataset?: { openid?: string } } }) {
     const openid = event.currentTarget?.dataset?.openid;

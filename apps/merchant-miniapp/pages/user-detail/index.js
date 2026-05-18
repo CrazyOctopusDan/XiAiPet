@@ -123,28 +123,38 @@ Page({
                 ? '请确认本次余额调整，提交后将生成流水记录。'
                 : '请确认本次余额调整，提交后将生成流水记录。',
             success: async (result) => {
+                var _a;
                 if (!result.confirm) {
                     return;
                 }
                 this.setData({ submitting: true });
-                await (0, user_admin_1.submitBalanceAdjustment)(draft);
-                const updatedUser = {
-                    ...this.data.user,
-                    currentBalance: draft.afterBalance
-                };
-                wx.setStorageSync('merchant-selected-user', updatedUser);
-                this.setData({
-                    submitting: false,
-                    drawerOpen: false,
-                    user: updatedUser,
-                    amountText: '',
-                    note: ''
-                });
-                this.refreshDetail();
-                wx.showToast({
-                    title: '确认余额调整',
-                    icon: 'success'
-                });
+                try {
+                    const response = await (0, user_admin_1.submitBalanceAdjustment)(draft);
+                    const updatedUser = {
+                        ...this.data.user,
+                        currentBalance: (_a = response.balanceAfter) !== null && _a !== void 0 ? _a : draft.afterBalance
+                    };
+                    wx.setStorageSync('merchant-selected-user', updatedUser);
+                    this.setData({
+                        submitting: false,
+                        drawerOpen: false,
+                        user: updatedUser,
+                        amountText: '',
+                        note: ''
+                    });
+                    this.refreshDetail();
+                    wx.showToast({
+                        title: '调整成功',
+                        icon: 'success'
+                    });
+                }
+                catch (error) {
+                    this.setData({ submitting: false });
+                    wx.showToast({
+                        title: error instanceof Error ? error.message : '调整失败，请重试',
+                        icon: 'none'
+                    });
+                }
             }
         });
     }

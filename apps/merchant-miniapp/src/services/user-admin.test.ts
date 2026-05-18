@@ -49,7 +49,7 @@ describe('user admin service', () => {
     vi.unstubAllGlobals();
   });
 
-  it('queries merchant users only on explicit submit payloads', async () => {
+  it('queries merchant users with the submitted payload', async () => {
     const request = vi.fn().mockResolvedValue({
       ok: true,
       users: [createUser()]
@@ -67,6 +67,31 @@ describe('user admin service', () => {
       method: 'GET',
       query: {
         query: '138',
+        searchField: 'phone'
+      },
+      auth: 'merchant'
+    });
+    expect(users).toHaveLength(1);
+  });
+
+  it('queries all merchant users when the search payload is empty', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      users: [createUser()]
+    });
+
+    const users = await queryMerchantUsers(
+      {
+        query: '',
+        searchField: 'phone'
+      },
+      request
+    );
+
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/users', {
+      method: 'GET',
+      query: {
+        query: '',
         searchField: 'phone'
       },
       auth: 'merchant'
@@ -154,6 +179,39 @@ describe('user admin service', () => {
     });
     expect(storageWriter).toHaveBeenCalled();
     expect(result.balanceAfter).toBe(238);
+  });
+
+  it('normalizes legacy balance adjustment responses without freezing the detail page submit state', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      balanceAfter: 1188,
+      ledger: {
+        ledgerId: 'ledger-1'
+      }
+    });
+    const storageWriter = vi.fn();
+
+    const result = await submitBalanceAdjustment(
+      buildBalanceAdjustmentDraft(createUser(), {
+        action: 'add',
+        amountText: '1000',
+        reasonType: '线下收款',
+        note: '线下充值了'
+      }),
+      request,
+      storageWriter
+    );
+
+    expect(result.balanceAfter).toBe(1188);
+    expect(storageWriter).toHaveBeenCalledWith(
+      'merchant-user-detail-cache',
+      expect.objectContaining({
+        'user-openid': expect.objectContaining({
+          normalizedTitle: '线下收款',
+          shortNote: '增加 ￥1000.00'
+        })
+      })
+    );
   });
 
   it('builds user detail cards with current balance and latest known operation summary', () => {

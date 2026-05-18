@@ -172,25 +172,32 @@ Page({
 
         this.setData({ submitting: true });
 
-        await submitBalanceAdjustment(draft);
-
-        const updatedUser = {
-          ...this.data.user,
-          currentBalance: draft.afterBalance
-        };
-        wx.setStorageSync('merchant-selected-user', updatedUser);
-        this.setData({
-          submitting: false,
-          drawerOpen: false,
-          user: updatedUser,
-          amountText: '',
-          note: ''
-        });
-        this.refreshDetail();
-        wx.showToast({
-          title: '确认余额调整',
-          icon: 'success'
-        });
+        try {
+          const response = await submitBalanceAdjustment(draft);
+          const updatedUser = {
+            ...this.data.user,
+            currentBalance: response.balanceAfter ?? draft.afterBalance
+          };
+          wx.setStorageSync('merchant-selected-user', updatedUser);
+          this.setData({
+            submitting: false,
+            drawerOpen: false,
+            user: updatedUser,
+            amountText: '',
+            note: ''
+          });
+          this.refreshDetail();
+          wx.showToast({
+            title: '调整成功',
+            icon: 'success'
+          });
+        } catch (error) {
+          this.setData({ submitting: false });
+          wx.showToast({
+            title: error instanceof Error ? error.message : '调整失败，请重试',
+            icon: 'none'
+          });
+        }
       }
     });
   }
