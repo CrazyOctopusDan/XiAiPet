@@ -1000,7 +1000,7 @@ describe('cart checkout flow', () => {
 
     expect(instance.data.summary).toMatchObject({
       balance: 268,
-      nickname: '虾衣宠家长'
+      nickname: '喜爱宠家长'
     });
 
     const profileTemplate = await readFile(

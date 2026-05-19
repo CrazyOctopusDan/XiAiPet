@@ -3,6 +3,57 @@ import { describe, expect, it, vi } from 'vitest';
 import { createUserRepository } from './repository';
 
 describe('user repository', () => {
+  it('loads merchant user detail with the latest balance ledger summary', async () => {
+    const repository = createUserRepository({
+      user: {
+        findUnique: vi.fn(async () => ({
+          openid: 'openid-1',
+          status: 'active',
+          phoneBindingState: 'BOUND',
+          contactPhoneMasked: '188****6099',
+          contactPhoneCountryCode: '+86',
+          lastLoginAt: new Date('2026-05-16T00:00:00.000Z'),
+          createdAt: new Date('2026-05-16T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-18T11:35:00.000Z'),
+          profile: {
+            nickname: '虾衣宠家长'
+          },
+          balanceAccount: {
+            balance: {
+              toNumber: () => 1000
+            }
+          }
+        }))
+      },
+      balanceLedger: {
+        findFirst: vi.fn(async () => ({
+          id: 'ledger-1',
+          type: 'MANUAL_ADJUSTMENT',
+          amountDelta: {
+            toNumber: () => 1000
+          },
+          reason: '线下收款: 线下充值了',
+          operatorName: 'admin',
+          createdAt: new Date('2026-05-18T11:35:00.000Z')
+        }))
+      }
+    } as any);
+
+    await expect(repository.getMerchantUserDetail('openid-1')).resolves.toMatchObject({
+      ok: true,
+      user: {
+        openid: 'openid-1',
+        currentBalance: 1000,
+        latestAdjustment: {
+          normalizedTitle: '线下收款',
+          shortNote: '增加 ￥1000.00',
+          operatorName: 'admin',
+          operatedAt: '2026-05-18T11:35:00.000Z'
+        }
+      }
+    });
+  });
+
   it('lists bound merchant users when no search query is provided', async () => {
     const findMany = vi.fn(async () => []);
     const repository = createUserRepository({

@@ -15,6 +15,17 @@ export interface MerchantUserSearchListItem {
   currentBalance: number;
 }
 
+export interface MerchantLatestAdjustmentSummary {
+  normalizedTitle: string;
+  shortNote: string;
+  operatedAt: string;
+  operatorName: string;
+}
+
+export interface MerchantUserDetail extends MerchantUserSearchListItem {
+  latestAdjustment: MerchantLatestAdjustmentSummary | null;
+}
+
 export interface MerchantUserSearchResult {
   users: MerchantUserSearchListItem[];
 }

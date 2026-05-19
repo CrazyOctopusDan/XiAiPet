@@ -7,6 +7,7 @@ import type {
   CatalogProductEditorPayload,
   CatalogProductEditorStep
 } from '@xiaipet/shared/types/catalog-admin';
+import type { OssAssetReference } from '@xiaipet/shared/types/assets';
 
 import {
   createEmptyProductEditorPayload,
@@ -15,7 +16,8 @@ import {
   queryProducts,
   saveProduct,
   splitProductEditorPayload,
-  uploadProductCoverAsset
+  uploadProductCoverAsset,
+  uploadProductDetailAsset
 } from '../../src/services/catalog-admin';
 
 interface ProductEditorPageData {
@@ -60,6 +62,54 @@ function updateFormulaRow(draft: CatalogProductEditorPayload, index: number, key
   };
 }
 
+function assetToStorageId(asset: OssAssetReference) {
+  return `oss://${asset.bucket}/${asset.objectKey}`;
+}
+
+function getDraftBasicImageAssets(draft: CatalogProductEditorPayload): OssAssetReference[] {
+  if (draft.basicInfo.introductionImageAssets?.length) {
+    return draft.basicInfo.introductionImageAssets.slice(0, 3);
+  }
+
+  return draft.basicInfo.imageAsset ? [draft.basicInfo.imageAsset] : [];
+}
+
+function applyBasicImageAssets(
+  draft: CatalogProductEditorPayload,
+  assets: OssAssetReference[]
+): CatalogProductEditorPayload {
+  const normalizedAssets = assets.slice(0, 3);
+  const cover = normalizedAssets[0];
+
+  return {
+    ...draft,
+    basicInfo: {
+      ...draft.basicInfo,
+      imageFileId: cover ? assetToStorageId(cover) : '',
+      imageAsset: cover,
+      imagePreviewUrl: cover?.url ?? '',
+      introductionImageAssets: normalizedAssets
+    }
+  };
+}
+
+function getDraftDetailImageAssets(draft: CatalogProductEditorPayload): OssAssetReference[] {
+  return (draft.basicInfo.detailImageAssets ?? []).slice(0, 9);
+}
+
+function applyDetailImageAssets(
+  draft: CatalogProductEditorPayload,
+  assets: OssAssetReference[]
+): CatalogProductEditorPayload {
+  return {
+    ...draft,
+    basicInfo: {
+      ...draft.basicInfo,
+      detailImageAssets: assets.slice(0, 9)
+    }
+  };
+}
+
 Page({
   data: {
     loading: true,
@@ -75,23 +125,31 @@ Page({
   },
   async hydrateEditor(this: ProductEditorPageInstance, productId = '', categoryId = '') {
     this.setData({ loading: true });
-    const categories = await queryCategories();
-    let draft = createDraft(categoryId);
+    try {
+      const categories = await queryCategories();
+      let draft = createDraft(categoryId);
 
-    if (productId) {
-      const products = await queryProducts();
-      const product = products.find((item) => item.id === productId) as CatalogProductAdminRecord | undefined;
+      if (productId) {
+        const products = await queryProducts();
+        const product = products.find((item) => item.id === productId) as CatalogProductAdminRecord | undefined;
 
-      if (product) {
-        draft = splitProductEditorPayload(product);
+        if (product) {
+          draft = splitProductEditorPayload(product);
+        }
       }
-    }
 
-    this.setData({
-      loading: false,
-      categories
-    });
-    refreshEditorView(this, draft, 'basicInfo');
+      this.setData({
+        loading: false,
+        categories
+      });
+      refreshEditorView(this, draft, 'basicInfo');
+    } catch {
+      this.setData({ loading: false });
+      wx.showToast({
+        title: '商品加载失败',
+        icon: 'none'
+      });
+    }
   },
   handleStepTap(this: ProductEditorPageInstance, event: { currentTarget?: { dataset?: { step?: CatalogProductEditorStep } } }) {
     const step = event.currentTarget?.dataset?.step;
@@ -123,28 +181,45 @@ Page({
     const draft = { ...this.data.draft, basicInfo: { ...this.data.draft.basicInfo, categoryId } };
     refreshEditorView(this, draft, this.data.activeStep);
   },
-  async handleUploadImage(this: ProductEditorPageInstance) {
-    wx.chooseImage({
-      count: 1,
-      success: async (result: { tempFilePaths?: string[] }) => {
-        const filePath = result.tempFilePaths?.[0];
+  async handleUploadImage(this: ProductEditorPageInstance, event?: { currentTarget?: { dataset?: { index?: string } } }) {
+    const replaceIndexValue = event?.currentTarget?.dataset?.index;
+    const replaceIndex = replaceIndexValue === undefined ? -1 : Number(replaceIndexValue);
+    const currentAssets = getDraftBasicImageAssets(this.data.draft);
+    const remainingSlots = Math.max(0, 3 - currentAssets.length);
+    const isReplacing = Number.isInteger(replaceIndex) && replaceIndex >= 0;
+    const count = isReplacing ? 1 : remainingSlots;
 
-        if (!filePath) {
+    if (count <= 0) {
+      wx.showToast({
+        title: '最多上传 3 张',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.chooseImage({
+      count,
+      success: async (result: { tempFilePaths?: string[] }) => {
+        const filePaths = result.tempFilePaths?.slice(0, count) ?? [];
+
+        if (!filePaths.length) {
           return;
         }
 
         this.setData({ imageUploading: true });
         try {
-          const uploaded = await uploadProductCoverAsset(filePath);
-          const draft = {
-            ...this.data.draft,
-            basicInfo: {
-              ...this.data.draft.basicInfo,
-              imageFileId: uploaded.storageId,
-              imageAsset: uploaded.asset,
-              imagePreviewUrl: uploaded.asset.url
-            }
-          };
+          const uploadedAssets: OssAssetReference[] = [];
+          for (const filePath of filePaths) {
+            const uploaded = await uploadProductCoverAsset(filePath);
+            uploadedAssets.push(uploaded.asset);
+          }
+          const baseAssets = getDraftBasicImageAssets(this.data.draft);
+          const nextAssets = isReplacing
+            ? baseAssets.length
+              ? baseAssets.map((asset, index) => (index === replaceIndex ? uploadedAssets[0] : asset))
+              : uploadedAssets
+            : [...baseAssets, ...uploadedAssets].slice(0, 3);
+          const draft = applyBasicImageAssets(this.data.draft, nextAssets);
           refreshEditorView(this, draft, this.data.activeStep);
         } catch (error) {
           wx.showToast?.({
@@ -156,6 +231,84 @@ Page({
         }
       }
     });
+  },
+  handleRemoveImage(this: ProductEditorPageInstance, event: { currentTarget?: { dataset?: { index?: string } } }) {
+    const index = Number(event.currentTarget?.dataset?.index ?? -1);
+    const assets = getDraftBasicImageAssets(this.data.draft);
+
+    if (index < 0) {
+      return;
+    }
+
+    const draft = applyBasicImageAssets(
+      this.data.draft,
+      assets.filter((_, itemIndex) => itemIndex !== index)
+    );
+    refreshEditorView(this, draft, this.data.activeStep);
+  },
+  async handleUploadDetailImage(this: ProductEditorPageInstance, event?: { currentTarget?: { dataset?: { index?: string } } }) {
+    const replaceIndexValue = event?.currentTarget?.dataset?.index;
+    const replaceIndex = replaceIndexValue === undefined ? -1 : Number(replaceIndexValue);
+    const currentAssets = getDraftDetailImageAssets(this.data.draft);
+    const remainingSlots = Math.max(0, 9 - currentAssets.length);
+    const isReplacing = Number.isInteger(replaceIndex) && replaceIndex >= 0;
+    const count = isReplacing ? 1 : remainingSlots;
+
+    if (count <= 0) {
+      wx.showToast({
+        title: '最多上传 9 张',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.chooseImage({
+      count,
+      success: async (result: { tempFilePaths?: string[] }) => {
+        const filePaths = result.tempFilePaths?.slice(0, count) ?? [];
+
+        if (!filePaths.length) {
+          return;
+        }
+
+        this.setData({ imageUploading: true });
+        try {
+          const uploadedAssets: OssAssetReference[] = [];
+          for (const filePath of filePaths) {
+            const uploaded = await uploadProductDetailAsset(filePath);
+            uploadedAssets.push(uploaded.asset);
+          }
+          const baseAssets = getDraftDetailImageAssets(this.data.draft);
+          const nextAssets = isReplacing
+            ? baseAssets.length
+              ? baseAssets.map((asset, index) => (index === replaceIndex ? uploadedAssets[0] : asset))
+              : uploadedAssets
+            : [...baseAssets, ...uploadedAssets].slice(0, 9);
+          const draft = applyDetailImageAssets(this.data.draft, nextAssets);
+          refreshEditorView(this, draft, this.data.activeStep);
+        } catch (error) {
+          wx.showToast?.({
+            title: error instanceof Error && error.message === 'Image exceeds the upload size limit' ? '图片过大' : '上传失败',
+            icon: 'none'
+          });
+        } finally {
+          this.setData({ imageUploading: false });
+        }
+      }
+    });
+  },
+  handleRemoveDetailImage(this: ProductEditorPageInstance, event: { currentTarget?: { dataset?: { index?: string } } }) {
+    const index = Number(event.currentTarget?.dataset?.index ?? -1);
+
+    if (index < 0) {
+      return;
+    }
+
+    const draft = applyDetailImageAssets(
+      this.data.draft,
+      getDraftDetailImageAssets(this.data.draft).filter((_, itemIndex) => itemIndex !== index)
+    );
+    refreshEditorView(this, draft, this.data.activeStep);
   },
   handleBasePriceInput(this: ProductEditorPageInstance, event: { detail?: { value?: string } }) {
     const draft = { ...this.data.draft, pricing: { ...this.data.draft.pricing, basePrice: Number(event.detail?.value ?? 0) } };
@@ -336,9 +489,19 @@ Page({
     };
     refreshEditorView(this, draft, this.data.activeStep);
   },
+  handlePreviousStep(this: ProductEditorPageInstance) {
+    if (this.data.activeStep === 'pricing') {
+      refreshEditorView(this, this.data.draft, 'basicInfo');
+      return;
+    }
+
+    if (this.data.activeStep === 'publishSettings') {
+      refreshEditorView(this, this.data.draft, 'pricing');
+    }
+  },
   async handleStepSubmit(this: ProductEditorPageInstance) {
     if (this.data.activeStep === 'basicInfo') {
-      if (!this.data.draft.basicInfo.name.trim() || !this.data.draft.basicInfo.categoryId || !this.data.draft.basicInfo.imageFileId) {
+      if (!this.data.draft.basicInfo.name.trim() || !this.data.draft.basicInfo.categoryId || !getDraftBasicImageAssets(this.data.draft).length) {
         wx.showToast({
           title: '请完善基础信息',
           icon: 'none'
@@ -364,12 +527,20 @@ Page({
     }
 
     this.setData({ saving: true });
-    await saveProduct(this.data.draft);
-    this.setData({ saving: false });
-    wx.showToast({
-      title: '商品已保存',
-      icon: 'success'
-    });
-    wx.navigateBack();
+    try {
+      await saveProduct(this.data.draft);
+      this.setData({ saving: false });
+      wx.showToast({
+        title: '商品已保存',
+        icon: 'success'
+      });
+      wx.navigateBack();
+    } catch {
+      this.setData({ saving: false });
+      wx.showToast({
+        title: '保存失败',
+        icon: 'none'
+      });
+    }
   }
 });

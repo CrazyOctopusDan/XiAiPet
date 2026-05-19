@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.queryMerchantUsers = queryMerchantUsers;
+exports.fetchMerchantUserDetail = fetchMerchantUserDetail;
 exports.getUsersPageViewModel = getUsersPageViewModel;
 exports.getCachedLatestAdjustment = getCachedLatestAdjustment;
 exports.getUserDetailViewModel = getUserDetailViewModel;
@@ -69,6 +70,14 @@ async function queryMerchantUsers(input, request = api_client_1.merchantApiReque
         auth: 'merchant'
     });
     return (_a = response.users) !== null && _a !== void 0 ? _a : [];
+}
+async function fetchMerchantUserDetail(openid, request = api_client_1.merchantApiRequest) {
+    var _a;
+    const response = await request(`/api/v1/merchant/users/${openid}`, {
+        method: 'GET',
+        auth: 'merchant'
+    });
+    return (_a = response.user) !== null && _a !== void 0 ? _a : null;
 }
 function getUsersPageViewModel(users) {
     return {

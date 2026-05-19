@@ -14,6 +14,33 @@ import {
 } from './catalog-admin';
 
 describe('catalog admin schema', () => {
+  function createAsset(objectKey: string) {
+    return {
+      provider: 'oss' as const,
+      role: 'product-cover' as const,
+      bucket: 'xiaipet',
+      region: 'oss-cn-hangzhou',
+      objectKey,
+      url: `https://assets.example.test/${objectKey}`,
+      width: 480,
+      height: 480,
+      sizeBytes: 1000,
+      contentType: 'image/jpeg',
+      uploadedAt: '2026-05-19T00:00:00.000Z',
+      variants: [
+        {
+          name: 'display' as const,
+          objectKey,
+          url: `https://assets.example.test/${objectKey}`,
+          width: 480,
+          height: 480,
+          sizeBytes: 1000,
+          contentType: 'image/jpeg'
+        }
+      ]
+    };
+  }
+
   it('requires category records to include both name and iconToken', () => {
     const category: CatalogCategoryRecord = {
       id: 'cakes',
@@ -171,6 +198,106 @@ describe('catalog admin schema', () => {
       isCatalogProductAdminRecord({
         ...product,
         detailContent: ''
+      })
+    ).toBe(false);
+  });
+
+  it('limits product editor basic images to three uploaded assets', () => {
+    const payload: CatalogProductEditorPayload = {
+      basicInfo: {
+        productId: 'birthday-cake',
+        name: '生日蛋糕',
+        description: '适合生日聚会',
+        categoryId: 'cakes',
+        imageFileId: 'oss://xiaipet/products/birthday-cake/cover-1.png',
+        imageAsset: createAsset('products/birthday-cake/cover-1.png'),
+        imagePreviewUrl: 'https://assets.example.test/products/birthday-cake/cover-1.png',
+        introductionImageAssets: [
+          createAsset('products/birthday-cake/cover-1.png'),
+          createAsset('products/birthday-cake/cover-2.png'),
+          createAsset('products/birthday-cake/cover-3.png')
+        ],
+        memberLevelId: 'vip',
+        stock: 12
+      },
+      pricing: {
+        basePrice: 198,
+        specs: [],
+        formulas: [],
+        overrides: [],
+        purchaseLimit: {
+          enabled: false,
+          maxQuantity: null
+        },
+        detailContent: '适合生日庆祝，可写祝福语。'
+      },
+      publishSettings: {
+        status: 'draft',
+        fulfillmentModes: ['delivery', 'pickup'],
+        trackInventory: true
+      }
+    };
+
+    expect(isCatalogProductEditorPayload(payload)).toBe(true);
+    expect(
+      isCatalogProductEditorPayload({
+        ...payload,
+        basicInfo: {
+          ...payload.basicInfo,
+          introductionImageAssets: [
+            ...payload.basicInfo.introductionImageAssets!,
+            createAsset('products/birthday-cake/cover-4.png')
+          ]
+        }
+      })
+    ).toBe(false);
+  });
+
+  it('limits product editor detail long images to nine uploaded assets', () => {
+    const payload: CatalogProductEditorPayload = {
+      basicInfo: {
+        productId: 'birthday-cake',
+        name: '生日蛋糕',
+        description: '适合生日聚会',
+        categoryId: 'cakes',
+        imageFileId: 'oss://xiaipet/products/birthday-cake/cover-1.png',
+        imageAsset: createAsset('products/birthday-cake/cover-1.png'),
+        imagePreviewUrl: 'https://assets.example.test/products/birthday-cake/cover-1.png',
+        detailImageAssets: Array.from({ length: 9 }, (_, index) =>
+          createAsset(`products/birthday-cake/detail-${index + 1}.png`)
+        ),
+        memberLevelId: 'vip',
+        stock: 12
+      },
+      pricing: {
+        basePrice: 198,
+        specs: [],
+        formulas: [],
+        overrides: [],
+        purchaseLimit: {
+          enabled: false,
+          maxQuantity: null
+        },
+        detailContent: '适合生日庆祝，可写祝福语。'
+      },
+      publishSettings: {
+        status: 'draft',
+        fulfillmentModes: ['delivery', 'pickup'],
+        trackInventory: true
+      }
+    };
+
+    expect(isCatalogProductEditorPayload(payload)).toBe(true);
+    expect(
+      isCatalogProductEditorPayload({
+        ...payload,
+        basicInfo: {
+          ...payload.basicInfo,
+          detailImageAssets: [
+            ...payload.basicInfo.detailImageAssets!,
+            createAsset('products/birthday-cake/detail-10.png')
+          ]
+        }
       })
     ).toBe(false);
   });

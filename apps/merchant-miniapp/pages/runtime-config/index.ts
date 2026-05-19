@@ -56,11 +56,19 @@ Page({
   },
   async refreshSections(this: RuntimeConfigPageInstance) {
     this.setData({ loading: true });
-    const sections = await queryRuntimeConfigSections();
-    this.setData({
-      loading: false
-    });
-    refreshView(this, sections, this.data.dirty);
+    try {
+      const sections = await queryRuntimeConfigSections();
+      this.setData({
+        loading: false
+      });
+      refreshView(this, sections, this.data.dirty);
+    } catch {
+      this.setData({ loading: false });
+      wx.showToast({
+        title: '配置加载失败',
+        icon: 'none'
+      });
+    }
   },
   patchSection(this: RuntimeConfigPageInstance, sectionId: RuntimeConfigSectionId, updater: (section: RuntimeConfigSectionDocument) => RuntimeConfigSectionDocument) {
     const sections = this.data.sections.map((section) => (section.sectionId === sectionId ? updater(section) : section));
@@ -238,17 +246,24 @@ Page({
       return;
     }
 
-    const saved = await saveRuntimeConfigSection(section);
-    const sections = this.data.sections.map((item) => (item.sectionId === sectionId ? saved : item));
-    const dirty = {
-      ...this.data.dirty,
-      [sectionId]: false
-    };
-    refreshView(this, sections, dirty);
+    try {
+      const saved = await saveRuntimeConfigSection(section);
+      const sections = this.data.sections.map((item) => (item.sectionId === sectionId ? saved : item));
+      const dirty = {
+        ...this.data.dirty,
+        [sectionId]: false
+      };
+      refreshView(this, sections, dirty);
 
-    wx.showToast({
-      title: '保存成功',
-      icon: 'success'
-    });
+      wx.showToast({
+        title: '保存成功',
+        icon: 'success'
+      });
+    } catch {
+      wx.showToast({
+        title: '保存失败',
+        icon: 'none'
+      });
+    }
   }
 });

@@ -23,15 +23,21 @@
     <view class="section-card">
       <view class="section-head">
         <text class="section-title">基础信息</text>
-        <text class="section-badge">1 / 3</text>
+        <text class="section-badge">{{editorView.basicImageCountLabel}}</text>
       </view>
 
-      <view class="upload-tile" bindtap="handleUploadImage">
-        <image class="upload-image" wx:if="{{draft.basicInfo.imagePreviewUrl}}" src="{{draft.basicInfo.imagePreviewUrl}}" mode="aspectFill"></image>
-        <text class="upload-copy" wx:else>上传图片</text>
-        <text class="replace-copy" wx:if="{{draft.basicInfo.imageFileId}}">替换</text>
+      <view class="upload-grid">
+        <view class="upload-tile" wx:for="{{editorView.basicImageTiles}}" wx:key="index" data-index="{{item.index}}" bindtap="handleUploadImage">
+          <image class="upload-image" src="{{item.imageSrc}}" mode="aspectFill"></image>
+          <text class="cover-copy" wx:if="{{item.isCover}}">主图</text>
+          <text class="replace-copy">替换</text>
+          <text class="remove-copy" data-index="{{item.index}}" catchtap="handleRemoveImage">删除</text>
+        </view>
+        <view class="upload-tile add-tile" wx:if="{{editorView.canAddBasicImage}}" bindtap="handleUploadImage">
+          <text class="upload-copy">上传图片</text>
+        </view>
       </view>
-      <text class="field-helper">{{draft.basicInfo.imageFileId ? '图片已上传' : '先上传商品图'}}</text>
+      <text class="field-helper">{{editorView.basicImageTiles.length ? '图片已上传，可继续添加至 3 张' : '先上传 1～3 张商品图'}}</text>
 
       <input class="field-input" data-field="name" placeholder="商品名称" value="{{draft.basicInfo.name}}" bindinput="handleBasicInput" />
       <textarea class="field-area" data-field="description" placeholder="商品描述" value="{{draft.basicInfo.description}}" bindinput="handleBasicInput"></textarea>
@@ -94,6 +100,22 @@
       <text class="field-label">详情内容</text>
       <textarea class="field-area" placeholder="详情内容" value="{{draft.pricing.detailContent}}" bindinput="handleDetailContentInput"></textarea>
       <text class="field-helper">{{editorView.detailContentLabel}}</text>
+
+      <view class="line-editor-head detail-image-head">
+        <text class="field-label">详情长图</text>
+        <text class="section-badge">{{editorView.detailImageCountLabel}}</text>
+      </view>
+      <view class="upload-grid detail-upload-grid">
+        <view class="upload-tile detail-upload-tile" wx:for="{{editorView.detailImageTiles}}" wx:key="index" data-index="{{item.index}}" bindtap="handleUploadDetailImage">
+          <image class="upload-image" src="{{item.imageSrc}}" mode="aspectFill"></image>
+          <text class="replace-copy">替换</text>
+          <text class="remove-copy" data-index="{{item.index}}" catchtap="handleRemoveDetailImage">删除</text>
+        </view>
+        <view class="upload-tile detail-upload-tile add-tile" wx:if="{{editorView.canAddDetailImage}}" bindtap="handleUploadDetailImage">
+          <text class="upload-copy">上传长图</text>
+        </view>
+      </view>
+      <text class="field-helper">{{editorView.detailImageTiles.length ? '详情长图已上传，将在用户端商品详情中竖向展示' : '可选，未上传时用户端会显示默认详情图'}}</text>
     </view>
   </view>
 
@@ -138,6 +160,7 @@
   </view>
 
   <view class="action-bar" wx:if="{{!loading}}">
+    <button class="secondary-action-button" wx:if="{{editorView.previousStepLabel}}" loading="{{saving || imageUploading}}" bindtap="handlePreviousStep">{{editorView.previousStepLabel}}</button>
     <button class="action-button" loading="{{saving || imageUploading}}" bindtap="handleStepSubmit">{{editorView.ctaLabel}}</button>
   </view>
 </view>

@@ -18,6 +18,7 @@ const catalog_1 = require("../data/catalog");
 const api_client_1 = require("./api-client");
 let cachedCatalogCategories = cloneCategories(catalog_1.catalogCategories);
 let cachedCatalogProducts = cloneProducts(catalog_1.catalogProducts);
+const DEFAULT_PRODUCT_DETAIL_IMAGES = ['/assets/catalog/detail-long-reference.png'];
 function getHomeModules() {
     return catalog_1.homeModules;
 }
@@ -207,7 +208,9 @@ function normalizeProduct(product) {
         introductionImageAssets,
         detailImages: (detailImageAssets === null || detailImageAssets === void 0 ? void 0 : detailImageAssets.length)
             ? detailImageAssets.map((asset) => { var _a; return (_a = getVariantUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url; })
-            : getArray(product.detailImages).filter((item) => typeof item === 'string'),
+            : getArray(product.detailImages).filter((item) => typeof item === 'string').length
+                ? getArray(product.detailImages).filter((item) => typeof item === 'string')
+                : DEFAULT_PRODUCT_DETAIL_IMAGES,
         detailImageAssets,
         specs
     };
@@ -235,7 +238,9 @@ function resolveCatalogProductAssetUrls(product) {
         : product.gallery;
     const detailImages = ((_e = product.detailImageAssets) === null || _e === void 0 ? void 0 : _e.length)
         ? product.detailImageAssets.map((asset) => { var _a; return (_a = getVariantUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url; })
-        : product.detailImages;
+        : product.detailImages.length
+            ? product.detailImages
+            : DEFAULT_PRODUCT_DETAIL_IMAGES;
     return {
         ...product,
         thumbnail,

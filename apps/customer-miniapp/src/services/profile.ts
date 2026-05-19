@@ -35,8 +35,8 @@ interface HydrateProfileResponse {
 }
 
 const initialProfile: CustomerProfile = {
-  avatarText: '虾',
-  nickname: '虾衣宠家长',
+  avatarText: '喜',
+  nickname: '喜爱宠家长',
   gender: 'unknown',
   memberLevel: '普通会员',
   balance: 268,

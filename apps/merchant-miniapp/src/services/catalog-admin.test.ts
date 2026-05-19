@@ -201,6 +201,7 @@ describe('catalog admin service', () => {
     expect(view.steps.map((item) => item.label)).toEqual(['基础信息', '规格配方与价格', '上架设置']);
     expect(view.activeStepLabel).toBe('规格配方与价格');
     expect(view.ctaLabel).toBe('保存规格配方并继续');
+    expect(view.previousStepLabel).toBe('返回基础信息');
     expect(view.purchaseLimitLabel).toBe('限购 2 件');
     expect(view.detailContentLabel).toBe('详情内容已填写');
     expect(view.fulfillmentModeOptions).toEqual([
@@ -215,6 +216,127 @@ describe('catalog admin service', () => {
         overrideLabel: '已覆盖自动计算'
       })
     );
+  });
+
+  it('does not expose a previous-step CTA on the first editor step', () => {
+    const view = getProductEditorViewModel(createProductPayload(), 'basicInfo');
+
+    expect(view.previousStepLabel).toBeNull();
+  });
+
+  it('builds basic image tiles from one to three introduction images', () => {
+    const view = getProductEditorViewModel(
+      createProductPayload({
+        basicInfo: {
+          ...createProductPayload().basicInfo,
+          imageFileId: 'oss://xiaipet/products/product-001/cover-1.png',
+          imagePreviewUrl: 'https://oss.example.com/products/product-001/cover-1.png',
+          introductionImageAssets: [
+            {
+              provider: 'oss',
+              role: 'product-cover',
+              bucket: 'xiaipet',
+              region: 'oss-cn-hangzhou',
+              objectKey: 'products/product-001/cover-1.png',
+              url: 'https://oss.example.com/products/product-001/cover-1.png',
+              width: 480,
+              height: 480,
+              sizeBytes: 1000,
+              contentType: 'image/jpeg',
+              uploadedAt: '2026-05-19T00:00:00.000Z',
+              variants: []
+            },
+            {
+              provider: 'oss',
+              role: 'product-cover',
+              bucket: 'xiaipet',
+              region: 'oss-cn-hangzhou',
+              objectKey: 'products/product-001/cover-2.png',
+              url: 'https://oss.example.com/products/product-001/cover-2.png',
+              width: 480,
+              height: 480,
+              sizeBytes: 1000,
+              contentType: 'image/jpeg',
+              uploadedAt: '2026-05-19T00:01:00.000Z',
+              variants: []
+            }
+          ]
+        }
+      }),
+      'basicInfo'
+    );
+
+    expect(view.basicImageCountLabel).toBe('2 / 3');
+    expect(view.canAddBasicImage).toBe(true);
+    expect(view.basicImageTiles).toEqual([
+      {
+        index: 0,
+        imageSrc: 'https://oss.example.com/products/product-001/cover-1.png',
+        isCover: true
+      },
+      {
+        index: 1,
+        imageSrc: 'https://oss.example.com/products/product-001/cover-2.png',
+        isCover: false
+      }
+    ]);
+  });
+
+  it('falls back to the legacy single cover while editing old products', () => {
+    const view = getProductEditorViewModel(
+      createProductPayload({
+        basicInfo: {
+          ...createProductPayload().basicInfo,
+          imageFileId: 'oss://xiaipet/products/product-001/legacy-cover.png',
+          imagePreviewUrl: 'https://oss.example.com/products/product-001/legacy-cover.png',
+          introductionImageAssets: []
+        }
+      }),
+      'basicInfo'
+    );
+
+    expect(view.basicImageCountLabel).toBe('1 / 3');
+    expect(view.basicImageTiles).toEqual([
+      {
+        index: 0,
+        imageSrc: 'https://oss.example.com/products/product-001/legacy-cover.png',
+        isCover: true
+      }
+    ]);
+  });
+
+  it('builds optional detail long-image tiles up to nine images', () => {
+    const detailImageAssets = Array.from({ length: 9 }, (_, index) => ({
+      provider: 'oss' as const,
+      role: 'product-detail' as const,
+      bucket: 'xiaipet',
+      region: 'oss-cn-hangzhou',
+      objectKey: `products/product-001/detail-${index + 1}.png`,
+      url: `https://oss.example.com/products/product-001/detail-${index + 1}.png`,
+      width: 960,
+      height: 1280,
+      sizeBytes: 1000,
+      contentType: 'image/jpeg',
+      uploadedAt: '2026-05-19T00:00:00.000Z',
+      variants: []
+    }));
+    const view = getProductEditorViewModel(
+      createProductPayload({
+        basicInfo: {
+          ...createProductPayload().basicInfo,
+          detailImageAssets
+        }
+      }),
+      'pricing'
+    );
+
+    expect(view.detailImageCountLabel).toBe('9 / 9');
+    expect(view.canAddDetailImage).toBe(false);
+    expect(view.detailImageTiles).toHaveLength(9);
+    expect(view.detailImageTiles[0]).toEqual({
+      index: 0,
+      imageSrc: 'https://oss.example.com/products/product-001/detail-1.png'
+    });
   });
 
   it('queries products and preserves the imageFileId in product save calls', async () => {

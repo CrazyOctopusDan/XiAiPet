@@ -33,6 +33,17 @@ export interface MerchantUserSearchItem {
   currentBalance: number;
 }
 
+export interface MerchantLatestAdjustment {
+  normalizedTitle: string;
+  shortNote: string;
+  operatedAt: string;
+  operatorName: string;
+}
+
+export interface MerchantUserDetailItem extends MerchantUserSearchItem {
+  latestAdjustment: MerchantLatestAdjustment | null;
+}
+
 interface UserRow {
   openid: string;
   status: string;
@@ -59,6 +70,15 @@ interface CustomerProfileRow extends UserRow {
       toNumber(): number;
     };
   } | null;
+}
+
+interface BalanceLedgerRow {
+  amountDelta: {
+    toNumber(): number;
+  };
+  reason: string | null;
+  operatorName: string | null;
+  createdAt: Date;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -91,6 +111,46 @@ function toMaskedPhoneSearchQuery(query: string) {
   }
   const localDigits = digits.length > 11 ? digits.slice(-11) : digits;
   return `${localDigits.slice(0, 3)}****${localDigits.slice(-4)}`;
+}
+
+function formatMoney(value: number) {
+  return `￥${Math.abs(value).toFixed(2)}`;
+}
+
+function getBalanceAdjustmentShortNote(delta: number) {
+  if (delta > 0) {
+    return `增加 ${formatMoney(delta)}`;
+  }
+  if (delta < 0) {
+    return `扣减 ${formatMoney(delta)}`;
+  }
+  return '余额未变化';
+}
+
+function mapMerchantUser(user: MerchantUserSearchRow): MerchantUserSearchItem {
+  const profile = normalizeProfile(user.profile);
+  return {
+    openid: user.openid,
+    avatarUrl: profile?.avatarUrl ?? profile?.avatarText ?? '',
+    nickname: profile?.nickname || user.openid,
+    contactPhoneMasked: profile?.contactPhoneMasked || user.contactPhoneMasked,
+    membershipTierLabel: '普通会员',
+    currentBalance: user.balanceAccount?.balance.toNumber() ?? 0
+  };
+}
+
+function mapLatestAdjustment(row: BalanceLedgerRow | null): MerchantLatestAdjustment | null {
+  if (!row) {
+    return null;
+  }
+  const amountDelta = row.amountDelta.toNumber();
+  const [reasonType] = (row.reason ?? '').split(/:\s*/, 2);
+  return {
+    normalizedTitle: reasonType || '余额调整',
+    shortNote: getBalanceAdjustmentShortNote(amountDelta),
+    operatedAt: row.createdAt.toISOString(),
+    operatorName: row.operatorName || '商户后台'
+  };
 }
 
 export function mapUser(row: UserRow): UserRecord {
@@ -180,8 +240,8 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
       }) as CustomerProfileRow | null;
       const profile = normalizeProfile(user?.profile);
       return {
-        avatarText: profile?.avatarText ?? '虾',
-        nickname: profile?.nickname ?? '虾衣宠家长',
+        avatarText: profile?.avatarText ?? '喜',
+        nickname: profile?.nickname ?? '喜爱宠家长',
         gender: profile?.gender ?? 'unknown',
         memberLevel: '普通会员',
         balance: user?.balanceAccount?.balance.toNumber() ?? 0,
@@ -189,6 +249,30 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         birthday: profile?.birthday ?? '',
         birthdayLocked: profile?.birthdayLocked ?? false,
         contactPhoneMasked: profile?.contactPhoneMasked || user?.contactPhoneMasked || ''
+      };
+    },
+
+    async getMerchantUserDetail(openid: string): Promise<{ ok: true; user: MerchantUserDetailItem | null }> {
+      const user = await client.user.findUnique({
+        where: { openid },
+        include: { balanceAccount: true }
+      }) as MerchantUserSearchRow | null;
+
+      if (!user || user.phoneBindingState !== PHONE_BINDING_STATE.bound) {
+        return { ok: true as const, user: null };
+      }
+
+      const latestLedger = await client.balanceLedger.findFirst({
+        where: { openid },
+        orderBy: { createdAt: 'desc' }
+      }) as BalanceLedgerRow | null;
+
+      return {
+        ok: true as const,
+        user: {
+          ...mapMerchantUser(user),
+          latestAdjustment: mapLatestAdjustment(latestLedger)
+        }
       };
     },
 
@@ -217,17 +301,7 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         take: limit
       });
 
-      return (users as MerchantUserSearchRow[]).map((user) => {
-        const profile = normalizeProfile(user.profile);
-        return {
-          openid: user.openid,
-          avatarUrl: profile?.avatarUrl ?? profile?.avatarText ?? '',
-          nickname: profile?.nickname || user.openid,
-          contactPhoneMasked: profile?.contactPhoneMasked || user.contactPhoneMasked,
-          membershipTierLabel: '普通会员',
-          currentBalance: user.balanceAccount?.balance.toNumber() ?? 0
-        };
-      });
+      return (users as MerchantUserSearchRow[]).map(mapMerchantUser);
     }
   };
 }

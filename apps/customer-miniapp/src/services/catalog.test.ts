@@ -437,6 +437,44 @@ describe('catalog service', () => {
     expect(product.detailImages).toEqual(['https://assets.example.test/detail.jpg']);
   });
 
+  it('uses the default local detail long image when a remote product has no detail images', async () => {
+    const apiRequest = vi.fn((path: string) => {
+      if (path.includes('/categories')) {
+        return Promise.resolve({
+          categories: [
+            {
+              id: 'cakes',
+              name: '蛋糕',
+              iconText: '糕',
+              sectionTitle: '蛋糕'
+            }
+          ]
+        });
+      }
+
+      return Promise.resolve({
+        products: [
+          {
+            id: 'plain-cake',
+            name: '基础蛋糕',
+            categoryId: 'cakes',
+            description: '无详情长图',
+            basePrice: 88,
+            stock: 5,
+            fulfillmentModes: ['delivery'],
+            imageFileId: '/assets/catalog/product-card-reference.png',
+            imagePreviewUrl: '/assets/catalog/product-card-reference.png',
+            detailImages: []
+          }
+        ]
+      });
+    });
+
+    await hydrateCatalog(apiRequest as Parameters<typeof hydrateCatalog>[0]);
+
+    expect(getProductById('plain-cake')?.detailImages).toEqual(['/assets/catalog/detail-long-reference.png']);
+  });
+
   it('keeps local fallback catalog content when remote sections are missing', async () => {
     await hydrateCatalog(
       vi.fn().mockResolvedValue({

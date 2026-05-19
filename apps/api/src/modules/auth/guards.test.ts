@@ -35,8 +35,7 @@ describe('auth guards', () => {
         audience: 'merchant'
       },
       sessionSecret,
-      60,
-      100
+      60
     );
     const account = merchantAccount();
     const getActiveAccount = vi.fn(async () => account);
@@ -71,8 +70,7 @@ describe('auth guards', () => {
         audience: 'merchant'
       },
       sessionSecret,
-      60,
-      100
+      60
     );
     const getActiveAccount = vi.fn(async () => merchantAccount());
     const guards = createAuthGuards({

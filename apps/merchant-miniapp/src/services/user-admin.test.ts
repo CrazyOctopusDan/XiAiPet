@@ -5,6 +5,7 @@ import type { MerchantUserSearchListItem } from '@xiaipet/shared/types/user-admi
 import { MERCHANT_SESSION_STORAGE_KEY } from './api-client';
 import {
   buildBalanceAdjustmentDraft,
+  fetchMerchantUserDetail,
   getUserDetailViewModel,
   getUsersPageViewModel,
   queryMerchantUsers,
@@ -120,6 +121,33 @@ describe('user admin service', () => {
       totalUsers: 2,
       totalBalanceLabel: '￥200.00',
       tierCount: 2
+    });
+  });
+
+  it('fetches merchant user detail with latest adjustment from the backend', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      user: {
+        ...createUser({ currentBalance: 1000 }),
+        latestAdjustment: {
+          normalizedTitle: '线下收款',
+          shortNote: '增加 ￥1000.00',
+          operatedAt: '2026-05-18T11:35:00.000Z',
+          operatorName: 'admin'
+        }
+      }
+    });
+
+    await expect(fetchMerchantUserDetail('user-openid', request)).resolves.toMatchObject({
+      openid: 'user-openid',
+      currentBalance: 1000,
+      latestAdjustment: {
+        normalizedTitle: '线下收款'
+      }
+    });
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/users/user-openid', {
+      method: 'GET',
+      auth: 'merchant'
     });
   });
 

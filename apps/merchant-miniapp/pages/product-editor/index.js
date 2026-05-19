@@ -23,6 +23,44 @@ function updateFormulaRow(draft, index, key, value) {
         [key]: key === 'surcharge' ? Number(value || 0) : value
     };
 }
+function assetToStorageId(asset) {
+    return `oss://${asset.bucket}/${asset.objectKey}`;
+}
+function getDraftBasicImageAssets(draft) {
+    var _a;
+    if ((_a = draft.basicInfo.introductionImageAssets) === null || _a === void 0 ? void 0 : _a.length) {
+        return draft.basicInfo.introductionImageAssets.slice(0, 3);
+    }
+    return draft.basicInfo.imageAsset ? [draft.basicInfo.imageAsset] : [];
+}
+function applyBasicImageAssets(draft, assets) {
+    var _a;
+    const normalizedAssets = assets.slice(0, 3);
+    const cover = normalizedAssets[0];
+    return {
+        ...draft,
+        basicInfo: {
+            ...draft.basicInfo,
+            imageFileId: cover ? assetToStorageId(cover) : '',
+            imageAsset: cover,
+            imagePreviewUrl: (_a = cover === null || cover === void 0 ? void 0 : cover.url) !== null && _a !== void 0 ? _a : '',
+            introductionImageAssets: normalizedAssets
+        }
+    };
+}
+function getDraftDetailImageAssets(draft) {
+    var _a;
+    return ((_a = draft.basicInfo.detailImageAssets) !== null && _a !== void 0 ? _a : []).slice(0, 9);
+}
+function applyDetailImageAssets(draft, assets) {
+    return {
+        ...draft,
+        basicInfo: {
+            ...draft.basicInfo,
+            detailImageAssets: assets.slice(0, 9)
+        }
+    };
+}
 Page({
     data: {
         loading: true,
@@ -38,20 +76,29 @@ Page({
     },
     async hydrateEditor(productId = '', categoryId = '') {
         this.setData({ loading: true });
-        const categories = await (0, catalog_admin_1.queryCategories)();
-        let draft = createDraft(categoryId);
-        if (productId) {
-            const products = await (0, catalog_admin_1.queryProducts)();
-            const product = products.find((item) => item.id === productId);
-            if (product) {
-                draft = (0, catalog_admin_1.splitProductEditorPayload)(product);
+        try {
+            const categories = await (0, catalog_admin_1.queryCategories)();
+            let draft = createDraft(categoryId);
+            if (productId) {
+                const products = await (0, catalog_admin_1.queryProducts)();
+                const product = products.find((item) => item.id === productId);
+                if (product) {
+                    draft = (0, catalog_admin_1.splitProductEditorPayload)(product);
+                }
             }
+            this.setData({
+                loading: false,
+                categories
+            });
+            refreshEditorView(this, draft, 'basicInfo');
         }
-        this.setData({
-            loading: false,
-            categories
-        });
-        refreshEditorView(this, draft, 'basicInfo');
+        catch (_a) {
+            this.setData({ loading: false });
+            wx.showToast({
+                title: '商品加载失败',
+                icon: 'none'
+            });
+        }
     },
     handleStepTap(event) {
         var _a, _b;
@@ -80,31 +127,47 @@ Page({
         const draft = { ...this.data.draft, basicInfo: { ...this.data.draft.basicInfo, categoryId } };
         refreshEditorView(this, draft, this.data.activeStep);
     },
-    async handleUploadImage() {
+    async handleUploadImage(event) {
+        var _a, _b;
+        const replaceIndexValue = (_b = (_a = event === null || event === void 0 ? void 0 : event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.index;
+        const replaceIndex = replaceIndexValue === undefined ? -1 : Number(replaceIndexValue);
+        const currentAssets = getDraftBasicImageAssets(this.data.draft);
+        const remainingSlots = Math.max(0, 3 - currentAssets.length);
+        const isReplacing = Number.isInteger(replaceIndex) && replaceIndex >= 0;
+        const count = isReplacing ? 1 : remainingSlots;
+        if (count <= 0) {
+            wx.showToast({
+                title: '最多上传 3 张',
+                icon: 'none'
+            });
+            return;
+        }
         wx.chooseImage({
-            count: 1,
+            count,
             success: async (result) => {
-                var _a, _b;
-                const filePath = (_a = result.tempFilePaths) === null || _a === void 0 ? void 0 : _a[0];
-                if (!filePath) {
+                var _a, _b, _c;
+                const filePaths = (_b = (_a = result.tempFilePaths) === null || _a === void 0 ? void 0 : _a.slice(0, count)) !== null && _b !== void 0 ? _b : [];
+                if (!filePaths.length) {
                     return;
                 }
                 this.setData({ imageUploading: true });
                 try {
-                    const uploaded = await (0, catalog_admin_1.uploadProductCoverAsset)(filePath);
-                    const draft = {
-                        ...this.data.draft,
-                        basicInfo: {
-                            ...this.data.draft.basicInfo,
-                            imageFileId: uploaded.storageId,
-                            imageAsset: uploaded.asset,
-                            imagePreviewUrl: uploaded.asset.url
-                        }
-                    };
+                    const uploadedAssets = [];
+                    for (const filePath of filePaths) {
+                        const uploaded = await (0, catalog_admin_1.uploadProductCoverAsset)(filePath);
+                        uploadedAssets.push(uploaded.asset);
+                    }
+                    const baseAssets = getDraftBasicImageAssets(this.data.draft);
+                    const nextAssets = isReplacing
+                        ? baseAssets.length
+                            ? baseAssets.map((asset, index) => (index === replaceIndex ? uploadedAssets[0] : asset))
+                            : uploadedAssets
+                        : [...baseAssets, ...uploadedAssets].slice(0, 3);
+                    const draft = applyBasicImageAssets(this.data.draft, nextAssets);
                     refreshEditorView(this, draft, this.data.activeStep);
                 }
                 catch (error) {
-                    (_b = wx.showToast) === null || _b === void 0 ? void 0 : _b.call(wx, {
+                    (_c = wx.showToast) === null || _c === void 0 ? void 0 : _c.call(wx, {
                         title: error instanceof Error && error.message === 'Image exceeds the upload size limit' ? '图片过大' : '上传失败',
                         icon: 'none'
                     });
@@ -114,6 +177,76 @@ Page({
                 }
             }
         });
+    },
+    handleRemoveImage(event) {
+        var _a, _b, _c;
+        const index = Number((_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : -1);
+        const assets = getDraftBasicImageAssets(this.data.draft);
+        if (index < 0) {
+            return;
+        }
+        const draft = applyBasicImageAssets(this.data.draft, assets.filter((_, itemIndex) => itemIndex !== index));
+        refreshEditorView(this, draft, this.data.activeStep);
+    },
+    async handleUploadDetailImage(event) {
+        var _a, _b;
+        const replaceIndexValue = (_b = (_a = event === null || event === void 0 ? void 0 : event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.index;
+        const replaceIndex = replaceIndexValue === undefined ? -1 : Number(replaceIndexValue);
+        const currentAssets = getDraftDetailImageAssets(this.data.draft);
+        const remainingSlots = Math.max(0, 9 - currentAssets.length);
+        const isReplacing = Number.isInteger(replaceIndex) && replaceIndex >= 0;
+        const count = isReplacing ? 1 : remainingSlots;
+        if (count <= 0) {
+            wx.showToast({
+                title: '最多上传 9 张',
+                icon: 'none'
+            });
+            return;
+        }
+        wx.chooseImage({
+            count,
+            success: async (result) => {
+                var _a, _b, _c;
+                const filePaths = (_b = (_a = result.tempFilePaths) === null || _a === void 0 ? void 0 : _a.slice(0, count)) !== null && _b !== void 0 ? _b : [];
+                if (!filePaths.length) {
+                    return;
+                }
+                this.setData({ imageUploading: true });
+                try {
+                    const uploadedAssets = [];
+                    for (const filePath of filePaths) {
+                        const uploaded = await (0, catalog_admin_1.uploadProductDetailAsset)(filePath);
+                        uploadedAssets.push(uploaded.asset);
+                    }
+                    const baseAssets = getDraftDetailImageAssets(this.data.draft);
+                    const nextAssets = isReplacing
+                        ? baseAssets.length
+                            ? baseAssets.map((asset, index) => (index === replaceIndex ? uploadedAssets[0] : asset))
+                            : uploadedAssets
+                        : [...baseAssets, ...uploadedAssets].slice(0, 9);
+                    const draft = applyDetailImageAssets(this.data.draft, nextAssets);
+                    refreshEditorView(this, draft, this.data.activeStep);
+                }
+                catch (error) {
+                    (_c = wx.showToast) === null || _c === void 0 ? void 0 : _c.call(wx, {
+                        title: error instanceof Error && error.message === 'Image exceeds the upload size limit' ? '图片过大' : '上传失败',
+                        icon: 'none'
+                    });
+                }
+                finally {
+                    this.setData({ imageUploading: false });
+                }
+            }
+        });
+    },
+    handleRemoveDetailImage(event) {
+        var _a, _b, _c;
+        const index = Number((_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : -1);
+        if (index < 0) {
+            return;
+        }
+        const draft = applyDetailImageAssets(this.data.draft, getDraftDetailImageAssets(this.data.draft).filter((_, itemIndex) => itemIndex !== index));
+        refreshEditorView(this, draft, this.data.activeStep);
     },
     handleBasePriceInput(event) {
         var _a, _b;
@@ -287,9 +420,18 @@ Page({
         };
         refreshEditorView(this, draft, this.data.activeStep);
     },
+    handlePreviousStep() {
+        if (this.data.activeStep === 'pricing') {
+            refreshEditorView(this, this.data.draft, 'basicInfo');
+            return;
+        }
+        if (this.data.activeStep === 'publishSettings') {
+            refreshEditorView(this, this.data.draft, 'pricing');
+        }
+    },
     async handleStepSubmit() {
         if (this.data.activeStep === 'basicInfo') {
-            if (!this.data.draft.basicInfo.name.trim() || !this.data.draft.basicInfo.categoryId || !this.data.draft.basicInfo.imageFileId) {
+            if (!this.data.draft.basicInfo.name.trim() || !this.data.draft.basicInfo.categoryId || !getDraftBasicImageAssets(this.data.draft).length) {
                 wx.showToast({
                     title: '请完善基础信息',
                     icon: 'none'
@@ -311,12 +453,21 @@ Page({
             return;
         }
         this.setData({ saving: true });
-        await (0, catalog_admin_1.saveProduct)(this.data.draft);
-        this.setData({ saving: false });
-        wx.showToast({
-            title: '商品已保存',
-            icon: 'success'
-        });
-        wx.navigateBack();
+        try {
+            await (0, catalog_admin_1.saveProduct)(this.data.draft);
+            this.setData({ saving: false });
+            wx.showToast({
+                title: '商品已保存',
+                icon: 'success'
+            });
+            wx.navigateBack();
+        }
+        catch (_a) {
+            this.setData({ saving: false });
+            wx.showToast({
+                title: '保存失败',
+                icon: 'none'
+            });
+        }
     }
 });

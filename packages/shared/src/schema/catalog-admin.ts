@@ -51,6 +51,14 @@ function isOptionalAssetReferenceArray(value: unknown) {
   return value === undefined || (Array.isArray(value) && value.every(isOssAssetReference));
 }
 
+function isOptionalBasicImageAssetArray(value: unknown) {
+  return value === undefined || (Array.isArray(value) && value.length <= 3 && value.every(isOssAssetReference));
+}
+
+function isOptionalDetailImageAssetArray(value: unknown) {
+  return value === undefined || (Array.isArray(value) && value.length <= 9 && value.every(isOssAssetReference));
+}
+
 function isMemberLevelId(value: unknown): value is string | null {
   return value === null || isNonEmptyString(value);
 }
@@ -172,8 +180,8 @@ export function isCatalogProductEditorPayload(value: unknown): value is CatalogP
     isAssetStorageId(basicInfo.imageFileId) &&
     isOptionalAssetReference(basicInfo.imageAsset) &&
     isOptionalString(basicInfo.imagePreviewUrl) &&
-    isOptionalAssetReferenceArray(basicInfo.introductionImageAssets) &&
-    isOptionalAssetReferenceArray(basicInfo.detailImageAssets) &&
+    isOptionalBasicImageAssetArray(basicInfo.introductionImageAssets) &&
+    isOptionalDetailImageAssetArray(basicInfo.detailImageAssets) &&
     isMemberLevelId(basicInfo.memberLevelId) &&
     isNonNegativeInteger(basicInfo.stock) &&
     isNonNegativeNumber(pricing.basePrice) &&
@@ -202,8 +210,8 @@ export function isCatalogProductAdminRecord(value: unknown): value is CatalogPro
     isAssetStorageId(value.imageFileId) &&
     isOptionalAssetReference(value.imageAsset) &&
     isOptionalString(value.imagePreviewUrl) &&
-    isOptionalAssetReferenceArray(value.introductionImageAssets) &&
-    isOptionalAssetReferenceArray(value.detailImageAssets) &&
+    isOptionalBasicImageAssetArray(value.introductionImageAssets) &&
+    isOptionalDetailImageAssetArray(value.detailImageAssets) &&
     isMemberLevelId(value.memberLevelId) &&
     typeof value.status === 'string' &&
     PRODUCT_STATUSES.has(value.status) &&

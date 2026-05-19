@@ -8,6 +8,7 @@ import type {
   CatalogProductPriceOverride,
   CatalogProductSpecOption
 } from '@xiaipet/shared/types/catalog-admin';
+import type { OssAssetReference, OssAssetVariant } from '@xiaipet/shared/types/assets';
 import { resolveProductCombinationPrice } from '../shared/product-pricing';
 import { merchantApiRequest, type MerchantApiRequester } from './api-client';
 import { uploadMerchantAsset, type UploadedMerchantAsset } from './assets';
@@ -87,10 +88,28 @@ export interface ProductFulfillmentModeOptionViewModel {
   isActive: boolean;
 }
 
+export interface ProductBasicImageTileViewModel {
+  index: number;
+  imageSrc: string;
+  isCover: boolean;
+}
+
+export interface ProductDetailImageTileViewModel {
+  index: number;
+  imageSrc: string;
+}
+
 export interface ProductEditorViewModel {
   steps: ProductEditorStepViewModel[];
   activeStepLabel: string;
   ctaLabel: string;
+  previousStepLabel: string | null;
+  basicImageCountLabel: string;
+  basicImageTiles: ProductBasicImageTileViewModel[];
+  canAddBasicImage: boolean;
+  detailImageCountLabel: string;
+  detailImageTiles: ProductDetailImageTileViewModel[];
+  canAddDetailImage: boolean;
   purchaseLimitLabel: string;
   detailContentLabel: string;
   fulfillmentModeOptions: ProductFulfillmentModeOptionViewModel[];
@@ -184,6 +203,18 @@ function getStepCtaLabel(step: CatalogProductEditorStep) {
   return '保存商品';
 }
 
+function getPreviousStepLabel(step: CatalogProductEditorStep) {
+  if (step === 'pricing') {
+    return '返回基础信息';
+  }
+
+  if (step === 'publishSettings') {
+    return '返回规格配方与价格';
+  }
+
+  return null;
+}
+
 function createPricePreviewRows(
   basePrice: number,
   specs: CatalogProductSpecOption[],
@@ -219,6 +250,54 @@ function createPricePreviewRows(
 
 function getDraftProductId() {
   return `product-${Date.now()}`;
+}
+
+function getAssetDisplayUrl(asset: OssAssetReference) {
+  const variants = Array.isArray(asset.variants) ? asset.variants : [];
+  const displayVariant = variants.find(
+    (variant): variant is OssAssetVariant =>
+      Boolean(variant) &&
+      typeof variant === 'object' &&
+      'name' in variant &&
+      'url' in variant &&
+      variant.name === 'display' &&
+      typeof variant.url === 'string'
+  );
+
+  return displayVariant?.url ?? asset.url;
+}
+
+function getBasicImageTiles(payload: CatalogProductEditorPayload): ProductBasicImageTileViewModel[] {
+  const assets = payload.basicInfo.introductionImageAssets ?? [];
+
+  if (assets.length) {
+    return assets.slice(0, 3).map((asset, index) => ({
+      index,
+      imageSrc: getAssetDisplayUrl(asset),
+      isCover: index === 0
+    }));
+  }
+
+  const fallback = payload.basicInfo.imageAsset
+    ? getAssetDisplayUrl(payload.basicInfo.imageAsset)
+    : payload.basicInfo.imagePreviewUrl || payload.basicInfo.imageFileId;
+
+  return fallback
+    ? [
+        {
+          index: 0,
+          imageSrc: fallback,
+          isCover: true
+        }
+      ]
+    : [];
+}
+
+function getDetailImageTiles(payload: CatalogProductEditorPayload): ProductDetailImageTileViewModel[] {
+  return (payload.basicInfo.detailImageAssets ?? []).slice(0, 9).map((asset, index) => ({
+    index,
+    imageSrc: getAssetDisplayUrl(asset)
+  }));
 }
 
 export async function queryCategories(request: MerchantApiRequester = merchantApiRequest) {
@@ -426,6 +505,8 @@ export function getProductEditorViewModel(
   activeStep: CatalogProductEditorStep
 ): ProductEditorViewModel {
   const steps: CatalogProductEditorStep[] = ['basicInfo', 'pricing', 'publishSettings'];
+  const basicImageTiles = getBasicImageTiles(payload);
+  const detailImageTiles = getDetailImageTiles(payload);
 
   return {
     activeStepLabel: getStepLabel(activeStep),
@@ -436,6 +517,13 @@ export function getProductEditorViewModel(
       isDone: steps.indexOf(activeStep) > index
     })),
     ctaLabel: getStepCtaLabel(activeStep),
+    previousStepLabel: getPreviousStepLabel(activeStep),
+    basicImageCountLabel: `${basicImageTiles.length} / 3`,
+    basicImageTiles,
+    canAddBasicImage: basicImageTiles.length < 3,
+    detailImageCountLabel: `${detailImageTiles.length} / 9`,
+    detailImageTiles,
+    canAddDetailImage: detailImageTiles.length < 9,
     purchaseLimitLabel: payload.pricing.purchaseLimit.enabled
       ? `限购 ${payload.pricing.purchaseLimit.maxQuantity ?? 0} 件`
       : '不限购',
@@ -467,6 +555,14 @@ export async function uploadProductImage(
 
 export async function uploadProductCoverAsset(filePath: string, request?: MerchantApiRequester): Promise<UploadedMerchantAsset> {
   return uploadMerchantAsset('product-cover', {
+    filePath,
+    processingMode: 'miniapp',
+    request
+  });
+}
+
+export async function uploadProductDetailAsset(filePath: string, request?: MerchantApiRequester): Promise<UploadedMerchantAsset> {
+  return uploadMerchantAsset('product-detail', {
     filePath,
     processingMode: 'miniapp',
     request

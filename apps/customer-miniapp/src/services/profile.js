@@ -11,8 +11,8 @@ exports.hasBoundPhone = hasBoundPhone;
 exports.getPhoneBindingRedirectUrl = getPhoneBindingRedirectUrl;
 const api_client_1 = require("./api-client");
 const initialProfile = {
-    avatarText: '虾',
-    nickname: '虾衣宠家长',
+    avatarText: '喜',
+    nickname: '喜爱宠家长',
     gender: 'unknown',
     memberLevel: '普通会员',
     balance: 268,

@@ -16,28 +16,50 @@ Page({
         submitting: false,
         canAdjustBalance: true
     },
-    onLoad() {
+    onLoad(options) {
         var _a, _b;
         this.setData({
             canAdjustBalance: ((_b = (_a = (0, api_client_1.getMerchantSession)()) === null || _a === void 0 ? void 0 : _a.account) === null || _b === void 0 ? void 0 : _b.role) !== 'staff'
         });
-        this.refreshDetail();
+        void this.refreshDetail(options === null || options === void 0 ? void 0 : options.openid);
     },
-    refreshDetail() {
-        const user = wx.getStorageSync('merchant-selected-user');
-        if (!user) {
+    async refreshDetail(openid) {
+        const cachedUser = wx.getStorageSync('merchant-selected-user');
+        const targetOpenid = openid !== null && openid !== void 0 ? openid : cachedUser === null || cachedUser === void 0 ? void 0 : cachedUser.openid;
+        if (!targetOpenid) {
             this.setData({
                 user: null,
                 detail: null
             });
             return;
         }
-        const latest = (0, user_admin_1.getCachedLatestAdjustment)(user.openid);
-        this.setData({
-            user,
-            detail: (0, user_admin_1.getUserDetailViewModel)(user, latest)
-        });
-        this.updateDraftPreview();
+        if (cachedUser) {
+            const latest = (0, user_admin_1.getCachedLatestAdjustment)(cachedUser.openid);
+            this.setData({
+                user: cachedUser,
+                detail: (0, user_admin_1.getUserDetailViewModel)(cachedUser, latest)
+            });
+            this.updateDraftPreview();
+        }
+        try {
+            const user = await (0, user_admin_1.fetchMerchantUserDetail)(targetOpenid);
+            if (!user) {
+                this.setData({
+                    user: null,
+                    detail: null
+                });
+                return;
+            }
+            wx.setStorageSync('merchant-selected-user', user);
+            this.setData({
+                user,
+                detail: (0, user_admin_1.getUserDetailViewModel)(user, user.latestAdjustment)
+            });
+            this.updateDraftPreview();
+        }
+        catch (error) {
+            console.error('fetch merchant user detail failed', error);
+        }
     },
     updateDraftPreview() {
         if (!this.data.user) {
@@ -142,7 +164,7 @@ Page({
                         amountText: '',
                         note: ''
                     });
-                    this.refreshDetail();
+                    await this.refreshDetail(updatedUser.openid);
                     wx.showToast({
                         title: '调整成功',
                         icon: 'success'

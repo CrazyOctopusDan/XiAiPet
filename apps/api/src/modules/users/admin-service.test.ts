@@ -3,6 +3,33 @@ import { describe, expect, it, vi } from 'vitest';
 import { createMerchantUserService } from './admin-service';
 
 describe('merchant user service', () => {
+  it('returns merchant user detail with latest adjustment from the repository', async () => {
+    const userRepository = {
+      getMerchantUserDetail: vi.fn(async () => ({
+        ok: true,
+        user: {
+          openid: 'openid-1',
+          latestAdjustment: {
+            normalizedTitle: '线下收款',
+            shortNote: '增加 ￥1000.00'
+          }
+        }
+      }))
+    };
+    const service = createMerchantUserService(userRepository as any, {} as any);
+
+    await expect(service.getMerchantUserDetail({} as any, 'openid-1')).resolves.toMatchObject({
+      ok: true,
+      user: {
+        openid: 'openid-1',
+        latestAdjustment: {
+          normalizedTitle: '线下收款'
+        }
+      }
+    });
+    expect(userRepository.getMerchantUserDetail).toHaveBeenCalledWith('openid-1');
+  });
+
   it('returns the bound user list when the merchant user query is empty', async () => {
     const userRepository = {
       searchUsers: vi.fn(async () => [

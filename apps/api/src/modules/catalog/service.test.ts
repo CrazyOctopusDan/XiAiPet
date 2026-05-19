@@ -3,6 +3,77 @@ import { describe, expect, it, vi } from 'vitest';
 import { createCatalogService } from './service';
 
 describe('catalog service', () => {
+  function createCatalogRepositoryStub(overrides: Record<string, unknown> = {}) {
+    return {
+      listCategories: async () => [],
+      listProducts: async () => [],
+      countProductsByCategory: async () => 0,
+      upsertCategory: async (category: { id: string; name: string; iconToken: string; sortOrder?: number }) => ({
+        id: category.id,
+        name: category.name,
+        iconToken: category.iconToken,
+        sortOrder: category.sortOrder ?? 0,
+        createdAt: '2026-05-16T00:00:00.000Z',
+        updatedAt: '2026-05-16T00:00:00.000Z'
+      }),
+      deleteCategory: async () => undefined,
+      deleteProduct: async () => undefined,
+      upsertProduct: async (product: unknown) => product,
+      listPublishedProducts: async () => [],
+      getProductById: async () => null,
+      decrementStock: async () => undefined,
+      ...overrides
+    };
+  }
+
+  function createAsset(objectKey: string) {
+    return {
+      provider: 'oss',
+      role: 'product-cover',
+      bucket: 'xiaipet',
+      region: 'oss-cn-hangzhou',
+      objectKey,
+      url: `https://assets.example.test/${objectKey}`,
+      width: 480,
+      height: 480,
+      sizeBytes: 1000,
+      contentType: 'image/jpeg',
+      uploadedAt: '2026-05-19T00:00:00.000Z',
+      variants: []
+    };
+  }
+
+  function createProductPayload(overrides: Record<string, unknown> = {}) {
+    return {
+      basicInfo: {
+        name: '南瓜小蛋糕',
+        description: '商户配置商品',
+        categoryId: 'seasonal',
+        imageFileId: 'oss://xiaipet/products/product-001/cover-1.png',
+        imageAsset: createAsset('products/product-001/cover-1.png'),
+        imagePreviewUrl: 'https://assets.example.test/products/product-001/cover-1.png',
+        introductionImageAssets: [createAsset('products/product-001/cover-1.png')],
+        detailImageAssets: [],
+        memberLevelId: null,
+        stock: 8
+      },
+      pricing: {
+        basePrice: 98,
+        specs: [],
+        formulas: [],
+        overrides: [],
+        purchaseLimit: { enabled: false, maxQuantity: null },
+        detailContent: '适合节日加餐'
+      },
+      publishSettings: {
+        status: 'published',
+        trackInventory: true,
+        fulfillmentModes: ['delivery']
+      },
+      ...overrides
+    };
+  }
+
   it('returns merchant category product counts from saved product records', async () => {
     const countProductsByCategory = vi.fn(async (categoryId: string) => {
       if (categoryId === 'cakes') {
@@ -149,6 +220,7 @@ describe('catalog service', () => {
           categoryId: 'seasonal',
           deliveryModes: ['delivery', 'pickup'],
           thumbnail: '/assets/catalog/product-card-reference.png',
+          detailImages: ['/assets/catalog/detail-long-reference.png'],
           specs: [{ id: 'small', label: '小份', price: 108 }]
         }
       ]
@@ -182,5 +254,82 @@ describe('catalog service', () => {
       deletedProductId: 'product-001'
     });
     expect(deleteProduct).toHaveBeenCalledWith('product-001');
+  });
+
+  it('accepts one to three merchant basic product images', async () => {
+    const upsertProduct = vi.fn(async (product) => product);
+    const service = createCatalogService(createCatalogRepositoryStub({ upsertProduct }) as never);
+    const images = [
+      createAsset('products/product-001/cover-1.png'),
+      createAsset('products/product-001/cover-2.png'),
+      createAsset('products/product-001/cover-3.png')
+    ];
+
+    await expect(
+      service.upsertMerchantProduct(
+        { merchantId: 'm1' } as never,
+        'product-001',
+        createProductPayload({
+          basicInfo: {
+            ...createProductPayload().basicInfo,
+            introductionImageAssets: images
+          }
+        })
+      )
+    ).resolves.toMatchObject({
+      product: {
+        introductionImageAssets: images
+      }
+    });
+    expect(upsertProduct).toHaveBeenCalledWith(expect.objectContaining({
+      introductionImageAssets: images
+    }));
+  });
+
+  it('rejects merchant products with more than three basic images', async () => {
+    const service = createCatalogService(createCatalogRepositoryStub() as never);
+    const images = [
+      createAsset('products/product-001/cover-1.png'),
+      createAsset('products/product-001/cover-2.png'),
+      createAsset('products/product-001/cover-3.png'),
+      createAsset('products/product-001/cover-4.png')
+    ];
+
+    await expect(
+      service.upsertMerchantProduct(
+        { merchantId: 'm1' } as never,
+        'product-001',
+        createProductPayload({
+          basicInfo: {
+            ...createProductPayload().basicInfo,
+            introductionImageAssets: images
+          }
+        })
+      )
+    ).rejects.toMatchObject({
+      code: 'INVALID_PRODUCT'
+    });
+  });
+
+  it('rejects merchant products with more than nine detail long images', async () => {
+    const service = createCatalogService(createCatalogRepositoryStub() as never);
+    const detailImages = Array.from({ length: 10 }, (_, index) =>
+      createAsset(`products/product-001/detail-${index + 1}.png`)
+    );
+
+    await expect(
+      service.upsertMerchantProduct(
+        { merchantId: 'm1' } as never,
+        'product-001',
+        createProductPayload({
+          basicInfo: {
+            ...createProductPayload().basicInfo,
+            detailImageAssets: detailImages
+          }
+        })
+      )
+    ).rejects.toMatchObject({
+      code: 'INVALID_PRODUCT'
+    });
   });
 });

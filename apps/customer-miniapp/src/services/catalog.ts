@@ -31,6 +31,8 @@ interface CatalogProductsResponse {
 let cachedCatalogCategories = cloneCategories(catalogCategories);
 let cachedCatalogProducts = cloneProducts(catalogProducts);
 
+const DEFAULT_PRODUCT_DETAIL_IMAGES = ['/assets/catalog/detail-long-reference.png'];
+
 export function getHomeModules(): HomeModule[] {
   return homeModules;
 }
@@ -258,7 +260,9 @@ function normalizeProduct(product: unknown): CatalogProduct | null {
     introductionImageAssets,
     detailImages: detailImageAssets?.length
       ? detailImageAssets.map((asset) => getVariantUrl(asset, 'detail') ?? asset.url)
-      : getArray(product.detailImages).filter((item): item is string => typeof item === 'string'),
+      : getArray(product.detailImages).filter((item): item is string => typeof item === 'string').length
+        ? getArray(product.detailImages).filter((item): item is string => typeof item === 'string')
+        : DEFAULT_PRODUCT_DETAIL_IMAGES,
     detailImageAssets,
     specs
   };
@@ -288,7 +292,9 @@ export function resolveCatalogProductAssetUrls(product: CatalogProduct): Catalog
     : product.gallery;
   const detailImages = product.detailImageAssets?.length
     ? product.detailImageAssets.map((asset) => getVariantUrl(asset, 'detail') ?? asset.url)
-    : product.detailImages;
+    : product.detailImages.length
+      ? product.detailImages
+      : DEFAULT_PRODUCT_DETAIL_IMAGES;
 
   return {
     ...product,

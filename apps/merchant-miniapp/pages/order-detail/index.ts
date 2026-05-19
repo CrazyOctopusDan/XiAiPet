@@ -108,18 +108,31 @@ Page({
 
     this.setData({ loading: true });
 
-    const response = (await getMerchantOrderDetail(this.data.orderId)) as MerchantOrderDetailResponse;
-    const detail = getMerchantOrderDetailViewModel(response);
+    try {
+      const response = (await getMerchantOrderDetail(this.data.orderId)) as MerchantOrderDetailResponse;
+      const detail = getMerchantOrderDetailViewModel(response);
 
-    this.currentOrder = response.order;
+      this.currentOrder = response.order;
 
-    this.setData({
-      loading: false,
-      isEmpty: !detail,
-      detail,
-      selectedStatusValue: getDefaultStatusValue(detail),
-      reasonNote: ''
-    });
+      this.setData({
+        loading: false,
+        isEmpty: !detail,
+        detail,
+        selectedStatusValue: getDefaultStatusValue(detail),
+        reasonNote: ''
+      });
+    } catch {
+      this.currentOrder = null;
+      this.setData({
+        loading: false,
+        isEmpty: true,
+        detail: null
+      });
+      wx.showToast({
+        title: '订单详情加载失败',
+        icon: 'none'
+      });
+    }
   },
   handleBackTap() {
     wx.navigateBack();

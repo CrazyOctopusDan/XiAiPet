@@ -21,8 +21,8 @@ describe('profile service', () => {
     const summary = getProfileSummary();
 
     expect(summary).toEqual({
-      avatarText: '虾',
-      nickname: '虾衣宠家长',
+      avatarText: '喜',
+      nickname: '喜爱宠家长',
       memberLevel: '普通会员',
       balance: 268,
       totalSpent: 1288,

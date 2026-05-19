@@ -58,19 +58,27 @@ Page({
   async refreshUsers(this: UsersPageInstance) {
     this.setData({ loading: true });
 
-    const users = await queryMerchantUsers({
-      query: this.data.draftQuery.trim(),
-      searchField: this.data.searchField
-    });
-    this.lastUsers = users;
-    const view = getUsersPageViewModel(users);
+    try {
+      const users = await queryMerchantUsers({
+        query: this.data.draftQuery.trim(),
+        searchField: this.data.searchField
+      });
+      this.lastUsers = users;
+      const view = getUsersPageViewModel(users);
 
-    this.setData({
-      loading: false,
-      isEmpty: view.isEmpty,
-      cards: view.cards,
-      summary: view.summary
-    });
+      this.setData({
+        loading: false,
+        isEmpty: view.isEmpty,
+        cards: view.cards,
+        summary: view.summary
+      });
+    } catch {
+      this.setData({ loading: false });
+      wx.showToast({
+        title: '用户加载失败',
+        icon: 'none'
+      });
+    }
   },
   handleClearSearch(this: UsersPageInstance) {
     this.lastUsers = [];

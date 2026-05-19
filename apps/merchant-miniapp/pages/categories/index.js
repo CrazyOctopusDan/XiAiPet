@@ -26,17 +26,26 @@ Page({
     },
     async refreshCategories() {
         this.setData({ loading: true });
-        const [categories, products] = await Promise.all([
-            (0, catalog_admin_1.queryCategories)(),
-            (0, catalog_admin_1.queryProducts)()
-        ]);
-        const view = (0, catalog_admin_1.getCategoryPageViewModel)((0, catalog_admin_1.applyProductCountsToCategories)(categories, products));
-        this.setData({
-            loading: false,
-            isEmpty: view.isEmpty,
-            cards: view.cards,
-            summary: view.summary
-        });
+        try {
+            const [categories, products] = await Promise.all([
+                (0, catalog_admin_1.queryCategories)(),
+                (0, catalog_admin_1.queryProducts)()
+            ]);
+            const view = (0, catalog_admin_1.getCategoryPageViewModel)((0, catalog_admin_1.applyProductCountsToCategories)(categories, products));
+            this.setData({
+                loading: false,
+                isEmpty: view.isEmpty,
+                cards: view.cards,
+                summary: view.summary
+            });
+        }
+        catch (_a) {
+            this.setData({ loading: false });
+            wx.showToast({
+                title: '品类加载失败',
+                icon: 'none'
+            });
+        }
     },
     handleNameInput(event) {
         var _a, _b;
@@ -95,13 +104,21 @@ Page({
             createdAt: existing ? now : now,
             updatedAt: now
         };
-        await (0, catalog_admin_1.saveCategory)(category);
-        wx.showToast({
-            title: '品类已保存',
-            icon: 'success'
-        });
-        this.closeEditor();
-        await this.refreshCategories();
+        try {
+            await (0, catalog_admin_1.saveCategory)(category);
+            wx.showToast({
+                title: '品类已保存',
+                icon: 'success'
+            });
+            this.closeEditor();
+            await this.refreshCategories();
+        }
+        catch (_a) {
+            wx.showToast({
+                title: '保存失败',
+                icon: 'none'
+            });
+        }
     },
     handleDeleteTap(event) {
         var _a, _b, _c, _d, _e, _f, _g;

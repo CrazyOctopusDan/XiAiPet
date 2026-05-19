@@ -31,11 +31,20 @@ Page({
     },
     async refreshSections() {
         this.setData({ loading: true });
-        const sections = await (0, runtime_config_admin_1.queryRuntimeConfigSections)();
-        this.setData({
-            loading: false
-        });
-        refreshView(this, sections, this.data.dirty);
+        try {
+            const sections = await (0, runtime_config_admin_1.queryRuntimeConfigSections)();
+            this.setData({
+                loading: false
+            });
+            refreshView(this, sections, this.data.dirty);
+        }
+        catch (_a) {
+            this.setData({ loading: false });
+            wx.showToast({
+                title: '配置加载失败',
+                icon: 'none'
+            });
+        }
     },
     patchSection(sectionId, updater) {
         const sections = this.data.sections.map((section) => (section.sectionId === sectionId ? updater(section) : section));
@@ -175,16 +184,24 @@ Page({
         if (!section) {
             return;
         }
-        const saved = await (0, runtime_config_admin_1.saveRuntimeConfigSection)(section);
-        const sections = this.data.sections.map((item) => (item.sectionId === sectionId ? saved : item));
-        const dirty = {
-            ...this.data.dirty,
-            [sectionId]: false
-        };
-        refreshView(this, sections, dirty);
-        wx.showToast({
-            title: '保存成功',
-            icon: 'success'
-        });
+        try {
+            const saved = await (0, runtime_config_admin_1.saveRuntimeConfigSection)(section);
+            const sections = this.data.sections.map((item) => (item.sectionId === sectionId ? saved : item));
+            const dirty = {
+                ...this.data.dirty,
+                [sectionId]: false
+            };
+            refreshView(this, sections, dirty);
+            wx.showToast({
+                title: '保存成功',
+                icon: 'success'
+            });
+        }
+        catch (_c) {
+            wx.showToast({
+                title: '保存失败',
+                icon: 'none'
+            });
+        }
     }
 });

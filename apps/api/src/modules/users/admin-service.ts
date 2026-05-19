@@ -45,6 +45,10 @@ export function createMerchantUserService(
   balanceService = createBalanceService()
 ) {
   return {
+    async getMerchantUserDetail(_merchantContext: MerchantContext, openid: string) {
+      return userRepository.getMerchantUserDetail(openid);
+    },
+
     async searchMerchantUsers(_merchantContext: MerchantContext, query: { query?: string; searchField?: string }) {
       const users = await userRepository.searchUsers(query.query ?? '', 20);
       return { ok: true as const, users };

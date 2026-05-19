@@ -5,6 +5,8 @@ import type { CatalogOssAssetReference } from './repository';
 
 type CustomerDeliveryMode = 'pickup' | 'delivery' | 'express';
 
+const DEFAULT_PRODUCT_DETAIL_IMAGES = ['/assets/catalog/detail-long-reference.png'];
+
 interface CustomerCatalogCategory {
   id: string;
   name: string;
@@ -220,7 +222,7 @@ function mapCustomerProduct(product: CatalogProductRecord): CustomerCatalogProdu
     imageAsset: product.imageAsset,
     gallery: gallery.length ? gallery : [thumbnail],
     introductionImageAssets: product.introductionImageAssets,
-    detailImages: detailImages.length ? detailImages : [thumbnail],
+    detailImages: detailImages.length ? detailImages : DEFAULT_PRODUCT_DETAIL_IMAGES,
     detailImageAssets: product.detailImageAssets,
     specs
   };
@@ -244,6 +246,14 @@ function isOssAssetReference(value: unknown): value is CatalogOssAssetReference 
   );
 }
 
+function isProductBasicImageAssets(value: unknown) {
+  return value === undefined || (Array.isArray(value) && value.length <= 3 && value.every(isOssAssetReference));
+}
+
+function isProductDetailImageAssets(value: unknown) {
+  return value === undefined || (Array.isArray(value) && value.length <= 9 && value.every(isOssAssetReference));
+}
+
 function isCatalogProductEditorPayload(value: unknown): value is CatalogProductEditorPayload {
   if (!value || typeof value !== 'object') {
     return false;
@@ -261,14 +271,8 @@ function isCatalogProductEditorPayload(value: unknown): value is CatalogProductE
       typeof basicInfo.categoryId === 'string' &&
       typeof basicInfo.imageFileId === 'string' &&
       (basicInfo.imageAsset === undefined || isOssAssetReference(basicInfo.imageAsset)) &&
-      (
-        basicInfo.introductionImageAssets === undefined ||
-        (Array.isArray(basicInfo.introductionImageAssets) && basicInfo.introductionImageAssets.every(isOssAssetReference))
-      ) &&
-      (
-        basicInfo.detailImageAssets === undefined ||
-        (Array.isArray(basicInfo.detailImageAssets) && basicInfo.detailImageAssets.every(isOssAssetReference))
-      ) &&
+      isProductBasicImageAssets(basicInfo.introductionImageAssets) &&
+      isProductDetailImageAssets(basicInfo.detailImageAssets) &&
       typeof basicInfo.stock === 'number' &&
       typeof pricing.basePrice === 'number' &&
       Array.isArray(pricing.specs) &&

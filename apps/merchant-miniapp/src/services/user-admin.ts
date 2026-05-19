@@ -3,7 +3,9 @@ declare const wx: any;
 import type {
   MerchantBalanceAdjustmentAction,
   MerchantBalanceAdjustmentReasonType,
+  MerchantLatestAdjustmentSummary,
   MerchantUserBalanceAdjustmentPayload,
+  MerchantUserDetail,
   MerchantUserSearchInput,
   MerchantUserSearchListItem
 } from '@xiaipet/shared/types/user-admin';
@@ -31,12 +33,7 @@ export interface UsersPageViewModel {
   cards: UserCardViewModel[];
 }
 
-export interface LatestAdjustmentSummary {
-  normalizedTitle: string;
-  shortNote: string;
-  operatedAt: string;
-  operatorName: string;
-}
+export type LatestAdjustmentSummary = MerchantLatestAdjustmentSummary;
 
 export interface UserDetailViewModel {
   openid: string;
@@ -146,6 +143,18 @@ export async function queryMerchantUsers(input: MerchantUserSearchInput, request
   });
 
   return response.users ?? [];
+}
+
+export async function fetchMerchantUserDetail(openid: string, request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{
+    ok?: boolean;
+    user?: MerchantUserDetail | null;
+  }>(`/api/v1/merchant/users/${openid}`, {
+    method: 'GET',
+    auth: 'merchant'
+  });
+
+  return response.user ?? null;
 }
 
 export function getUsersPageViewModel(users: MerchantUserSearchListItem[]): UsersPageViewModel {

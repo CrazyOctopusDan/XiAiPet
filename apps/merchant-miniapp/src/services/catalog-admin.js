@@ -12,6 +12,7 @@ exports.splitProductEditorPayload = splitProductEditorPayload;
 exports.getProductEditorViewModel = getProductEditorViewModel;
 exports.uploadProductImage = uploadProductImage;
 exports.uploadProductCoverAsset = uploadProductCoverAsset;
+exports.uploadProductDetailAsset = uploadProductDetailAsset;
 exports.saveProduct = saveProduct;
 exports.deleteProduct = deleteProduct;
 const product_pricing_1 = require("../shared/product-pricing");
@@ -81,6 +82,15 @@ function getStepCtaLabel(step) {
     }
     return '保存商品';
 }
+function getPreviousStepLabel(step) {
+    if (step === 'pricing') {
+        return '返回基础信息';
+    }
+    if (step === 'publishSettings') {
+        return '返回规格配方与价格';
+    }
+    return null;
+}
 function createPricePreviewRows(basePrice, specs, formulas, overrides) {
     const previewProduct = {
         basePrice,
@@ -103,6 +113,47 @@ function createPricePreviewRows(basePrice, specs, formulas, overrides) {
 }
 function getDraftProductId() {
     return `product-${Date.now()}`;
+}
+function getAssetDisplayUrl(asset) {
+    var _a;
+    const variants = Array.isArray(asset.variants) ? asset.variants : [];
+    const displayVariant = variants.find((variant) => Boolean(variant) &&
+        typeof variant === 'object' &&
+        'name' in variant &&
+        'url' in variant &&
+        variant.name === 'display' &&
+        typeof variant.url === 'string');
+    return (_a = displayVariant === null || displayVariant === void 0 ? void 0 : displayVariant.url) !== null && _a !== void 0 ? _a : asset.url;
+}
+function getBasicImageTiles(payload) {
+    var _a;
+    const assets = (_a = payload.basicInfo.introductionImageAssets) !== null && _a !== void 0 ? _a : [];
+    if (assets.length) {
+        return assets.slice(0, 3).map((asset, index) => ({
+            index,
+            imageSrc: getAssetDisplayUrl(asset),
+            isCover: index === 0
+        }));
+    }
+    const fallback = payload.basicInfo.imageAsset
+        ? getAssetDisplayUrl(payload.basicInfo.imageAsset)
+        : payload.basicInfo.imagePreviewUrl || payload.basicInfo.imageFileId;
+    return fallback
+        ? [
+            {
+                index: 0,
+                imageSrc: fallback,
+                isCover: true
+            }
+        ]
+        : [];
+}
+function getDetailImageTiles(payload) {
+    var _a;
+    return ((_a = payload.basicInfo.detailImageAssets) !== null && _a !== void 0 ? _a : []).slice(0, 9).map((asset, index) => ({
+        index,
+        imageSrc: getAssetDisplayUrl(asset)
+    }));
 }
 async function queryCategories(request = api_client_1.merchantApiRequest) {
     var _a;
@@ -281,6 +332,8 @@ function splitProductEditorPayload(product) {
 function getProductEditorViewModel(payload, activeStep) {
     var _a;
     const steps = ['basicInfo', 'pricing', 'publishSettings'];
+    const basicImageTiles = getBasicImageTiles(payload);
+    const detailImageTiles = getDetailImageTiles(payload);
     return {
         activeStepLabel: getStepLabel(activeStep),
         steps: steps.map((step, index) => ({
@@ -290,6 +343,13 @@ function getProductEditorViewModel(payload, activeStep) {
             isDone: steps.indexOf(activeStep) > index
         })),
         ctaLabel: getStepCtaLabel(activeStep),
+        previousStepLabel: getPreviousStepLabel(activeStep),
+        basicImageCountLabel: `${basicImageTiles.length} / 3`,
+        basicImageTiles,
+        canAddBasicImage: basicImageTiles.length < 3,
+        detailImageCountLabel: `${detailImageTiles.length} / 9`,
+        detailImageTiles,
+        canAddDetailImage: detailImageTiles.length < 9,
         purchaseLimitLabel: payload.pricing.purchaseLimit.enabled
             ? `限购 ${(_a = payload.pricing.purchaseLimit.maxQuantity) !== null && _a !== void 0 ? _a : 0} 件`
             : '不限购',
@@ -310,6 +370,13 @@ async function uploadProductImage(filePath, productId, request) {
 }
 async function uploadProductCoverAsset(filePath, request) {
     return (0, assets_1.uploadMerchantAsset)('product-cover', {
+        filePath,
+        processingMode: 'miniapp',
+        request
+    });
+}
+async function uploadProductDetailAsset(filePath, request) {
+    return (0, assets_1.uploadMerchantAsset)('product-detail', {
         filePath,
         processingMode: 'miniapp',
         request

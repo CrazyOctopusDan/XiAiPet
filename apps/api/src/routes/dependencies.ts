@@ -56,6 +56,7 @@ export interface ApiRouteServices {
   };
   merchantUserService: {
     searchMerchantUsers(merchantContext: unknown, query: { query?: string; searchField?: string }): AsyncResult;
+    getMerchantUserDetail(merchantContext: unknown, openid: string): AsyncResult;
     adjustUserBalance(merchantContext: unknown, openid: string, payload: unknown): AsyncResult;
   };
   merchantAccountService: {

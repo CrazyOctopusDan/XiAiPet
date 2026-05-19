@@ -69,8 +69,18 @@ Page({
         if (!accountId) {
             return;
         }
-        await (0, merchant_accounts_1.disableStaffAccount)(accountId);
-        await this.refreshAccounts();
+        this.setData({ loading: true, statusText: '正在停用员工账号' });
+        try {
+            await (0, merchant_accounts_1.disableStaffAccount)(accountId);
+            this.setData({ statusText: '员工账号已停用' });
+            await this.refreshAccounts();
+        }
+        catch (error) {
+            this.setData({
+                loading: false,
+                statusText: error instanceof Error && error.message ? error.message : '停用失败'
+            });
+        }
     },
     async handleResetPassword(event) {
         var _a, _b;
@@ -78,8 +88,17 @@ Page({
         if (!accountId) {
             return;
         }
-        await (0, merchant_accounts_1.resetStaffPassword)(accountId);
-        this.setData({ statusText: '密码已重置为 staff' });
-        await this.refreshAccounts();
+        this.setData({ loading: true, statusText: '正在重置密码' });
+        try {
+            await (0, merchant_accounts_1.resetStaffPassword)(accountId);
+            this.setData({ statusText: '密码已重置为 staff' });
+            await this.refreshAccounts();
+        }
+        catch (error) {
+            this.setData({
+                loading: false,
+                statusText: error instanceof Error && error.message ? error.message : '重置失败'
+            });
+        }
     }
 });

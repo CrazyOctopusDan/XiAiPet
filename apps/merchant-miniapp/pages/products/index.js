@@ -28,16 +28,25 @@ Page({
     },
     async refreshProducts() {
         this.setData({ loading: true });
-        const categories = await (0, catalog_admin_1.queryCategories)();
-        const products = await (0, catalog_admin_1.queryProducts)(this.data.activeCategoryId);
-        const view = (0, catalog_admin_1.getProductPageViewModel)(products, categories, this.data.activeCategoryId, this.data.keyword);
-        this.setData({
-            loading: false,
-            isEmpty: view.isEmpty,
-            summary: view.summary,
-            categoryFilters: view.categoryFilters,
-            cards: view.cards
-        });
+        try {
+            const categories = await (0, catalog_admin_1.queryCategories)();
+            const products = await (0, catalog_admin_1.queryProducts)(this.data.activeCategoryId);
+            const view = (0, catalog_admin_1.getProductPageViewModel)(products, categories, this.data.activeCategoryId, this.data.keyword);
+            this.setData({
+                loading: false,
+                isEmpty: view.isEmpty,
+                summary: view.summary,
+                categoryFilters: view.categoryFilters,
+                cards: view.cards
+            });
+        }
+        catch (_a) {
+            this.setData({ loading: false });
+            wx.showToast({
+                title: '商品加载失败',
+                icon: 'none'
+            });
+        }
     },
     handleCategoryTap(event) {
         var _a, _b, _c;

@@ -91,8 +91,17 @@ Page({
       return;
     }
 
-    await disableStaffAccount(accountId);
-    await this.refreshAccounts();
+    this.setData({ loading: true, statusText: '正在停用员工账号' });
+    try {
+      await disableStaffAccount(accountId);
+      this.setData({ statusText: '员工账号已停用' });
+      await this.refreshAccounts();
+    } catch (error) {
+      this.setData({
+        loading: false,
+        statusText: error instanceof Error && error.message ? error.message : '停用失败'
+      });
+    }
   },
   async handleResetPassword(this: StaffAccountsPageInstance, event: { currentTarget?: { dataset?: { id?: string } } }) {
     const accountId = event.currentTarget?.dataset?.id;
@@ -100,8 +109,16 @@ Page({
       return;
     }
 
-    await resetStaffPassword(accountId);
-    this.setData({ statusText: '密码已重置为 staff' });
-    await this.refreshAccounts();
+    this.setData({ loading: true, statusText: '正在重置密码' });
+    try {
+      await resetStaffPassword(accountId);
+      this.setData({ statusText: '密码已重置为 staff' });
+      await this.refreshAccounts();
+    } catch (error) {
+      this.setData({
+        loading: false,
+        statusText: error instanceof Error && error.message ? error.message : '重置失败'
+      });
+    }
   }
 });

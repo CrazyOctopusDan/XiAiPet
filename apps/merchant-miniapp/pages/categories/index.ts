@@ -59,17 +59,25 @@ Page({
   },
   async refreshCategories(this: CategoryPageInstance) {
     this.setData({ loading: true });
-    const [categories, products] = await Promise.all([
-      queryCategories(),
-      queryProducts()
-    ]);
-    const view = getCategoryPageViewModel(applyProductCountsToCategories(categories, products));
-    this.setData({
-      loading: false,
-      isEmpty: view.isEmpty,
-      cards: view.cards,
-      summary: view.summary
-    });
+    try {
+      const [categories, products] = await Promise.all([
+        queryCategories(),
+        queryProducts()
+      ]);
+      const view = getCategoryPageViewModel(applyProductCountsToCategories(categories, products));
+      this.setData({
+        loading: false,
+        isEmpty: view.isEmpty,
+        cards: view.cards,
+        summary: view.summary
+      });
+    } catch {
+      this.setData({ loading: false });
+      wx.showToast({
+        title: '品类加载失败',
+        icon: 'none'
+      });
+    }
   },
   handleNameInput(this: CategoryPageInstance, event: { detail?: { value?: string } }) {
     this.setData({ draftName: event.detail?.value ?? '' });
@@ -130,14 +138,21 @@ Page({
       updatedAt: now
     };
 
-    await saveCategory(category);
-    wx.showToast({
-      title: '品类已保存',
-      icon: 'success'
-    });
+    try {
+      await saveCategory(category);
+      wx.showToast({
+        title: '品类已保存',
+        icon: 'success'
+      });
 
-    this.closeEditor();
-    await this.refreshCategories();
+      this.closeEditor();
+      await this.refreshCategories();
+    } catch {
+      wx.showToast({
+        title: '保存失败',
+        icon: 'none'
+      });
+    }
   },
   handleDeleteTap(
     this: CategoryPageInstance,

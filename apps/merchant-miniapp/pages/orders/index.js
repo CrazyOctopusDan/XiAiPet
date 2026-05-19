@@ -75,17 +75,26 @@ Page({
     },
     async refreshOrders() {
         this.setData({ loading: true });
-        const groups = (0, orders_1.getMerchantOrdersPageViewModel)(await (0, orders_1.queryMerchantOrders)()).groups;
-        const filteredGroups = filterGroups(groups, this.data.keyword, this.data.activeMode);
-        const hasFilters = Boolean(this.data.keyword.trim()) || this.data.activeMode !== 'all';
-        this.setData({
-            loading: false,
-            isEmpty: filteredGroups.length === 0,
-            groups: filteredGroups,
-            summary: (0, orders_1.getMerchantOrderGroupSummary)(filteredGroups),
-            emptyTitle: hasFilters ? '没有匹配的订单' : '还没有订单',
-            emptyBody: hasFilters ? '换个关键词或履约方式再试一次。' : '新订单会按履约进度分组显示在这里。'
-        });
+        try {
+            const groups = (0, orders_1.getMerchantOrdersPageViewModel)(await (0, orders_1.queryMerchantOrders)()).groups;
+            const filteredGroups = filterGroups(groups, this.data.keyword, this.data.activeMode);
+            const hasFilters = Boolean(this.data.keyword.trim()) || this.data.activeMode !== 'all';
+            this.setData({
+                loading: false,
+                isEmpty: filteredGroups.length === 0,
+                groups: filteredGroups,
+                summary: (0, orders_1.getMerchantOrderGroupSummary)(filteredGroups),
+                emptyTitle: hasFilters ? '没有匹配的订单' : '还没有订单',
+                emptyBody: hasFilters ? '换个关键词或履约方式再试一次。' : '新订单会按履约进度分组显示在这里。'
+            });
+        }
+        catch (_a) {
+            this.setData({ loading: false });
+            wx.showToast({
+                title: '订单加载失败',
+                icon: 'none'
+            });
+        }
     },
     handleKeywordInput(event) {
         var _a, _b;

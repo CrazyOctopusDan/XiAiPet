@@ -9,6 +9,7 @@ import type {
 
 import {
   buildBalanceAdjustmentDraft,
+  fetchMerchantUserDetail,
   getCachedLatestAdjustment,
   getUserDetailViewModel,
   submitBalanceAdjustment
@@ -32,7 +33,7 @@ interface UserDetailPageData {
 interface UserDetailPageInstance {
   data: UserDetailPageData;
   setData(updates: Record<string, unknown>): void;
-  refreshDetail(): void;
+  refreshDetail(openid?: string): Promise<void>;
   updateDraftPreview(): void;
 }
 
@@ -50,16 +51,17 @@ Page({
     submitting: false,
     canAdjustBalance: true
   },
-  onLoad(this: UserDetailPageInstance) {
+  onLoad(this: UserDetailPageInstance, options?: { openid?: string }) {
     this.setData({
       canAdjustBalance: getMerchantSession()?.account?.role !== 'staff'
     });
-    this.refreshDetail();
+    void this.refreshDetail(options?.openid);
   },
-  refreshDetail(this: UserDetailPageInstance) {
-    const user = wx.getStorageSync('merchant-selected-user') as MerchantUserSearchListItem | null;
+  async refreshDetail(this: UserDetailPageInstance, openid?: string) {
+    const cachedUser = wx.getStorageSync('merchant-selected-user') as MerchantUserSearchListItem | null;
+    const targetOpenid = openid ?? cachedUser?.openid;
 
-    if (!user) {
+    if (!targetOpenid) {
       this.setData({
         user: null,
         detail: null
@@ -67,12 +69,33 @@ Page({
       return;
     }
 
-    const latest = getCachedLatestAdjustment(user.openid);
-    this.setData({
-      user,
-      detail: getUserDetailViewModel(user, latest)
-    });
-    this.updateDraftPreview();
+    if (cachedUser) {
+      const latest = getCachedLatestAdjustment(cachedUser.openid);
+      this.setData({
+        user: cachedUser,
+        detail: getUserDetailViewModel(cachedUser, latest)
+      });
+      this.updateDraftPreview();
+    }
+
+    try {
+      const user = await fetchMerchantUserDetail(targetOpenid);
+      if (!user) {
+        this.setData({
+          user: null,
+          detail: null
+        });
+        return;
+      }
+      wx.setStorageSync('merchant-selected-user', user);
+      this.setData({
+        user,
+        detail: getUserDetailViewModel(user, user.latestAdjustment)
+      });
+      this.updateDraftPreview();
+    } catch (error) {
+      console.error('fetch merchant user detail failed', error);
+    }
   },
   updateDraftPreview(this: UserDetailPageInstance) {
     if (!this.data.user) {
@@ -186,7 +209,7 @@ Page({
             amountText: '',
             note: ''
           });
-          this.refreshDetail();
+          await this.refreshDetail(updatedUser.openid);
           wx.showToast({
             title: '调整成功',
             icon: 'success'
