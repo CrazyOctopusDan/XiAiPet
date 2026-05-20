@@ -166,8 +166,9 @@ async function saveRuntimeConfigSection(section, request = api_client_1.merchant
     return response.section;
 }
 async function uploadRuntimeBannerAsset(filePath, request) {
+    const file = typeof filePath === 'string' ? { filePath } : { filePath: filePath.filePath, fileSizeBytes: filePath.sizeBytes };
     return (0, assets_1.uploadMerchantAsset)('runtime-banner', {
-        filePath,
+        ...file,
         processingMode: 'miniapp',
         request
     });

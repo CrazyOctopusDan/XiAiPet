@@ -1,15 +1,12 @@
 <view class="home-page">
   <image class="hero-poster" mode="widthFix" src="{{heroBannerSrc}}" />
-
   <view class="module-grid">
-    <image
-      class="module-card"
-      wx:for="{{modules}}"
-      wx:key="id"
-      mode="widthFix"
-      src="{{item.imageSrc}}"
-      data-module-id="{{item.id}}"
-      bindtap="handleModuleTap"
-    />
+    <view class="module-card module-card--{{item.id}}" wx:for="{{modules}}" wx:key="id" data-module-id="{{item.id}}" bindtap="handleModuleTap">
+      <view class="module-card-inner">
+        <text wx:if="{{item.id !== 'consulting'}}" class="module-card-title">{{item.title}}</text>
+        <image class="module-card-art" mode="aspectFit" src="{{item.imageSrc}}" />
+        <view wx:if="{{item.actionLabel}}" class="module-card-action module-card-action-{{item.actionTone}}">{{item.actionLabel}}</view>
+      </view>
+    </view>
   </view>
 </view>

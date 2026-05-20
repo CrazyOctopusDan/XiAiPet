@@ -282,6 +282,36 @@ describe('catalog admin service', () => {
     ]);
   });
 
+  it('adds https before rendering protocol-less merchant product images', () => {
+    const view = getProductPageViewModel(
+      [
+        createProductRecord({
+          imagePreviewUrl: 'xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/prod-birthday-cake.png'
+        })
+      ],
+      [{ ...createCategory(), linkedProductCount: 1, canDelete: false }],
+      '',
+      ''
+    );
+
+    expect(view.cards[0]?.imagePreviewUrl).toBe('https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/prod-birthday-cake.png');
+
+    const editorView = getProductEditorViewModel(
+      createProductPayload({
+        basicInfo: {
+          ...createProductPayload().basicInfo,
+          imagePreviewUrl: 'xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/display.jpg',
+          introductionImageAssets: []
+        }
+      }),
+      'basicInfo'
+    );
+
+    expect(editorView.basicImageTiles[0]?.imageSrc).toBe(
+      'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/display.jpg'
+    );
+  });
+
   it('falls back to the legacy single cover while editing old products', () => {
     const view = getProductEditorViewModel(
       createProductPayload({

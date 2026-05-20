@@ -2,9 +2,9 @@
   min-height: 100vh;
   padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 14% 0%, rgba(246, 190, 62, 0.2) 0, transparent 30%),
-    linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 54%, #F6E7C8 100%);
-  color: #3A2A1E;
+    radial-gradient(circle at 14% 0%, rgba(246, 227, 150, 0.2) 0, transparent 30%),
+    linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 54%, #F6E396 100%);
+  color: #40535C;
   box-sizing: border-box;
 }
 
@@ -33,27 +33,27 @@
   font-size: 34rpx;
   line-height: 1.2;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .address-form-context-badge {
   flex-shrink: 0;
   padding: 10rpx 18rpx;
   border-radius: 999rpx;
-  background: #3A2A1E;
+  background: #F6E396;
   font-size: 22rpx;
   line-height: 1.2;
   font-weight: 900;
-  color: #FFE6A3;
+  color: #40535C;
 }
 
 .address-form-card {
   margin-top: 16rpx;
   padding: 34rpx 28rpx;
   border-radius: 32rpx;
-  border: 2rpx solid rgba(82, 49, 24, 0.06);
+  border: 2rpx solid rgba(80, 104, 105, 0.06);
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-shadow: 0 16rpx 34rpx rgba(80, 104, 105, 0.08);
   box-sizing: border-box;
 }
 
@@ -61,7 +61,7 @@
   font-size: 32rpx;
   line-height: 1.25;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .field-block {
@@ -73,17 +73,17 @@
   font-size: 24rpx;
   line-height: 1.2;
   font-weight: 800;
-  color: #6D563F;
+  color: #7B8B92;
 }
 
 .text-input,
 .text-area {
   width: 100%;
   box-sizing: border-box;
-  border: 2rpx solid rgba(82, 49, 24, 0.08);
+  border: 2rpx solid rgba(80, 104, 105, 0.08);
   border-radius: 24rpx;
-  background: #FFF8EA;
-  color: #3A2A1E;
+  background: #FFFDF5;
+  color: #40535C;
 }
 
 .text-input {
@@ -111,7 +111,7 @@
   padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
   background: rgba(255, 253, 246, 0.94);
   backdrop-filter: blur(18rpx);
-  box-shadow: 0 -12rpx 32rpx rgba(72, 41, 17, 0.08);
+  box-shadow: 0 -12rpx 32rpx rgba(82, 116, 126, 0.08);
   box-sizing: border-box;
 }
 
@@ -123,12 +123,12 @@
   height: 96rpx;
   padding: 0;
   border-radius: 999rpx;
-  background: #3A2A1E;
+  background: #F6E396;
   font-size: 30rpx;
   line-height: 96rpx;
   font-weight: 900;
-  color: #FFE6A3;
-  box-shadow: 0 18rpx 38rpx rgba(72, 41, 17, 0.2);
+  color: #40535C;
+  box-shadow: 0 18rpx 38rpx rgba(82, 116, 126, 0.2);
 }
 
 .save-button::after {

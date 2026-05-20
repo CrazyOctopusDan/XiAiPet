@@ -2,9 +2,9 @@
   min-height: 100vh;
   padding: var(--orders-header-top, 96rpx) 24rpx calc(242rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 14% 0%, rgba(246, 190, 62, 0.22) 0, transparent 30%),
-    linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 54%, #F6E7C8 100%);
-  color: #3A2A1E;
+    radial-gradient(circle at 14% 0%, rgba(246, 227, 150, 0.22) 0, transparent 30%),
+    linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 54%, #F6E396 100%);
+  color: #40535C;
   box-sizing: border-box;
 }
 
@@ -26,7 +26,7 @@
   font-size: 44rpx;
   line-height: 1.12;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .orders-subtitle {
@@ -35,7 +35,7 @@
   font-size: 23rpx;
   line-height: 1.35;
   font-weight: 700;
-  color: #8A6D53;
+  color: #7B8B92;
 }
 
 .orders-badge {
@@ -43,19 +43,19 @@
   flex-shrink: 0;
   padding: 12rpx 20rpx;
   border-radius: 999rpx;
-  background: #3A2A1E;
+  background: #F6E396;
   font-size: 22rpx;
   line-height: 1.2;
   font-weight: 900;
-  color: #FFE6A3;
+  color: #40535C;
 }
 
 .orders-card {
   padding: 34rpx 30rpx;
-  border: 2rpx solid rgba(82, 49, 24, 0.06);
+  border: 2rpx solid rgba(80, 104, 105, 0.06);
   border-radius: 32rpx;
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-shadow: 0 16rpx 34rpx rgba(80, 104, 105, 0.08);
   box-sizing: border-box;
 }
 
@@ -80,14 +80,14 @@
   height: 96rpx;
   padding: 0 24rpx;
   border-radius: 30rpx;
-  background: #FFF1C2;
+  background: #F6E396;
   box-sizing: border-box;
 }
 
 .empty-mark-line {
   height: 6rpx;
   border-radius: 999rpx;
-  background: #3A2A1E;
+  background: #F6E396;
   opacity: 0.88;
 }
 
@@ -100,7 +100,7 @@
   font-size: 34rpx;
   line-height: 1.25;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .card-body {
@@ -108,7 +108,7 @@
   font-size: 25rpx;
   line-height: 1.6;
   font-weight: 700;
-  color: #8A6D53;
+  color: #7B8B92;
 }
 
 .catalog-button {
@@ -120,12 +120,12 @@
   padding: 0;
   border: none;
   border-radius: 999rpx;
-  background: #3A2A1E;
-  color: #FFE6A3;
+  background: #F6E396;
+  color: #40535C;
   font-size: 28rpx;
   line-height: 88rpx;
   font-weight: 900;
-  box-shadow: 0 18rpx 38rpx rgba(72, 41, 17, 0.18);
+  box-shadow: 0 18rpx 38rpx rgba(82, 116, 126, 0.18);
 }
 
 .catalog-button::after {
@@ -134,16 +134,16 @@
 
 .order-card {
   padding: 30rpx;
-  border: 2rpx solid rgba(82, 49, 24, 0.06);
+  border: 2rpx solid rgba(80, 104, 105, 0.06);
   border-radius: 32rpx;
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-shadow: 0 16rpx 34rpx rgba(80, 104, 105, 0.08);
   box-sizing: border-box;
 }
 
 .order-card.highlighted {
   border-color: rgba(255, 230, 163, 0.66);
-  box-shadow: 0 0 0 4rpx rgba(255, 230, 163, 0.52), 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-shadow: 0 0 0 4rpx rgba(255, 230, 163, 0.52), 0 16rpx 34rpx rgba(80, 104, 105, 0.08);
 }
 
 .order-card-head,
@@ -173,7 +173,7 @@
   font-size: 28rpx;
   line-height: 1.2;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .order-created {
@@ -181,14 +181,14 @@
   font-size: 22rpx;
   line-height: 1.2;
   font-weight: 700;
-  color: #9A7B60;
+  color: #7B8B92;
 }
 
 .order-status {
   padding: 10rpx 18rpx;
   border-radius: 999rpx;
-  background: #FFF1C2;
-  color: #8A5A14;
+  background: #F6E396;
+  color: #6B7C84;
   font-size: 22rpx;
   line-height: 1.2;
   font-weight: 900;
@@ -199,14 +199,14 @@
   font-size: 30rpx;
   line-height: 1.35;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .order-meta-panel {
   margin-top: 22rpx;
   padding: 18rpx 20rpx;
   border-radius: 24rpx;
-  background: #FFF8EA;
+  background: #FFFDF5;
   box-sizing: border-box;
 }
 
@@ -222,7 +222,7 @@
   font-size: 24rpx;
   line-height: 1.35;
   font-weight: 800;
-  color: #9A7B60;
+  color: #7B8B92;
 }
 
 .order-meta-value {
@@ -231,7 +231,7 @@
   font-size: 24rpx;
   line-height: 1.35;
   font-weight: 800;
-  color: #5B4736;
+  color: #7B8B92;
 }
 
 .order-card-foot {
@@ -242,15 +242,15 @@
   font-size: 34rpx;
   line-height: 1.2;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .order-link {
   padding: 12rpx 18rpx;
   border-radius: 999rpx;
-  background: #3A2A1E;
+  background: #F6E396;
   font-size: 23rpx;
   line-height: 1.2;
   font-weight: 900;
-  color: #FFE6A3;
+  color: #40535C;
 }

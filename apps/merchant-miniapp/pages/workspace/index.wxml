@@ -9,6 +9,10 @@
         <text class="page-title">商户工作台</text>
         <text class="page-subtitle">今日店务从这里开始</text>
       </view>
+      <view class="session-actions">
+        <text class="account-name">{{accountName}}</text>
+        <button class="logout-button" bindtap="handleLogoutTap">退出</button>
+      </view>
     </view>
 
     <view class="summary-metrics">

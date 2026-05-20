@@ -2,11 +2,26 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const catalog_1 = require("../../src/services/catalog");
 const runtime_config_1 = require("../../src/services/runtime-config");
+function getHomeModuleAction(moduleId) {
+    var _a;
+    const actions = {
+        preorder: { actionLabel: '点击浏览商品', actionTone: 'pink' },
+        notice: { actionLabel: '查看须知', actionTone: 'blue' },
+        vip: { actionLabel: '查看权益', actionTone: 'blue' }
+    };
+    return (_a = actions[moduleId]) !== null && _a !== void 0 ? _a : { actionLabel: '', actionTone: '' };
+}
+function decorateHomeModules(modules) {
+    return modules.map((module) => ({
+        ...module,
+        ...getHomeModuleAction(module.id)
+    }));
+}
 function buildHomeModulesFallback() {
-    return (0, catalog_1.getHomeModules)().map((module) => ({
+    return decorateHomeModules((0, catalog_1.getHomeModules)().map((module) => ({
         ...module,
         imageSrc: module.imageFileId
-    }));
+    })));
 }
 function getNavigationMetrics() {
     var _a, _b, _c, _d, _e, _f;
@@ -45,7 +60,7 @@ Page({
         }
         finally {
             this.setData({
-                modules: await modulePromise,
+                modules: decorateHomeModules(await modulePromise),
                 heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId
             });
         }

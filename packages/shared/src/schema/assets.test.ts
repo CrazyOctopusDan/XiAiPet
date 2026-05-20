@@ -5,7 +5,8 @@ import {
   isAssetStorageId,
   isOssAssetReference,
   isOssAssetRole,
-  isOssAssetVariant
+  isOssAssetVariant,
+  normalizeImageUrlForDisplay
 } from './assets';
 import type { OssAssetReference } from '../types/assets';
 
@@ -61,5 +62,19 @@ describe('asset schema', () => {
     expect(isOssAssetReference(asset)).toBe(true);
     expect(getAssetUrlForVariant(asset, 'thumbnail')).toBe('https://assets.example.test/thumbnail.jpg');
     expect(getAssetUrlForVariant(asset, 'detail')).toBe(asset.url);
+  });
+
+  it('normalizes protocol-less image URLs before mini program rendering', () => {
+    expect(normalizeImageUrlForDisplay('xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/prod-birthday-cake.png')).toBe(
+      'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/prod-birthday-cake.png'
+    );
+    expect(normalizeImageUrlForDisplay('xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/merchant/a.jpg')).toBe(
+      'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/merchant/a.jpg'
+    );
+    expect(normalizeImageUrlForDisplay('http://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/a.png')).toBe(
+      'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/a.png'
+    );
+    expect(normalizeImageUrlForDisplay('/assets/catalog/local.png')).toBe('/assets/catalog/local.png');
+    expect(normalizeImageUrlForDisplay('oss://bucket/object.png')).toBe('oss://bucket/object.png');
   });
 });

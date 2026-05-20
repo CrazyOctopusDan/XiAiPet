@@ -1,8 +1,8 @@
 .profile-detail-page {
   min-height: 100vh;
   padding: 18rpx 24rpx calc(154rpx + env(safe-area-inset-bottom));
-  background: radial-gradient(circle at 12% 0%, #FFE6A3 0, transparent 34%), linear-gradient(180deg, #FFF7ED 0%, #FFFDF4 58%, #F8E7C3 100%);
-  color: #3A2A1E;
+  background: radial-gradient(circle at 12% 0%, rgba(246, 227, 150, 0.4) 0, transparent 34%), linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%);
+  color: #40535C;
   box-sizing: border-box;
 }
 
@@ -15,8 +15,8 @@
 .detail-hero-card {
   margin-top: 20rpx;
   padding: 34rpx 30rpx;
-  background: linear-gradient(135deg, #3A2A1E 0%, #70451F 100%);
-  box-shadow: 0 18rpx 44rpx rgba(75, 43, 19, 0.18);
+  background: linear-gradient(135deg, #FFFDF5 0%, #FFF8D8 54%, #F6E396 100%);
+  box-shadow: 0 16rpx 36rpx rgba(80, 104, 105, 0.1);
 }
 
 .detail-eyebrow,
@@ -39,7 +39,7 @@
   background: rgba(255, 230, 163, 0.16);
   font-size: 20rpx;
   font-weight: 700;
-  color: #FFE6A3;
+  color: #40535C;
 }
 
 .detail-title {
@@ -47,21 +47,21 @@
   font-size: 42rpx;
   line-height: 1.18;
   font-weight: 800;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .detail-subtitle {
   margin-top: 16rpx;
   font-size: 24rpx;
   line-height: 1.65;
-  color: rgba(255, 255, 255, 0.76);
+  color: #7B8B92;
 }
 
 .detail-card {
   margin-top: 22rpx;
   padding: 30rpx 28rpx;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 16rpx 36rpx rgba(106, 72, 39, 0.08);
+  box-shadow: 0 16rpx 36rpx rgba(80, 104, 105, 0.08);
 }
 
 .section-head,
@@ -82,14 +82,14 @@
 .section-title {
   font-size: 32rpx;
   font-weight: 800;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .section-index {
   flex-shrink: 0;
   font-size: 32rpx;
   font-weight: 900;
-  color: rgba(249, 115, 22, 0.18);
+  color: rgba(213, 241, 255, 0.18);
 }
 
 .field-block {
@@ -99,7 +99,7 @@
 .field-label {
   font-size: 23rpx;
   font-weight: 700;
-  color: #7D6654;
+  color: #7B8B92;
 }
 
 .text-input,
@@ -109,16 +109,16 @@
   margin-top: 12rpx;
   padding: 0 24rpx;
   border-radius: 24rpx;
-  background: #FFF8E8;
+  background: #FFFDF5;
   font-size: 28rpx;
   line-height: 92rpx;
-  color: #3A2A1E;
+  color: #40535C;
   box-sizing: border-box;
 }
 
 .picker-shell.locked {
-  background: #EFE7D8;
-  color: #8B7560;
+  background: #FFFDF5;
+  color: #7B8B92;
 }
 
 .gender-row {
@@ -131,42 +131,42 @@
   min-width: 150rpx;
   padding: 18rpx 24rpx;
   border-radius: 999rpx;
-  background: #FFF1C2;
+  background: #F6E396;
   border: 2rpx solid transparent;
   font-size: 24rpx;
   font-weight: 700;
   text-align: center;
-  color: #8A5F31;
+  color: #6B7C84;
   box-sizing: border-box;
 }
 
 .gender-pill.active {
-  background: #F6BE3E;
-  border-color: #E5A900;
-  color: #3A2A1E;
-  box-shadow: 0 12rpx 26rpx rgba(246, 190, 62, 0.24);
+  background: #F6E396;
+  border-color: #B9DDE8;
+  color: #40535C;
+  box-shadow: 0 12rpx 26rpx rgba(180, 130, 55, 0.24);
 }
 
 .lock-badge {
   flex-shrink: 0;
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
-  background: #FFF1C2;
+  background: #F6E396;
   font-size: 20rpx;
   font-weight: 700;
-  color: #A45A16;
+  color: #6B7C84;
 }
 
 .lock-badge.locked {
-  background: #EFE7D8;
-  color: #8B7560;
+  background: #FFFDF5;
+  color: #7B8B92;
 }
 
 .field-tip {
   margin-top: 12rpx;
   font-size: 22rpx;
   line-height: 1.6;
-  color: #9A7B60;
+  color: #7B8B92;
 }
 
 .contact-row {
@@ -174,23 +174,23 @@
   margin-top: 20rpx;
   padding: 22rpx 24rpx;
   border-radius: 26rpx;
-  background: #FFF8E8;
+  background: #FFFDF5;
 }
 
 .contact-value {
   font-size: 28rpx;
   font-weight: 800;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .contact-action {
   flex-shrink: 0;
   padding: 12rpx 18rpx;
   border-radius: 999rpx;
-  background: #3A2A1E;
+  background: #F6E396;
   font-size: 22rpx;
   font-weight: 800;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .save-shell {
@@ -206,12 +206,12 @@
 .save-button {
   height: 92rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #F97316 0%, #F6BE3E 100%);
+  background: linear-gradient(135deg, #F6E396 0%, #F2C46F 100%);
   font-size: 30rpx;
   font-weight: 800;
   line-height: 92rpx;
-  color: #FFFFFF;
-  box-shadow: 0 14rpx 26rpx rgba(249, 115, 22, 0.22);
+  color: #40535C;
+  box-shadow: 0 14rpx 26rpx rgba(180, 130, 55, 0.22);
 }
 
 .save-button::after {

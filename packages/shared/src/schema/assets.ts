@@ -1,5 +1,7 @@
 import type { OssAssetReference, OssAssetRole, OssAssetVariant, OssAssetVariantName } from '../types/assets';
-import { OSS_ASSET_ROLES, OSS_ASSET_VARIANTS } from '../types/assets';
+import { OSS_ASSET_ROLES, OSS_ASSET_VARIANTS, normalizeImageUrlForDisplay } from '../types/assets';
+
+export { normalizeImageUrlForDisplay };
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);

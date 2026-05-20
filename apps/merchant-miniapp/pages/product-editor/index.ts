@@ -8,6 +8,7 @@ import type {
   CatalogProductEditorStep
 } from '@xiaipet/shared/types/catalog-admin';
 import type { OssAssetReference } from '@xiaipet/shared/types/assets';
+import type { MerchantAssetUploadFile } from '../../src/services/assets';
 
 import {
   createEmptyProductEditorPayload,
@@ -48,6 +49,83 @@ function refreshEditorView(instance: ProductEditorPageInstance, draft: CatalogPr
   });
 }
 
+function logProductImageUploadFailure(scope: 'basic' | 'detail' | 'choose-basic' | 'choose-detail', error: unknown) {
+  if (typeof console !== 'undefined' && typeof console.error === 'function') {
+    console.error('[xiaipet] product editor image upload failed', {
+      scope,
+      error
+    });
+  }
+}
+
+function getProductImageUploadToastTitle(error: unknown) {
+  if (error instanceof Error && error.message === 'Image exceeds the upload size limit') {
+    return '图片过大';
+  }
+
+  return '上传失败';
+}
+
+function shouldIgnoreChooseImageFailure(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'errMsg' in error &&
+      typeof error.errMsg === 'string' &&
+      error.errMsg.includes('cancel')
+  );
+}
+
+function getChosenImageFiles(
+  result: { tempFilePaths?: string[]; tempFiles?: Array<{ path?: string; tempFilePath?: string; size?: number }> },
+  count: number
+): MerchantAssetUploadFile[] {
+  const tempFiles = result.tempFiles ?? [];
+  const paths = result.tempFilePaths ?? [];
+  return paths.slice(0, count).map((filePath, index) => ({
+    filePath: tempFiles[index]?.path ?? tempFiles[index]?.tempFilePath ?? filePath,
+    sizeBytes: tempFiles[index]?.size
+  }));
+}
+
+function normalizeImageUrlForDisplay(value: string): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return '';
+  }
+
+  if (trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('http://')) {
+    return `https://${trimmed.slice('http://'.length)}`;
+  }
+
+  if (
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('cloud://') ||
+    trimmed.startsWith('oss://') ||
+    /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+
+  return `https://${trimmed.replace(/^\/+/, '')}`;
+}
+
+function normalizeAssetForDraft(asset: OssAssetReference): OssAssetReference {
+  return {
+    ...asset,
+    url: normalizeImageUrlForDisplay(asset.url),
+    variants: asset.variants.map((variant) => ({
+      ...variant,
+      url: normalizeImageUrlForDisplay(variant.url)
+    }))
+  };
+}
+
 function updateSpecRow(draft: CatalogProductEditorPayload, index: number, key: 'label' | 'surcharge', value: string) {
   draft.pricing.specs[index] = {
     ...draft.pricing.specs[index],
@@ -78,7 +156,7 @@ function applyBasicImageAssets(
   draft: CatalogProductEditorPayload,
   assets: OssAssetReference[]
 ): CatalogProductEditorPayload {
-  const normalizedAssets = assets.slice(0, 3);
+  const normalizedAssets = assets.slice(0, 3).map(normalizeAssetForDraft);
   const cover = normalizedAssets[0];
 
   return {
@@ -101,11 +179,13 @@ function applyDetailImageAssets(
   draft: CatalogProductEditorPayload,
   assets: OssAssetReference[]
 ): CatalogProductEditorPayload {
+  const normalizedAssets = assets.slice(0, 9).map(normalizeAssetForDraft);
+
   return {
     ...draft,
     basicInfo: {
       ...draft.basicInfo,
-      detailImageAssets: assets.slice(0, 9)
+      detailImageAssets: normalizedAssets
     }
   };
 }
@@ -199,18 +279,18 @@ Page({
 
     wx.chooseImage({
       count,
-      success: async (result: { tempFilePaths?: string[] }) => {
-        const filePaths = result.tempFilePaths?.slice(0, count) ?? [];
+      success: async (result: { tempFilePaths?: string[]; tempFiles?: Array<{ path?: string; tempFilePath?: string; size?: number }> }) => {
+        const files = getChosenImageFiles(result, count);
 
-        if (!filePaths.length) {
+        if (!files.length) {
           return;
         }
 
         this.setData({ imageUploading: true });
         try {
           const uploadedAssets: OssAssetReference[] = [];
-          for (const filePath of filePaths) {
-            const uploaded = await uploadProductCoverAsset(filePath);
+          for (const file of files) {
+            const uploaded = await uploadProductCoverAsset(file);
             uploadedAssets.push(uploaded.asset);
           }
           const baseAssets = getDraftBasicImageAssets(this.data.draft);
@@ -222,13 +302,24 @@ Page({
           const draft = applyBasicImageAssets(this.data.draft, nextAssets);
           refreshEditorView(this, draft, this.data.activeStep);
         } catch (error) {
+          logProductImageUploadFailure('basic', error);
           wx.showToast?.({
-            title: error instanceof Error && error.message === 'Image exceeds the upload size limit' ? '图片过大' : '上传失败',
+            title: getProductImageUploadToastTitle(error),
             icon: 'none'
           });
         } finally {
           this.setData({ imageUploading: false });
         }
+      },
+      fail: (error: unknown) => {
+        if (shouldIgnoreChooseImageFailure(error)) {
+          return;
+        }
+        logProductImageUploadFailure('choose-basic', error);
+        wx.showToast?.({
+          title: '选择图片失败',
+          icon: 'none'
+        });
       }
     });
   },
@@ -264,18 +355,18 @@ Page({
 
     wx.chooseImage({
       count,
-      success: async (result: { tempFilePaths?: string[] }) => {
-        const filePaths = result.tempFilePaths?.slice(0, count) ?? [];
+      success: async (result: { tempFilePaths?: string[]; tempFiles?: Array<{ path?: string; tempFilePath?: string; size?: number }> }) => {
+        const files = getChosenImageFiles(result, count);
 
-        if (!filePaths.length) {
+        if (!files.length) {
           return;
         }
 
         this.setData({ imageUploading: true });
         try {
           const uploadedAssets: OssAssetReference[] = [];
-          for (const filePath of filePaths) {
-            const uploaded = await uploadProductDetailAsset(filePath);
+          for (const file of files) {
+            const uploaded = await uploadProductDetailAsset(file);
             uploadedAssets.push(uploaded.asset);
           }
           const baseAssets = getDraftDetailImageAssets(this.data.draft);
@@ -287,13 +378,24 @@ Page({
           const draft = applyDetailImageAssets(this.data.draft, nextAssets);
           refreshEditorView(this, draft, this.data.activeStep);
         } catch (error) {
+          logProductImageUploadFailure('detail', error);
           wx.showToast?.({
-            title: error instanceof Error && error.message === 'Image exceeds the upload size limit' ? '图片过大' : '上传失败',
+            title: getProductImageUploadToastTitle(error),
             icon: 'none'
           });
         } finally {
           this.setData({ imageUploading: false });
         }
+      },
+      fail: (error: unknown) => {
+        if (shouldIgnoreChooseImageFailure(error)) {
+          return;
+        }
+        logProductImageUploadFailure('choose-detail', error);
+        wx.showToast?.({
+          title: '选择图片失败',
+          icon: 'none'
+        });
       }
     });
   },

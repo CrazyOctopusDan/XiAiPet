@@ -121,13 +121,17 @@ Page({
         wx.chooseImage({
             count: 1,
             success: async (result) => {
-                var _a;
+                var _a, _b, _c, _d;
                 const filePath = (_a = result.tempFilePaths) === null || _a === void 0 ? void 0 : _a[0];
                 if (!filePath) {
                     return;
                 }
+                const tempFile = (_b = result.tempFiles) === null || _b === void 0 ? void 0 : _b[0];
                 try {
-                    const uploaded = await (0, runtime_config_admin_1.uploadRuntimeBannerAsset)(filePath);
+                    const uploaded = await (0, runtime_config_admin_1.uploadRuntimeBannerAsset)({
+                        filePath: (_d = (_c = tempFile === null || tempFile === void 0 ? void 0 : tempFile.path) !== null && _c !== void 0 ? _c : tempFile === null || tempFile === void 0 ? void 0 : tempFile.tempFilePath) !== null && _d !== void 0 ? _d : filePath,
+                        sizeBytes: tempFile === null || tempFile === void 0 ? void 0 : tempFile.size
+                    });
                     this.patchSection('banner', (section) => (0, runtime_config_admin_1.buildRuntimeConfigSectionDocument)('banner', {
                         ...(section.sectionId === 'banner' ? section.value : { fileId: '', altText: '' }),
                         fileId: uploaded.storageId,
@@ -138,7 +142,7 @@ Page({
                         icon: 'success'
                     });
                 }
-                catch (_b) {
+                catch (_e) {
                     wx.showToast({
                         title: '上传失败',
                         icon: 'none'

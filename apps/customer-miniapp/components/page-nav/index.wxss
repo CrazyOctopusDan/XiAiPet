@@ -47,8 +47,8 @@
 .page-nav-back-icon {
   width: 22rpx;
   height: 22rpx;
-  border-left: 5rpx solid #171717;
-  border-bottom: 5rpx solid #171717;
+  border-left: 5rpx solid #40535C;
+  border-bottom: 5rpx solid #40535C;
   transform: rotate(45deg) translate(1px, -1px);
   box-sizing: border-box;
 }
@@ -68,9 +68,9 @@
 }
 
 .page-nav-title--dark {
-  color: #171717;
+  color: #40535C;
 }
 
 .page-nav-title--light {
-  color: #FFFFFF;
+  color: #40535C;
 }

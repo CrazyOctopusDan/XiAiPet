@@ -23,14 +23,14 @@
   "window": {
     "navigationBarTitleText": "虾衣宠",
     "navigationStyle": "custom",
-    "backgroundColor": "#F9F1C7",
+    "backgroundColor": "#FFFDF5",
     "backgroundTextStyle": "light"
   },
   "tabBar": {
     "custom": true,
-    "color": "#46362C",
-    "selectedColor": "#D4A447",
-    "backgroundColor": "#FBF7DD",
+    "color": "#6D553B",
+    "selectedColor": "#40535C",
+    "backgroundColor": "#FFF7E0",
     "list": [
       {
         "pagePath": "pages/home/index",

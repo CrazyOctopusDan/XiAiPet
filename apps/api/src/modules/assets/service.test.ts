@@ -102,7 +102,7 @@ describe('asset service', () => {
         variantName: 'detail',
         extension: 'jpg',
         contentType: 'image/jpeg',
-        sizeBytes: 800_000
+        sizeBytes: 11 * 1024 * 1024
       })
     ).toThrow(new ApiError('ASSET_TOO_LARGE', 'Asset exceeds size limit', 400));
   });

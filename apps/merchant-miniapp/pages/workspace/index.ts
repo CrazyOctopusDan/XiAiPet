@@ -1,11 +1,12 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import { getMerchantSession } from '../../src/services/api-client';
+import { getMerchantSession, merchantLogout } from '../../src/services/api-client';
 import { getMerchantWorkspaceCards, type MerchantWorkspaceCard } from '../../src/services/workspace';
 
 interface WorkspacePageData {
   cards: MerchantWorkspaceCard[];
+  accountName: string;
 }
 
 interface WorkspacePageInstance {
@@ -15,12 +16,15 @@ interface WorkspacePageInstance {
 
 Page({
   data: {
-    cards: getMerchantWorkspaceCards()
+    cards: getMerchantWorkspaceCards(),
+    accountName: '商户账号'
   },
   onShow(this: WorkspacePageInstance) {
-    const role = getMerchantSession()?.account?.role ?? 'admin';
+    const account = getMerchantSession()?.account;
+    const role = account?.role ?? 'admin';
     this.setData({
-      cards: getMerchantWorkspaceCards(role)
+      cards: getMerchantWorkspaceCards(role),
+      accountName: account?.username ? `${account.username}` : '商户账号'
     });
   },
   handleActionTap(event: { currentTarget?: { dataset?: { url?: string } } }) {
@@ -32,6 +36,12 @@ Page({
 
     wx.navigateTo({
       url
+    });
+  },
+  handleLogoutTap() {
+    merchantLogout();
+    wx.reLaunch({
+      url: '/pages/access-gate/index'
     });
   }
 });

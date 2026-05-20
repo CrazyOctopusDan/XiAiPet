@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizeImageUrlForDisplay = void 0;
 exports.isOssAssetRole = isOssAssetRole;
 exports.isOssAssetVariant = isOssAssetVariant;
 exports.isAssetStorageId = isAssetStorageId;
 exports.isOssAssetReference = isOssAssetReference;
 exports.getAssetUrlForVariant = getAssetUrlForVariant;
 const assets_1 = require("../types/assets");
+Object.defineProperty(exports, "normalizeImageUrlForDisplay", { enumerable: true, get: function () { return assets_1.normalizeImageUrlForDisplay; } });
 function isObject(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }

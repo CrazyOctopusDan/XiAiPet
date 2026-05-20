@@ -11,7 +11,7 @@ import type {
 import type { OssAssetReference, OssAssetVariant } from '@xiaipet/shared/types/assets';
 import { resolveProductCombinationPrice } from '../shared/product-pricing';
 import { merchantApiRequest, type MerchantApiRequester } from './api-client';
-import { uploadMerchantAsset, type UploadedMerchantAsset } from './assets';
+import { uploadMerchantAsset, type MerchantAssetUploadFile, type UploadedMerchantAsset } from './assets';
 
 export interface MerchantCategoryListItem extends CatalogCategoryRecord {
   linkedProductCount: number;
@@ -252,6 +252,33 @@ function getDraftProductId() {
   return `product-${Date.now()}`;
 }
 
+function normalizeImageUrlForDisplay(value: string): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return '';
+  }
+
+  if (trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('http://')) {
+    return `https://${trimmed.slice('http://'.length)}`;
+  }
+
+  if (
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('cloud://') ||
+    trimmed.startsWith('oss://') ||
+    /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+
+  return `https://${trimmed.replace(/^\/+/, '')}`;
+}
+
 function getAssetDisplayUrl(asset: OssAssetReference) {
   const variants = Array.isArray(asset.variants) ? asset.variants : [];
   const displayVariant = variants.find(
@@ -264,7 +291,7 @@ function getAssetDisplayUrl(asset: OssAssetReference) {
       typeof variant.url === 'string'
   );
 
-  return displayVariant?.url ?? asset.url;
+  return normalizeImageUrlForDisplay(displayVariant?.url ?? asset.url);
 }
 
 function getBasicImageTiles(payload: CatalogProductEditorPayload): ProductBasicImageTileViewModel[] {
@@ -280,7 +307,7 @@ function getBasicImageTiles(payload: CatalogProductEditorPayload): ProductBasicI
 
   const fallback = payload.basicInfo.imageAsset
     ? getAssetDisplayUrl(payload.basicInfo.imageAsset)
-    : payload.basicInfo.imagePreviewUrl || payload.basicInfo.imageFileId;
+    : normalizeImageUrlForDisplay(payload.basicInfo.imagePreviewUrl || payload.basicInfo.imageFileId);
 
   return fallback
     ? [
@@ -431,7 +458,7 @@ export function getProductPageViewModel(
       stockLabel: product.trackInventory ? `库存 ${product.stock}` : '库存不跟踪',
       priceRangeLabel: getPriceRangeLabel(product),
       fulfillmentModesLabel: product.fulfillmentModes.map(getFulfillmentModeLabel).join(' / '),
-      imagePreviewUrl: product.imageAsset?.url ?? product.imagePreviewUrl ?? product.imageFileId
+      imagePreviewUrl: normalizeImageUrlForDisplay(product.imageAsset?.url ?? product.imagePreviewUrl ?? product.imageFileId)
     }))
   };
 }
@@ -480,7 +507,7 @@ export function splitProductEditorPayload(product: CatalogProductAdminRecord): C
       imageAsset: product.imageAsset,
       introductionImageAssets: product.introductionImageAssets ?? [],
       detailImageAssets: product.detailImageAssets ?? [],
-      imagePreviewUrl: product.imagePreviewUrl ?? product.imageFileId,
+      imagePreviewUrl: normalizeImageUrlForDisplay(product.imagePreviewUrl ?? product.imageFileId),
       memberLevelId: product.memberLevelId,
       stock: product.stock
     },
@@ -540,30 +567,39 @@ export function getProductEditorViewModel(
 }
 
 export async function uploadProductImage(
-  filePath: string,
+  filePath: string | MerchantAssetUploadFile,
   productId: string,
   request?: MerchantApiRequester
 ): Promise<string> {
   void productId;
+  const file = typeof filePath === 'string' ? { filePath } : { filePath: filePath.filePath, fileSizeBytes: filePath.sizeBytes };
   const uploaded = await uploadMerchantAsset('product-cover', {
-    filePath,
+    ...file,
     processingMode: 'miniapp',
     request
   });
   return uploaded.storageId;
 }
 
-export async function uploadProductCoverAsset(filePath: string, request?: MerchantApiRequester): Promise<UploadedMerchantAsset> {
+export async function uploadProductCoverAsset(
+  filePath: string | MerchantAssetUploadFile,
+  request?: MerchantApiRequester
+): Promise<UploadedMerchantAsset> {
+  const file = typeof filePath === 'string' ? { filePath } : { filePath: filePath.filePath, fileSizeBytes: filePath.sizeBytes };
   return uploadMerchantAsset('product-cover', {
-    filePath,
+    ...file,
     processingMode: 'miniapp',
     request
   });
 }
 
-export async function uploadProductDetailAsset(filePath: string, request?: MerchantApiRequester): Promise<UploadedMerchantAsset> {
+export async function uploadProductDetailAsset(
+  filePath: string | MerchantAssetUploadFile,
+  request?: MerchantApiRequester
+): Promise<UploadedMerchantAsset> {
+  const file = typeof filePath === 'string' ? { filePath } : { filePath: filePath.filePath, fileSizeBytes: filePath.sizeBytes };
   return uploadMerchantAsset('product-detail', {
-    filePath,
+    ...file,
     processingMode: 'miniapp',
     request
   });

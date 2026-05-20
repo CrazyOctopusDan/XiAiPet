@@ -23,6 +23,16 @@ Page({
         accessResult: 'unknown',
         submitting: false
     },
+    onShow() {
+        var _a;
+        const session = (0, api_client_1.getMerchantSession)();
+        if (!(0, api_client_1.isMerchantSessionUsable)(session)) {
+            return;
+        }
+        wx.redirectTo({
+            url: ((_a = session.account) === null || _a === void 0 ? void 0 : _a.mustChangePassword) ? '/pages/password-change/index' : '/pages/workspace/index'
+        });
+    },
     handleUsernameInput(event) {
         var _a, _b;
         this.setData({ username: (_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : '' });

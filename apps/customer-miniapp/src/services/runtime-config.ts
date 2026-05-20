@@ -43,7 +43,7 @@ type RuntimeConfigRequester = () => Promise<ReadRuntimeConfigResult>;
 
 const DEFAULT_RUNTIME_CONFIG: CustomerRuntimeConfig = {
   banner: {
-    fileId: '/assets/catalog/home-hero.png',
+    fileId: '/assets/catalog/banner.png',
     altText: '首页 Banner'
   },
   store: {

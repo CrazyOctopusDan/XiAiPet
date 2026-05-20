@@ -1,7 +1,7 @@
 .remark-page {
   min-height: 100vh;
   padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
-  background: #F7F4EA;
+  background: #FFFDF5;
 }
 
 .remark-shell {
@@ -30,14 +30,14 @@
 .remark-history-title {
   font-size: 42rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .remark-subtitle {
   margin-top: 14rpx;
   font-size: 24rpx;
   line-height: 1.7;
-  color: #7E766D;
+  color: #7B8B92;
 }
 
 .remark-card {
@@ -50,7 +50,7 @@
   min-height: 240rpx;
   font-size: 28rpx;
   line-height: 1.8;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .remark-history-list {
@@ -75,7 +75,7 @@
   flex: 1;
   font-size: 24rpx;
   line-height: 1.7;
-  color: #5F554A;
+  color: #7B8B92;
 }
 
 .remark-history-delete {
@@ -95,8 +95,8 @@
 
 .remark-confirm {
   border-radius: 999rpx;
-  background: #F6BE3E;
-  color: #FFFFFF;
+  background: #F6E396;
+  color: #40535C;
 }
 
 .remark-confirm::after {

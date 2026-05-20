@@ -50,10 +50,10 @@ describe('catalog service', () => {
       '会员权益'
     ]);
     expect(getHomeModules().map((item) => item.imageFileId)).toEqual([
-      '/assets/catalog/catalog-reference.png',
-      '/assets/catalog/detail-reference.png',
-      '/assets/catalog/search-reference.png',
-      '/assets/catalog/home-hero.png'
+      '/assets/catalog/浏览商品_v3.png',
+      '/assets/catalog/购前须知_3.png',
+      '/assets/catalog/售前咨询_v3.png',
+      '/assets/catalog/会员权益_v3.png'
     ]);
   });
 
@@ -65,10 +65,23 @@ describe('catalog service', () => {
     expect(resolvedModules).toHaveLength(4);
     expect(resolvedModules[0]).toMatchObject({
       title: '浏览商品',
-      imageSrc: 'https://tmp.example.com/%2Fassets%2Fcatalog%2Fcatalog-reference.png'
+      imageSrc:
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E6%B5%8F%E8%A7%88%E5%95%86%E5%93%81_v3.png'
+    });
+    expect(resolvedModules[1]).toMatchObject({
+      title: '购前须知',
+      imageSrc:
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E8%B4%AD%E5%89%8D%E9%A1%BB%E7%9F%A5_3.png'
+    });
+    expect(resolvedModules[2]).toMatchObject({
+      title: '售前咨询',
+      imageSrc:
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E5%94%AE%E5%89%8D%E5%92%A8%E8%AF%A2_v3.png'
     });
     expect(resolvedModules[3]).toMatchObject({
-      title: '会员权益'
+      title: '会员权益',
+      imageSrc:
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E4%BC%9A%E5%91%98%E6%9D%83%E7%9B%8A_v3.png'
     });
   });
 
@@ -284,7 +297,7 @@ describe('catalog service', () => {
               name: '海洋派对生日蛋糕',
               description: '生日预约款宠物蛋糕。',
               categoryId: 'cakes',
-              imagePreviewUrl: 'https://oss.xiaipet.vip/catalog/ocean-party.png',
+              imagePreviewUrl: 'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/ocean-party.png',
               status: 'PUBLISHED',
               stock: 12,
               trackInventory: true,
@@ -299,7 +312,7 @@ describe('catalog service', () => {
               name: 'Birthday Cake',
               description: 'Local birthday cake seed product.',
               categoryId: 'cat-cakes',
-              imagePreviewUrl: 'https://oss.xiaipet.vip/catalog/prod-birthday-cake.png',
+              imagePreviewUrl: 'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/prod-birthday-cake.png',
               status: 'PUBLISHED',
               stock: 12,
               trackInventory: true,
@@ -314,7 +327,7 @@ describe('catalog service', () => {
               name: 'Paw Cookie',
               description: 'Local snack seed product.',
               categoryId: 'cat-snacks',
-              imagePreviewUrl: 'https://oss.xiaipet.vip/catalog/prod-paw-cookie.png',
+              imagePreviewUrl: 'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/prod-paw-cookie.png',
               status: 'PUBLISHED',
               stock: 50,
               trackInventory: true,
@@ -327,7 +340,7 @@ describe('catalog service', () => {
               name: '海盐芝士小方',
               description: '适合小型犬猫的低糖烘焙点心。',
               categoryId: 'cakes',
-              imagePreviewUrl: 'https://oss.xiaipet.vip/catalog/sea-sponge.png',
+              imagePreviewUrl: 'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/sea-sponge.png',
               status: 'PUBLISHED',
               stock: 30,
               trackInventory: true,
@@ -435,6 +448,30 @@ describe('catalog service', () => {
     expect(product.thumbnail).toBe('https://assets.example.test/cover-thumbnail.jpg');
     expect(product.gallery).toEqual(['https://assets.example.test/intro-display.jpg']);
     expect(product.detailImages).toEqual(['https://assets.example.test/detail.jpg']);
+  });
+
+  it('adds https before rendering protocol-less remote product image URLs', () => {
+    const product = resolveCatalogProductAssetUrls({
+      id: 'asset-cake',
+      name: '资产蛋糕',
+      summary: 'OSS',
+      description: 'OSS',
+      price: 128,
+      stock: 1,
+      soldOut: false,
+      cartActionLabel: '直接加购',
+      memberLevelLabel: '普通会员可购',
+      categoryId: 'cakes',
+      deliveryModes: ['delivery'],
+      thumbnail: 'xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/prod-birthday-cake.png',
+      gallery: ['xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/display.jpg'],
+      detailImages: ['http://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/detail.jpg'],
+      specs: []
+    });
+
+    expect(product.thumbnail).toBe('https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/prod-birthday-cake.png');
+    expect(product.gallery).toEqual(['https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/display.jpg']);
+    expect(product.detailImages).toEqual(['https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/detail.jpg']);
   });
 
   it('uses the default local detail long image when a remote product has no detail images', async () => {

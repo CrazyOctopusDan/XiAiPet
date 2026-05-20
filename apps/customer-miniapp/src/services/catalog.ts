@@ -126,6 +126,37 @@ function asString(value: unknown, fallback = '') {
   return typeof value === 'string' ? value : fallback;
 }
 
+function normalizeImageUrlForDisplay(value: string): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return '';
+  }
+
+  if (trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('http://')) {
+    return `https://${trimmed.slice('http://'.length)}`;
+  }
+
+  if (
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('cloud://') ||
+    trimmed.startsWith('oss://') ||
+    /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+
+  return `https://${trimmed.replace(/^\/+/, '')}`;
+}
+
+function imageUrl(value: string | undefined) {
+  return value ? normalizeImageUrlForDisplay(value) : value;
+}
+
 function asNumber(value: unknown, fallback = 0) {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -182,7 +213,7 @@ function getVariantUrl(asset: OssAssetReference | undefined, variantName: OssAss
     return undefined;
   }
 
-  return asset.variants.find((variant) => variant.name === variantName)?.url ?? asset.url;
+  return imageUrl(asset.variants.find((variant) => variant.name === variantName)?.url ?? asset.url);
 }
 
 function normalizeAssetArray(value: unknown): OssAssetReference[] | undefined {
@@ -228,9 +259,10 @@ function normalizeProduct(product: unknown): CatalogProduct | null {
   const detailImageAssets = normalizeAssetArray(product.detailImageAssets);
   const price = asNumber(product.price, asNumber(product.basePrice));
   const specs = normalizeProductSpecs(product, price);
-  const thumbnail =
+  const thumbnail = imageUrl(
     getVariantUrl(imageAsset, 'thumbnail') ??
-    asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId)));
+      asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId)))
+  ) ?? '';
 
   return {
     id,
@@ -255,13 +287,17 @@ function normalizeProduct(product: unknown): CatalogProduct | null {
     thumbnail,
     imageAsset,
     gallery: introductionImageAssets?.length
-      ? introductionImageAssets.map((asset) => getVariantUrl(asset, 'display') ?? asset.url)
-      : getArray(product.gallery).filter((item): item is string => typeof item === 'string'),
+      ? introductionImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'display') ?? asset.url) ?? '')
+      : getArray(product.gallery)
+          .filter((item): item is string => typeof item === 'string')
+          .map(normalizeImageUrlForDisplay),
     introductionImageAssets,
     detailImages: detailImageAssets?.length
-      ? detailImageAssets.map((asset) => getVariantUrl(asset, 'detail') ?? asset.url)
+      ? detailImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'detail') ?? asset.url) ?? '')
       : getArray(product.detailImages).filter((item): item is string => typeof item === 'string').length
-        ? getArray(product.detailImages).filter((item): item is string => typeof item === 'string')
+        ? getArray(product.detailImages)
+            .filter((item): item is string => typeof item === 'string')
+            .map(normalizeImageUrlForDisplay)
         : DEFAULT_PRODUCT_DETAIL_IMAGES,
     detailImageAssets,
     specs
@@ -286,14 +322,14 @@ function cloneProducts(products: CatalogProduct[]): CatalogProduct[] {
 }
 
 export function resolveCatalogProductAssetUrls(product: CatalogProduct): CatalogProduct {
-  const thumbnail = getVariantUrl(product.imageAsset, 'thumbnail') ?? product.imageAsset?.url ?? product.thumbnail;
+  const thumbnail = imageUrl(getVariantUrl(product.imageAsset, 'thumbnail') ?? product.imageAsset?.url ?? product.thumbnail) ?? '';
   const gallery = product.introductionImageAssets?.length
-    ? product.introductionImageAssets.map((asset) => getVariantUrl(asset, 'display') ?? asset.url)
-    : product.gallery;
+    ? product.introductionImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'display') ?? asset.url) ?? '')
+    : product.gallery.map(normalizeImageUrlForDisplay);
   const detailImages = product.detailImageAssets?.length
-    ? product.detailImageAssets.map((asset) => getVariantUrl(asset, 'detail') ?? asset.url)
+    ? product.detailImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'detail') ?? asset.url) ?? '')
     : product.detailImages.length
-      ? product.detailImages
+      ? product.detailImages.map(normalizeImageUrlForDisplay)
       : DEFAULT_PRODUCT_DETAIL_IMAGES;
 
   return {

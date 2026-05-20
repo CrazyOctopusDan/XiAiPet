@@ -5,6 +5,7 @@ import { ApiError } from '../../lib/errors';
 import type { MerchantContext } from '../auth/types';
 import {
   ASSET_ROLE_RULES,
+  OSS_SOURCE_IMAGE_MAX_SIZE_BYTES,
   OSS_ASSET_ROLES,
   OSS_ASSET_VARIANTS,
   createOssObjectKey,
@@ -148,7 +149,7 @@ export function createAssetService(config: ApiConfig) {
       const { role, variantName, rule } = getVariantRule(payload.role, payload.variantName);
       assertImage(payload.contentType);
       assertPositiveInteger(payload.sizeBytes, 'INVALID_ASSET_SIZE', 'Invalid asset size');
-      if (payload.sizeBytes > rule.maxSizeBytes) {
+      if (payload.sizeBytes > OSS_SOURCE_IMAGE_MAX_SIZE_BYTES) {
         throw new ApiError('ASSET_TOO_LARGE', 'Asset exceeds size limit', 400);
       }
 
@@ -164,7 +165,7 @@ export function createAssetService(config: ApiConfig) {
         config,
         objectKey,
         contentType: payload.contentType,
-        maxSizeBytes: rule.maxSizeBytes,
+        maxSizeBytes: OSS_SOURCE_IMAGE_MAX_SIZE_BYTES,
         expiresAt
       });
       const tokenPayload: AssetUploadTokenPayload = {
@@ -172,7 +173,7 @@ export function createAssetService(config: ApiConfig) {
         role,
         variantName,
         objectKey,
-        maxSizeBytes: rule.maxSizeBytes,
+        maxSizeBytes: OSS_SOURCE_IMAGE_MAX_SIZE_BYTES,
         expiresAt: Math.floor(expiresAt.getTime() / 1000)
       };
 
@@ -201,7 +202,7 @@ export function createAssetService(config: ApiConfig) {
       assertPositiveInteger(payload.width, 'INVALID_ASSET_DIMENSIONS', 'Invalid asset dimensions');
       assertPositiveInteger(payload.height, 'INVALID_ASSET_DIMENSIONS', 'Invalid asset dimensions');
       assertPositiveInteger(payload.sizeBytes, 'INVALID_ASSET_SIZE', 'Invalid asset size');
-      if (payload.sizeBytes > rule.maxSizeBytes) {
+      if (payload.sizeBytes > OSS_SOURCE_IMAGE_MAX_SIZE_BYTES) {
         throw new ApiError('ASSET_TOO_LARGE', 'Asset exceeds size limit', 400);
       }
       if (payload.width > rule.maxWidth || payload.height > rule.maxHeight) {
@@ -218,7 +219,7 @@ export function createAssetService(config: ApiConfig) {
         tokenPayload.role !== role ||
         tokenPayload.variantName !== variantName ||
         tokenPayload.objectKey !== payload.objectKey ||
-        tokenPayload.maxSizeBytes !== rule.maxSizeBytes
+        tokenPayload.maxSizeBytes !== OSS_SOURCE_IMAGE_MAX_SIZE_BYTES
       ) {
         throw new ApiError('ASSET_UPLOAD_MISMATCH', 'Asset upload confirmation does not match policy', 400);
       }

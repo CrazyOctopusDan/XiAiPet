@@ -146,7 +146,7 @@ export function getMerchantSession(): MerchantApiSession | null {
   return readMerchantSession();
 }
 
-function isSessionUsable(session: MerchantApiSession | null): session is MerchantApiSession {
+export function isMerchantSessionUsable(session: MerchantApiSession | null = readMerchantSession()): session is MerchantApiSession {
   if (!session?.token || !session.expiresAt) {
     return false;
   }
@@ -250,12 +250,16 @@ export async function merchantLogin(credentials: { username?: string; password?:
 
 async function ensureMerchantSession(): Promise<MerchantApiSession> {
   const existingSession = readMerchantSession();
-  if (isSessionUsable(existingSession)) {
+  if (isMerchantSessionUsable(existingSession)) {
     return existingSession;
   }
 
   clearMerchantSession();
   throw new MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
+}
+
+export function merchantLogout() {
+  clearMerchantSession();
 }
 
 export async function changeMerchantPassword(input: {

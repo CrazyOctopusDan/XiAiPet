@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MerchantApiError = exports.MERCHANT_SESSION_STORAGE_KEY = void 0;
 exports.clearMerchantSession = clearMerchantSession;
 exports.getMerchantSession = getMerchantSession;
+exports.isMerchantSessionUsable = isMerchantSessionUsable;
 exports.merchantLogin = merchantLogin;
+exports.merchantLogout = merchantLogout;
 exports.changeMerchantPassword = changeMerchantPassword;
 exports.merchantApiRequest = merchantApiRequest;
 const api_config_1 = require("./api-config");
@@ -83,7 +85,7 @@ function clearMerchantSession() {
 function getMerchantSession() {
     return readMerchantSession();
 }
-function isSessionUsable(session) {
+function isMerchantSessionUsable(session = readMerchantSession()) {
     if (!(session === null || session === void 0 ? void 0 : session.token) || !session.expiresAt) {
         return false;
     }
@@ -163,11 +165,14 @@ async function merchantLogin(credentials) {
 }
 async function ensureMerchantSession() {
     const existingSession = readMerchantSession();
-    if (isSessionUsable(existingSession)) {
+    if (isMerchantSessionUsable(existingSession)) {
         return existingSession;
     }
     clearMerchantSession();
     throw new MerchantApiError('MERCHANT_LOGIN_REQUIRED', '请先登录商户账号', 401);
+}
+function merchantLogout() {
+    clearMerchantSession();
 }
 async function changeMerchantPassword(input) {
     const response = await merchantApiRequest('/api/v1/merchant/auth/change-password', {

@@ -2,9 +2,9 @@
   min-height: 100vh;
   padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 14% 0%, rgba(246, 190, 62, 0.22) 0, transparent 30%),
-    linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 54%, #F6E7C8 100%);
-  color: #3A2A1E;
+    radial-gradient(circle at 14% 0%, rgba(246, 227, 150, 0.22) 0, transparent 30%),
+    linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 54%, #F6E396 100%);
+  color: #40535C;
   box-sizing: border-box;
 }
 
@@ -33,10 +33,10 @@
 .pet-card {
   margin-top: 18rpx;
   padding: 30rpx 26rpx;
-  border: 2rpx solid rgba(82, 49, 24, 0.06);
+  border: 2rpx solid rgba(80, 104, 105, 0.06);
   border-radius: 32rpx;
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-shadow: 0 16rpx 34rpx rgba(80, 104, 105, 0.08);
   box-sizing: border-box;
 }
 
@@ -50,7 +50,7 @@
   font-size: 32rpx;
   line-height: 1.25;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .pet-meta {
@@ -58,7 +58,7 @@
   font-size: 23rpx;
   line-height: 1.3;
   font-weight: 700;
-  color: #9A7B60;
+  color: #7B8B92;
 }
 
 .pet-edit {
@@ -69,10 +69,10 @@
   min-width: 132rpx;
   height: 64rpx;
   border-radius: 999rpx;
-  background: #3A2A1E;
+  background: #F6E396;
   font-size: 23rpx;
   font-weight: 900;
-  color: #FFE6A3;
+  color: #40535C;
 }
 
 .pet-allergy-label {
@@ -80,7 +80,7 @@
   font-size: 22rpx;
   line-height: 1.2;
   font-weight: 800;
-  color: #9A7B60;
+  color: #7B8B92;
 }
 
 .pet-allergy-copy {
@@ -88,13 +88,13 @@
   font-size: 25rpx;
   line-height: 1.6;
   font-weight: 700;
-  color: #6F5B47;
+  color: #7B8B92;
 }
 
 .empty-state {
   margin-top: 8rpx;
   padding: 80rpx 32rpx;
-  border: 2rpx dashed rgba(82, 49, 24, 0.14);
+  border: 2rpx dashed rgba(80, 104, 105, 0.14);
   border-radius: 32rpx;
   background: rgba(255, 255, 255, 0.72);
   text-align: center;
@@ -105,7 +105,7 @@
   font-size: 34rpx;
   line-height: 1.25;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .empty-copy {
@@ -113,7 +113,7 @@
   font-size: 24rpx;
   line-height: 1.6;
   font-weight: 700;
-  color: #8A6D53;
+  color: #7B8B92;
 }
 
 .pet-fixed-action {
@@ -125,7 +125,7 @@
   padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
   background: rgba(255, 253, 246, 0.94);
   backdrop-filter: blur(18rpx);
-  box-shadow: 0 -12rpx 32rpx rgba(72, 41, 17, 0.08);
+  box-shadow: 0 -12rpx 32rpx rgba(82, 116, 126, 0.08);
   box-sizing: border-box;
 }
 
@@ -137,12 +137,12 @@
   height: 96rpx;
   padding: 0;
   border-radius: 999rpx;
-  background: #3A2A1E;
+  background: #F6E396;
   font-size: 30rpx;
   line-height: 96rpx;
   font-weight: 900;
-  color: #FFE6A3;
-  box-shadow: 0 18rpx 38rpx rgba(72, 41, 17, 0.2);
+  color: #40535C;
+  box-shadow: 0 18rpx 38rpx rgba(82, 116, 126, 0.2);
 }
 
 .pet-add-button::after {

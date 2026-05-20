@@ -10,7 +10,7 @@ import type {
   StoreProfileRuntimeConfigSection
 } from '@xiaipet/shared/types/runtime-config';
 import { merchantApiRequest, type MerchantApiRequester } from './api-client';
-import { uploadMerchantAsset, type UploadedMerchantAsset } from './assets';
+import { uploadMerchantAsset, type MerchantAssetUploadFile, type UploadedMerchantAsset } from './assets';
 
 const LOCKED_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
   { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
@@ -240,9 +240,13 @@ export async function saveRuntimeConfigSection(
   return response.section;
 }
 
-export async function uploadRuntimeBannerAsset(filePath: string, request?: MerchantApiRequester): Promise<UploadedMerchantAsset> {
+export async function uploadRuntimeBannerAsset(
+  filePath: string | MerchantAssetUploadFile,
+  request?: MerchantApiRequester
+): Promise<UploadedMerchantAsset> {
+  const file = typeof filePath === 'string' ? { filePath } : { filePath: filePath.filePath, fileSizeBytes: filePath.sizeBytes };
   return uploadMerchantAsset('runtime-banner', {
-    filePath,
+    ...file,
     processingMode: 'miniapp',
     request
   });

@@ -227,6 +227,71 @@ describe('catalog service', () => {
     });
   });
 
+  it('normalizes protocol-less product image urls for merchant and customer responses', async () => {
+    const service = createCatalogService(createCatalogRepositoryStub({
+      listProducts: async () => [
+        {
+          id: 'protocol-less-cake',
+          name: '无协议图片蛋糕',
+          description: '商户配置商品',
+          categoryId: 'seasonal',
+          imageFileId: 'oss://xiaipet/products/protocol-less-cake/cover.png',
+          imagePreviewUrl: 'xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/protocol-less-cake.png',
+          imageAsset: {
+            ...createAsset('products/protocol-less-cake/cover.png'),
+            url: 'xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/cover.png',
+            variants: [
+              {
+                name: 'thumbnail',
+                objectKey: 'products/protocol-less-cake/thumb.png',
+                url: 'xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/thumb.png'
+              }
+            ]
+          },
+          introductionImageAssets: [],
+          detailImageAssets: [],
+          memberLevelId: null,
+          status: 'published',
+          stock: 8,
+          trackInventory: true,
+          fulfillmentModes: ['delivery'],
+          basePrice: 98,
+          specs: [],
+          formulas: [],
+          priceOverrides: [],
+          purchaseLimit: { enabled: false, maxQuantity: null },
+          detailContent: '适合节日加餐',
+          createdAt: '2026-05-16T00:00:00.000Z',
+          updatedAt: '2026-05-16T00:00:00.000Z'
+        }
+      ]
+    }) as never);
+
+    await expect(service.queryMerchantProducts()).resolves.toMatchObject({
+      products: [
+        {
+          imagePreviewUrl: 'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/protocol-less-cake.png',
+          imageAsset: {
+            url: 'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/cover.png',
+            variants: [
+              {
+                url: 'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/thumb.png'
+              }
+            ]
+          }
+        }
+      ]
+    });
+
+    await expect(service.queryCustomerProducts()).resolves.toMatchObject({
+      products: [
+        {
+          thumbnail: 'https://xiaipet-assets-prod.oss-cn-hangzhou.aliyuncs.com/catalog/thumb.png'
+        }
+      ]
+    });
+  });
+
   it('deletes merchant products by id', async () => {
     const deleteProduct = vi.fn(async () => undefined);
     const service = createCatalogService({

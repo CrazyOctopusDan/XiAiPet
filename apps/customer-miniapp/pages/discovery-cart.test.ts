@@ -99,9 +99,10 @@ describe('discovery cart pages', () => {
 
     expect(catalogTemplate).toContain('class="search-icon"');
     expect(catalogTemplate).toContain('class="cart-float-icon"');
-    expect(catalogStyles).toContain('linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 58%, #F6E7C8 100%)');
-    expect(catalogStyles).toContain('background: #3A2A1E');
-    expect(catalogStyles).toContain('color: #FFE6A3');
+    expect(catalogStyles).toContain('linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%)');
+    expect(catalogStyles).toContain('background: #F6E396');
+    expect(catalogStyles).toContain('border: 4rpx solid #40535C');
+    expect(catalogStyles).toContain('background: #40535C');
     expect(catalogStyles).toContain('bottom: calc(42rpx + env(safe-area-inset-bottom))');
     expect(catalogStyles).toContain('align-items: center');
     expect(catalogStyles).toContain('padding: calc(96rpx + env(safe-area-inset-top)) 24rpx calc(96rpx + env(safe-area-inset-bottom))');
@@ -250,10 +251,11 @@ describe('discovery cart pages', () => {
 
     expect(detailTemplate).toContain('class="detail-card spec-card"');
     expect(detailTemplate).toContain('尺寸和口味选择');
-    expect(detailStyles).toContain('linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 58%, #F6E7C8 100%)');
+    expect(detailStyles).toContain('linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%)');
     expect(detailStyles).toContain('margin-top: -74rpx');
-    expect(detailStyles).toContain('background: #3A2A1E');
-    expect(detailStyles).toContain('color: #FFE6A3');
+    expect(detailStyles).toContain('.stepper-btn::before');
+    expect(detailStyles).toContain('.stepper-btn.plus::after');
+    expect(detailStyles).toMatch(/\.add-cart-button\.disabled \{[\s\S]*?background: #F6E396/);
     expect(detailStyles).toContain('padding: 22rpx 24rpx calc(24rpx + env(safe-area-inset-bottom))');
     expect(detailStyles).toContain('.add-cart-button::after');
   });

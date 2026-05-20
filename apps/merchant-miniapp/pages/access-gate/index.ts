@@ -1,6 +1,11 @@
 declare function Page(options: Record<string, unknown>): void;
 
-import { MerchantApiError, merchantLogin } from '../../src/services/api-client';
+import {
+  MerchantApiError,
+  getMerchantSession,
+  isMerchantSessionUsable,
+  merchantLogin
+} from '../../src/services/api-client';
 
 interface AccessGatePageInstance {
   data?: {
@@ -34,6 +39,16 @@ Page({
     statusText: '首次登录后需要修改密码',
     accessResult: 'unknown',
     submitting: false
+  },
+  onShow() {
+    const session = getMerchantSession();
+    if (!isMerchantSessionUsable(session)) {
+      return;
+    }
+
+    wx.redirectTo({
+      url: session.account?.mustChangePassword ? '/pages/password-change/index' : '/pages/workspace/index'
+    });
   },
   handleUsernameInput(this: AccessGatePageInstance, event: { detail?: { value?: string } }) {
     this.setData({ username: event.detail?.value ?? '' });

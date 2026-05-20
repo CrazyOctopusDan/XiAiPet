@@ -58,6 +58,44 @@
   margin-left: 22rpx;
 }
 
+.session-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: 16rpx;
+  flex: 0 0 auto;
+}
+
+.account-name {
+  max-width: 152rpx;
+  color: #756756;
+  font-size: 20rpx;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-button {
+  box-sizing: border-box;
+  min-width: 96rpx;
+  height: 52rpx;
+  margin: 10rpx 0 0;
+  padding: 0 18rpx;
+  border: 2rpx solid #E6D4BD;
+  border-radius: 999rpx;
+  background: #FFF8EF;
+  color: #8A5F35;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 48rpx;
+}
+
+.logout-button::after {
+  border: none;
+}
+
 .page-title,
 .page-subtitle,
 .section-title,

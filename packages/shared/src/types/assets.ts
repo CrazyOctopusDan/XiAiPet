@@ -35,3 +35,30 @@ export interface OssAssetReference {
   uploadedAt: string;
   variants: OssAssetVariant[];
 }
+
+export function normalizeImageUrlForDisplay(value: string): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return '';
+  }
+
+  if (trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('http://')) {
+    return `https://${trimmed.slice('http://'.length)}`;
+  }
+
+  if (
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('cloud://') ||
+    trimmed.startsWith('oss://') ||
+    /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+
+  return `https://${trimmed.replace(/^\/+/, '')}`;
+}

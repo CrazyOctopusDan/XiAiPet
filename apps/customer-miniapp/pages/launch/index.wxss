@@ -2,7 +2,7 @@
   min-height: 100vh;
   padding: 64rpx 32rpx 48rpx;
   background: #F6E396;
-  color: #2F241F;
+  color: #40535C;
 }
 
 .hero {
@@ -26,14 +26,14 @@
 .primary-cta {
   margin-bottom: 32rpx;
   border-radius: 999rpx;
-  background: #D96C4E;
-  color: #FFFFFF;
+  background: #F6E396;
+  color: #40535C;
 }
 
 .status-card {
   padding: 32rpx;
   border-radius: 32rpx;
-  background: #E7D7C3;
+  background: #FFFDF5;
 }
 
 .status-title {

@@ -210,7 +210,7 @@ describe('cart checkout flow', () => {
     vi.unstubAllGlobals();
   });
 
-  it('keeps the cart page aligned with the refreshed warm commerce layout', async () => {
+  it('keeps the cart page aligned with the refreshed yellow-first layout', async () => {
     const { readFile } = await import('node:fs/promises');
     const cartTemplate = await readFile(
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.wxml',
@@ -224,14 +224,14 @@ describe('cart checkout flow', () => {
     expect(cartTemplate).toContain('class="checkbox {{isAllSelected ? \'active\' : \'\'}}"');
     expect(cartTemplate).toContain('尺寸和口味选择');
     expect(cartTemplate).not.toContain('row-spec-arrow');
-    expect(cartStyles).toContain('linear-gradient(180deg, #FFF8EA 0%, #FFFDF6 58%, #F6E7C8 100%)');
+    expect(cartStyles).toContain('linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%)');
     expect(cartStyles).toContain('.checkbox.active::after');
     expect(cartStyles).toMatch(/\.cart-row \{[\s\S]*?background: #FFFFFF/);
     expect(cartStyles).toContain('.stepper-btn::before');
     expect(cartStyles).toContain('.stepper-btn.plus::after');
     expect(cartStyles).toMatch(/\.stepper-btn \{[\s\S]*?font-size: 0/);
-    expect(cartStyles).toContain('background: #3A2A1E');
-    expect(cartStyles).toContain('color: #FFE6A3');
+    expect(cartStyles).toContain('background: #F6E396');
+    expect(cartStyles).toContain('color: #40535C');
     expect(cartStyles).toContain('padding: calc(96rpx + env(safe-area-inset-top)) 24rpx calc(96rpx + env(safe-area-inset-bottom))');
     expect(cartStyles).toContain('.checkout-button::after');
   });
@@ -762,7 +762,7 @@ describe('cart checkout flow', () => {
     expect(checkoutTemplate).toContain('bindtap="handleConfirmReservation"');
     expect(checkoutTemplate).toContain('notice-check-mark');
     expect(checkoutStyles).toContain('.pet-choice.active');
-    expect(checkoutStyles).toContain('border-color: #E5A900');
+    expect(checkoutStyles).toContain('border-color: #B9DDE8');
     expect(checkoutTemplate).toContain('class="delivery-fee-mask"');
     expect(checkoutTemplate).not.toContain('delivery-rule-list');
 
@@ -1091,7 +1091,7 @@ describe('cart checkout flow', () => {
     expect(balanceTemplate).toContain('class="overview-balance-line"');
     expect(balanceTemplate).toContain('class="ledger-amount-wrap {{item.type ===');
     expect(balanceStyles).toContain('.balance-overview-card');
-    expect(balanceStyles).toContain('linear-gradient(145deg, #3B271A 0%, #6E3D18 58%, #B45309 100%)');
+    expect(balanceStyles).toContain('linear-gradient(145deg, #FFF8D8 0%, #F6E396 62%, #F2C46F 100%)');
     expect(balanceStyles).toContain('.ledger-amount-wrap.income .ledger-amount');
     expect(balanceStyles).not.toContain('.balance-hero');
     expect(balanceStyles).not.toContain('.balance-title');
@@ -1159,9 +1159,9 @@ describe('cart checkout flow', () => {
     );
 
     expect(contactTemplate).toContain('status-card {{statusTone}}');
-    expect(contactStyles).toContain('background: linear-gradient(180deg, #FFF7ED 0%, #FFFDF4 64%, #F8E7C3 100%)');
+    expect(contactStyles).toContain('background: linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 64%, #F6E396 100%)');
     expect(contactStyles).toContain('.status-card.error');
-    expect(detailStyles).toContain('background: radial-gradient(circle at 12% 0%, #FFE6A3 0, transparent 34%)');
+    expect(detailStyles).toContain('background: radial-gradient(circle at 12% 0%, rgba(246, 227, 150, 0.4) 0, transparent 34%)');
   });
 
   it('returns to the requested balance page after phone binding succeeds', async () => {

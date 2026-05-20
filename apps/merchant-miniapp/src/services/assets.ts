@@ -45,6 +45,13 @@ export const ASSET_ROLE_RULES: Record<OssAssetRole, AssetRoleRule> = {
   }
 };
 
+const ASSET_ROLE_UPLOAD_VARIANTS: Record<OssAssetRole, OssAssetVariantName> = {
+  'product-cover': 'display',
+  'product-introduction': 'display',
+  'product-detail': 'detail',
+  'runtime-banner': 'banner'
+};
+
 interface WxChooseImageResponse {
   tempFilePaths?: string[];
   tempFiles?: Array<{ path?: string; tempFilePath?: string; size?: number }>;
@@ -57,6 +64,12 @@ interface WxFileInfo {
 interface WxImageInfo {
   width: number;
   height: number;
+  path?: string;
+}
+
+interface ReadableFileInfo {
+  fileInfo: WxFileInfo;
+  readableFilePath: string;
 }
 
 interface UploadPolicyResponse {
@@ -81,6 +94,11 @@ interface ConfirmUploadResponse {
 export interface UploadedMerchantAsset {
   asset: OssAssetReference;
   storageId: string;
+}
+
+export interface MerchantAssetUploadFile {
+  filePath: string;
+  sizeBytes?: number;
 }
 
 function getWxApi() {
@@ -119,6 +137,56 @@ function normalizeImageContentType(path: string) {
   return 'image/jpeg';
 }
 
+function appendOssProcess(url: string, rule: AssetVariantRule) {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}x-oss-process=image/resize,m_fill,w_${rule.width},h_${rule.height}/quality,q_${rule.quality}`;
+}
+
+function getRuleMaxSizeBytes(role: OssAssetRole, variantName: OssAssetVariantName) {
+  return ASSET_ROLE_RULES[role].variants[variantName]?.maxSizeBytes ?? 1;
+}
+
+function getUploadSizeBytes(sizeBytes: number | undefined) {
+  return Number.isFinite(sizeBytes) && Number(sizeBytes) > 0 ? Number(sizeBytes) : 1;
+}
+
+function buildOssProcessedAsset(asset: OssAssetReference, role: OssAssetRole, sourceSizeBytes: number): OssAssetReference {
+  const variants = Object.entries(ASSET_ROLE_RULES[role].variants).flatMap(([name, rule]) => {
+    if (!rule) {
+      return [];
+    }
+
+    const variantName = name as OssAssetVariantName;
+    return [{
+      name: variantName,
+      objectKey: asset.objectKey,
+      url: appendOssProcess(asset.url, rule),
+      width: rule.width,
+      height: rule.height,
+      sizeBytes: Math.min(sourceSizeBytes, rule.maxSizeBytes),
+      contentType: asset.contentType
+    }];
+  });
+
+  const primaryRule = ASSET_ROLE_RULES[role].variants[ASSET_ROLE_UPLOAD_VARIANTS[role]];
+  return {
+    ...asset,
+    width: primaryRule?.width ?? asset.width,
+    height: primaryRule?.height ?? asset.height,
+    sizeBytes: Math.min(sourceSizeBytes, primaryRule?.maxSizeBytes ?? sourceSizeBytes),
+    variants
+  };
+}
+
+function logAssetUploadFailure(stage: string, error: unknown) {
+  if (typeof console !== 'undefined' && typeof console.error === 'function') {
+    console.error('[xiaipet] merchant asset upload failed', {
+      stage,
+      error
+    });
+  }
+}
+
 export async function chooseAssetImage(): Promise<string> {
   const result = await promisifyWx<WxChooseImageResponse>((resolve, reject) => {
     getWxApi().chooseImage({
@@ -137,42 +205,6 @@ export async function chooseAssetImage(): Promise<string> {
   return file;
 }
 
-export async function cropAssetImage(filePath: string, role: OssAssetRole): Promise<string> {
-  const wxApi = getWxApi();
-  if (typeof wxApi.cropImage !== 'function') {
-    return filePath;
-  }
-
-  return promisifyWx<{ tempFilePath?: string }>((resolve, reject) => {
-    wxApi.cropImage({
-      src: filePath,
-      cropScale: ASSET_ROLE_RULES[role].cropScale,
-      success: resolve,
-      fail: reject
-    });
-  }).then((result) => result.tempFilePath ?? filePath);
-}
-
-export async function compressAssetImage(
-  filePath: string,
-  rule: AssetVariantRule,
-  processingMode: AssetProcessingMode
-): Promise<string> {
-  const wxApi = getWxApi();
-  if (processingMode === 'manual' || typeof wxApi.compressImage !== 'function') {
-    return filePath;
-  }
-
-  return promisifyWx<{ tempFilePath?: string }>((resolve, reject) => {
-    wxApi.compressImage({
-      src: filePath,
-      quality: rule.quality,
-      success: resolve,
-      fail: reject
-    });
-  }).then((result) => result.tempFilePath ?? filePath);
-}
-
 export function getImageInfo(filePath: string): Promise<WxImageInfo> {
   return promisifyWx<WxImageInfo>((resolve, reject) => {
     getWxApi().getImageInfo({
@@ -183,14 +215,96 @@ export function getImageInfo(filePath: string): Promise<WxImageInfo> {
   });
 }
 
-export function getFileInfo(filePath: string): Promise<WxFileInfo> {
+function isHttpTemporaryFilePath(filePath: string) {
+  return /^https?:\/\/tmp\//.test(filePath);
+}
+
+function toDevToolsTemporaryDiskPath(filePath: string) {
+  return filePath.replace(/^https?:\/\/tmp(?=\/)/, '/tmp');
+}
+
+function getFileInfoFromManager(fileSystemManager: { getFileInfo?: unknown }, filePath: string): Promise<WxFileInfo> {
+  const getInfo = fileSystemManager.getFileInfo;
+
+  if (typeof getInfo !== 'function') {
+    throw new MerchantApiError('WX_FILE_INFO_UNAVAILABLE', 'File info API is unavailable');
+  }
+
   return promisifyWx<WxFileInfo>((resolve, reject) => {
-    getWxApi().getFileInfo({
+    getInfo.call(fileSystemManager, {
       filePath,
       success: resolve,
       fail: reject
     });
   });
+}
+
+function normalizeFallbackSizeBytes(sizeBytes: number | undefined, maxSizeBytes?: number) {
+  if (!Number.isFinite(sizeBytes) || Number(sizeBytes) <= 0) {
+    return maxSizeBytes;
+  }
+
+  return maxSizeBytes ? Math.min(Number(sizeBytes), maxSizeBytes) : Number(sizeBytes);
+}
+
+async function getReadableFileInfo(
+  filePath: string,
+  imageInfo?: WxImageInfo,
+  fallbackSizeBytes?: number
+): Promise<ReadableFileInfo> {
+  const wxApi = getWxApi();
+  const fileSystemManager = typeof wxApi.getFileSystemManager === 'function' ? wxApi.getFileSystemManager() : null;
+
+  if (!fileSystemManager || typeof fileSystemManager.getFileInfo !== 'function') {
+    throw new MerchantApiError('WX_FILE_INFO_UNAVAILABLE', 'File info API is unavailable');
+  }
+
+  const candidates = [filePath];
+  if (isHttpTemporaryFilePath(filePath)) {
+    candidates.unshift(toDevToolsTemporaryDiskPath(filePath));
+    if (imageInfo?.path && !isHttpTemporaryFilePath(imageInfo.path)) {
+      candidates.unshift(imageInfo.path);
+    }
+  }
+
+  let lastError: unknown;
+  for (const candidate of Array.from(new Set(candidates))) {
+    try {
+      return {
+        fileInfo: await getFileInfoFromManager(fileSystemManager, candidate),
+        readableFilePath: candidate
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const normalizedFallbackSizeBytes = normalizeFallbackSizeBytes(fallbackSizeBytes);
+  if (normalizedFallbackSizeBytes) {
+    return {
+      fileInfo: { size: normalizedFallbackSizeBytes },
+      readableFilePath: filePath
+    };
+  }
+
+  throw lastError;
+}
+
+export async function getFileInfo(filePath: string): Promise<WxFileInfo> {
+  return (await getReadableFileInfo(filePath)).fileInfo;
+}
+
+async function getUploadedVariantFileInfo(
+  filePath: string,
+  fallbackSizeBytes?: number
+): Promise<ReadableFileInfo & { imageInfo: WxImageInfo }> {
+  const imageInfo = await getImageInfo(filePath);
+  const readable = await getReadableFileInfo(filePath, imageInfo, fallbackSizeBytes);
+
+  return {
+    ...readable,
+    imageInfo
+  };
 }
 
 export async function requestUploadPolicy(
@@ -254,63 +368,53 @@ export async function uploadMerchantAsset(
   role: OssAssetRole,
   options: {
     filePath?: string;
+    fileSizeBytes?: number;
     processingMode?: AssetProcessingMode;
     request?: MerchantApiRequester;
   } = {}
 ): Promise<UploadedMerchantAsset> {
-  const processingMode = options.processingMode ?? 'miniapp';
-  const request = options.request ?? merchantApiRequest;
-  const selectedFile = options.filePath ?? await chooseAssetImage();
-  const croppedFile = processingMode === 'miniapp' ? await cropAssetImage(selectedFile, role) : selectedFile;
-  const confirmations: ConfirmUploadResponse[] = [];
-
-  for (const [variantName, rule] of Object.entries(ASSET_ROLE_RULES[role].variants)) {
+  let uploadStage = 'select-file';
+  try {
+    const request = options.request ?? merchantApiRequest;
+    const selectedFile = options.filePath ?? await chooseAssetImage();
+    const variantName = ASSET_ROLE_UPLOAD_VARIANTS[role];
+    const rule = ASSET_ROLE_RULES[role].variants[variantName];
     if (!rule) {
-      continue;
+      throw new MerchantApiError('INVALID_ASSET_VARIANT', 'Asset variant is not supported for this role', 400);
     }
 
-    const variantFile = await compressAssetImage(croppedFile, rule, processingMode);
-    const [fileInfo, imageInfo] = await Promise.all([
-      getFileInfo(variantFile),
-      getImageInfo(variantFile)
-    ]);
-    if (fileInfo.size > rule.maxSizeBytes) {
-      throw new MerchantApiError('ASSET_FILE_TOO_LARGE', 'Image exceeds the upload size limit', 400, {
-        maxSizeBytes: rule.maxSizeBytes,
-        sizeBytes: fileInfo.size
-      });
-    }
-
-    const contentType = normalizeImageContentType(variantFile);
+    const contentType = normalizeImageContentType(selectedFile);
+    const uploadSizeBytes = getUploadSizeBytes(options.fileSizeBytes);
+    uploadStage = `request-upload-policy:${variantName}`;
     const upload = await requestUploadPolicy({
       role,
-      variantName: variantName as OssAssetVariantName,
+      variantName,
       extension: extensionFromContentType(contentType),
       contentType,
-      sizeBytes: fileInfo.size
+      sizeBytes: uploadSizeBytes
     }, request);
-    await uploadFileToOss(variantFile, upload);
-    confirmations.push(await confirmUpload({
+    uploadStage = `upload-oss:${variantName}`;
+    await uploadFileToOss(selectedFile, upload);
+    uploadStage = `confirm-upload:${variantName}`;
+    const confirmed = await confirmUpload({
       confirmToken: upload.confirmToken,
       role,
-      variantName: variantName as OssAssetVariantName,
+      variantName,
       objectKey: upload.objectKey,
-      width: imageInfo.width,
-      height: imageInfo.height,
-      sizeBytes: fileInfo.size,
+      width: rule.width,
+      height: rule.height,
+      sizeBytes: Math.min(uploadSizeBytes, getRuleMaxSizeBytes(role, variantName)),
       contentType
-    }, request));
+    }, request);
+
+    const asset = buildOssProcessedAsset(confirmed.asset, role, uploadSizeBytes);
+
+    return {
+      asset,
+      storageId: confirmed.storageId
+    };
+  } catch (error) {
+    logAssetUploadFailure(uploadStage, error);
+    throw error;
   }
-
-  const primary = confirmations.find((item) => item.asset.variants.some((variant) => variant.name === 'display')) ?? confirmations[0];
-  const variants = confirmations.flatMap((item) => item.asset.variants);
-  const asset: OssAssetReference = {
-    ...primary.asset,
-    variants
-  };
-
-  return {
-    asset,
-    storageId: primary.storageId
-  };
 }

@@ -21,6 +21,8 @@ export interface AssetVariantRule {
   maxHeight: number;
 }
 
+export const OSS_SOURCE_IMAGE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
 export const ASSET_ROLE_RULES: Record<OssAssetRole, Partial<Record<OssAssetVariantName, AssetVariantRule>>> = {
   'product-cover': {
     thumbnail: { maxSizeBytes: 184_320, maxWidth: 480, maxHeight: 480 },

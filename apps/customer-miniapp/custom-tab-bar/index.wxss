@@ -4,7 +4,8 @@
   right: 0;
   bottom: 0;
   z-index: 20;
-  padding-top: 56rpx;
+  padding: 46rpx 22rpx 0;
+  box-sizing: border-box;
 }
 
 .custom-tabbar__shell {
@@ -12,9 +13,27 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 16rpx 54rpx calc(24rpx + env(safe-area-inset-bottom));
-  background: rgba(251, 247, 221, 0.96);
+  padding: 16rpx 42rpx calc(20rpx + env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, rgba(255, 254, 248, 0.98) 0%, rgba(255, 247, 224, 0.98) 100%);
+  border: 2rpx solid rgba(176, 146, 88, 0.2);
+  border-bottom: none;
+  border-radius: 36rpx 36rpx 0 0;
+  box-shadow:
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.72),
+    0 -10rpx 24rpx rgba(90, 118, 126, 0.08);
   backdrop-filter: blur(12rpx);
+}
+
+.custom-tabbar__shell::before {
+  content: '';
+  position: absolute;
+  left: 42rpx;
+  right: 42rpx;
+  top: 0;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, rgba(246, 227, 150, 0.95) 0%, rgba(242, 196, 111, 0.95) 100%);
 }
 
 .custom-tabbar__item {
@@ -24,17 +43,28 @@
   justify-content: flex-end;
   gap: 10rpx;
   width: 148rpx;
-  color: #46362C;
+  color: #7B8B92;
 }
 
 .custom-tabbar__label {
+  min-width: 84rpx;
+  padding: 5rpx 12rpx 6rpx;
+  box-sizing: border-box;
+  border-radius: 999rpx;
   font-size: 26rpx;
+  font-weight: 700;
   line-height: 1.1;
   color: inherit;
+  text-align: center;
 }
 
 .custom-tabbar__item.is-active {
-  color: #D4A447;
+  color: #40535C;
+}
+
+.custom-tabbar__item.is-active .custom-tabbar__label {
+  background: rgba(246, 227, 150, 0.72);
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.68);
 }
 
 .custom-tabbar__center-hitbox {
@@ -63,8 +93,10 @@
   width: 132rpx;
   height: 132rpx;
   border-radius: 66rpx;
-  background: #FFF8DC;
-  box-shadow: 0 10rpx 26rpx rgba(140, 112, 31, 0.12);
+  background: linear-gradient(145deg, #FFF8D8 0%, #F6E396 70%, #F2C46F 100%);
+  box-shadow:
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.62),
+    0 8rpx 20rpx rgba(82, 116, 126, 0.12);
 }
 
 .custom-tabbar__center-button {
@@ -74,12 +106,17 @@
   width: 116rpx;
   height: 116rpx;
   border-radius: 58rpx;
-  background: #E7D54F;
-  box-shadow: 0 14rpx 30rpx rgba(140, 112, 31, 0.22);
+  background: linear-gradient(180deg, #FFE58D 0%, #F4CF68 100%);
+  border: 4rpx solid rgba(74, 42, 19, 0.12);
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 5rpx 0 rgba(255, 255, 255, 0.46),
+    0 8rpx 0 rgba(132, 102, 50, 0.2),
+    0 14rpx 22rpx rgba(82, 116, 126, 0.12);
 }
 
 .custom-tabbar__center-hitbox.is-active-center .custom-tabbar__center-button {
-  background: #E3D044;
+  background: linear-gradient(180deg, #FFDE7A 0%, #EFC55C 100%);
 }
 
 .custom-tabbar__home-icon {
@@ -154,7 +191,7 @@
   gap: 7rpx;
   width: 34rpx;
   padding: 7rpx 6rpx;
-  border: 4rpx solid #45413D;
+  border: 4rpx solid #40535C;
   border-radius: 6rpx;
   box-sizing: border-box;
 }
@@ -162,7 +199,7 @@
 .custom-tabbar__order-line {
   height: 4rpx;
   border-radius: 999rpx;
-  background: #45413D;
+  background: #40535C;
 }
 
 .custom-tabbar__order-line--short {

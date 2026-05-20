@@ -74,7 +74,7 @@
 }
 
 .result-member {
-  color: #9A6A3A;
+  color: #7B8B92;
 }
 
 .result-price {
@@ -104,10 +104,10 @@
   padding: 0 18rpx;
   border-radius: 999rpx;
   overflow: visible;
-  background: #D9A15B;
+  background: #F6E396;
   font-size: 20rpx;
   line-height: 1;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .result-action.direct {
@@ -138,7 +138,7 @@
   font-size: 18rpx;
   font-weight: 700;
   line-height: 1;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .result-stepper {
@@ -165,16 +165,16 @@
 }
 
 .stepper-circle.plus {
-  border-color: #D9A15B;
-  background: #D9A15B;
-  color: #FFFFFF;
+  border-color: #B9DDE8;
+  background: #F6E396;
+  color: #40535C;
 }
 
 .stepper-value {
   min-width: 18rpx;
   font-size: 24rpx;
   font-weight: 600;
-  color: #63594E;
+  color: #7B8B92;
   text-align: center;
 }
 
@@ -202,7 +202,7 @@
   font-size: 42rpx;
   font-weight: 700;
   letter-spacing: 4rpx;
-  color: #FFFFFF;
+  color: #40535C;
   transform: rotate(-30deg);
 }
 
@@ -211,11 +211,11 @@
   flex-direction: column;
   align-items: center;
   padding-top: 240rpx;
-  color: #8B8175;
+  color: #7B8B92;
 }
 
 .guide-state {
-  color: #A0917E;
+  color: #7B8B92;
 }
 
 .empty-title {
@@ -263,7 +263,7 @@
   font-size: 40rpx;
   line-height: 60rpx;
   text-align: center;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .quick-buy-content {
@@ -274,7 +274,7 @@
   display: block;
   font-size: 42rpx;
   font-weight: 700;
-  color: #4F341E;
+  color: #40535C;
 }
 
 .quick-buy-summary {
@@ -282,21 +282,21 @@
   margin-top: 16rpx;
   font-size: 24rpx;
   line-height: 1.6;
-  color: #726D68;
+  color: #7B8B92;
 }
 
 .quick-buy-member {
   display: block;
   margin-top: 12rpx;
   font-size: 22rpx;
-  color: #9A6A3A;
+  color: #7B8B92;
 }
 
 .quick-buy-spec-title {
   display: block;
   margin-top: 28rpx;
   font-size: 30rpx;
-  color: #6E675F;
+  color: #7B8B92;
 }
 
 .quick-buy-specs {
@@ -309,14 +309,14 @@
 .quick-buy-spec {
   padding: 18rpx 30rpx;
   border-radius: 999rpx;
-  background: #F4F4F4;
+  background: #FFFDF5;
   font-size: 24rpx;
-  color: #6E675F;
+  color: #7B8B92;
 }
 
 .quick-buy-spec.active {
   background: #F9E3A1;
-  color: #9A6A3A;
+  color: #7B8B92;
 }
 
 .quick-buy-footer {
@@ -329,7 +329,7 @@
 .quick-buy-price {
   font-size: 30rpx;
   font-weight: 700;
-  color: #313131;
+  color: #40535C;
 }
 
 .quick-buy-stepper {
@@ -341,28 +341,28 @@
 .stepper-btn {
   width: 56rpx;
   height: 56rpx;
-  border: 2rpx solid #E0B447;
+  border: 2rpx solid #B9DDE8;
   border-radius: 28rpx;
   font-size: 38rpx;
   line-height: 52rpx;
   text-align: center;
-  color: #D0A541;
+  color: #6B7C84;
 }
 
 .stepper-btn.plus {
-  background: #F0C94C;
-  color: #FFFFFF;
+  background: #F6E396;
+  color: #40535C;
 }
 
 .stepper-count {
   font-size: 36rpx;
-  color: #313131;
+  color: #40535C;
 }
 
 .quick-buy-submit {
   margin: 24rpx 38rpx 34rpx;
   border-radius: 999rpx;
-  background: #F7C43C;
+  background: #F6E396;
   font-weight: 600;
-  color: #FFFFFF;
+  color: #40535C;
 }

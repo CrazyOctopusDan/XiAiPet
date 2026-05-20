@@ -7,7 +7,7 @@ export const homeModules: HomeModule[] = [
     subtitle: '同城闪送 / 顺丰邮寄 / 到店自提',
     description: '按履约方式进入购物列表，先选蛋糕再定时间。',
     accent: '#F5C84C',
-    imageFileId: '/assets/catalog/catalog-reference.png',
+    imageFileId: '/assets/catalog/浏览商品_v3.png',
     imageAltText: '浏览商品'
   },
   {
@@ -16,7 +16,7 @@ export const homeModules: HomeModule[] = [
     subtitle: '订购流程 / 食用指南 / 保鲜储存 / 成分提示',
     description: '下单前先确认配送方式、保存建议和食材提示。',
     accent: '#F1CFEC',
-    imageFileId: '/assets/catalog/detail-reference.png',
+    imageFileId: '/assets/catalog/购前须知_3.png',
     imageAltText: '购前须知'
   },
   {
@@ -25,7 +25,7 @@ export const homeModules: HomeModule[] = [
     subtitle: '若回复不及时 请添加微信号：pawsonly',
     description: '需要更复杂的定制内容时，先联系店主沟通细节。',
     accent: '#B9E16E',
-    imageFileId: '/assets/catalog/search-reference.png',
+    imageFileId: '/assets/catalog/售前咨询_v3.png',
     imageAltText: '售前咨询'
   },
   {
@@ -34,7 +34,7 @@ export const homeModules: HomeModule[] = [
     subtitle: '查看会员等级 & 权益',
     description: '根据累计消费解锁不同等级和购买门槛。',
     accent: '#F6D66C',
-    imageFileId: '/assets/catalog/home-hero.png',
+    imageFileId: '/assets/catalog/会员权益_v3.png',
     imageAltText: '会员权益'
   }
 ];

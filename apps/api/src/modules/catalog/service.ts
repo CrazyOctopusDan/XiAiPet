@@ -129,11 +129,70 @@ function getAssetUrl(asset: CatalogOssAssetReference | undefined, variantName: s
       isObject(item) && item.name === variantName && typeof item.url === 'string'
   );
 
-  return variant?.url ?? asset.url;
+  return normalizeImageUrlForDisplay(variant?.url ?? asset.url);
 }
 
 function getAssetUrls(assets: CatalogOssAssetReference[] | undefined, variantName: string) {
-  return (assets ?? []).map((asset) => getAssetUrl(asset, variantName) ?? asset.url);
+  return (assets ?? []).map((asset) => getAssetUrl(asset, variantName) ?? normalizeImageUrlForDisplay(asset.url) ?? '');
+}
+
+function normalizeImageUrlForDisplay(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('http://')) {
+    return `https://${trimmed.slice('http://'.length)}`;
+  }
+
+  if (
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('cloud://') ||
+    trimmed.startsWith('oss://') ||
+    /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+
+  return `https://${trimmed.replace(/^\/+/, '')}`;
+}
+
+function normalizeAssetReference(asset: CatalogOssAssetReference | undefined): CatalogOssAssetReference | undefined {
+  if (!asset) {
+    return undefined;
+  }
+
+  return {
+    ...asset,
+    url: normalizeImageUrlForDisplay(asset.url) ?? asset.url,
+    variants: Array.isArray(asset.variants)
+      ? asset.variants.map((variant) =>
+          isObject(variant) && typeof variant.url === 'string'
+            ? { ...variant, url: normalizeImageUrlForDisplay(variant.url) ?? variant.url }
+            : variant
+        )
+      : asset.variants
+  };
+}
+
+function normalizeAssetReferences(assets: CatalogOssAssetReference[] | undefined): CatalogOssAssetReference[] | undefined {
+  return assets?.map((asset) => normalizeAssetReference(asset) ?? asset);
+}
+
+function normalizeProductImageUrls(product: CatalogProductRecord): CatalogProductRecord {
+  return {
+    ...product,
+    imageAsset: normalizeAssetReference(product.imageAsset),
+    imagePreviewUrl: normalizeImageUrlForDisplay(product.imagePreviewUrl),
+    introductionImageAssets: normalizeAssetReferences(product.introductionImageAssets),
+    detailImageAssets: normalizeAssetReferences(product.detailImageAssets)
+  };
 }
 
 function mapCustomerCategory(category: CatalogCategoryRecord): CustomerCatalogCategory {
@@ -197,33 +256,34 @@ function getCustomerSpecs(product: CatalogProductRecord): CustomerProductSpecOpt
 }
 
 function mapCustomerProduct(product: CatalogProductRecord): CustomerCatalogProduct {
+  const normalizedProduct = normalizeProductImageUrls(product);
   const specs = getCustomerSpecs(product);
   const thumbnail =
-    getAssetUrl(product.imageAsset, 'thumbnail') ??
-    product.imagePreviewUrl ??
-    product.imageAsset?.url ??
-    product.imageFileId;
-  const gallery = getAssetUrls(product.introductionImageAssets, 'display');
-  const detailImages = getAssetUrls(product.detailImageAssets, 'detail');
+    getAssetUrl(normalizedProduct.imageAsset, 'thumbnail') ??
+    normalizedProduct.imagePreviewUrl ??
+    normalizedProduct.imageAsset?.url ??
+    normalizedProduct.imageFileId;
+  const gallery = getAssetUrls(normalizedProduct.introductionImageAssets, 'display');
+  const detailImages = getAssetUrls(normalizedProduct.detailImageAssets, 'detail');
 
   return {
-    id: product.id,
-    name: product.name,
-    summary: product.description,
-    description: product.detailContent || product.description,
-    price: roundCurrency(product.basePrice),
-    stock: product.stock,
-    soldOut: product.trackInventory && product.stock <= 0,
+    id: normalizedProduct.id,
+    name: normalizedProduct.name,
+    summary: normalizedProduct.description,
+    description: normalizedProduct.detailContent || normalizedProduct.description,
+    price: roundCurrency(normalizedProduct.basePrice),
+    stock: normalizedProduct.stock,
+    soldOut: normalizedProduct.trackInventory && normalizedProduct.stock <= 0,
     cartActionLabel: specs.length ? '选规格' : '直接加购',
-    memberLevelLabel: product.memberLevelId ? '会员可购' : '普通会员可购',
-    categoryId: product.categoryId,
-    deliveryModes: getCustomerDeliveryModes(product),
+    memberLevelLabel: normalizedProduct.memberLevelId ? '会员可购' : '普通会员可购',
+    categoryId: normalizedProduct.categoryId,
+    deliveryModes: getCustomerDeliveryModes(normalizedProduct),
     thumbnail,
-    imageAsset: product.imageAsset,
+    imageAsset: normalizedProduct.imageAsset,
     gallery: gallery.length ? gallery : [thumbnail],
-    introductionImageAssets: product.introductionImageAssets,
+    introductionImageAssets: normalizedProduct.introductionImageAssets,
     detailImages: detailImages.length ? detailImages : DEFAULT_PRODUCT_DETAIL_IMAGES,
-    detailImageAssets: product.detailImageAssets,
+    detailImageAssets: normalizedProduct.detailImageAssets,
     specs
   };
 }
@@ -345,7 +405,7 @@ export function createCatalogService(catalogRepository = createCatalogRepository
 
     async queryMerchantProducts(filters: { categoryId?: string } = {}) {
       const products = await catalogRepository.listProducts({ categoryId: filters.categoryId });
-      return { ok: true as const, products };
+      return { ok: true as const, products: products.map(normalizeProductImageUrls) };
     },
 
     async deleteMerchantProduct(
@@ -388,7 +448,7 @@ export function createCatalogService(catalogRepository = createCatalogRepository
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      const saved = await catalogRepository.upsertProduct(product);
+      const saved = await catalogRepository.upsertProduct(normalizeProductImageUrls(product));
       return { ok: true as const, product: saved };
     }
   };

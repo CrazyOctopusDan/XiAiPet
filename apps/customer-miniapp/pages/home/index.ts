@@ -16,11 +16,30 @@ interface HomePageInstance {
   getTabBar?(): { setSelectedKey?: (key: string) => void } | undefined;
 }
 
-function buildHomeModulesFallback() {
-  return getHomeModules().map((module) => ({
+function getHomeModuleAction(moduleId: string) {
+  const actions: Record<string, { actionLabel: string; actionTone: string }> = {
+    preorder: { actionLabel: '点击浏览商品', actionTone: 'pink' },
+    notice: { actionLabel: '查看须知', actionTone: 'blue' },
+    vip: { actionLabel: '查看权益', actionTone: 'blue' }
+  };
+
+  return actions[moduleId] ?? { actionLabel: '', actionTone: '' };
+}
+
+function decorateHomeModules<T extends { id: string }>(modules: T[]) {
+  return modules.map((module) => ({
     ...module,
-    imageSrc: module.imageFileId
+    ...getHomeModuleAction(module.id)
   }));
+}
+
+function buildHomeModulesFallback() {
+  return decorateHomeModules(
+    getHomeModules().map((module) => ({
+      ...module,
+      imageSrc: module.imageFileId
+    }))
+  );
 }
 
 function getNavigationMetrics(): NavigationMetrics {
@@ -61,7 +80,7 @@ Page({
       await hydrateCustomerRuntimeConfig();
     } finally {
       this.setData({
-        modules: await modulePromise,
+        modules: decorateHomeModules(await modulePromise),
         heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId
       });
     }

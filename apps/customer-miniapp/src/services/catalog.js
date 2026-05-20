@@ -97,6 +97,28 @@ function isObject(value) {
 function asString(value, fallback = '') {
     return typeof value === 'string' ? value : fallback;
 }
+function normalizeImageUrlForDisplay(value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return '';
+    }
+    if (trimmed.startsWith('https://')) {
+        return trimmed;
+    }
+    if (trimmed.startsWith('http://')) {
+        return `https://${trimmed.slice('http://'.length)}`;
+    }
+    if (trimmed.startsWith('/') ||
+        trimmed.startsWith('cloud://') ||
+        trimmed.startsWith('oss://') ||
+        /^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+        return trimmed;
+    }
+    return `https://${trimmed.replace(/^\/+/, '')}`;
+}
+function imageUrl(value) {
+    return value ? normalizeImageUrlForDisplay(value) : value;
+}
 function asNumber(value, fallback = 0) {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -141,7 +163,7 @@ function getVariantUrl(asset, variantName) {
     if (!asset) {
         return undefined;
     }
-    return (_b = (_a = asset.variants.find((variant) => variant.name === variantName)) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : asset.url;
+    return imageUrl((_b = (_a = asset.variants.find((variant) => variant.name === variantName)) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : asset.url);
 }
 function normalizeAssetArray(value) {
     const assets = getArray(value).filter(isAssetReference);
@@ -166,7 +188,7 @@ function normalizeProductSpecs(product, basePrice) {
         .filter((spec) => spec.id && spec.label);
 }
 function normalizeProduct(product) {
-    var _a;
+    var _a, _b;
     if (!isObject(product)) {
         return null;
     }
@@ -181,7 +203,7 @@ function normalizeProduct(product) {
     const detailImageAssets = normalizeAssetArray(product.detailImageAssets);
     const price = asNumber(product.price, asNumber(product.basePrice));
     const specs = normalizeProductSpecs(product, price);
-    const thumbnail = (_a = getVariantUrl(imageAsset, 'thumbnail')) !== null && _a !== void 0 ? _a : asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId)));
+    const thumbnail = (_b = imageUrl((_a = getVariantUrl(imageAsset, 'thumbnail')) !== null && _a !== void 0 ? _a : asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId))))) !== null && _b !== void 0 ? _b : '';
     return {
         id,
         name,
@@ -203,13 +225,17 @@ function normalizeProduct(product) {
         thumbnail,
         imageAsset,
         gallery: (introductionImageAssets === null || introductionImageAssets === void 0 ? void 0 : introductionImageAssets.length)
-            ? introductionImageAssets.map((asset) => { var _a; return (_a = getVariantUrl(asset, 'display')) !== null && _a !== void 0 ? _a : asset.url; })
-            : getArray(product.gallery).filter((item) => typeof item === 'string'),
+            ? introductionImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'display')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
+            : getArray(product.gallery)
+                .filter((item) => typeof item === 'string')
+                .map(normalizeImageUrlForDisplay),
         introductionImageAssets,
         detailImages: (detailImageAssets === null || detailImageAssets === void 0 ? void 0 : detailImageAssets.length)
-            ? detailImageAssets.map((asset) => { var _a; return (_a = getVariantUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url; })
+            ? detailImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
             : getArray(product.detailImages).filter((item) => typeof item === 'string').length
-                ? getArray(product.detailImages).filter((item) => typeof item === 'string')
+                ? getArray(product.detailImages)
+                    .filter((item) => typeof item === 'string')
+                    .map(normalizeImageUrlForDisplay)
                 : DEFAULT_PRODUCT_DETAIL_IMAGES,
         detailImageAssets,
         specs
@@ -231,15 +257,15 @@ function cloneProducts(products) {
     });
 }
 function resolveCatalogProductAssetUrls(product) {
-    var _a, _b, _c, _d, _e;
-    const thumbnail = (_c = (_a = getVariantUrl(product.imageAsset, 'thumbnail')) !== null && _a !== void 0 ? _a : (_b = product.imageAsset) === null || _b === void 0 ? void 0 : _b.url) !== null && _c !== void 0 ? _c : product.thumbnail;
-    const gallery = ((_d = product.introductionImageAssets) === null || _d === void 0 ? void 0 : _d.length)
-        ? product.introductionImageAssets.map((asset) => { var _a; return (_a = getVariantUrl(asset, 'display')) !== null && _a !== void 0 ? _a : asset.url; })
-        : product.gallery;
-    const detailImages = ((_e = product.detailImageAssets) === null || _e === void 0 ? void 0 : _e.length)
-        ? product.detailImageAssets.map((asset) => { var _a; return (_a = getVariantUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url; })
+    var _a, _b, _c, _d, _e, _f;
+    const thumbnail = (_d = imageUrl((_c = (_a = getVariantUrl(product.imageAsset, 'thumbnail')) !== null && _a !== void 0 ? _a : (_b = product.imageAsset) === null || _b === void 0 ? void 0 : _b.url) !== null && _c !== void 0 ? _c : product.thumbnail)) !== null && _d !== void 0 ? _d : '';
+    const gallery = ((_e = product.introductionImageAssets) === null || _e === void 0 ? void 0 : _e.length)
+        ? product.introductionImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'display')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
+        : product.gallery.map(normalizeImageUrlForDisplay);
+    const detailImages = ((_f = product.detailImageAssets) === null || _f === void 0 ? void 0 : _f.length)
+        ? product.detailImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
         : product.detailImages.length
-            ? product.detailImages
+            ? product.detailImages.map(normalizeImageUrlForDisplay)
             : DEFAULT_PRODUCT_DETAIL_IMAGES;
     return {
         ...product,

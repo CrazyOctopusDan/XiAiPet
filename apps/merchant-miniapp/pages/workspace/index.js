@@ -4,13 +4,16 @@ const api_client_1 = require("../../src/services/api-client");
 const workspace_1 = require("../../src/services/workspace");
 Page({
     data: {
-        cards: (0, workspace_1.getMerchantWorkspaceCards)()
+        cards: (0, workspace_1.getMerchantWorkspaceCards)(),
+        accountName: '商户账号'
     },
     onShow() {
-        var _a, _b, _c;
-        const role = (_c = (_b = (_a = (0, api_client_1.getMerchantSession)()) === null || _a === void 0 ? void 0 : _a.account) === null || _b === void 0 ? void 0 : _b.role) !== null && _c !== void 0 ? _c : 'admin';
+        var _a, _b;
+        const account = (_a = (0, api_client_1.getMerchantSession)()) === null || _a === void 0 ? void 0 : _a.account;
+        const role = (_b = account === null || account === void 0 ? void 0 : account.role) !== null && _b !== void 0 ? _b : 'admin';
         this.setData({
-            cards: (0, workspace_1.getMerchantWorkspaceCards)(role)
+            cards: (0, workspace_1.getMerchantWorkspaceCards)(role),
+            accountName: (account === null || account === void 0 ? void 0 : account.username) ? `${account.username}` : '商户账号'
         });
     },
     handleActionTap(event) {
@@ -21,6 +24,12 @@ Page({
         }
         wx.navigateTo({
             url
+        });
+    },
+    handleLogoutTap() {
+        (0, api_client_1.merchantLogout)();
+        wx.reLaunch({
+            url: '/pages/access-gate/index'
         });
     }
 });

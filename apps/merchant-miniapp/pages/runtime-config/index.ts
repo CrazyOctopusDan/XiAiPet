@@ -168,14 +168,18 @@ Page({
   async handleUploadBanner(this: RuntimeConfigPageInstance) {
     wx.chooseImage({
       count: 1,
-      success: async (result: { tempFilePaths?: string[] }) => {
+      success: async (result: { tempFilePaths?: string[]; tempFiles?: Array<{ path?: string; tempFilePath?: string; size?: number }> }) => {
         const filePath = result.tempFilePaths?.[0];
         if (!filePath) {
           return;
         }
+        const tempFile = result.tempFiles?.[0];
 
         try {
-          const uploaded = await uploadRuntimeBannerAsset(filePath);
+          const uploaded = await uploadRuntimeBannerAsset({
+            filePath: tempFile?.path ?? tempFile?.tempFilePath ?? filePath,
+            sizeBytes: tempFile?.size
+          });
           this.patchSection('banner', (section) =>
             buildRuntimeConfigSectionDocument('banner', {
               ...(section.sectionId === 'banner' ? section.value : { fileId: '', altText: '' }),

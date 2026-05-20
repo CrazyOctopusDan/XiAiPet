@@ -1,7 +1,7 @@
 .checkout-page {
   min-height: 100vh;
   padding-bottom: 220rpx;
-  background: #F7F4EA;
+  background: #FFFDF5;
 }
 .checkout-card-head,
 .checkout-bottom-bar {
@@ -47,7 +47,7 @@
 .checkout-title {
   font-size: 42rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .checkout-subtitle,
@@ -57,7 +57,7 @@
   margin-top: 14rpx;
   font-size: 24rpx;
   line-height: 1.7;
-  color: #7E766D;
+  color: #7B8B92;
 }
 
 .checkout-card {
@@ -73,11 +73,11 @@
 .checkout-card-summary {
   font-size: 28rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .checkout-card-summary {
-  color: #9A6A3A;
+  color: #7B8B92;
 }
 
 .fulfillment-mode-row,
@@ -97,11 +97,11 @@
   min-width: 188rpx;
   padding: 18rpx 20rpx;
   border-radius: 24rpx;
-  background: #F5EFE3;
+  background: #FFFDF5;
 }
 
 .fulfillment-mode-pill.active {
-  background: #F6BE3E;
+  background: #F6E396;
 }
 
 .fulfillment-mode-label,
@@ -110,12 +110,12 @@
 .pet-choice-name {
   font-size: 24rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .fulfillment-mode-pill.active .fulfillment-mode-label,
 .fulfillment-mode-pill.active .fulfillment-mode-hint {
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .fulfillment-mode-hint,
@@ -127,7 +127,7 @@
   margin-top: 8rpx;
   font-size: 22rpx;
   line-height: 1.6;
-  color: #7E766D;
+  color: #7B8B92;
 }
 
 .store-card,
@@ -142,7 +142,7 @@
 .address-summary-card,
 .remark-summary-card,
 .notice-card {
-  background: #FFF7E6;
+  background: #FFFDF5;
 }
 
 .address-empty-card {
@@ -169,7 +169,7 @@
 .address-empty-title {
   font-size: 28rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .address-summary-phone {
@@ -191,7 +191,7 @@
   margin-top: 16rpx;
   font-size: 24rpx;
   line-height: 1.7;
-  color: #6F6457;
+  color: #7B8B92;
 }
 
 .pickup-phone-input {
@@ -199,9 +199,9 @@
   height: 88rpx;
   padding: 0 24rpx;
   border-radius: 22rpx;
-  background: #FFF7E6;
+  background: #FFFDF5;
   font-size: 28rpx;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .pet-choice-row {
@@ -213,7 +213,7 @@
 .pet-choice {
   padding: 14rpx 20rpx;
   border-radius: 22rpx;
-  background: #F5EFE3;
+  background: #FFFDF5;
 }
 
 .reservation-summary-card {
@@ -224,7 +224,7 @@
   margin-top: 20rpx;
   padding: 22rpx 24rpx;
   border-radius: 24rpx;
-  background: #FFF7E6;
+  background: #FFFDF5;
 }
 
 .reservation-summary-title,
@@ -236,54 +236,54 @@
 .reservation-summary-title {
   font-size: 28rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .reservation-summary-hint {
   margin-top: 8rpx;
   font-size: 22rpx;
-  color: #8B8175;
+  color: #7B8B92;
 }
 
 .reservation-summary-action {
   flex-shrink: 0;
   padding: 12rpx 18rpx;
   border-radius: 999rpx;
-  background: #F6BE3E;
+  background: #F6E396;
   font-size: 22rpx;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .reservation-slot {
   padding: 18rpx 0;
   border-radius: 20rpx;
-  background: #F5EFE3;
+  background: #FFFDF5;
   font-size: 22rpx;
   font-weight: 700;
   text-align: center;
-  color: #6F6457;
+  color: #7B8B92;
 }
 
 .reservation-slot.active,
 .pet-choice.active {
-  background: #F6BE3E;
-  color: #FFFFFF;
+  background: #F6E396;
+  color: #40535C;
 }
 
 .pet-choice {
   border: 2rpx solid transparent;
-  box-shadow: 0 8rpx 20rpx rgba(103, 76, 44, 0.06);
+  box-shadow: 0 8rpx 20rpx rgba(80, 104, 105, 0.06);
 }
 
 .pet-choice.active {
-  border-color: #E5A900;
-  box-shadow: 0 12rpx 26rpx rgba(246, 190, 62, 0.28);
+  border-color: #B9DDE8;
+  box-shadow: 0 12rpx 26rpx rgba(180, 130, 55, 0.28);
 }
 
 .pet-choice.active .pet-choice-name,
 .pet-choice.active .pet-choice-meta {
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .remark-summary-card,
@@ -311,13 +311,13 @@
 
 .fee-label {
   font-size: 24rpx;
-  color: #6F6457;
+  color: #7B8B92;
 }
 
 .fee-value {
   font-size: 24rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .delivery-fee-row {
@@ -332,7 +332,7 @@
 .fee-arrow {
   font-size: 34rpx;
   line-height: 1;
-  color: #9A6A3A;
+  color: #7B8B92;
 }
 
 .payment-method-row {
@@ -346,22 +346,22 @@
   min-width: 220rpx;
   padding: 16rpx 18rpx;
   border-radius: 22rpx;
-  background: #F5EFE3;
+  background: #FFFDF5;
 }
 
 .payment-method-pill.active {
-  background: #F6BE3E;
+  background: #F6E396;
 }
 
 .payment-method-label {
   font-size: 24rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .payment-method-pill.active .payment-method-label,
 .payment-method-pill.active .payment-method-hint {
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .remark-summary-text,
@@ -390,8 +390,8 @@
 }
 
 .notice-check.active {
-  background: #F6BE3E;
-  border-color: #F6BE3E;
+  background: #F6E396;
+  border-color: #B9DDE8;
 }
 
 .notice-check-mark {
@@ -399,7 +399,7 @@
   font-size: 24rpx;
   font-weight: 700;
   line-height: 1;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .checkout-item {
@@ -413,7 +413,7 @@
   width: 116rpx;
   height: 116rpx;
   border-radius: 18rpx;
-  background: #F3F3F3;
+  background: #FFFDF5;
 }
 
 .checkout-item-main {
@@ -436,7 +436,7 @@
 .checkout-item-spec {
   margin-top: 10rpx;
   font-size: 22rpx;
-  color: #8B8175;
+  color: #7B8B92;
 }
 
 .checkout-item-price {
@@ -460,7 +460,7 @@
   flex: 1;
   font-size: 28rpx;
   font-weight: 700;
-  color: #171717;
+  color: #40535C;
 }
 
 .checkout-bottom-actions {
@@ -479,13 +479,13 @@
 }
 
 .checkout-return {
-  background: #F5EFE3;
+  background: #FFFDF5;
   color: #6B5A47;
 }
 
 .checkout-submit {
-  background: #F6BE3E;
-  color: #FFFFFF;
+  background: #F6E396;
+  color: #40535C;
 }
 
 .checkout-submit.disabled {
@@ -534,13 +534,13 @@
 .reservation-panel-title {
   font-size: 32rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .reservation-panel-subtitle {
   margin-top: 8rpx;
   font-size: 22rpx;
-  color: #8B8175;
+  color: #7B8B92;
 }
 
 .reservation-panel-close {
@@ -551,10 +551,10 @@
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background: #F5EFE3;
+  background: #FFFDF5;
   font-size: 36rpx;
   line-height: 1;
-  color: #6F6457;
+  color: #7B8B92;
 }
 
 .reservation-picker {
@@ -575,13 +575,13 @@
   margin: 10rpx;
   padding: 18rpx 14rpx;
   border-radius: 20rpx;
-  color: #6F6457;
+  color: #7B8B92;
 }
 
 .reservation-date-tab.active {
-  background: #F6BE3E;
-  color: #FFFFFF;
-  box-shadow: 0 10rpx 22rpx rgba(246, 190, 62, 0.26);
+  background: #F6E396;
+  color: #40535C;
+  box-shadow: 0 10rpx 22rpx rgba(180, 130, 55, 0.26);
 }
 
 .reservation-date-name {
@@ -610,10 +610,10 @@
   margin-top: 24rpx;
   height: 88rpx;
   border-radius: 999rpx;
-  background: #F6BE3E;
+  background: #F6E396;
   font-size: 28rpx;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .reservation-confirm::after {
@@ -651,7 +651,7 @@
   display: block;
   font-size: 30rpx;
   font-weight: 700;
-  color: #2E261F;
+  color: #40535C;
 }
 
 .delivery-fee-close {
@@ -661,10 +661,10 @@
   width: 52rpx;
   height: 52rpx;
   border-radius: 50%;
-  background: #F5EFE3;
+  background: #FFFDF5;
   font-size: 34rpx;
   line-height: 1;
-  color: #6F6457;
+  color: #7B8B92;
 }
 
 .delivery-fee-list {
@@ -678,7 +678,7 @@
   display: block;
   padding: 16rpx 18rpx;
   border-radius: 18rpx;
-  background: #FFF7E6;
+  background: #FFFDF5;
   font-size: 24rpx;
   line-height: 1.45;
   color: #5F5144;

@@ -11,6 +11,68 @@ function refreshEditorView(instance, draft, activeStep) {
         editorView: (0, catalog_admin_1.getProductEditorViewModel)(draft, activeStep)
     });
 }
+function logProductImageUploadFailure(scope, error) {
+    if (typeof console !== 'undefined' && typeof console.error === 'function') {
+        console.error('[xiaipet] product editor image upload failed', {
+            scope,
+            error
+        });
+    }
+}
+function getProductImageUploadToastTitle(error) {
+    if (error instanceof Error && error.message === 'Image exceeds the upload size limit') {
+        return '图片过大';
+    }
+    return '上传失败';
+}
+function shouldIgnoreChooseImageFailure(error) {
+    return Boolean(error &&
+        typeof error === 'object' &&
+        'errMsg' in error &&
+        typeof error.errMsg === 'string' &&
+        error.errMsg.includes('cancel'));
+}
+function getChosenImageFiles(result, count) {
+    var _a, _b;
+    const tempFiles = (_a = result.tempFiles) !== null && _a !== void 0 ? _a : [];
+    const paths = (_b = result.tempFilePaths) !== null && _b !== void 0 ? _b : [];
+    return paths.slice(0, count).map((filePath, index) => {
+        var _a, _b, _c, _d, _e;
+        return ({
+            filePath: (_d = (_b = (_a = tempFiles[index]) === null || _a === void 0 ? void 0 : _a.path) !== null && _b !== void 0 ? _b : (_c = tempFiles[index]) === null || _c === void 0 ? void 0 : _c.tempFilePath) !== null && _d !== void 0 ? _d : filePath,
+            sizeBytes: (_e = tempFiles[index]) === null || _e === void 0 ? void 0 : _e.size
+        });
+    });
+}
+function normalizeImageUrlForDisplay(value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return '';
+    }
+    if (trimmed.startsWith('https://')) {
+        return trimmed;
+    }
+    if (trimmed.startsWith('http://')) {
+        return `https://${trimmed.slice('http://'.length)}`;
+    }
+    if (trimmed.startsWith('/') ||
+        trimmed.startsWith('cloud://') ||
+        trimmed.startsWith('oss://') ||
+        /^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+        return trimmed;
+    }
+    return `https://${trimmed.replace(/^\/+/, '')}`;
+}
+function normalizeAssetForDraft(asset) {
+    return {
+        ...asset,
+        url: normalizeImageUrlForDisplay(asset.url),
+        variants: asset.variants.map((variant) => ({
+            ...variant,
+            url: normalizeImageUrlForDisplay(variant.url)
+        }))
+    };
+}
 function updateSpecRow(draft, index, key, value) {
     draft.pricing.specs[index] = {
         ...draft.pricing.specs[index],
@@ -35,7 +97,7 @@ function getDraftBasicImageAssets(draft) {
 }
 function applyBasicImageAssets(draft, assets) {
     var _a;
-    const normalizedAssets = assets.slice(0, 3);
+    const normalizedAssets = assets.slice(0, 3).map(normalizeAssetForDraft);
     const cover = normalizedAssets[0];
     return {
         ...draft,
@@ -53,11 +115,12 @@ function getDraftDetailImageAssets(draft) {
     return ((_a = draft.basicInfo.detailImageAssets) !== null && _a !== void 0 ? _a : []).slice(0, 9);
 }
 function applyDetailImageAssets(draft, assets) {
+    const normalizedAssets = assets.slice(0, 9).map(normalizeAssetForDraft);
     return {
         ...draft,
         basicInfo: {
             ...draft.basicInfo,
-            detailImageAssets: assets.slice(0, 9)
+            detailImageAssets: normalizedAssets
         }
     };
 }
@@ -145,16 +208,16 @@ Page({
         wx.chooseImage({
             count,
             success: async (result) => {
-                var _a, _b, _c;
-                const filePaths = (_b = (_a = result.tempFilePaths) === null || _a === void 0 ? void 0 : _a.slice(0, count)) !== null && _b !== void 0 ? _b : [];
-                if (!filePaths.length) {
+                var _a;
+                const files = getChosenImageFiles(result, count);
+                if (!files.length) {
                     return;
                 }
                 this.setData({ imageUploading: true });
                 try {
                     const uploadedAssets = [];
-                    for (const filePath of filePaths) {
-                        const uploaded = await (0, catalog_admin_1.uploadProductCoverAsset)(filePath);
+                    for (const file of files) {
+                        const uploaded = await (0, catalog_admin_1.uploadProductCoverAsset)(file);
                         uploadedAssets.push(uploaded.asset);
                     }
                     const baseAssets = getDraftBasicImageAssets(this.data.draft);
@@ -167,14 +230,26 @@ Page({
                     refreshEditorView(this, draft, this.data.activeStep);
                 }
                 catch (error) {
-                    (_c = wx.showToast) === null || _c === void 0 ? void 0 : _c.call(wx, {
-                        title: error instanceof Error && error.message === 'Image exceeds the upload size limit' ? '图片过大' : '上传失败',
+                    logProductImageUploadFailure('basic', error);
+                    (_a = wx.showToast) === null || _a === void 0 ? void 0 : _a.call(wx, {
+                        title: getProductImageUploadToastTitle(error),
                         icon: 'none'
                     });
                 }
                 finally {
                     this.setData({ imageUploading: false });
                 }
+            },
+            fail: (error) => {
+                var _a;
+                if (shouldIgnoreChooseImageFailure(error)) {
+                    return;
+                }
+                logProductImageUploadFailure('choose-basic', error);
+                (_a = wx.showToast) === null || _a === void 0 ? void 0 : _a.call(wx, {
+                    title: '选择图片失败',
+                    icon: 'none'
+                });
             }
         });
     },
@@ -206,16 +281,16 @@ Page({
         wx.chooseImage({
             count,
             success: async (result) => {
-                var _a, _b, _c;
-                const filePaths = (_b = (_a = result.tempFilePaths) === null || _a === void 0 ? void 0 : _a.slice(0, count)) !== null && _b !== void 0 ? _b : [];
-                if (!filePaths.length) {
+                var _a;
+                const files = getChosenImageFiles(result, count);
+                if (!files.length) {
                     return;
                 }
                 this.setData({ imageUploading: true });
                 try {
                     const uploadedAssets = [];
-                    for (const filePath of filePaths) {
-                        const uploaded = await (0, catalog_admin_1.uploadProductDetailAsset)(filePath);
+                    for (const file of files) {
+                        const uploaded = await (0, catalog_admin_1.uploadProductDetailAsset)(file);
                         uploadedAssets.push(uploaded.asset);
                     }
                     const baseAssets = getDraftDetailImageAssets(this.data.draft);
@@ -228,14 +303,26 @@ Page({
                     refreshEditorView(this, draft, this.data.activeStep);
                 }
                 catch (error) {
-                    (_c = wx.showToast) === null || _c === void 0 ? void 0 : _c.call(wx, {
-                        title: error instanceof Error && error.message === 'Image exceeds the upload size limit' ? '图片过大' : '上传失败',
+                    logProductImageUploadFailure('detail', error);
+                    (_a = wx.showToast) === null || _a === void 0 ? void 0 : _a.call(wx, {
+                        title: getProductImageUploadToastTitle(error),
                         icon: 'none'
                     });
                 }
                 finally {
                     this.setData({ imageUploading: false });
                 }
+            },
+            fail: (error) => {
+                var _a;
+                if (shouldIgnoreChooseImageFailure(error)) {
+                    return;
+                }
+                logProductImageUploadFailure('choose-detail', error);
+                (_a = wx.showToast) === null || _a === void 0 ? void 0 : _a.call(wx, {
+                    title: '选择图片失败',
+                    icon: 'none'
+                });
             }
         });
     },

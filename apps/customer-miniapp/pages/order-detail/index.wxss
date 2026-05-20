@@ -1,8 +1,8 @@
 .order-detail-page {
   min-height: 100vh;
   padding: 56rpx 24rpx 64rpx;
-  background: linear-gradient(180deg, #FBF6DB 0%, #FFFDF4 100%);
-  color: #4F341E;
+  background: linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%);
+  color: #40535C;
 }
 
 .detail-hero {
@@ -20,7 +20,7 @@
   margin-top: 18rpx;
   font-size: 26rpx;
   line-height: 1.6;
-  color: #7D6C59;
+  color: #7B8B92;
 }
 
 .detail-card {
@@ -68,7 +68,7 @@
 .detail-order-time {
   margin-top: 8rpx;
   font-size: 22rpx;
-  color: #9A8774;
+  color: #7B8B92;
 }
 
 .detail-status {
@@ -89,7 +89,7 @@
   margin-top: 14rpx;
   font-size: 24rpx;
   line-height: 1.7;
-  color: #5B4736;
+  color: #7B8B92;
 }
 
 .detail-meta-row {
@@ -98,14 +98,14 @@
 
 .detail-meta-label {
   font-size: 24rpx;
-  color: #9A8774;
+  color: #7B8B92;
 }
 
 .detail-meta-value {
   flex: 1;
   text-align: right;
   font-size: 24rpx;
-  color: #5B4736;
+  color: #7B8B92;
 }
 
 .detail-item {
@@ -120,7 +120,7 @@
 .detail-item-spec {
   margin-top: 8rpx;
   font-size: 22rpx;
-  color: #9A8774;
+  color: #7B8B92;
 }
 
 .detail-item-total {
@@ -141,8 +141,8 @@
   margin: 8rpx 0 0;
   border: none;
   border-radius: 999rpx;
-  background: #E8D243;
-  color: #4F341E;
+  background: #F6E396;
+  color: #40535C;
   font-size: 26rpx;
   font-weight: 600;
 }

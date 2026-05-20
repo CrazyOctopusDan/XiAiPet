@@ -2,9 +2,9 @@
   min-height: 100vh;
   padding-bottom: calc(104rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 18% 0%, rgba(246, 190, 62, 0.38) 0, transparent 28%),
-    linear-gradient(180deg, #FFF7DF 0%, #FFFDF4 52%, #F8E8BD 100%);
-  color: #3A2A1E;
+    radial-gradient(circle at 18% 0%, rgba(246, 227, 150, 0.38) 0, transparent 28%),
+    linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 52%, #F6E396 100%);
+  color: #40535C;
   box-sizing: border-box;
 }
 
@@ -43,8 +43,8 @@
   border-radius: 38rpx;
   background:
     radial-gradient(circle at 86% 8%, rgba(255, 230, 163, 0.34) 0, transparent 30%),
-    linear-gradient(145deg, #3B271A 0%, #6E3D18 58%, #B45309 100%);
-  box-shadow: 0 26rpx 58rpx rgba(72, 41, 17, 0.22);
+    linear-gradient(145deg, #FFF8D8 0%, #F6E396 62%, #F2C46F 100%);
+  box-shadow: 0 26rpx 58rpx rgba(82, 116, 126, 0.22);
   box-sizing: border-box;
 }
 
@@ -74,7 +74,7 @@
 .overview-label {
   font-size: 24rpx;
   font-weight: 800;
-  color: rgba(255, 230, 163, 0.92);
+  color: #7B8B92;
 }
 
 .overview-status {
@@ -84,7 +84,7 @@
   background: rgba(255, 255, 255, 0.16);
   font-size: 20rpx;
   font-weight: 800;
-  color: #FFE6A3;
+  color: #40535C;
 }
 
 .overview-balance-line {
@@ -97,14 +97,14 @@
   font-size: 38rpx;
   line-height: 1;
   font-weight: 900;
-  color: #FFE6A3;
+  color: #40535C;
 }
 
 .overview-value {
   font-size: 82rpx;
   line-height: 1;
   font-weight: 900;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .overview-metrics {
@@ -124,14 +124,14 @@
 .overview-pill-label {
   font-size: 20rpx;
   font-weight: 800;
-  color: rgba(255, 230, 163, 0.78);
+  color: #7B8B92;
 }
 
 .overview-pill-value {
   margin-top: 10rpx;
   font-size: 26rpx;
   font-weight: 900;
-  color: #FFFFFF;
+  color: #40535C;
 }
 
 .month-card {
@@ -139,7 +139,7 @@
   padding: 28rpx 26rpx 10rpx;
   border-radius: 32rpx;
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16rpx 34rpx rgba(106, 72, 39, 0.08);
+  box-shadow: 0 16rpx 34rpx rgba(80, 104, 105, 0.08);
   box-sizing: border-box;
 }
 
@@ -151,14 +151,14 @@
   font-size: 32rpx;
   line-height: 1.2;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .month-summary {
   margin-top: 10rpx;
   font-size: 22rpx;
   font-weight: 700;
-  color: #9A7B60;
+  color: #7B8B92;
 }
 
 .ledger-row {
@@ -170,7 +170,7 @@
 }
 
 .ledger-row + .ledger-row {
-  border-top: 2rpx solid rgba(58, 42, 30, 0.08);
+  border-top: 2rpx solid rgba(64, 83, 92, 0.08);
 }
 
 .ledger-main {
@@ -182,21 +182,21 @@
   font-size: 30rpx;
   line-height: 1.28;
   font-weight: 900;
-  color: #3A2A1E;
+  color: #40535C;
 }
 
 .ledger-note {
   margin-top: 8rpx;
   font-size: 23rpx;
   line-height: 1.35;
-  color: #8A6D53;
+  color: #7B8B92;
 }
 
 .ledger-date {
   margin-top: 8rpx;
   font-size: 22rpx;
   font-weight: 700;
-  color: #A1866A;
+  color: #7B8B92;
 }
 
 .ledger-amount-wrap {

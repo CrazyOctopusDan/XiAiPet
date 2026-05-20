@@ -32,9 +32,12 @@ async function loadPageModule(modulePath: string) {
         : storage.get(key)
     ),
     setStorageSync: vi.fn((key: string, value: unknown) => storage.set(key, value)),
+    removeStorageSync: vi.fn((key: string) => storage.delete(key)),
     showToast: vi.fn(),
     navigateBack: vi.fn(),
-    navigateTo: vi.fn()
+    navigateTo: vi.fn(),
+    redirectTo: vi.fn(),
+    reLaunch: vi.fn()
   };
 
   vi.resetModules();
@@ -93,6 +96,29 @@ describe('merchant page API resilience', () => {
     expect(wx.showToast).toHaveBeenCalledWith({
       title: '商品加载失败',
       icon: 'none'
+    });
+  });
+
+  it('skips the login form when a fresh merchant session already exists', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/access-gate/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.onShow();
+
+    expect(wx.redirectTo).toHaveBeenCalledWith({
+      url: '/pages/workspace/index'
+    });
+  });
+
+  it('clears the merchant token when logging out from the workspace', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/workspace/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.handleLogoutTap();
+
+    expect(wx.removeStorageSync).toHaveBeenCalledWith(MERCHANT_SESSION_STORAGE_KEY);
+    expect(wx.reLaunch).toHaveBeenCalledWith({
+      url: '/pages/access-gate/index'
     });
   });
 

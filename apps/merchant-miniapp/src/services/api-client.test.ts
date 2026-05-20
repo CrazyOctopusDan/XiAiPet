@@ -5,8 +5,10 @@ import {
   MerchantApiError,
   changeMerchantPassword,
   getMerchantSession,
+  isMerchantSessionUsable,
   merchantApiRequest,
-  merchantLogin
+  merchantLogin,
+  merchantLogout
 } from './api-client';
 import {
   MERCHANT_API_DEVELOPMENT_BASE_URL,
@@ -211,6 +213,33 @@ describe('merchant API client', () => {
       code: 'UNAUTHORIZED'
     });
     expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(storage.has(MERCHANT_SESSION_STORAGE_KEY)).toBe(false);
+  });
+
+  it('reports usable stored sessions without re-login while the token is fresh', () => {
+    storage.set(MERCHANT_SESSION_STORAGE_KEY, {
+      token: 'merchant-token',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      account: {
+        id: 'acct-admin',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: false
+      }
+    });
+
+    expect(isMerchantSessionUsable()).toBe(true);
+    expect(requestMock).not.toHaveBeenCalled();
+  });
+
+  it('clears the stored merchant session on manual logout', () => {
+    storage.set(MERCHANT_SESSION_STORAGE_KEY, {
+      token: 'merchant-token',
+      expiresAt: '2099-01-01T00:00:00.000Z'
+    });
+
+    merchantLogout();
+
     expect(storage.has(MERCHANT_SESSION_STORAGE_KEY)).toBe(false);
   });
 

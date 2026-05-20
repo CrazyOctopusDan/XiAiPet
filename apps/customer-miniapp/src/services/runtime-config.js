@@ -19,7 +19,7 @@ const LOCKED_DELIVERY_RULE_ROWS = [
 ];
 const DEFAULT_RUNTIME_CONFIG = {
     banner: {
-        fileId: '/assets/catalog/home-hero.png',
+        fileId: '/assets/catalog/banner.png',
         altText: '首页 Banner'
     },
     store: {
