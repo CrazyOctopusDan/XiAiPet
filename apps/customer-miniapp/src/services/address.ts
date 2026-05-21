@@ -13,6 +13,8 @@ export interface CustomerAddress {
   detailAddress: string;
   tag: string;
   isDefault?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface CreateAddressInput {

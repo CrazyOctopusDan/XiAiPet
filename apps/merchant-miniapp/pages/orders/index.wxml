@@ -3,15 +3,15 @@
     <view class="summary-head">
       <view class="page-mark">单</view>
       <view class="summary-copy">
-        <text class="page-title">订单管理</text>
-        <text class="page-subtitle">按履约进度处理订单</text>
+        <text class="page-title">{{pageTitle}}</text>
+        <text class="page-subtitle">{{pageSubtitle}}</text>
       </view>
     </view>
 
     <view class="summary-metrics">
       <view class="metric-chip accent">
         <text class="metric-value">{{summary.totalOrders}}</text>
-        <text class="metric-label">当前订单</text>
+        <text class="metric-label">{{summaryOrderLabel}}</text>
       </view>
       <view class="metric-chip">
         <text class="metric-value">{{summary.activeGroups}}</text>

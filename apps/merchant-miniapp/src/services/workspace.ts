@@ -5,7 +5,7 @@ export interface MerchantWorkspaceAction {
 }
 
 export interface MerchantWorkspaceCard {
-  id: 'orders' | 'catalog' | 'users' | 'runtime-config' | 'staff-accounts';
+  id: 'orders' | 'order-history' | 'catalog' | 'users' | 'runtime-config' | 'staff-accounts';
   title: string;
   subtitle: string;
   description: string;
@@ -37,6 +37,22 @@ const WORKSPACE_CARDS: MerchantWorkspaceCardSource[] = [
         label: '打印机设置',
         url: '/pages/printer-settings/index',
         tone: 'secondary'
+      }
+    ]
+  },
+  {
+    id: 'order-history',
+    title: '历史',
+    subtitle: '完成订单',
+    description: '查看已完成订单记录',
+    badge: '归档',
+    accent: '#D8BE8A',
+    iconToken: '史',
+    actions: [
+      {
+        label: '历史订单',
+        url: '/pages/orders/index?scope=history',
+        tone: 'primary'
       }
     ]
   },
@@ -114,8 +130,15 @@ const WORKSPACE_CARDS: MerchantWorkspaceCardSource[] = [
 export function getMerchantWorkspaceCards(role: 'admin' | 'staff' = 'admin'): MerchantWorkspaceCard[] {
   const allowedIds =
     role === 'staff'
-      ? new Set<MerchantWorkspaceCard['id']>(['orders', 'catalog'])
-      : new Set<MerchantWorkspaceCard['id']>(['orders', 'catalog', 'users', 'runtime-config', 'staff-accounts']);
+      ? new Set<MerchantWorkspaceCard['id']>(['orders', 'order-history', 'catalog'])
+      : new Set<MerchantWorkspaceCard['id']>([
+          'orders',
+          'order-history',
+          'catalog',
+          'users',
+          'runtime-config',
+          'staff-accounts'
+        ]);
 
   return WORKSPACE_CARDS.filter((card) => allowedIds.has(card.id)).map((card) => ({
     ...card,

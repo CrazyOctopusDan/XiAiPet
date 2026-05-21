@@ -122,6 +122,39 @@ function compareOrders(left, right) {
     }
     return right.id.localeCompare(left.id);
 }
+function normalizeMerchantOrder(order) {
+    if (order.fulfillmentState || !order.fulfillmentStatus) {
+        return order;
+    }
+    return {
+        ...order,
+        fulfillmentState: {
+            mode: order.snapshot.fulfillment.mode,
+            status: order.fulfillmentStatus,
+            updatedAt: order.updatedAt
+        }
+    };
+}
+function normalizeQueryGroups(groups = []) {
+    return groups.map((group) => ({
+        ...group,
+        orders: group.orders.map(normalizeMerchantOrder)
+    }));
+}
+function groupsFromFlatOrders(orders = []) {
+    if (!orders.length) {
+        return [];
+    }
+    return [
+        {
+            groupLabel: '订单',
+            orders: orders.map(normalizeMerchantOrder)
+        }
+    ];
+}
+function isMerchantApiRequester(value) {
+    return typeof value === 'function';
+}
 function toCard(order) {
     return {
         id: order.id,
@@ -223,13 +256,19 @@ function getCurrentMerchantOperator() {
         name: account.username
     };
 }
-async function queryMerchantOrders(request = api_client_1.merchantApiRequest) {
+async function queryMerchantOrders(filtersOrRequest = {}, maybeRequest = api_client_1.merchantApiRequest) {
     var _a;
+    const request = isMerchantApiRequester(filtersOrRequest) ? filtersOrRequest : maybeRequest;
+    const filters = isMerchantApiRequester(filtersOrRequest) ? {} : filtersOrRequest;
     const response = await request('/api/v1/merchant/orders', {
         method: 'GET',
-        auth: 'merchant'
+        auth: 'merchant',
+        query: {
+            scope: (_a = filters.scope) !== null && _a !== void 0 ? _a : 'active',
+            fulfillmentMode: filters.fulfillmentMode === 'all' ? undefined : filters.fulfillmentMode
+        }
     });
-    return (_a = response.groups) !== null && _a !== void 0 ? _a : [];
+    return response.groups ? normalizeQueryGroups(response.groups) : groupsFromFlatOrders(response.orders);
 }
 function getMerchantOrdersPageViewModel(groups) {
     const grouped = groups

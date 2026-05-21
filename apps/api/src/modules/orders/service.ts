@@ -1,7 +1,12 @@
 import type { PrismaClient } from '@prisma/client';
 
 import { createCatalogRepository } from '../catalog/repository';
-import { createOrderRepository, type CreateOrderInput, type OrderRecord } from './repository';
+import {
+  createOrderRepository,
+  type CreateOrderInput,
+  type MerchantOrderListFilters,
+  type OrderRecord
+} from './repository';
 import { getPrismaClient } from '../../db/prisma';
 import { ApiError } from '../../lib/errors';
 import type { MerchantContext } from '../auth/types';
@@ -9,6 +14,113 @@ import type { PaymentProvider } from '../payments/provider';
 import { createMockPaymentProvider } from '../payments/provider';
 import { createBalanceService } from '../users/balance-service';
 import { createPaymentRepository } from '../payments/repository';
+
+interface CustomerOrderPayload {
+  id?: string;
+  idempotencyKey?: string;
+  paymentMethod?: 'wechat' | 'balance';
+  fulfillmentMode?: 'delivery' | 'pickup' | 'express';
+  itemsSubtotal?: number;
+  deliveryFee?: number;
+  payableTotal?: number;
+  fulfillment?: {
+    mode?: 'delivery' | 'pickup' | 'express';
+  };
+  pricing?: {
+    itemsSubtotal?: number;
+    deliveryFee?: number;
+    payableTotal?: number;
+  };
+  items?: unknown[];
+}
+
+interface CustomerOrderItemPayload {
+  productId?: unknown;
+  name?: unknown;
+  quantity?: unknown;
+  unitPrice?: unknown;
+  specId?: unknown;
+  specLabel?: unknown;
+  lineTotal?: unknown;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function toNumber(value: unknown, fallback = 0) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeOrderItems(items: unknown): CreateOrderInput['items'] {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .filter((item): item is CustomerOrderItemPayload => isObject(item))
+    .map((item) => ({
+      productId: String(item.productId ?? ''),
+      name: String(item.name ?? ''),
+      quantity: Math.max(0, Math.trunc(toNumber(item.quantity))),
+      unitPrice: toNumber(item.unitPrice),
+      specId: String(item.specId ?? ''),
+      specLabel: String(item.specLabel ?? ''),
+      lineTotal: toNumber(item.lineTotal)
+    }))
+    .filter((item) => item.productId && item.name && item.quantity > 0);
+}
+
+function normalizeCreateOrderPayload(openid: string, payload: unknown): CreateOrderInput {
+  const candidate = payload as CustomerOrderPayload;
+  const pricing = isObject(candidate.pricing) ? candidate.pricing : null;
+  const fulfillment = isObject(candidate.fulfillment) ? candidate.fulfillment : null;
+  const paymentMethod = candidate.paymentMethod === 'balance' ? 'balance' : 'wechat';
+  const fulfillmentMode =
+    fulfillment?.mode === 'delivery' || fulfillment?.mode === 'express' || fulfillment?.mode === 'pickup'
+      ? fulfillment.mode
+      : candidate.fulfillmentMode ?? 'pickup';
+
+  return {
+    id: candidate.id ?? `order-${Date.now()}`,
+    openid,
+    idempotencyKey: candidate.idempotencyKey ?? `idem-${Date.now()}`,
+    paymentMethod,
+    fulfillmentMode,
+    itemsSubtotal: toNumber(pricing?.itemsSubtotal, candidate.itemsSubtotal ?? 0),
+    deliveryFee: toNumber(pricing?.deliveryFee, candidate.deliveryFee ?? 0),
+    payableTotal: toNumber(pricing?.payableTotal, candidate.payableTotal ?? 0),
+    snapshot: payload,
+    items: normalizeOrderItems(candidate.items)
+  };
+}
+
+function getFirstString(value: unknown) {
+  if (Array.isArray(value)) {
+    return typeof value[0] === 'string' ? value[0] : undefined;
+  }
+
+  return typeof value === 'string' ? value : undefined;
+}
+
+function normalizeMerchantOrderFilters(filters: Record<string, unknown> = {}): MerchantOrderListFilters {
+  const rawScope = getFirstString(filters.scope);
+  const rawFulfillmentMode = getFirstString(filters.fulfillmentMode);
+  const keyword = getFirstString(filters.keyword)?.trim();
+  const result: MerchantOrderListFilters = {
+    scope: rawScope === 'history' ? 'history' : 'active'
+  };
+
+  if (rawFulfillmentMode === 'delivery' || rawFulfillmentMode === 'pickup' || rawFulfillmentMode === 'express') {
+    result.fulfillmentMode = rawFulfillmentMode;
+  }
+
+  if (keyword) {
+    result.keyword = keyword;
+  }
+
+  return result;
+}
 
 export function createOrderService(
   client: PrismaClient = getPrismaClient(),
@@ -39,19 +151,7 @@ export function createOrderService(
       if (!payload || typeof payload !== 'object') {
         throw new ApiError('INVALID_ORDER', 'Invalid order payload', 400);
       }
-      const candidate = payload as Partial<CreateOrderInput> & { id?: string };
-      const order = await this.createPendingOrder({
-        id: candidate.id ?? `order-${Date.now()}`,
-        openid,
-        idempotencyKey: candidate.idempotencyKey ?? `idem-${Date.now()}`,
-        paymentMethod: candidate.paymentMethod ?? 'wechat',
-        fulfillmentMode: candidate.fulfillmentMode ?? 'pickup',
-        itemsSubtotal: candidate.itemsSubtotal ?? 0,
-        deliveryFee: candidate.deliveryFee ?? 0,
-        payableTotal: candidate.payableTotal ?? 0,
-        snapshot: candidate.snapshot ?? payload,
-        items: candidate.items ?? []
-      });
+      const order = await this.createPendingOrder(normalizeCreateOrderPayload(openid, payload));
       return { ok: true, order };
     },
 
@@ -131,8 +231,8 @@ export function createOrderService(
       return { ok: true as const, order };
     },
 
-    async queryMerchantOrders(_merchantContext: MerchantContext, _filters: Record<string, unknown> = {}) {
-      const orders = await createOrderRepository(client).listAll();
+    async queryMerchantOrders(_merchantContext: MerchantContext, filters: Record<string, unknown> = {}) {
+      const orders = await createOrderRepository(client).listForMerchant(normalizeMerchantOrderFilters(filters));
       return { ok: true as const, orders };
     },
 

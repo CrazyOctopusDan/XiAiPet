@@ -159,9 +159,47 @@ describe('merchant orders service', () => {
 
     expect(request).toHaveBeenCalledWith('/api/v1/merchant/orders', {
       method: 'GET',
-      auth: 'merchant'
+      auth: 'merchant',
+      query: {
+        scope: 'active',
+        fulfillmentMode: undefined
+      }
     });
     expect(groups).toHaveLength(1);
+  });
+
+  it('accepts flat merchant orders from the API and sends backend list filters', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      orders: [
+        {
+          ...createOrder({ id: 'order-completed', fulfillmentState: undefined }),
+          fulfillmentStatus: 'completed'
+        }
+      ]
+    });
+
+    const groups = await queryMerchantOrders(
+      {
+        scope: 'history',
+        fulfillmentMode: 'delivery'
+      },
+      request as MerchantApiRequester
+    );
+    const view = getMerchantOrdersPageViewModel(groups);
+
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/orders', {
+      method: 'GET',
+      auth: 'merchant',
+      query: {
+        scope: 'history',
+        fulfillmentMode: 'delivery'
+      }
+    });
+    expect(view.groups[0]?.orders[0]).toMatchObject({
+      id: 'order-completed',
+      statusLabel: '已完成'
+    });
   });
 
   it('queries merchant order detail from the HTTP API', async () => {

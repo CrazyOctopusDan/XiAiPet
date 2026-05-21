@@ -1,21 +1,27 @@
 .remark-page {
   min-height: 100vh;
-  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
-  background: #FFFDF5;
+  padding-bottom: calc(190rpx + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 90% 8%, rgba(213, 241, 255, 0.32) 0, rgba(213, 241, 255, 0) 240rpx),
+    linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 74%, #F9EAA6 100%);
 }
 
 .remark-shell {
-  padding: 16rpx 20rpx 0;
+  padding: 18rpx 20rpx 0;
 }
 
 .remark-hero,
 .remark-card {
   border-radius: 28rpx;
-  background: #FFFFFF;
+  border: 2rpx solid rgba(226, 194, 134, 0.46);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18rpx 42rpx rgba(112, 82, 42, 0.08);
+  box-sizing: border-box;
 }
 
 .remark-hero {
   padding: 30rpx 28rpx;
+  background: linear-gradient(135deg, rgba(255, 253, 245, 0.95), rgba(255, 247, 210, 0.9));
 }
 
 .remark-title,
@@ -48,9 +54,13 @@
 .remark-input {
   width: 100%;
   min-height: 240rpx;
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: #FFFDF5;
   font-size: 28rpx;
   line-height: 1.8;
   color: #40535C;
+  box-sizing: border-box;
 }
 
 .remark-history-list {
@@ -81,7 +91,7 @@
 .remark-history-delete {
   font-size: 22rpx;
   font-weight: 700;
-  color: #C56F45;
+  color: #B78336;
 }
 
 .remark-bottom-bar {
@@ -90,13 +100,24 @@
   right: 0;
   bottom: 0;
   padding: 22rpx 20rpx calc(30rpx + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.98);
+  border-top: 2rpx solid rgba(226, 194, 134, 0.36);
+  background: rgba(255, 253, 245, 0.96);
+  box-shadow: 0 -18rpx 44rpx rgba(112, 82, 42, 0.1);
+  box-sizing: border-box;
 }
 
 .remark-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
   border-radius: 999rpx;
   background: #F6E396;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1;
   color: #40535C;
+  box-shadow: 0 12rpx 26rpx rgba(190, 143, 54, 0.18);
 }
 
 .remark-confirm::after {

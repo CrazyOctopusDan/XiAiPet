@@ -14,6 +14,7 @@ exports.updateCartItemSelection = updateCartItemSelection;
 exports.toggleAllCartItems = toggleAllCartItems;
 exports.updateCartItemSpec = updateCartItemSpec;
 exports.removeCartItem = removeCartItem;
+exports.removeSelectedCartItems = removeSelectedCartItems;
 let cartItems = [];
 function resolveSpec(product, specId) {
     var _a;
@@ -174,5 +175,9 @@ function updateCartItemSpec(itemId, product, specId) {
 }
 function removeCartItem(itemId) {
     cartItems = cartItems.filter((item) => item.id !== itemId);
+    return cartItems;
+}
+function removeSelectedCartItems() {
+    cartItems = cartItems.filter((item) => !item.selected);
     return cartItems;
 }

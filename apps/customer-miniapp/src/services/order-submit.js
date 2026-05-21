@@ -9,18 +9,34 @@ const address_1 = require("./address");
 const api_client_1 = require("./api-client");
 const cart_1 = require("./cart");
 const checkout_1 = require("./checkout");
-const CITY_DELIVERY_FEES = {
-    'address-city-home': {
-        distanceKm: 3.2,
-        fee: 10,
-        ruleLabel: '3km 内配送费 10 元'
-    },
-    'address-city-studio': {
-        distanceKm: 5.8,
-        fee: 16,
-        ruleLabel: '3-6km 配送费 16 元'
+const runtime_config_1 = require("./runtime-config");
+const EARTH_RADIUS_KM = 6371;
+function toRadians(value) {
+    return (value * Math.PI) / 180;
+}
+function isCoordinate(value) {
+    return typeof value === 'number' && Number.isFinite(value);
+}
+function calculateDistanceKm(from, to) {
+    const toLatitude = to.latitude;
+    const toLongitude = to.longitude;
+    if (!isCoordinate(toLatitude) || !isCoordinate(toLongitude)) {
+        return null;
     }
-};
+    const latDelta = toRadians(toLatitude - from.latitude);
+    const lonDelta = toRadians(toLongitude - from.longitude);
+    const fromLat = toRadians(from.latitude);
+    const toLat = toRadians(toLatitude);
+    const haversine = Math.sin(latDelta / 2) ** 2 +
+        Math.cos(fromLat) * Math.cos(toLat) * Math.sin(lonDelta / 2) ** 2;
+    return Number((EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))).toFixed(1));
+}
+function formatRuleLabel(distanceKm, explainer) {
+    if (distanceKm === null) {
+        return explainer;
+    }
+    return `${distanceKm.toFixed(1)} 公里，${explainer}`;
+}
 function buildAddressSnapshot(address) {
     if (!address) {
         return undefined;
@@ -57,11 +73,24 @@ function getDeliveryFeePreview(address) {
             ruleLabel: '待选择配送地址'
         };
     }
-    return ((_a = CITY_DELIVERY_FEES[address.id]) !== null && _a !== void 0 ? _a : {
-        distanceKm: 8.6,
-        fee: 22,
-        ruleLabel: '6km 以上配送费 22 元'
-    });
+    const runtimeConfig = (0, runtime_config_1.getCachedCustomerRuntimeConfig)();
+    const sortedTiers = [...runtimeConfig.deliveryRules.tiers].sort((left, right) => left.distanceKm - right.distanceKm);
+    const distanceKm = calculateDistanceKm(runtimeConfig.store, address);
+    const matchedTier = distanceKm === null
+        ? sortedTiers[0]
+        : (_a = sortedTiers.find((tier) => distanceKm <= tier.distanceKm)) !== null && _a !== void 0 ? _a : sortedTiers[sortedTiers.length - 1];
+    if (!matchedTier) {
+        return {
+            distanceKm: distanceKm !== null && distanceKm !== void 0 ? distanceKm : 0,
+            fee: 0,
+            ruleLabel: '配送费待确认'
+        };
+    }
+    return {
+        distanceKm: distanceKm !== null && distanceKm !== void 0 ? distanceKm : matchedTier.distanceKm,
+        fee: matchedTier.deliveryFee,
+        ruleLabel: formatRuleLabel(distanceKm, matchedTier.explainer)
+    };
 }
 function buildCreateOrderPayload(paymentMethod, idempotencyKey = createIdempotencyKey()) {
     var _a;

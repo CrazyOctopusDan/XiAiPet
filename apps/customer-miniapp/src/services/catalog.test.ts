@@ -50,10 +50,10 @@ describe('catalog service', () => {
       '会员权益'
     ]);
     expect(getHomeModules().map((item) => item.imageFileId)).toEqual([
-      '/assets/catalog/浏览商品_v3.png',
-      '/assets/catalog/购前须知_3.png',
-      '/assets/catalog/售前咨询_v3.png',
-      '/assets/catalog/会员权益_v3.png'
+      '/assets/catalog/浏览商品_v3.jpg',
+      '/assets/catalog/购前须知_3.jpg',
+      '/assets/catalog/售前咨询_v3.jpg',
+      '/assets/catalog/会员权益_v3.jpg'
     ]);
   });
 
@@ -66,22 +66,22 @@ describe('catalog service', () => {
     expect(resolvedModules[0]).toMatchObject({
       title: '浏览商品',
       imageSrc:
-        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E6%B5%8F%E8%A7%88%E5%95%86%E5%93%81_v3.png'
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E6%B5%8F%E8%A7%88%E5%95%86%E5%93%81_v3.jpg'
     });
     expect(resolvedModules[1]).toMatchObject({
       title: '购前须知',
       imageSrc:
-        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E8%B4%AD%E5%89%8D%E9%A1%BB%E7%9F%A5_3.png'
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E8%B4%AD%E5%89%8D%E9%A1%BB%E7%9F%A5_3.jpg'
     });
     expect(resolvedModules[2]).toMatchObject({
       title: '售前咨询',
       imageSrc:
-        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E5%94%AE%E5%89%8D%E5%92%A8%E8%AF%A2_v3.png'
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E5%94%AE%E5%89%8D%E5%92%A8%E8%AF%A2_v3.jpg'
     });
     expect(resolvedModules[3]).toMatchObject({
       title: '会员权益',
       imageSrc:
-        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E4%BC%9A%E5%91%98%E6%9D%83%E7%9B%8A_v3.png'
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E4%BC%9A%E5%91%98%E6%9D%83%E7%9B%8A_v3.jpg'
     });
   });
 

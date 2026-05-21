@@ -1,6 +1,7 @@
 import { ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS } from '../../db/enums';
 import { getPrismaClient } from '../../db/prisma';
 import type { DbClient } from '../../db/types';
+import { mapOrder } from '../orders/repository';
 
 export interface PaymentUpsertInput {
   orderId: string;
@@ -44,7 +45,7 @@ export function createPaymentRepository(client: DbClient = getPrismaClient()) {
     },
 
     async markOrderPaid(orderId: string, paidAt: Date = new Date()) {
-      return client.order.update({
+      const order = await client.order.update({
         where: { id: orderId },
         data: {
           status: ORDER_STATUS.paid,
@@ -52,6 +53,7 @@ export function createPaymentRepository(client: DbClient = getPrismaClient()) {
           paidAt
         }
       });
+      return mapOrder(order);
     }
   };
 }

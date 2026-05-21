@@ -17,9 +17,9 @@ import {
   type FulfillmentModeOption,
   type ReservationDayOption
 } from '../../src/services/checkout';
-import { getCartItems, getCartSummary, type CartItem } from '../../src/services/cart';
+import { getCartItems, getCartSummary, removeSelectedCartItems, type CartItem } from '../../src/services/cart';
 import { getPets, hydratePets, type PetProfile } from '../../src/services/pets';
-import { getCheckoutPricingPreview, submitOrder } from '../../src/services/order-submit';
+import { getCheckoutPricingPreview, getDeliveryFeePreview, submitOrder } from '../../src/services/order-submit';
 import { hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 import { setPendingOrdersHighlight } from '../../src/services/tab-navigation';
 
@@ -131,6 +131,8 @@ const PAYMENT_METHODS: PaymentMethodOption[] = [
   }
 ];
 
+let checkoutSubmissionLocked = false;
+
 Page({
   data: {
     items: [],
@@ -167,6 +169,9 @@ Page({
     submitting: false
   },
   onShow(this: CheckoutPageInstance) {
+    if (!this.data.submitting) {
+      checkoutSubmissionLocked = false;
+    }
     this.refreshCheckout();
     void this.refreshCustomerContext();
     void this.refreshRuntimeConfig();
@@ -194,6 +199,7 @@ Page({
     const summary = getCartSummary();
     const view = getCheckoutViewModel();
     const pricing = getCheckoutPricingPreview();
+    const deliveryFeePreview = getDeliveryFeePreview(view.selectedAddress);
     const activePaymentMethod = this.data.activePaymentMethod ?? 'wechat';
     const selectedPetIds = view.selectedPets.map((item) => item.id);
     const selectedPetIdSet = new Set(selectedPetIds);
@@ -234,7 +240,7 @@ Page({
       payableTotal: pricing.payableTotal,
       deliveryFeeLabel:
         view.mode === 'delivery'
-          ? view.deliveryRuleExplainers[0] ?? '按配送距离计算'
+          ? deliveryFeePreview.ruleLabel
           : '当前模式免配送费'
     });
   },
@@ -386,7 +392,7 @@ Page({
     });
   },
   async handleSubmit(this: CheckoutPageInstance) {
-    if (this.data.submitting) {
+    if (checkoutSubmissionLocked || this.data.submitting) {
       return;
     }
 
@@ -398,30 +404,37 @@ Page({
       return;
     }
 
+    checkoutSubmissionLocked = true;
     this.setData({ submitting: true });
 
     try {
       const result = await submitOrder(this.data.activePaymentMethod);
-      this.setData({ submitting: false });
 
       if (result.order.status === 'paid') {
+        removeSelectedCartItems();
         setPendingOrdersHighlight(result.order.id);
-        wx.switchTab({
-          url: '/pages/orders/index'
+        this.setData({ submitting: false });
+        wx.redirectTo({
+          url: `/pages/order-detail/index?orderId=${result.order.id}`
         });
         return;
       }
 
+      checkoutSubmissionLocked = false;
       wx.showToast({
         title: '订单待支付确认',
         icon: 'none'
       });
+      this.setData({ submitting: false });
     } catch (error) {
+      checkoutSubmissionLocked = false;
       this.setData({ submitting: false });
       wx.showToast({
         title:
           error instanceof Error && error.message === 'WECHAT_PAY_NOT_CONFIGURED'
             ? '微信支付暂未配置'
+            : error instanceof Error && error.message === 'INSUFFICIENT_BALANCE'
+              ? '余额不足'
             : error instanceof Error
               ? error.message
               : '下单失败',

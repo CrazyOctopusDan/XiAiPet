@@ -41,7 +41,9 @@ Page({
     });
   },
   handleBackTap() {
-    wx.navigateBack();
+    wx.switchTab({
+      url: '/pages/orders/index'
+    });
   },
   handleOpenOrders() {
     wx.switchTab({

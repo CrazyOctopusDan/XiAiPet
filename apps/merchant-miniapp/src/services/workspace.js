@@ -24,6 +24,22 @@ const WORKSPACE_CARDS = [
         ]
     },
     {
+        id: 'order-history',
+        title: '历史',
+        subtitle: '完成订单',
+        description: '查看已完成订单记录',
+        badge: '归档',
+        accent: '#D8BE8A',
+        iconToken: '史',
+        actions: [
+            {
+                label: '历史订单',
+                url: '/pages/orders/index?scope=history',
+                tone: 'primary'
+            }
+        ]
+    },
+    {
         id: 'staff-accounts',
         title: '员工',
         subtitle: '账号权限',
@@ -95,8 +111,15 @@ const WORKSPACE_CARDS = [
 ];
 function getMerchantWorkspaceCards(role = 'admin') {
     const allowedIds = role === 'staff'
-        ? new Set(['orders', 'catalog'])
-        : new Set(['orders', 'catalog', 'users', 'runtime-config', 'staff-accounts']);
+        ? new Set(['orders', 'order-history', 'catalog'])
+        : new Set([
+            'orders',
+            'order-history',
+            'catalog',
+            'users',
+            'runtime-config',
+            'staff-accounts'
+        ]);
     return WORKSPACE_CARDS.filter((card) => allowedIds.has(card.id)).map((card) => {
         var _a, _b;
         return ({

@@ -54,6 +54,10 @@ Page({
         isEmpty: true,
         draftKeyword: '',
         keyword: '',
+        scope: 'active',
+        pageTitle: '订单管理',
+        pageSubtitle: '按履约进度处理未完成订单',
+        summaryOrderLabel: '当前订单',
         activeMode: 'all',
         filters: FILTERS,
         groups: [],
@@ -64,6 +68,17 @@ Page({
         },
         emptyTitle: '还没有订单',
         emptyBody: '新订单会按履约进度分组显示在这里。'
+    },
+    onLoad(options) {
+        const scope = (options === null || options === void 0 ? void 0 : options.scope) === 'history' ? 'history' : 'active';
+        this.setData({
+            scope,
+            pageTitle: scope === 'history' ? '历史订单' : '订单管理',
+            pageSubtitle: scope === 'history' ? '查看已完成订单记录' : '按履约进度处理未完成订单',
+            summaryOrderLabel: scope === 'history' ? '历史订单' : '当前订单',
+            emptyTitle: scope === 'history' ? '暂无历史订单' : '还没有订单',
+            emptyBody: scope === 'history' ? '已完成的订单会显示在这里。' : '新订单会按履约进度分组显示在这里。'
+        });
     },
     async onShow() {
         await this.refreshOrders();
@@ -76,16 +91,21 @@ Page({
     async refreshOrders() {
         this.setData({ loading: true });
         try {
-            const groups = (0, orders_1.getMerchantOrdersPageViewModel)(await (0, orders_1.queryMerchantOrders)()).groups;
+            const groups = (0, orders_1.getMerchantOrdersPageViewModel)(await (0, orders_1.queryMerchantOrders)({
+                scope: this.data.scope,
+                fulfillmentMode: this.data.activeMode
+            })).groups;
             const filteredGroups = filterGroups(groups, this.data.keyword, this.data.activeMode);
             const hasFilters = Boolean(this.data.keyword.trim()) || this.data.activeMode !== 'all';
+            const baseEmptyTitle = this.data.scope === 'history' ? '暂无历史订单' : '还没有订单';
+            const baseEmptyBody = this.data.scope === 'history' ? '已完成的订单会显示在这里。' : '新订单会按履约进度分组显示在这里。';
             this.setData({
                 loading: false,
                 isEmpty: filteredGroups.length === 0,
                 groups: filteredGroups,
                 summary: (0, orders_1.getMerchantOrderGroupSummary)(filteredGroups),
-                emptyTitle: hasFilters ? '没有匹配的订单' : '还没有订单',
-                emptyBody: hasFilters ? '换个关键词或履约方式再试一次。' : '新订单会按履约进度分组显示在这里。'
+                emptyTitle: hasFilters ? '没有匹配的订单' : baseEmptyTitle,
+                emptyBody: hasFilters ? '换个关键词或履约方式再试一次。' : baseEmptyBody
             });
         }
         catch (_a) {

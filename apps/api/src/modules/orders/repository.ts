@@ -27,6 +27,12 @@ export interface CreateOrderInput {
   items: OrderItemInput[];
 }
 
+export interface MerchantOrderListFilters {
+  scope?: 'active' | 'history';
+  fulfillmentMode?: 'delivery' | 'pickup' | 'express';
+  keyword?: string;
+}
+
 export interface OrderRecord {
   id: string;
   openid: string;
@@ -120,6 +126,40 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
 
     async listAll(): Promise<OrderRecord[]> {
       const orders = await client.order.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+      return orders.map(mapOrder);
+    },
+
+    async listForMerchant(filters: MerchantOrderListFilters = {}): Promise<OrderRecord[]> {
+      const scope = filters.scope === 'history' ? 'history' : 'active';
+      const where: Prisma.OrderWhereInput = {};
+
+      if (scope === 'history') {
+        where.fulfillmentStatus = FULFILLMENT_STATUS.completed;
+      } else {
+        where.AND = [
+          { status: { not: ORDER_STATUS.cancelled } },
+          { fulfillmentStatus: { not: FULFILLMENT_STATUS.completed } }
+        ];
+      }
+
+      if (filters.fulfillmentMode) {
+        where.fulfillmentMode = FULFILLMENT_MODE[filters.fulfillmentMode];
+      }
+
+      if (filters.keyword) {
+        const keyword = filters.keyword.trim();
+        if (keyword) {
+          where.OR = [
+            { id: { contains: keyword } },
+            { openid: { contains: keyword } }
+          ];
+        }
+      }
+
+      const orders = await client.order.findMany({
+        where,
         orderBy: { createdAt: 'desc' }
       });
       return orders.map(mapOrder);

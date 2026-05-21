@@ -36,8 +36,8 @@ function createCheckoutApiOrder(overrides: Record<string, unknown> = {}) {
     },
     pricing: {
       itemsSubtotal: 36,
-      deliveryFee: 10,
-      payableTotal: 46
+      deliveryFee: 0,
+      payableTotal: 36
     },
     snapshot: {
       fulfillment: {
@@ -239,7 +239,7 @@ describe('cart checkout flow', () => {
   it('clears cart page items and summary when the user empties the cart', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
     const { getProductById } = await import('../src/services/catalog');
-    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
 
     clearCart();
 
@@ -270,7 +270,7 @@ describe('cart checkout flow', () => {
   it('navigates from cart checkout into the checkout handoff page', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
     const { getProductById } = await import('../src/services/catalog');
-    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
 
     clearCart();
 
@@ -763,6 +763,9 @@ describe('cart checkout flow', () => {
     expect(checkoutTemplate).toContain('notice-check-mark');
     expect(checkoutStyles).toContain('.pet-choice.active');
     expect(checkoutStyles).toContain('border-color: #B9DDE8');
+    expect(checkoutStyles).toContain('padding: 22rpx 20rpx calc(30rpx + env(safe-area-inset-bottom))');
+    expect(checkoutStyles).toContain('.reservation-confirm');
+    expect(checkoutStyles).toContain('align-items: center');
     expect(checkoutTemplate).toContain('class="delivery-fee-mask"');
     expect(checkoutTemplate).not.toContain('delivery-rule-list');
 
@@ -829,8 +832,9 @@ describe('cart checkout flow', () => {
       'utf8'
     );
 
-    expect(remarkStyles).toContain('padding-bottom: calc(180rpx + env(safe-area-inset-bottom))');
+    expect(remarkStyles).toContain('padding-bottom: calc(190rpx + env(safe-area-inset-bottom))');
     expect(remarkStyles).toContain('padding: 22rpx 20rpx calc(30rpx + env(safe-area-inset-bottom))');
+    expect(remarkStyles).toContain('align-items: center');
   });
 
   it('marks pet cards as selected so the checkout template can update the card color', async () => {
@@ -1291,10 +1295,10 @@ describe('cart checkout flow', () => {
     expect(instance.data.activePaymentMethod).toBe('wechat');
   });
 
-  it('redirects to the orders page after a successful checkout submit', async () => {
+  it('redirects to order detail after a successful checkout submit and clears purchased cart items', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
     const { getProductById } = await import('../src/services/catalog');
-    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
     const { getAddresses, resetAddresses, selectAddress } = await import('../src/services/address');
     const { resetCheckoutDraft, setCustomNoticeAcknowledged, setReservationSelection } = await import('../src/services/checkout');
 
@@ -1331,9 +1335,75 @@ describe('cart checkout flow', () => {
 
     await instance.handleSubmit();
 
-    expect(wx.switchTab).toHaveBeenCalledWith({
-      url: '/pages/orders/index'
+    expect(wx.redirectTo).toHaveBeenCalledWith({
+      url: '/pages/order-detail/index?orderId=order-001'
     });
+    expect(getCartItems()).toHaveLength(0);
+    expect(instance.data.submitting).toBe(false);
+  });
+
+  it('unlocks checkout and keeps selected cart items when balance payment fails', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
+    const { getAddresses, resetAddresses, selectAddress } = await import('../src/services/address');
+    const { resetCheckoutDraft, setCustomNoticeAcknowledged, setReservationSelection } = await import('../src/services/checkout');
+
+    clearCart();
+    resetAddresses();
+    resetCheckoutDraft();
+
+    const product = getProductById('sea-sponge');
+    const address = getAddresses('city')[0];
+
+    if (!product || !address) {
+      throw new Error('missing checkout failure fixtures');
+    }
+
+    addCartItem(product, '', 1);
+    selectAddress(address.id);
+    setCustomNoticeAcknowledged(true);
+    setReservationSelection({
+      dateValue: '2026-04-17',
+      dateLabel: '今天 04-17',
+      timeValue: '11:00',
+      timeLabel: '11:00'
+    });
+
+    const defaultRequest = createDefaultRequestMock();
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/orders/order-001/payment') {
+        respondApi(options, {
+          ok: false,
+          code: 'INSUFFICIENT_BALANCE',
+          paymentStatus: 'blocked'
+        });
+        return;
+      }
+
+      defaultRequest(options);
+    });
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+    instance.handlePaymentMethodTap({
+      currentTarget: {
+        dataset: {
+          method: 'balance'
+        }
+      }
+    });
+
+    await instance.handleSubmit();
+
+    expect(instance.data.submitting).toBe(false);
+    expect(getCartItems()).toHaveLength(1);
+    expect(wx.switchTab).not.toHaveBeenCalled();
+    expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({
+      title: '余额不足'
+    }));
   });
 
   it('ignores repeated submit taps while the checkout request is still in flight', async () => {

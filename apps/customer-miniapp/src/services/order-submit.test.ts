@@ -90,8 +90,8 @@ describe('order submit service', () => {
 
     expect(pricing).toMatchObject({
       itemsSubtotal: expectedSubtotal,
-      deliveryFee: 10,
-      payableTotal: expectedSubtotal + 10
+      deliveryFee: 0,
+      payableTotal: expectedSubtotal
     });
     expect(payload.fulfillment).toMatchObject({
       mode: 'delivery',

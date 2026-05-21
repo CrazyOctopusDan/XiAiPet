@@ -30,6 +30,7 @@ export interface MerchantOrderTimelineEntry {
 }
 
 export interface MerchantManagedOrderRecord extends OrderRecord {
+  fulfillmentStatus?: OrderFulfillmentStatus;
   merchantTimeline?: MerchantOrderTimelineEntry[];
 }
 
@@ -128,6 +129,11 @@ export interface MerchantOrderDetailViewModel {
 export interface MerchantOrderDetailResponse {
   order: MerchantManagedOrderRecord;
   timeline: MerchantOrderTimelineEntry[];
+}
+
+export interface MerchantOrderQueryFilters {
+  scope?: 'active' | 'history';
+  fulfillmentMode?: OrderFulfillmentMode | 'all';
 }
 
 export interface UpdateMerchantOrderStatusInput {
@@ -290,6 +296,45 @@ function compareOrders(left: MerchantManagedOrderRecord, right: MerchantManagedO
   return right.id.localeCompare(left.id);
 }
 
+function normalizeMerchantOrder(order: MerchantManagedOrderRecord): MerchantManagedOrderRecord {
+  if (order.fulfillmentState || !order.fulfillmentStatus) {
+    return order;
+  }
+
+  return {
+    ...order,
+    fulfillmentState: {
+      mode: order.snapshot.fulfillment.mode,
+      status: order.fulfillmentStatus,
+      updatedAt: order.updatedAt
+    }
+  };
+}
+
+function normalizeQueryGroups(groups: MerchantOrderQueryGroup[] = []) {
+  return groups.map((group) => ({
+    ...group,
+    orders: group.orders.map(normalizeMerchantOrder)
+  }));
+}
+
+function groupsFromFlatOrders(orders: MerchantManagedOrderRecord[] = []): MerchantOrderQueryGroup[] {
+  if (!orders.length) {
+    return [];
+  }
+
+  return [
+    {
+      groupLabel: '订单',
+      orders: orders.map(normalizeMerchantOrder)
+    }
+  ];
+}
+
+function isMerchantApiRequester(value: MerchantOrderQueryFilters | MerchantApiRequester): value is MerchantApiRequester {
+  return typeof value === 'function';
+}
+
 function toCard(order: MerchantManagedOrderRecord): MerchantOrderCardViewModel {
   return {
     id: order.id,
@@ -408,16 +453,25 @@ function getCurrentMerchantOperator() {
   };
 }
 
-export async function queryMerchantOrders(request: MerchantApiRequester = merchantApiRequest) {
-  const response = await request<{ ok?: boolean; groups?: MerchantOrderQueryGroup[] }>(
+export async function queryMerchantOrders(
+  filtersOrRequest: MerchantOrderQueryFilters | MerchantApiRequester = {},
+  maybeRequest: MerchantApiRequester = merchantApiRequest
+) {
+  const request = isMerchantApiRequester(filtersOrRequest) ? filtersOrRequest : maybeRequest;
+  const filters = isMerchantApiRequester(filtersOrRequest) ? {} : filtersOrRequest;
+  const response = await request<{ ok?: boolean; groups?: MerchantOrderQueryGroup[]; orders?: MerchantManagedOrderRecord[] }>(
     '/api/v1/merchant/orders',
     {
       method: 'GET',
-      auth: 'merchant'
+      auth: 'merchant',
+      query: {
+        scope: filters.scope ?? 'active',
+        fulfillmentMode: filters.fulfillmentMode === 'all' ? undefined : filters.fulfillmentMode
+      }
     }
   );
 
-  return response.groups ?? [];
+  return response.groups ? normalizeQueryGroups(response.groups) : groupsFromFlatOrders(response.orders);
 }
 
 export function getMerchantOrdersPageViewModel(groups: MerchantOrderQueryGroup[]): MerchantOrdersPageViewModel {

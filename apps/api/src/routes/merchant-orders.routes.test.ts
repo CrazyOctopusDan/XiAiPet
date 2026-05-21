@@ -81,10 +81,21 @@ describe('merchant order routes', () => {
     });
 
     const headers = merchantAccountAuthHeader({ accountId: 'acct-admin' });
-    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders', headers })).statusCode).toBe(200);
+    expect(
+      (
+        await app.inject({
+          method: 'GET',
+          url: '/api/v1/merchant/orders?scope=history&fulfillmentMode=delivery',
+          headers
+        })
+      ).statusCode
+    ).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/orders/order-1', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'PATCH', url: '/api/v1/merchant/orders/order-1/status', headers, payload: { status: 'paid' } })).statusCode).toBe(200);
-    expect(orderService.queryMerchantOrders).toHaveBeenCalled();
+    expect(orderService.queryMerchantOrders).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: 'acct-admin' }),
+      expect.objectContaining({ scope: 'history', fulfillmentMode: 'delivery' })
+    );
     expect(orderService.getMerchantOrderDetail).toHaveBeenCalled();
     expect(orderService.updateMerchantOrderStatus).toHaveBeenCalled();
   });

@@ -8,6 +8,7 @@ describe('merchant workspace service', () => {
 
     expect(cards.map((item) => [item.id, item.title, item.badge, item.primaryUrl])).toEqual([
       ['orders', '订单', '履约', '/pages/orders/index'],
+      ['order-history', '历史', '归档', '/pages/orders/index?scope=history'],
       ['staff-accounts', '员工', '管理员', '/pages/staff-accounts/index'],
       ['catalog', '商品', '双入口', '/pages/categories/index'],
       ['users', '用户', '审计', '/pages/users/index'],
@@ -20,6 +21,7 @@ describe('merchant workspace service', () => {
 
     expect(cards.map((item) => item.title)).toEqual([
       '订单',
+      '历史',
       '商品'
     ]);
   });

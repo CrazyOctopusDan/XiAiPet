@@ -1,4 +1,11 @@
 <view class="order-detail-page">
+  <view class="detail-topbar">
+    <view class="detail-back-button" bindtap="handleBackTap">
+      <text class="detail-back-icon">‹</text>
+      <text class="detail-back-text">订单列表</text>
+    </view>
+  </view>
+
   <view class="detail-hero">
     <text class="detail-title">订单详情</text>
     <text class="detail-subtitle">这里展示的是下单时冻结下来的订单快照。</text>

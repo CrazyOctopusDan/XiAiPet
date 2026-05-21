@@ -1,12 +1,46 @@
 .order-detail-page {
   min-height: 100vh;
-  padding: 56rpx 24rpx 64rpx;
+  padding: calc(32rpx + env(safe-area-inset-top)) 24rpx 64rpx;
   background: linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%);
   color: #40535C;
 }
 
+.detail-topbar {
+  display: flex;
+  align-items: center;
+  min-height: 72rpx;
+}
+
+.detail-back-button {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  min-height: 64rpx;
+  padding: 0 20rpx 0 12rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 10rpx 24rpx rgba(112, 82, 42, 0.08);
+}
+
+.detail-back-icon,
+.detail-back-text {
+  display: block;
+  color: #40535C;
+}
+
+.detail-back-icon {
+  font-size: 46rpx;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.detail-back-text {
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
 .detail-hero {
-  padding: 36rpx 12rpx 32rpx;
+  padding: 20rpx 12rpx 32rpx;
 }
 
 .detail-title {

@@ -220,8 +220,8 @@ describe('orders pages', () => {
     expect(ordersTemplate).toContain('class="orders-heading-row"');
     expect(ordersTemplate).toContain('class="empty-mark"');
     expect(ordersTemplate).toContain('class="order-meta-panel"');
-    expect(ordersStyles).toContain('background: #3A2A1E');
-    expect(ordersStyles).toContain('color: #FFE6A3');
+    expect(ordersStyles).toContain('linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 54%, #F6E396 100%)');
+    expect(ordersStyles).toContain('color: #40535C');
     expect(ordersStyles).toContain('padding: var(--orders-header-top, 96rpx) 24rpx calc(242rpx + env(safe-area-inset-bottom))');
     expect(ordersStyles).toContain('padding-right: var(--orders-header-right, 212rpx)');
     expect(ordersStyles).toContain('.catalog-button::after');
@@ -325,7 +325,18 @@ describe('orders pages', () => {
     expect(instance.data.detail).toMatchObject({
       id: 'order-001',
       statusLabel: '待处理',
-      remark: '到店前联系'
+      remark: '到店前联系',
+      itemsSubtotalLabel: '￥36.00',
+      deliveryFeeLabel: '￥10.00',
+      payableTotalLabel: '￥46.00'
     });
+
+    const detailTemplate = await (await import('node:fs/promises')).readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/order-detail/index.wxml',
+      'utf8'
+    );
+
+    expect(detailTemplate).toContain('bindtap="handleBackTap"');
+    expect(detailTemplate).toContain('订单列表');
   });
 });

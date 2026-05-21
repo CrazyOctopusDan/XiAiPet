@@ -12,6 +12,7 @@ import { getSelectedAddress } from './address';
 import { customerApiRequest, CustomerApiError, type CustomerApiRequester } from './api-client';
 import { getCartItems } from './cart';
 import { getCheckoutViewModel } from './checkout';
+import { getCachedCustomerRuntimeConfig } from './runtime-config';
 
 interface DeliveryFeePreview {
   distanceKm: number;
@@ -19,18 +20,42 @@ interface DeliveryFeePreview {
   ruleLabel: string;
 }
 
-const CITY_DELIVERY_FEES: Record<string, DeliveryFeePreview> = {
-  'address-city-home': {
-    distanceKm: 3.2,
-    fee: 10,
-    ruleLabel: '3km 内配送费 10 元'
-  },
-  'address-city-studio': {
-    distanceKm: 5.8,
-    fee: 16,
-    ruleLabel: '3-6km 配送费 16 元'
+const EARTH_RADIUS_KM = 6371;
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function isCoordinate(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function calculateDistanceKm(from: { latitude: number; longitude: number }, to: { latitude?: number; longitude?: number }) {
+  const toLatitude = to.latitude;
+  const toLongitude = to.longitude;
+
+  if (!isCoordinate(toLatitude) || !isCoordinate(toLongitude)) {
+    return null;
   }
-};
+
+  const latDelta = toRadians(toLatitude - from.latitude);
+  const lonDelta = toRadians(toLongitude - from.longitude);
+  const fromLat = toRadians(from.latitude);
+  const toLat = toRadians(toLatitude);
+  const haversine =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(fromLat) * Math.cos(toLat) * Math.sin(lonDelta / 2) ** 2;
+
+  return Number((EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))).toFixed(1));
+}
+
+function formatRuleLabel(distanceKm: number | null, explainer: string) {
+  if (distanceKm === null) {
+    return explainer;
+  }
+
+  return `${distanceKm.toFixed(1)} 公里，${explainer}`;
+}
 
 function buildAddressSnapshot(address: ReturnType<typeof getSelectedAddress>): OrderAddressSnapshot | undefined {
   if (!address) {
@@ -75,13 +100,26 @@ export function getDeliveryFeePreview(address: ReturnType<typeof getSelectedAddr
     };
   }
 
-  return (
-    CITY_DELIVERY_FEES[address.id] ?? {
-      distanceKm: 8.6,
-      fee: 22,
-      ruleLabel: '6km 以上配送费 22 元'
-    }
-  );
+  const runtimeConfig = getCachedCustomerRuntimeConfig();
+  const sortedTiers = [...runtimeConfig.deliveryRules.tiers].sort((left, right) => left.distanceKm - right.distanceKm);
+  const distanceKm = calculateDistanceKm(runtimeConfig.store, address);
+  const matchedTier = distanceKm === null
+    ? sortedTiers[0]
+    : sortedTiers.find((tier) => distanceKm <= tier.distanceKm) ?? sortedTiers[sortedTiers.length - 1];
+
+  if (!matchedTier) {
+    return {
+      distanceKm: distanceKm ?? 0,
+      fee: 0,
+      ruleLabel: '配送费待确认'
+    };
+  }
+
+  return {
+    distanceKm: distanceKm ?? matchedTier.distanceKm,
+    fee: matchedTier.deliveryFee,
+    ruleLabel: formatRuleLabel(distanceKm, matchedTier.explainer)
+  };
 }
 
 export function buildCreateOrderPayload(paymentMethod: PaymentMethod, idempotencyKey = createIdempotencyKey()): CreateOrderPayload {

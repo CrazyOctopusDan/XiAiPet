@@ -221,3 +221,8 @@ export function removeCartItem(itemId: string) {
   cartItems = cartItems.filter((item) => item.id !== itemId);
   return cartItems;
 }
+
+export function removeSelectedCartItems() {
+  cartItems = cartItems.filter((item) => !item.selected);
+  return cartItems;
+}

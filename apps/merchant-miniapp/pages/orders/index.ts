@@ -7,6 +7,7 @@ import type { MerchantOrderGroupSummaryViewModel, MerchantOrderGroupViewModel } 
 import { getMerchantOrderGroupSummary, getMerchantOrdersPageViewModel, queryMerchantOrders } from '../../src/services/orders';
 
 type FulfillmentFilter = 'all' | OrderFulfillmentMode;
+type OrderScope = 'active' | 'history';
 
 interface FilterOption {
   value: FulfillmentFilter;
@@ -18,6 +19,10 @@ interface OrdersPageData {
   isEmpty: boolean;
   draftKeyword: string;
   keyword: string;
+  scope: OrderScope;
+  pageTitle: string;
+  pageSubtitle: string;
+  summaryOrderLabel: string;
   activeMode: FulfillmentFilter;
   filters: FilterOption[];
   groups: MerchantOrderGroupViewModel[];
@@ -92,6 +97,10 @@ Page({
     isEmpty: true,
     draftKeyword: '',
     keyword: '',
+    scope: 'active',
+    pageTitle: '订单管理',
+    pageSubtitle: '按履约进度处理未完成订单',
+    summaryOrderLabel: '当前订单',
     activeMode: 'all',
     filters: FILTERS,
     groups: [],
@@ -102,6 +111,17 @@ Page({
     },
     emptyTitle: '还没有订单',
     emptyBody: '新订单会按履约进度分组显示在这里。'
+  },
+  onLoad(this: OrdersPageInstance, options?: { scope?: string }) {
+    const scope: OrderScope = options?.scope === 'history' ? 'history' : 'active';
+    this.setData({
+      scope,
+      pageTitle: scope === 'history' ? '历史订单' : '订单管理',
+      pageSubtitle: scope === 'history' ? '查看已完成订单记录' : '按履约进度处理未完成订单',
+      summaryOrderLabel: scope === 'history' ? '历史订单' : '当前订单',
+      emptyTitle: scope === 'history' ? '暂无历史订单' : '还没有订单',
+      emptyBody: scope === 'history' ? '已完成的订单会显示在这里。' : '新订单会按履约进度分组显示在这里。'
+    });
   },
   async onShow(this: OrdersPageInstance) {
     await this.refreshOrders();
@@ -114,17 +134,25 @@ Page({
     this.setData({ loading: true });
 
     try {
-      const groups = getMerchantOrdersPageViewModel(await queryMerchantOrders()).groups;
+      const groups = getMerchantOrdersPageViewModel(
+        await queryMerchantOrders({
+          scope: this.data.scope,
+          fulfillmentMode: this.data.activeMode
+        })
+      ).groups;
       const filteredGroups = filterGroups(groups, this.data.keyword, this.data.activeMode);
       const hasFilters = Boolean(this.data.keyword.trim()) || this.data.activeMode !== 'all';
+      const baseEmptyTitle = this.data.scope === 'history' ? '暂无历史订单' : '还没有订单';
+      const baseEmptyBody =
+        this.data.scope === 'history' ? '已完成的订单会显示在这里。' : '新订单会按履约进度分组显示在这里。';
 
       this.setData({
         loading: false,
         isEmpty: filteredGroups.length === 0,
         groups: filteredGroups,
         summary: getMerchantOrderGroupSummary(filteredGroups),
-        emptyTitle: hasFilters ? '没有匹配的订单' : '还没有订单',
-        emptyBody: hasFilters ? '换个关键词或履约方式再试一次。' : '新订单会按履约进度分组显示在这里。'
+        emptyTitle: hasFilters ? '没有匹配的订单' : baseEmptyTitle,
+        emptyBody: hasFilters ? '换个关键词或履约方式再试一次。' : baseEmptyBody
       });
     } catch {
       this.setData({ loading: false });
