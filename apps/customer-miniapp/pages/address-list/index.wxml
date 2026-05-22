@@ -1,6 +1,5 @@
 <view class="address-page">
   <page-nav />
-
   <view class="address-shell">
     <view class="type-switch-card">
       <view class="type-pill {{activeType === item.value ? 'active' : ''}}" wx:for="{{addressTypes}}" wx:key="value" data-type="{{item.value}}" bindtap="handleTypeTap">
@@ -8,7 +7,6 @@
         <text class="type-pill-hint">{{item.hint}}</text>
       </view>
     </view>
-
     <view class="address-list" wx:if="{{addresses.length}}">
       <view class="address-card" wx:for="{{addresses}}" wx:key="id">
         <view class="address-card-head">
@@ -23,19 +21,25 @@
         </view>
         <text class="address-detail">{{item.regionLabel}} {{item.detailAddress}}</text>
         <view class="address-actions">
-          <view class="address-action ghost" data-address-id="{{item.id}}" bindtap="handleEditAddress">编辑</view>
-          <view class="address-action primary" wx:if="{{isCheckoutSelection || selectedAddressId !== item.id}}" data-address-id="{{item.id}}" bindtap="handleSelectAddress">{{isCheckoutSelection ? '选这个地址' : '设为默认'}}</view>
+          <view class="address-action ghost" data-address-id="{{item.id}}" bindtap="handleEditAddress">
+            编辑
+          </view>
+          <view class="address-action primary" wx:if="{{isCheckoutSelection || selectedAddressId !== item.id}}" data-address-id="{{item.id}}" bindtap="handleSelectAddress">
+            {{isCheckoutSelection ? '选这个地址' : '设为默认'}}
+          </view>
         </view>
       </view>
     </view>
-
     <view class="empty-state" wx:else>
-      <text class="empty-title">这一类地址还是空的</text>
-      <text class="empty-copy">先补一条 {{activeType === 'city' ? '同城配送' : '快递到家'}} 地址，后续 checkout 会直接消费这里的结果。</text>
+      <text class="empty-title">地址还是空的</text>
+      <text class="empty-copy">
+        {{activeType === 'city' ? '同城配送' : '快递到家'}} 地址还没添加过呢，先去新增一条吧(*∩_∩*)。
+      </text>
     </view>
   </view>
-
   <view class="address-fixed-action">
-    <button class="address-add-button" bindtap="handleAddAddress">新增{{activeType === 'city' ? '同城' : '快递'}}地址</button>
+    <button class="address-add-button" bindtap="handleAddAddress">
+      新增{{activeType === 'city' ? '同城' : '快递'}}地址
+    </button>
   </view>
 </view>

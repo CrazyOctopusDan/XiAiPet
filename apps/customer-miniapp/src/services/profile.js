@@ -19,6 +19,7 @@ const initialProfile = {
     totalSpent: 1288,
     birthday: '',
     birthdayLocked: false,
+    contactPhone: '',
     contactPhoneMasked: ''
 };
 let profile = { ...initialProfile };
@@ -79,7 +80,7 @@ function getProfileSummary() {
         balance: profile.balance,
         totalSpent: profile.totalSpent,
         birthdayLabel: profile.birthday || '未设置生日',
-        contactPhoneLabel: profile.contactPhoneMasked || '未绑定手机号'
+        contactPhoneLabel: profile.contactPhone || profile.contactPhoneMasked || '未绑定手机号'
     };
 }
 function hasBoundPhone(input = profile) {

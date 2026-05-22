@@ -4,6 +4,14 @@ declare function Page(options: Record<string, unknown>): void;
 import { getHomeModules, resolveHomeModuleImageSources } from '../../src/services/catalog';
 import { getCachedCustomerRuntimeConfig, hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 
+const HERO_BANNER_SRC = '/assets/catalog/banner.jpg';
+
+interface HomeModuleViewModel {
+  id: string;
+  title: string;
+  imageSrc: string;
+}
+
 interface NavigationMetrics {
   statusBarHeight: number;
   navBarHeight: number;
@@ -17,6 +25,8 @@ interface HomePageInstance {
       ownerPhone: string;
     };
     purchaseNotice: string;
+    primaryModule: HomeModuleViewModel | null;
+    secondaryModules: HomeModuleViewModel[];
     contactModalVisible: boolean;
     noticeModalVisible: boolean;
   };
@@ -25,30 +35,21 @@ interface HomePageInstance {
   getTabBar?(): { setSelectedKey?: (key: string) => void } | undefined;
 }
 
-function getHomeModuleAction(moduleId: string) {
-  const actions: Record<string, { actionLabel: string; actionTone: string }> = {
-    preorder: { actionLabel: '点击浏览商品', actionTone: 'pink' },
-    notice: { actionLabel: '查看须知', actionTone: 'blue' },
-    vip: { actionLabel: '查看权益', actionTone: 'blue' }
+function buildHomeLayout(modules: HomeModuleViewModel[]) {
+  const primaryModule = modules.find((module) => module.id === 'preorder') ?? modules[0] ?? null;
+
+  return {
+    primaryModule,
+    secondaryModules: modules.filter((module) => module.id !== primaryModule?.id)
   };
-
-  return actions[moduleId] ?? { actionLabel: '', actionTone: '' };
 }
 
-function decorateHomeModules<T extends { id: string }>(modules: T[]) {
-  return modules.map((module) => ({
-    ...module,
-    ...getHomeModuleAction(module.id)
+function buildHomeModulesFallback(): HomeModuleViewModel[] {
+  return getHomeModules().map((module) => ({
+    id: module.id,
+    title: module.title,
+    imageSrc: module.imageFileId
   }));
-}
-
-function buildHomeModulesFallback() {
-  return decorateHomeModules(
-    getHomeModules().map((module) => ({
-      ...module,
-      imageSrc: module.imageFileId
-    }))
-  );
 }
 
 function getNavigationMetrics(): NavigationMetrics {
@@ -75,8 +76,8 @@ function getNavigationMetrics(): NavigationMetrics {
 
 Page({
   data: {
-    modules: buildHomeModulesFallback(),
-    heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId,
+    ...buildHomeLayout(buildHomeModulesFallback()),
+    heroBannerSrc: HERO_BANNER_SRC,
     storeContact: {
       wechatId: getCachedCustomerRuntimeConfig().store.wechatId,
       ownerPhone: getCachedCustomerRuntimeConfig().store.ownerPhone
@@ -95,9 +96,11 @@ Page({
     try {
       await hydrateCustomerRuntimeConfig();
     } finally {
+      const homeLayout = buildHomeLayout(await modulePromise);
+
       this.setData({
-        modules: decorateHomeModules(await modulePromise),
-        heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId,
+        ...homeLayout,
+        heroBannerSrc: HERO_BANNER_SRC,
         storeContact: {
           wechatId: getCachedCustomerRuntimeConfig().store.wechatId,
           ownerPhone: getCachedCustomerRuntimeConfig().store.ownerPhone

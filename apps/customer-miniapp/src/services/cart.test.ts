@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { getProductById } from './catalog';
+import type { CatalogProduct } from '../types/catalog';
 import {
   addCartItem,
   clearCart,
+  getCartItemGroups,
   getCartCount,
   getCartItems,
   getCartProductQuantity,
   getCartProductTotalQuantity,
   getCartSummary,
+  getSelectedCartFulfillmentModes,
   removeCartItem,
   toggleAllCartItems,
   updateCartItemSpec,
@@ -16,6 +19,26 @@ import {
   updateCartProductQuantity,
   updateCartItemSelection
 } from './cart';
+
+function createFulfillmentProduct(id: string, deliveryModes: CatalogProduct['deliveryModes']): CatalogProduct {
+  return {
+    id,
+    name: id,
+    summary: '测试商品',
+    description: '测试商品',
+    price: 10,
+    stock: 10,
+    soldOut: false,
+    cartActionLabel: '直接加购',
+    memberLevelLabel: '普通会员',
+    categoryId: 'test',
+    deliveryModes,
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
+    specs: []
+  };
+}
 
 describe('cart service', () => {
   beforeEach(() => {
@@ -69,6 +92,28 @@ describe('cart service', () => {
 
     removeCartItem(getCartItems()[0]!.id);
     expect(getCartItems()).toHaveLength(1);
+  });
+
+  it('tracks selected cart fulfillment compatibility and groups cart rows by supported modes', () => {
+    addCartItem(createFulfillmentProduct('delivery-only', ['delivery']), '', 1);
+    addCartItem(createFulfillmentProduct('pickup-only', ['pickup']), '', 1);
+
+    expect(getCartItemGroups().map((group) => group.label)).toEqual(['仅配送', '仅自取']);
+    expect(getSelectedCartFulfillmentModes()).toEqual([]);
+    expect(getCartSummary()).toMatchObject({
+      selectedCount: 2,
+      canCheckoutSelectedItems: false,
+      selectedFulfillmentModes: []
+    });
+
+    updateCartItemSelection(getCartItems()[1]!.id, false);
+
+    expect(getSelectedCartFulfillmentModes()).toEqual(['delivery']);
+    expect(getCartSummary()).toMatchObject({
+      selectedCount: 1,
+      canCheckoutSelectedItems: true,
+      selectedFulfillmentModes: ['delivery']
+    });
   });
 
   it('reads quantity by product and spec key for inline steppers', () => {

@@ -94,8 +94,10 @@ function getDeliveryFeePreview(address) {
 }
 function buildCreateOrderPayload(paymentMethod, idempotencyKey = createIdempotencyKey()) {
     var _a;
+    (0, checkout_1.ensureContactPhoneFromProfile)();
     const checkout = (0, checkout_1.getCheckoutViewModel)();
     const selectedItems = (0, cart_1.getCartItems)().filter((item) => item.selected);
+    const selectedFulfillmentModes = (0, cart_1.getSelectedCartFulfillmentModes)();
     const pricing = getCheckoutPricingPreview();
     const pets = checkout.selectedPets.map((pet) => ({
         id: pet.id,
@@ -104,12 +106,16 @@ function buildCreateOrderPayload(paymentMethod, idempotencyKey = createIdempoten
         birthday: pet.birthday,
         allergyNotes: pet.allergyNotes
     }));
+    if (selectedItems.length > 0 && !selectedFulfillmentModes.includes(checkout.mode)) {
+        throw new Error('INCOMPATIBLE_FULFILLMENT');
+    }
     return {
         idempotencyKey,
         paymentMethod,
         fulfillment: {
             mode: checkout.mode,
             address: buildAddressSnapshot(checkout.addressType ? (0, address_1.getSelectedAddress)(checkout.addressType) : null),
+            contactPhone: checkout.contactPhone || undefined,
             pickupPhone: checkout.mode === 'pickup' ? checkout.pickupPhone : undefined,
             reservation: (_a = checkout.reservationSelection) !== null && _a !== void 0 ? _a : undefined,
             store: {

@@ -83,6 +83,11 @@ function getPetNamesLabel(order) {
     }
     return order.snapshot.pets.map((item) => item.name).join('、');
 }
+function getPetRows(order) {
+    return order.snapshot.pets.map((item) => ({
+        name: item.name
+    }));
+}
 function toOrderCard(order) {
     return {
         id: order.id,
@@ -124,6 +129,7 @@ function getOrderDetailViewModel(order) {
     if (!order) {
         return null;
     }
+    const pets = getPetRows(order);
     return {
         id: order.id,
         statusLabel: (0, order_runtime_1.getOrderStatusLabel)(order),
@@ -133,6 +139,8 @@ function getOrderDetailViewModel(order) {
         addressLabel: getAddressLabel(order),
         contactLabel: getContactLabel(order),
         petNamesLabel: getPetNamesLabel(order),
+        hasPets: pets.length > 0,
+        pets,
         paymentMethodLabel: getPaymentMethodLabel(order.paymentMethod),
         remark: order.snapshot.remark || '无备注',
         itemsSubtotalLabel: formatMoney(order.pricing.itemsSubtotal),

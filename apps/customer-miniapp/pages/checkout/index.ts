@@ -19,6 +19,7 @@ import {
 } from '../../src/services/checkout';
 import { getCartItems, getCartSummary, removeSelectedCartItems, type CartItem } from '../../src/services/cart';
 import { getPets, hydratePets, type PetProfile } from '../../src/services/pets';
+import { hydrateProfile } from '../../src/services/profile';
 import { getCheckoutPricingPreview, getDeliveryFeePreview, submitOrder } from '../../src/services/order-submit';
 import { hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 import { setPendingOrdersHighlight } from '../../src/services/tab-navigation';
@@ -177,16 +178,12 @@ Page({
     void this.refreshRuntimeConfig();
   },
   async refreshCustomerContext(this: CheckoutPageInstance) {
-    try {
-      await Promise.all([
-        hydrateAddresses(),
-        hydratePets()
-      ]);
-    } catch {
-      // Checkout can still render with the last local snapshot.
-    } finally {
-      this.refreshCheckout();
-    }
+    await Promise.allSettled([
+      hydrateAddresses(),
+      hydratePets(),
+      hydrateProfile()
+    ]);
+    this.refreshCheckout();
   },
   async refreshRuntimeConfig(this: CheckoutPageInstance) {
     try {
@@ -219,7 +216,7 @@ Page({
       selectedReservationLabel: view.reservationSelection
         ? `${view.reservationSelection.dateLabel} ${view.reservationSelection.timeLabel}`
         : '',
-      pickupPhone: view.pickupPhone,
+      pickupPhone: view.contactPhone,
       pets: getPets().map((item) => ({
         ...item,
         selected: selectedPetIdSet.has(item.id)

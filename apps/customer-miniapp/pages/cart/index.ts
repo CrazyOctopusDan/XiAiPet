@@ -5,6 +5,7 @@ import { getProductById } from '../../src/services/catalog';
 import {
   clearCart,
   getCartCount,
+  getCartItemGroups,
   getCartItemById,
   getCartItems,
   getCartSummary,
@@ -13,15 +14,19 @@ import {
   updateCartItemQuantity,
   updateCartItemSelection,
   updateCartItemSpec,
-  type CartItem
+  type CartItem,
+  type CartItemGroup
 } from '../../src/services/cart';
 
 interface CartPageData {
   items: CartItem[];
+  itemGroups: CartItemGroup[];
   cartCount: number;
   selectedTotalPrice: number;
   selectedCount: number;
   isAllSelected: boolean;
+  canCheckoutSelectedItems: boolean;
+  fulfillmentWarning: string;
   swipedItemId: string;
   showSpecModal: boolean;
   editingItem: CartItem | null;
@@ -39,10 +44,13 @@ interface CartPageInstance {
 Page({
   data: {
     items: [],
+    itemGroups: [],
     cartCount: 0,
     selectedTotalPrice: 0,
     selectedCount: 0,
     isAllSelected: false,
+    canCheckoutSelectedItems: false,
+    fulfillmentWarning: '',
     swipedItemId: '',
     showSpecModal: false,
     editingItem: null,
@@ -64,12 +72,19 @@ Page({
   refreshCart(this: CartPageInstance, previousItems?: CartItem[]) {
     const summary = getCartSummary();
     const nextItems = [...getCartItems()];
+    const displayItems = previousItems ? this.reconcileItems(nextItems, previousItems) : nextItems;
     this.setData({
-      items: previousItems ? this.reconcileItems(nextItems, previousItems) : nextItems,
+      items: displayItems,
+      itemGroups: getCartItemGroups(displayItems),
       cartCount: getCartCount(),
       selectedTotalPrice: summary.selectedTotalPrice,
       selectedCount: summary.selectedCount,
-      isAllSelected: summary.isAllSelected
+      isAllSelected: summary.isAllSelected,
+      canCheckoutSelectedItems: summary.canCheckoutSelectedItems,
+      fulfillmentWarning:
+        summary.selectedCount > 0 && !summary.canCheckoutSelectedItems
+          ? '请选择支持同一种履约方式的商品一起结算'
+          : ''
     });
   },
   handleToggleAll(this: CartPageInstance) {
@@ -270,6 +285,11 @@ Page({
   handleCheckout(this: CartPageInstance) {
     if (!this.data.selectedCount) {
       wx.showToast({ title: '请选择商品', icon: 'none' });
+      return;
+    }
+
+    if (!this.data.canCheckoutSelectedItems) {
+      wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
       return;
     }
 

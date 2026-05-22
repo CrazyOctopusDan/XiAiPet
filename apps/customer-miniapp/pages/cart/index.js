@@ -5,10 +5,13 @@ const cart_1 = require("../../src/services/cart");
 Page({
     data: {
         items: [],
+        itemGroups: [],
         cartCount: 0,
         selectedTotalPrice: 0,
         selectedCount: 0,
         isAllSelected: false,
+        canCheckoutSelectedItems: false,
+        fulfillmentWarning: '',
         swipedItemId: '',
         showSpecModal: false,
         editingItem: null,
@@ -29,12 +32,18 @@ Page({
     refreshCart(previousItems) {
         const summary = (0, cart_1.getCartSummary)();
         const nextItems = [...(0, cart_1.getCartItems)()];
+        const displayItems = previousItems ? this.reconcileItems(nextItems, previousItems) : nextItems;
         this.setData({
-            items: previousItems ? this.reconcileItems(nextItems, previousItems) : nextItems,
+            items: displayItems,
+            itemGroups: (0, cart_1.getCartItemGroups)(displayItems),
             cartCount: (0, cart_1.getCartCount)(),
             selectedTotalPrice: summary.selectedTotalPrice,
             selectedCount: summary.selectedCount,
-            isAllSelected: summary.isAllSelected
+            isAllSelected: summary.isAllSelected,
+            canCheckoutSelectedItems: summary.canCheckoutSelectedItems,
+            fulfillmentWarning: summary.selectedCount > 0 && !summary.canCheckoutSelectedItems
+                ? '请选择支持同一种履约方式的商品一起结算'
+                : ''
         });
     },
     handleToggleAll() {
@@ -200,6 +209,10 @@ Page({
     handleCheckout() {
         if (!this.data.selectedCount) {
             wx.showToast({ title: '请选择商品', icon: 'none' });
+            return;
+        }
+        if (!this.data.canCheckoutSelectedItems) {
+            wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
             return;
         }
         wx.navigateTo({ url: '/pages/checkout/index?source=cart' });

@@ -7,6 +7,7 @@ import {
 import { getPets, type PetProfile } from './pets';
 import { getProfile } from './profile';
 import { getCachedCustomerRuntimeConfig } from './runtime-config';
+import { getSelectedCartFulfillmentModes } from './cart';
 
 export type FulfillmentMode = 'delivery' | 'pickup' | 'express';
 
@@ -43,6 +44,7 @@ export interface StoreLocationSummary {
 
 export interface CheckoutDraft {
   mode: FulfillmentMode;
+  contactPhone: string;
   pickupPhone: string;
   selectedPetIds: string[];
   reservationSelection: ReservationSelection | null;
@@ -55,6 +57,7 @@ export interface CheckoutViewModel {
   addressType: AddressType | null;
   selectedAddress: CustomerAddress | null;
   selectedPets: PetProfile[];
+  contactPhone: string;
   pickupPhone: string;
   reservationSelection: ReservationSelection | null;
   reservationOptions: ReservationDayOption[];
@@ -77,7 +80,7 @@ const FULFILLMENT_MODES: FulfillmentModeOption[] = [
   {
     value: 'pickup',
     label: '自取',
-    hint: '到店自提 + 预留电话'
+    hint: '到店自提 + 联系电话'
   },
   {
     value: 'express',
@@ -88,6 +91,7 @@ const FULFILLMENT_MODES: FulfillmentModeOption[] = [
 
 const INITIAL_DRAFT: CheckoutDraft = {
   mode: 'delivery',
+  contactPhone: '',
   pickupPhone: '',
   selectedPetIds: [],
   reservationSelection: null,
@@ -216,6 +220,25 @@ function getSelectedPets() {
   return getPets().filter((pet) => selectedIds.has(pet.id));
 }
 
+function isMaskedContactPhone(value: string) {
+  return value.includes('*');
+}
+
+function getPreferredContactPhone(mode: FulfillmentMode) {
+  const currentContactPhone = checkoutDraft.contactPhone.trim();
+  const addressType = resolveAddressType(mode);
+  const addressPhone = addressType ? getSelectedAddress(addressType)?.phoneNumber.trim() ?? '' : '';
+  const profile = getProfile();
+  const profileContactPhone = profile.contactPhone.trim();
+  const profileMaskedPhone = profile.contactPhoneMasked.trim();
+
+  if (currentContactPhone && !isMaskedContactPhone(currentContactPhone)) {
+    return currentContactPhone;
+  }
+
+  return addressPhone || profileContactPhone || currentContactPhone || profileMaskedPhone;
+}
+
 function getActiveCustomNotice() {
   const runtimeConfig = getCachedCustomerRuntimeConfig();
 
@@ -232,6 +255,10 @@ function getSubmitDisabledReasons(mode: FulfillmentMode) {
   const selectedAddress = addressType ? getSelectedAddress(addressType) : null;
   const customNotice = getActiveCustomNotice();
 
+  if (!getSelectedCartFulfillmentModes().length) {
+    reasons.push('incompatible_fulfillment');
+  }
+
   if (addressType && !selectedAddress) {
     reasons.push('missing_address');
   }
@@ -240,7 +267,7 @@ function getSubmitDisabledReasons(mode: FulfillmentMode) {
     reasons.push('missing_reservation');
   }
 
-  if (mode === 'pickup' && !checkoutDraft.pickupPhone.trim()) {
+  if (mode === 'pickup' && !checkoutDraft.contactPhone.trim()) {
     reasons.push('missing_pickup_phone');
   }
 
@@ -257,7 +284,21 @@ export function resetCheckoutDraft() {
 }
 
 export function getFulfillmentModes() {
-  return FULFILLMENT_MODES.map((item) => ({ ...item }));
+  const selectedModes = new Set(getSelectedCartFulfillmentModes());
+  return FULFILLMENT_MODES
+    .filter((item) => selectedModes.has(item.value))
+    .map((item) => ({ ...item }));
+}
+
+function resolveActiveFulfillmentMode() {
+  const modes = getFulfillmentModes();
+  const currentMode = modes.find((item) => item.value === checkoutDraft.mode)?.value;
+
+  if (currentMode) {
+    return currentMode;
+  }
+
+  return modes[0]?.value ?? 'delivery';
 }
 
 export function getCheckoutDraft() {
@@ -265,6 +306,12 @@ export function getCheckoutDraft() {
 }
 
 export function setFulfillmentMode(mode: FulfillmentMode) {
+  const allowedModes = new Set(getFulfillmentModes().map((item) => item.value));
+
+  if (!allowedModes.has(mode)) {
+    return;
+  }
+
   checkoutDraft = {
     ...checkoutDraft,
     mode
@@ -277,24 +324,29 @@ export function setFulfillmentMode(mode: FulfillmentMode) {
 }
 
 export function hydratePickupPhoneFromProfile() {
-  const profile = getProfile();
+  return ensureContactPhoneFromProfile();
+}
 
-  if (!profile.contactPhoneMasked) {
-    return '';
+export function ensureContactPhoneFromProfile(mode: FulfillmentMode = checkoutDraft.mode) {
+  const contactPhone = getPreferredContactPhone(mode);
+
+  if (contactPhone && contactPhone !== checkoutDraft.contactPhone) {
+    checkoutDraft = {
+      ...checkoutDraft,
+      contactPhone,
+      pickupPhone: contactPhone
+    };
   }
 
-  checkoutDraft = {
-    ...checkoutDraft,
-    pickupPhone: profile.contactPhoneMasked
-  };
-
-  return checkoutDraft.pickupPhone;
+  return checkoutDraft.contactPhone;
 }
 
 export function setPickupPhone(value: string) {
+  const contactPhone = value.trim();
   checkoutDraft = {
     ...checkoutDraft,
-    pickupPhone: value.trim()
+    contactPhone,
+    pickupPhone: contactPhone
   };
 }
 
@@ -332,24 +384,41 @@ export function setCustomNoticeAcknowledged(value: boolean) {
 export function setCheckoutRemark(value: string) {
   checkoutDraft = {
     ...checkoutDraft,
-    remark: value.trim()
+    remark: value.trim().slice(0, 100)
   };
 }
 
 export function getCheckoutViewModel(now = new Date()): CheckoutViewModel {
+  const activeMode = resolveActiveFulfillmentMode();
+
+  if (checkoutDraft.mode !== activeMode) {
+    checkoutDraft = {
+      ...checkoutDraft,
+      mode: activeMode
+    };
+
+    const addressType = resolveAddressType(activeMode);
+    if (addressType) {
+      setCheckoutAddressType(addressType);
+    }
+  }
+
+  ensureContactPhoneFromProfile(activeMode);
+
   const runtimeConfig = getCachedCustomerRuntimeConfig();
-  const addressType = resolveAddressType(checkoutDraft.mode);
+  const addressType = resolveAddressType(activeMode);
   const selectedAddress = addressType ? getSelectedAddress(addressType) : null;
-  const submitDisabledReasons = getSubmitDisabledReasons(checkoutDraft.mode);
+  const submitDisabledReasons = getSubmitDisabledReasons(activeMode);
 
   return {
-    mode: checkoutDraft.mode,
+    mode: activeMode,
     addressType,
     selectedAddress,
     selectedPets: getSelectedPets(),
+    contactPhone: checkoutDraft.contactPhone,
     pickupPhone: checkoutDraft.pickupPhone,
     reservationSelection: cloneReservationSelection(checkoutDraft.reservationSelection),
-    reservationOptions: checkoutDraft.mode === 'express' ? [] : buildReservationOptions(now),
+    reservationOptions: activeMode === 'express' ? [] : buildReservationOptions(now),
     customNotice: getActiveCustomNotice(),
     hasReadCustomNotice: checkoutDraft.hasReadCustomNotice,
     canSubmit: submitDisabledReasons.length === 0,

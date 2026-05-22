@@ -4,7 +4,7 @@
   <view class="checkout-shell">
     <view class="checkout-hero">
       <text class="checkout-title">确认订单</text>
-      <text class="checkout-subtitle">先把履约方式、预约时间、宠物、备注和下单前提示统一确认好，再进入支付链路。</text>
+      <text class="checkout-subtitle">下单前请先查看购前须知；如果有额外需求，可以点击首页售前咨询联系店主。</text>
     </view>
 
     <view class="checkout-card">
@@ -56,14 +56,13 @@
       </view>
     </view>
 
-    <view class="checkout-card" wx:if="{{activeFulfillmentMode === 'pickup'}}">
+    <view class="checkout-card" wx:if="{{activeFulfillmentMode !== 'express'}}">
       <view class="checkout-card-head">
-        <text class="checkout-card-title">预留电话</text>
+        <text class="checkout-card-title">联系电话</text>
         <text class="checkout-card-summary" bindtap="handleAutoFillPhone">自动填写</text>
       </view>
 
-      <input class="pickup-phone-input" type="number" value="{{pickupPhone}}" bindinput="handlePhoneInput" placeholder="请输入预留电话" />
-      <text class="pickup-phone-hint">优先复用已绑定联系方式；如果还没绑定，会跳转到手机号补录页。</text>
+      <input class="pickup-phone-input" type="text" value="{{pickupPhone}}" bindinput="handlePhoneInput" placeholder="请输入联系电话" />
     </view>
 
     <view class="checkout-card" wx:if="{{activeFulfillmentMode !== 'express'}}">

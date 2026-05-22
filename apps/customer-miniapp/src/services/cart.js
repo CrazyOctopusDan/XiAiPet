@@ -8,6 +8,8 @@ exports.getCartItems = getCartItems;
 exports.getCartItemById = getCartItemById;
 exports.getCartCount = getCartCount;
 exports.getCartSummary = getCartSummary;
+exports.getSelectedCartFulfillmentModes = getSelectedCartFulfillmentModes;
+exports.getCartItemGroups = getCartItemGroups;
 exports.addCartItem = addCartItem;
 exports.updateCartItemQuantity = updateCartItemQuantity;
 exports.updateCartItemSelection = updateCartItemSelection;
@@ -16,6 +18,12 @@ exports.updateCartItemSpec = updateCartItemSpec;
 exports.removeCartItem = removeCartItem;
 exports.removeSelectedCartItems = removeSelectedCartItems;
 let cartItems = [];
+const FULFILLMENT_MODE_ORDER = ['delivery', 'pickup', 'express'];
+const FULFILLMENT_MODE_LABELS = {
+    delivery: '配送',
+    pickup: '自取',
+    express: '快递'
+};
 function resolveSpec(product, specId) {
     var _a;
     if (!product.specs.length) {
@@ -38,6 +46,21 @@ function buildCartItemId(productId, specId) {
 }
 function canMergeQuantity(targetQuantity, incomingQuantity, stock) {
     return targetQuantity + incomingQuantity <= stock;
+}
+function normalizeDeliveryModes(modes = []) {
+    const allowedModes = new Set(modes);
+    const normalized = FULFILLMENT_MODE_ORDER.filter((mode) => allowedModes.has(mode));
+    return normalized.length ? normalized : [...FULFILLMENT_MODE_ORDER];
+}
+function getFulfillmentLabel(modes) {
+    const normalized = normalizeDeliveryModes(modes);
+    if (normalized.length === 1) {
+        return `仅${FULFILLMENT_MODE_LABELS[normalized[0]]}`;
+    }
+    return normalized.map((mode) => FULFILLMENT_MODE_LABELS[mode]).join('/');
+}
+function getSelectedCartItems() {
+    return cartItems.filter((item) => item.selected);
 }
 function getCartProductQuantity(productId, specId = '') {
     var _a, _b;
@@ -65,12 +88,40 @@ function getCartCount() {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
 }
 function getCartSummary() {
-    const selectedItems = cartItems.filter((item) => item.selected);
+    const selectedItems = getSelectedCartItems();
+    const selectedFulfillmentModes = getSelectedCartFulfillmentModes();
     return {
         selectedCount: selectedItems.reduce((total, item) => total + item.quantity, 0),
         selectedTotalPrice: Number(selectedItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)),
-        isAllSelected: cartItems.length > 0 && cartItems.every((item) => item.selected)
+        isAllSelected: cartItems.length > 0 && cartItems.every((item) => item.selected),
+        selectedFulfillmentModes,
+        canCheckoutSelectedItems: selectedItems.length > 0 && selectedFulfillmentModes.length > 0
     };
+}
+function getSelectedCartFulfillmentModes() {
+    const selectedItems = getSelectedCartItems();
+    if (!selectedItems.length) {
+        return [...FULFILLMENT_MODE_ORDER];
+    }
+    return FULFILLMENT_MODE_ORDER.filter((mode) => selectedItems.every((item) => normalizeDeliveryModes(item.deliveryModes).includes(mode)));
+}
+function getCartItemGroups(items = cartItems) {
+    const groups = new Map();
+    items.forEach((item) => {
+        const modes = normalizeDeliveryModes(item.deliveryModes);
+        const key = modes.join('|');
+        const existingGroup = groups.get(key);
+        if (existingGroup) {
+            existingGroup.items.push(item);
+            return;
+        }
+        groups.set(key, {
+            key,
+            label: getFulfillmentLabel(modes),
+            items: [item]
+        });
+    });
+    return [...groups.values()];
 }
 function addCartItem(product, specId, quantity = 1) {
     var _a, _b;
@@ -85,6 +136,7 @@ function addCartItem(product, specId, quantity = 1) {
         existingItem.stock = product.stock;
         existingItem.specLabel = resolvedSpec.specLabel;
         existingItem.specId = resolvedSpec.specId;
+        existingItem.deliveryModes = normalizeDeliveryModes(product.deliveryModes);
         return { item: existingItem, capped };
     }
     const item = {
@@ -99,7 +151,8 @@ function addCartItem(product, specId, quantity = 1) {
         selected: true,
         specId: resolvedSpec.specId,
         specLabel: resolvedSpec.specLabel,
-        specs: product.specs
+        specs: product.specs,
+        deliveryModes: normalizeDeliveryModes(product.deliveryModes)
     };
     cartItems = [...cartItems, item];
     return { item, capped };
@@ -144,6 +197,7 @@ function updateCartItemSpec(itemId, product, specId) {
     const nextItemId = buildCartItemId(product.id, resolvedSpec.specId);
     if (item.id === nextItemId) {
         item.stock = product.stock;
+        item.deliveryModes = normalizeDeliveryModes(product.deliveryModes);
         return { item, replacedItemId: null, mergedFromItemId: null, capped: false };
     }
     const targetItem = (_b = cartItems.find((entry) => entry.id === nextItemId)) !== null && _b !== void 0 ? _b : null;

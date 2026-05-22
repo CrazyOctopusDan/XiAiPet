@@ -326,9 +326,7 @@ describe('cart checkout flow', () => {
       'utf8'
     );
 
-    expect(cartTemplate).toMatch(
-      /<button class="checkout-button \{\{selectedCount \? '' : 'disabled'\}\}" disabled="\{\{!selectedCount\}\}" bindtap="handleCheckout">结算<\/button>/
-    );
+    expect(cartTemplate).toContain('disabled="{{!selectedCount || !canCheckoutSelectedItems}}"');
 
     instance.handleCheckout();
 
@@ -337,6 +335,45 @@ describe('cart checkout flow', () => {
       icon: 'none'
     });
     expect(wx.navigateTo).not.toHaveBeenCalled();
+  });
+
+  it('groups incompatible fulfillment items and blocks mixed checkout selections', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart, getCartItems, updateCartItemSelection } = await import('../src/services/cart');
+
+    clearCart();
+
+    const baseProduct = getProductById('sea-sponge');
+    const specProduct = getProductById('ocean-party');
+
+    if (!baseProduct || !specProduct) {
+      throw new Error('missing cart fulfillment fixtures');
+    }
+
+    addCartItem({ ...baseProduct, id: 'delivery-only', deliveryModes: ['delivery'] }, '', 1);
+    addCartItem({ ...specProduct, id: 'pickup-only', deliveryModes: ['pickup'] }, specProduct.specs[0]?.id ?? '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    expect(instance.data.itemGroups.map((group: { label: string }) => group.label)).toEqual(['仅配送', '仅自取']);
+    expect(instance.data.canCheckoutSelectedItems).toBe(false);
+    expect(instance.data.fulfillmentWarning).toBe('请选择支持同一种履约方式的商品一起结算');
+
+    instance.handleCheckout();
+
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '请选择同一履约方式的商品',
+      icon: 'none'
+    });
+    expect(wx.navigateTo).not.toHaveBeenCalled();
+
+    updateCartItemSelection(getCartItems()[1]!.id, false);
+    instance.refreshCart();
+
+    expect(instance.data.canCheckoutSelectedItems).toBe(true);
+    expect(instance.data.fulfillmentWarning).toBe('');
   });
 
   it('keeps the edited cart row in place when a spec update merges into another row', async () => {
@@ -711,8 +748,10 @@ describe('cart checkout flow', () => {
 
   it('exposes delivery, pickup, and express fulfillment modes on the checkout page', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
+    const { updateProfile } = await import('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/src/services/profile');
     const instance = createPageInstance(page);
 
+    updateProfile({ contactPhoneMasked: '138****1234' });
     instance.onShow();
 
     expect(instance.data.fulfillmentModes.map((item: { value: string }) => item.value)).toEqual([
@@ -720,6 +759,31 @@ describe('cart checkout flow', () => {
       'pickup',
       'express'
     ]);
+    expect(instance.data.activeFulfillmentMode).toBe('delivery');
+    expect(instance.data.pickupPhone).toBe('13800001234');
+  });
+
+  it('limits checkout fulfillment modes to the selected cart item intersection', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { setFulfillmentMode } = await import('../src/services/checkout');
+
+    clearCart();
+
+    const product = getProductById('sea-sponge');
+
+    if (!product) {
+      throw new Error('missing checkout fulfillment fixture');
+    }
+
+    setFulfillmentMode('pickup');
+    addCartItem({ ...product, id: 'delivery-only', deliveryModes: ['delivery'] }, '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    expect(instance.data.fulfillmentModes.map((item: { value: string }) => item.value)).toEqual(['delivery']);
     expect(instance.data.activeFulfillmentMode).toBe('delivery');
   });
 
@@ -763,6 +827,11 @@ describe('cart checkout flow', () => {
     expect(checkoutTemplate).toContain('bindtap="handleOpenReservationModal"');
     expect(checkoutTemplate).toContain('bindtap="handleConfirmReservation"');
     expect(checkoutTemplate).toContain('notice-check-mark');
+    expect(checkoutTemplate).toContain('下单前请先查看购前须知');
+    expect(checkoutTemplate).not.toContain('先把履约方式、预约时间、宠物、备注和下单前提示统一确认好');
+    expect(checkoutTemplate).not.toContain('优先复用已绑定联系方式');
+    expect(checkoutTemplate).toContain('activeFulfillmentMode !== \'express\'');
+    expect(checkoutTemplate).toContain('type="text" value="{{pickupPhone}}"');
     expect(checkoutStyles).toContain('.pet-choice.active');
     expect(checkoutStyles).toContain('border-color: #B9DDE8');
     expect(checkoutStyles).toContain('padding: 22rpx 20rpx calc(30rpx + env(safe-area-inset-bottom))');
@@ -837,6 +906,34 @@ describe('cart checkout flow', () => {
     expect(remarkStyles).toContain('padding-bottom: calc(190rpx + env(safe-area-inset-bottom))');
     expect(remarkStyles).toContain('padding: 22rpx 20rpx calc(30rpx + env(safe-area-inset-bottom))');
     expect(remarkStyles).toContain('align-items: center');
+  });
+
+  it('refreshes checkout summary immediately after confirming an order remark', async () => {
+    const { page: remarkPage, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout-remark/index.ts');
+    const { getCheckoutDraft } = await import('../src/services/checkout');
+    const previousPage = {
+      refreshCheckout: vi.fn()
+    };
+    vi.stubGlobal('getCurrentPages', () => [
+      previousPage,
+      {}
+    ]);
+    const remarkInstance = createPageInstance(remarkPage);
+
+    remarkInstance.onShow();
+    remarkInstance.handleInput({
+      detail: {
+        value: '少糖，送达前电话联系'
+      }
+    });
+
+    expect(getCheckoutDraft().remark).toBe('少糖，送达前电话联系');
+    expect(previousPage.refreshCheckout).toHaveBeenCalled();
+
+    remarkInstance.handleConfirm();
+
+    expect(previousPage.refreshCheckout).toHaveBeenCalled();
+    expect(wx.navigateBack).toHaveBeenCalled();
   });
 
   it('marks pet cards as selected so the checkout template can update the card color', async () => {

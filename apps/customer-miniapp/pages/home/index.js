@@ -2,26 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const catalog_1 = require("../../src/services/catalog");
 const runtime_config_1 = require("../../src/services/runtime-config");
-function getHomeModuleAction(moduleId) {
-    var _a;
-    const actions = {
-        preorder: { actionLabel: '点击浏览商品', actionTone: 'pink' },
-        notice: { actionLabel: '查看须知', actionTone: 'blue' },
-        vip: { actionLabel: '查看权益', actionTone: 'blue' }
+const HERO_BANNER_SRC = '/assets/catalog/banner.jpg';
+function buildHomeLayout(modules) {
+    var _a, _b;
+    const primaryModule = (_b = (_a = modules.find((module) => module.id === 'preorder')) !== null && _a !== void 0 ? _a : modules[0]) !== null && _b !== void 0 ? _b : null;
+    return {
+        primaryModule,
+        secondaryModules: modules.filter((module) => module.id !== (primaryModule === null || primaryModule === void 0 ? void 0 : primaryModule.id))
     };
-    return (_a = actions[moduleId]) !== null && _a !== void 0 ? _a : { actionLabel: '', actionTone: '' };
-}
-function decorateHomeModules(modules) {
-    return modules.map((module) => ({
-        ...module,
-        ...getHomeModuleAction(module.id)
-    }));
 }
 function buildHomeModulesFallback() {
-    return decorateHomeModules((0, catalog_1.getHomeModules)().map((module) => ({
-        ...module,
+    return (0, catalog_1.getHomeModules)().map((module) => ({
+        id: module.id,
+        title: module.title,
         imageSrc: module.imageFileId
-    })));
+    }));
 }
 function getNavigationMetrics() {
     var _a, _b, _c, _d, _e, _f;
@@ -45,8 +40,8 @@ function getNavigationMetrics() {
 }
 Page({
     data: {
-        modules: buildHomeModulesFallback(),
-        heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId,
+        ...buildHomeLayout(buildHomeModulesFallback()),
+        heroBannerSrc: HERO_BANNER_SRC,
         storeContact: {
             wechatId: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.wechatId,
             ownerPhone: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.ownerPhone
@@ -66,9 +61,10 @@ Page({
             await (0, runtime_config_1.hydrateCustomerRuntimeConfig)();
         }
         finally {
+            const homeLayout = buildHomeLayout(await modulePromise);
             this.setData({
-                modules: decorateHomeModules(await modulePromise),
-                heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId,
+                ...homeLayout,
+                heroBannerSrc: HERO_BANNER_SRC,
                 storeContact: {
                     wechatId: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.wechatId,
                     ownerPhone: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.ownerPhone

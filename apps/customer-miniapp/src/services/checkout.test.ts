@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { getAddresses, resetAddresses, selectAddress } from './address';
 import {
+  ensureContactPhoneFromProfile,
   getCheckoutDraft,
   getCheckoutViewModel,
   hydratePickupPhoneFromProfile,
@@ -47,6 +48,30 @@ describe('checkout service', () => {
       pickupPhone: '138****1234'
     });
     expect(getCheckoutViewModel().addressType).toBe(null);
+  });
+
+  it('hydrates the shared order contact from the selected delivery address before masked profile contact', () => {
+    const cityAddress = getAddresses('city')[0];
+
+    if (!cityAddress) {
+      throw new Error('missing city address fixture');
+    }
+
+    updateProfile({
+      contactPhoneMasked: '138****1234'
+    });
+    selectAddress(cityAddress.id);
+
+    ensureContactPhoneFromProfile();
+
+    expect(getCheckoutDraft()).toMatchObject({
+      mode: 'delivery',
+      contactPhone: cityAddress.phoneNumber
+    });
+    expect(getCheckoutViewModel()).toMatchObject({
+      mode: 'delivery',
+      contactPhone: cityAddress.phoneNumber
+    });
   });
 
   it('supports multi-pet selection and only requires reservation for delivery or pickup', () => {

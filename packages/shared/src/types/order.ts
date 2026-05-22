@@ -36,6 +36,7 @@ export interface OrderStoreSnapshot {
 export interface OrderFulfillmentSnapshot {
   mode: OrderFulfillmentMode;
   address?: OrderAddressSnapshot;
+  contactPhone?: string;
   pickupPhone?: string;
   reservation?: OrderReservationSnapshot;
   store: OrderStoreSnapshot;

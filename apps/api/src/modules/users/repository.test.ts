@@ -3,6 +3,68 @@ import { describe, expect, it, vi } from 'vitest';
 import { createUserRepository } from './repository';
 
 describe('user repository', () => {
+  it('hydrates customer profile totalSpent from paid order totals', async () => {
+    const upsert = vi.fn(async () => ({
+      openid: 'openid-1',
+      status: 'ACTIVE',
+      phoneBindingState: 'BOUND',
+      contactPhoneMasked: '188****6099',
+      contactPhoneCountryCode: '+86',
+      lastLoginAt: new Date('2026-05-22T00:00:00.000Z'),
+      createdAt: new Date('2026-05-22T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-22T00:00:00.000Z'),
+      profile: null
+    }));
+    const aggregate = vi.fn(async () => ({
+      _sum: {
+        payableTotal: {
+          toNumber: () => 932
+        }
+      }
+    }));
+    const repository = createUserRepository({
+      user: {
+        upsert,
+        findUnique: vi.fn(async () => ({
+          openid: 'openid-1',
+          status: 'ACTIVE',
+          phoneBindingState: 'BOUND',
+          contactPhoneMasked: '188****6099',
+          contactPhoneCountryCode: '+86',
+          lastLoginAt: new Date('2026-05-22T00:00:00.000Z'),
+          createdAt: new Date('2026-05-22T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-22T00:00:00.000Z'),
+          profile: {
+            nickname: 'Cookie大爹'
+          },
+          balanceAccount: {
+            balance: {
+              toNumber: () => 932
+            }
+          }
+        }))
+      },
+      order: {
+        aggregate
+      }
+    } as any);
+
+    await expect(repository.getCustomerProfile('openid-1')).resolves.toMatchObject({
+      nickname: 'Cookie大爹',
+      balance: 932,
+      totalSpent: 932
+    });
+    expect(aggregate).toHaveBeenCalledWith({
+      where: {
+        openid: 'openid-1',
+        status: 'PAID'
+      },
+      _sum: {
+        payableTotal: true
+      }
+    });
+  });
+
   it('loads merchant user detail with the latest balance ledger summary', async () => {
     const repository = createUserRepository({
       user: {

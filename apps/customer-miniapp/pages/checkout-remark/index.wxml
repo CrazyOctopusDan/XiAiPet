@@ -8,7 +8,7 @@
     </view>
 
     <view class="remark-card">
-      <textarea class="remark-input" value="{{remarkValue}}" placeholder="例如：少糖、送达前电话联系、定制细节已沟通" bindinput="handleInput" maxlength="120" />
+      <textarea class="remark-input" value="{{remarkValue}}" placeholder="例如：少糖、送达前电话联系、定制细节已沟通" bindinput="handleInput" maxlength="100" />
     </view>
 
     <view class="remark-card" wx:if="{{history.length}}">

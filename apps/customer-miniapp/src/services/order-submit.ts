@@ -10,8 +10,8 @@ import { buildOrderLineSnapshot, buildOrderPricingBreakdown } from '../shared/or
 
 import { getSelectedAddress } from './address';
 import { customerApiRequest, CustomerApiError, type CustomerApiRequester } from './api-client';
-import { getCartItems } from './cart';
-import { getCheckoutViewModel } from './checkout';
+import { getCartItems, getSelectedCartFulfillmentModes } from './cart';
+import { ensureContactPhoneFromProfile, getCheckoutViewModel } from './checkout';
 import { getCachedCustomerRuntimeConfig } from './runtime-config';
 
 interface DeliveryFeePreview {
@@ -123,8 +123,10 @@ export function getDeliveryFeePreview(address: ReturnType<typeof getSelectedAddr
 }
 
 export function buildCreateOrderPayload(paymentMethod: PaymentMethod, idempotencyKey = createIdempotencyKey()): CreateOrderPayload {
+  ensureContactPhoneFromProfile();
   const checkout = getCheckoutViewModel();
   const selectedItems = getCartItems().filter((item) => item.selected);
+  const selectedFulfillmentModes = getSelectedCartFulfillmentModes();
   const pricing = getCheckoutPricingPreview();
   const pets: OrderPetSnapshot[] = checkout.selectedPets.map((pet) => ({
     id: pet.id,
@@ -134,12 +136,17 @@ export function buildCreateOrderPayload(paymentMethod: PaymentMethod, idempotenc
     allergyNotes: pet.allergyNotes
   }));
 
+  if (selectedItems.length > 0 && !selectedFulfillmentModes.includes(checkout.mode)) {
+    throw new Error('INCOMPATIBLE_FULFILLMENT');
+  }
+
   return {
     idempotencyKey,
     paymentMethod,
     fulfillment: {
       mode: checkout.mode,
       address: buildAddressSnapshot(checkout.addressType ? getSelectedAddress(checkout.addressType) : null),
+      contactPhone: checkout.contactPhone || undefined,
       pickupPhone: checkout.mode === 'pickup' ? checkout.pickupPhone : undefined,
       reservation: checkout.reservationSelection ?? undefined,
       store: {

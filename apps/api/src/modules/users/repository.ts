@@ -1,4 +1,4 @@
-import { PHONE_BINDING_STATE, USER_STATUS, toSharedEnum } from '../../db/enums';
+import { ORDER_STATUS, PHONE_BINDING_STATE, USER_STATUS, toSharedEnum } from '../../db/enums';
 import { getPrismaClient } from '../../db/prisma';
 import type { DbClient } from '../../db/types';
 
@@ -234,10 +234,21 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
 
     async getCustomerProfile(openid: string) {
       await this.bootstrap(openid);
-      const user = await client.user.findUnique({
-        where: { openid },
-        include: { balanceAccount: true }
-      }) as CustomerProfileRow | null;
+      const [user, paidOrderTotals] = await Promise.all([
+        client.user.findUnique({
+          where: { openid },
+          include: { balanceAccount: true }
+        }) as Promise<CustomerProfileRow | null>,
+        client.order.aggregate({
+          where: {
+            openid,
+            status: ORDER_STATUS.paid
+          },
+          _sum: {
+            payableTotal: true
+          }
+        })
+      ]);
       const profile = normalizeProfile(user?.profile);
       return {
         avatarText: profile?.avatarText ?? '喜',
@@ -245,7 +256,7 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         gender: profile?.gender ?? 'unknown',
         memberLevel: '普通会员',
         balance: user?.balanceAccount?.balance.toNumber() ?? 0,
-        totalSpent: 0,
+        totalSpent: paidOrderTotals._sum.payableTotal?.toNumber() ?? 0,
         birthday: profile?.birthday ?? '',
         birthdayLocked: profile?.birthdayLocked ?? false,
         contactPhoneMasked: profile?.contactPhoneMasked || user?.contactPhoneMasked || ''

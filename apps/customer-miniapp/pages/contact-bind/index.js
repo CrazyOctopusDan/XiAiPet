@@ -97,7 +97,7 @@ Page({
             return;
         }
         this.setData({ submitting: true, statusText: '正在获取微信手机号', statusTone: 'idle' });
-        await this.commit(async () => { var _a; return (0, phone_1.requestWechatPhone)((_a = event.detail) !== null && _a !== void 0 ? _a : {}); }, maskPhone(phoneNumber));
+        await this.commit(async () => { var _a; return (0, phone_1.requestWechatPhone)((_a = event.detail) !== null && _a !== void 0 ? _a : {}); }, phoneNumber);
     },
     async handleManualSubmit() {
         const { manualPhone, manualCountryCode } = this.data;
@@ -105,14 +105,15 @@ Page({
         await this.commit(async () => (0, phone_1.submitManualPhone)({
             phoneNumber: manualPhone,
             countryCode: manualCountryCode
-        }), maskPhone(manualPhone.replace(/\s+/g, '')));
+        }), manualPhone.replace(/\s+/g, ''));
     },
-    async commit(action, fallbackMaskedPhone = '') {
+    async commit(action, fallbackContactPhone = '') {
         var _a, _b;
         try {
             const result = (await action());
             (0, profile_1.updateProfile)({
-                contactPhoneMasked: (_b = (_a = result.update) === null || _a === void 0 ? void 0 : _a.contactPhoneMasked) !== null && _b !== void 0 ? _b : fallbackMaskedPhone
+                contactPhone: fallbackContactPhone,
+                contactPhoneMasked: (_b = (_a = result.update) === null || _a === void 0 ? void 0 : _a.contactPhoneMasked) !== null && _b !== void 0 ? _b : maskPhone(fallbackContactPhone)
             });
             this.setData({ submitting: false, statusText: '联系方式已安全保存', statusTone: 'success' });
             if (this.data.redirectUrl) {

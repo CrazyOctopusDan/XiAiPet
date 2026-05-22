@@ -1,15 +1,20 @@
 <view class="home-page">
   <image class="hero-poster" mode="widthFix" src="{{heroBannerSrc}}" />
-  <view class="module-grid">
-    <view class="module-card module-card--{{item.id}}" wx:for="{{modules}}" wx:key="id" data-module-id="{{item.id}}" bindtap="handleModuleTap">
-      <view class="module-card-inner">
-        <text wx:if="{{item.id !== 'consulting'}}" class="module-card-title">{{item.title}}</text>
-        <image class="module-card-art" mode="aspectFit" src="{{item.imageSrc}}" />
-        <view wx:if="{{item.actionLabel}}" class="module-card-action module-card-action-{{item.actionTone}}">{{item.actionLabel}}</view>
+  <view class="home-content">
+    <view class="secondary-module-grid">
+      <view class="secondary-module-card secondary-module-card--{{item.id}}" wx:for="{{secondaryModules}}" wx:key="id" data-module-id="{{item.id}}" bindtap="handleModuleTap">
+        <image class="secondary-module-art" mode="aspectFit" src="{{item.imageSrc}}" />
+        <!-- <text class="secondary-module-title">{{item.title}}</text> -->
       </view>
     </view>
+    <view class="primary-module-card" wx:if="{{primaryModule}}" data-module-id="{{primaryModule.id}}" bindtap="handleModuleTap">
+      <view class="primary-module-copy">
+        <text class="primary-module-title">{{primaryModule.title}}</text>
+        <text class="primary-module-subtitle">进入商品列表</text>
+      </view>
+      <image class="primary-module-art" mode="aspectFit" src="{{primaryModule.imageSrc}}" />
+    </view>
   </view>
-
   <view class="home-modal-mask" wx:if="{{contactModalVisible}}" bindtap="handleCloseContactModal">
     <view class="home-modal" catchtap="handleHomeTap">
       <view class="home-modal-head">
@@ -23,19 +28,22 @@
             <text class="contact-label">微信号</text>
             <text class="contact-value">{{storeContact.wechatId || '暂未配置'}}</text>
           </view>
-          <button class="copy-button" data-value="{{storeContact.wechatId}}" bindtap="handleCopyContact">复制</button>
+          <button class="copy-button" data-value="{{storeContact.wechatId}}" bindtap="handleCopyContact">
+            复制
+          </button>
         </view>
         <view class="contact-row">
           <view class="contact-copy">
             <text class="contact-label">店主手机号</text>
             <text class="contact-value">{{storeContact.ownerPhone || '暂未配置'}}</text>
           </view>
-          <button class="copy-button" data-value="{{storeContact.ownerPhone}}" bindtap="handleCopyContact">复制</button>
+          <button class="copy-button" data-value="{{storeContact.ownerPhone}}" bindtap="handleCopyContact">
+            复制
+          </button>
         </view>
       </view>
     </view>
   </view>
-
   <view class="home-modal-mask" wx:if="{{noticeModalVisible}}" bindtap="handleCloseNoticeModal">
     <view class="home-modal" catchtap="handleHomeTap">
       <view class="home-modal-head">

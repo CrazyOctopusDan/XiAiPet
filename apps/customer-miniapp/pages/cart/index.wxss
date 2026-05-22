@@ -75,6 +75,37 @@
   height: 100%;
 }
 
+.cart-fulfillment-group {
+  margin-bottom: 24rpx;
+}
+
+.cart-fulfillment-group:last-child {
+  margin-bottom: 0;
+}
+
+.cart-fulfillment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin: 0 6rpx 14rpx;
+}
+
+.cart-fulfillment-title {
+  font-size: 26rpx;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #40535C;
+}
+
+.cart-fulfillment-count {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #7B8B92;
+}
+
 .checkbox,
 .row-check,
 .stepper-btn {
@@ -378,6 +409,9 @@
 .bottom-summary {
   flex: 1;
   min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6rpx;
 }
 
 .bottom-total {
@@ -389,6 +423,14 @@
 
 .bottom-total-price {
   margin-left: 10rpx;
+  color: #E86B61;
+}
+
+.bottom-warning {
+  display: block;
+  font-size: 21rpx;
+  line-height: 1.25;
+  font-weight: 800;
   color: #E86B61;
 }
 

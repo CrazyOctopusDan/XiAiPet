@@ -189,6 +189,15 @@ describe('orders service', () => {
       addressLabel: '上海市 静安区 南京西路 1266 号 8 楼',
       contactLabel: '虾衣妈妈 13800001234',
       petNamesLabel: '奶油、雪团',
+      hasPets: true,
+      pets: [
+        {
+          name: '奶油'
+        },
+        {
+          name: '雪团'
+        }
+      ],
       remark: '请提前 10 分钟联系',
       paymentMethodLabel: '微信支付',
       itemsSubtotalLabel: '￥98.00',

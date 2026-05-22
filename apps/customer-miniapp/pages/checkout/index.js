@@ -4,6 +4,7 @@ const address_1 = require("../../src/services/address");
 const checkout_1 = require("../../src/services/checkout");
 const cart_1 = require("../../src/services/cart");
 const pets_1 = require("../../src/services/pets");
+const profile_1 = require("../../src/services/profile");
 const order_submit_1 = require("../../src/services/order-submit");
 const runtime_config_1 = require("../../src/services/runtime-config");
 const tab_navigation_1 = require("../../src/services/tab-navigation");
@@ -98,18 +99,12 @@ Page({
         void this.refreshRuntimeConfig();
     },
     async refreshCustomerContext() {
-        try {
-            await Promise.all([
-                (0, address_1.hydrateAddresses)(),
-                (0, pets_1.hydratePets)()
-            ]);
-        }
-        catch (_a) {
-            // Checkout can still render with the last local snapshot.
-        }
-        finally {
-            this.refreshCheckout();
-        }
+        await Promise.allSettled([
+            (0, address_1.hydrateAddresses)(),
+            (0, pets_1.hydratePets)(),
+            (0, profile_1.hydrateProfile)()
+        ]);
+        this.refreshCheckout();
     },
     async refreshRuntimeConfig() {
         try {
@@ -143,7 +138,7 @@ Page({
             selectedReservationLabel: view.reservationSelection
                 ? `${view.reservationSelection.dateLabel} ${view.reservationSelection.timeLabel}`
                 : '',
-            pickupPhone: view.pickupPhone,
+            pickupPhone: view.contactPhone,
             pets: (0, pets_1.getPets)().map((item) => ({
                 ...item,
                 selected: selectedPetIdSet.has(item.id)

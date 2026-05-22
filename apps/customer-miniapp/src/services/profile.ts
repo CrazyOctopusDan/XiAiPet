@@ -11,6 +11,7 @@ export interface CustomerProfile {
   totalSpent: number;
   birthday: string;
   birthdayLocked: boolean;
+  contactPhone: string;
   contactPhoneMasked: string;
 }
 
@@ -19,6 +20,7 @@ interface UpdateProfileInput {
   gender?: ProfileGender;
   birthday?: string;
   birthdayLocked?: boolean;
+  contactPhone?: string;
   contactPhoneMasked?: string;
 }
 
@@ -43,6 +45,7 @@ const initialProfile: CustomerProfile = {
   totalSpent: 1288,
   birthday: '',
   birthdayLocked: false,
+  contactPhone: '',
   contactPhoneMasked: ''
 };
 
@@ -117,7 +120,7 @@ export function getProfileSummary() {
     balance: profile.balance,
     totalSpent: profile.totalSpent,
     birthdayLabel: profile.birthday || '未设置生日',
-    contactPhoneLabel: profile.contactPhoneMasked || '未绑定手机号'
+    contactPhoneLabel: profile.contactPhone || profile.contactPhoneMasked || '未绑定手机号'
   };
 }
 

@@ -325,6 +325,12 @@ describe('orders pages', () => {
     expect(instance.data.detail).toMatchObject({
       id: 'order-001',
       statusLabel: '待处理',
+      hasPets: true,
+      pets: [
+        {
+          name: '奶油'
+        }
+      ],
       remark: '到店前联系',
       itemsSubtotalLabel: '￥36.00',
       deliveryFeeLabel: '￥10.00',
@@ -339,5 +345,7 @@ describe('orders pages', () => {
     expect(detailTemplate).toContain('<page-nav');
     expect(detailTemplate).toContain('bindback="handleBackTap"');
     expect(detailTemplate).toContain('navigate-on-back="{{false}}"');
+    expect(detailTemplate).toContain('宠物信息');
+    expect(detailTemplate).toContain('wx:for="{{detail.pets}}"');
   });
 });

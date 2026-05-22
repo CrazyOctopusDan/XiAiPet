@@ -14,7 +14,7 @@ import {
 } from './checkout';
 import { getProductById } from './catalog';
 import { resetPets, getPets } from './pets';
-import { resetProfile } from './profile';
+import { resetProfile, updateProfile } from './profile';
 import {
   buildCreateOrderPayload,
   getCheckoutPricingPreview,
@@ -116,6 +116,46 @@ describe('order submit service', () => {
     ]);
     expect(payload.idempotencyKey).toBe('checkout-20260417-001');
     expect(payload).not.toHaveProperty('openid');
+  });
+
+  it('rejects order payload creation when selected cart items have no shared fulfillment mode', () => {
+    const product = getProductById('sea-sponge');
+
+    if (!product) {
+      throw new Error('missing incompatible fulfillment fixture');
+    }
+
+    addCartItem({ ...product, id: 'delivery-only', deliveryModes: ['delivery'] }, '', 1);
+    addCartItem({ ...product, id: 'pickup-only', deliveryModes: ['pickup'] }, '', 1);
+
+    expect(() => buildCreateOrderPayload('wechat', 'checkout-incompatible')).toThrow('INCOMPATIBLE_FULFILLMENT');
+  });
+
+  it('includes the bound profile contact phone in delivery order fulfillment snapshots', () => {
+    const product = getProductById('sea-sponge');
+    const address = getAddresses('city')[0];
+
+    if (!product || !address) {
+      throw new Error('missing delivery contact fixtures');
+    }
+
+    updateProfile({ contactPhoneMasked: '138****1234' });
+    addCartItem(product, '', 1);
+    selectAddress(address.id);
+    setReservationSelection({
+      dateValue: '2026-04-17',
+      dateLabel: '今天 04-17',
+      timeValue: '11:00',
+      timeLabel: '11:00'
+    });
+    setCustomNoticeAcknowledged(true);
+
+    const payload = buildCreateOrderPayload('wechat', 'checkout-delivery-contact');
+
+    expect(payload.fulfillment).toMatchObject({
+      mode: 'delivery',
+      contactPhone: address.phoneNumber
+    });
   });
 
   it('creates a balance order and returns the paid order from the HTTP payment route', async () => {

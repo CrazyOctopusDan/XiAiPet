@@ -39,7 +39,15 @@
       <text class="detail-section-title">履约信息</text>
       <text class="detail-copy">{{detail.addressLabel}}</text>
       <text class="detail-copy">{{detail.contactLabel}}</text>
-      <text class="detail-copy">适用宠物：{{detail.petNamesLabel}}</text>
+    </view>
+
+    <view class="detail-card" wx:if="{{detail.hasPets}}">
+      <text class="detail-section-title">宠物信息</text>
+      <view class="detail-pet-list">
+        <view class="detail-pet" wx:for="{{detail.pets}}" wx:key="name">
+          <text class="detail-pet-name">{{item.name}}</text>
+        </view>
+      </view>
     </view>
 
     <view class="detail-card">

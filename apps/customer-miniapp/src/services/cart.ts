@@ -1,4 +1,4 @@
-import type { CatalogProduct, ProductSpecOption } from '../types/catalog';
+import type { CatalogProduct, DeliveryMode, ProductSpecOption } from '../types/catalog';
 
 export interface CartItem {
   id: string;
@@ -13,6 +13,13 @@ export interface CartItem {
   specId: string;
   specLabel: string;
   specs: ProductSpecOption[];
+  deliveryModes: DeliveryMode[];
+}
+
+export interface CartItemGroup {
+  key: string;
+  label: string;
+  items: CartItem[];
 }
 
 interface CartMutationResult {
@@ -28,6 +35,13 @@ export interface CartSpecUpdateResult {
 }
 
 let cartItems: CartItem[] = [];
+
+const FULFILLMENT_MODE_ORDER: DeliveryMode[] = ['delivery', 'pickup', 'express'];
+const FULFILLMENT_MODE_LABELS: Record<DeliveryMode, string> = {
+  delivery: '配送',
+  pickup: '自取',
+  express: '快递'
+};
 
 function resolveSpec(product: CatalogProduct, specId: string) {
   if (!product.specs.length) {
@@ -53,6 +67,26 @@ function buildCartItemId(productId: string, specId: string) {
 
 function canMergeQuantity(targetQuantity: number, incomingQuantity: number, stock: number) {
   return targetQuantity + incomingQuantity <= stock;
+}
+
+function normalizeDeliveryModes(modes: DeliveryMode[] = []) {
+  const allowedModes = new Set(modes);
+  const normalized = FULFILLMENT_MODE_ORDER.filter((mode) => allowedModes.has(mode));
+  return normalized.length ? normalized : [...FULFILLMENT_MODE_ORDER];
+}
+
+function getFulfillmentLabel(modes: DeliveryMode[]) {
+  const normalized = normalizeDeliveryModes(modes);
+
+  if (normalized.length === 1) {
+    return `仅${FULFILLMENT_MODE_LABELS[normalized[0]!]}`;
+  }
+
+  return normalized.map((mode) => FULFILLMENT_MODE_LABELS[mode]).join('/');
+}
+
+function getSelectedCartItems() {
+  return cartItems.filter((item) => item.selected);
 }
 
 export function getCartProductQuantity(productId: string, specId = '') {
@@ -86,14 +120,52 @@ export function getCartCount() {
 }
 
 export function getCartSummary() {
-  const selectedItems = cartItems.filter((item) => item.selected);
+  const selectedItems = getSelectedCartItems();
+  const selectedFulfillmentModes = getSelectedCartFulfillmentModes();
   return {
     selectedCount: selectedItems.reduce((total, item) => total + item.quantity, 0),
     selectedTotalPrice: Number(
       selectedItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)
     ),
-    isAllSelected: cartItems.length > 0 && cartItems.every((item) => item.selected)
+    isAllSelected: cartItems.length > 0 && cartItems.every((item) => item.selected),
+    selectedFulfillmentModes,
+    canCheckoutSelectedItems: selectedItems.length > 0 && selectedFulfillmentModes.length > 0
   };
+}
+
+export function getSelectedCartFulfillmentModes() {
+  const selectedItems = getSelectedCartItems();
+
+  if (!selectedItems.length) {
+    return [...FULFILLMENT_MODE_ORDER];
+  }
+
+  return FULFILLMENT_MODE_ORDER.filter((mode) =>
+    selectedItems.every((item) => normalizeDeliveryModes(item.deliveryModes).includes(mode))
+  );
+}
+
+export function getCartItemGroups(items = cartItems): CartItemGroup[] {
+  const groups = new Map<string, CartItemGroup>();
+
+  items.forEach((item) => {
+    const modes = normalizeDeliveryModes(item.deliveryModes);
+    const key = modes.join('|');
+    const existingGroup = groups.get(key);
+
+    if (existingGroup) {
+      existingGroup.items.push(item);
+      return;
+    }
+
+    groups.set(key, {
+      key,
+      label: getFulfillmentLabel(modes),
+      items: [item]
+    });
+  });
+
+  return [...groups.values()];
 }
 
 export function addCartItem(product: CatalogProduct, specId: string, quantity = 1): CartMutationResult {
@@ -109,6 +181,7 @@ export function addCartItem(product: CatalogProduct, specId: string, quantity = 
     existingItem.stock = product.stock;
     existingItem.specLabel = resolvedSpec.specLabel;
     existingItem.specId = resolvedSpec.specId;
+    existingItem.deliveryModes = normalizeDeliveryModes(product.deliveryModes);
     return { item: existingItem, capped };
   }
 
@@ -124,7 +197,8 @@ export function addCartItem(product: CatalogProduct, specId: string, quantity = 
     selected: true,
     specId: resolvedSpec.specId,
     specLabel: resolvedSpec.specLabel,
-    specs: product.specs
+    specs: product.specs,
+    deliveryModes: normalizeDeliveryModes(product.deliveryModes)
   };
 
   cartItems = [...cartItems, item];
@@ -183,6 +257,7 @@ export function updateCartItemSpec(
 
   if (item.id === nextItemId) {
     item.stock = product.stock;
+    item.deliveryModes = normalizeDeliveryModes(product.deliveryModes);
     return { item, replacedItemId: null, mergedFromItemId: null, capped: false };
   }
 

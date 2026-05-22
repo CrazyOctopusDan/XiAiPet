@@ -19,7 +19,7 @@ interface ContactBindPageInstance {
   data: ContactBindPageData;
   setData(data: Record<string, unknown>): void;
   onLoad(options?: { redirect?: string }): void;
-  commit(action: () => Promise<unknown>, fallbackMaskedPhone?: string): Promise<void>;
+  commit(action: () => Promise<unknown>, fallbackContactPhone?: string): Promise<void>;
 }
 
 function maskPhone(phoneNumber: string) {
@@ -123,7 +123,7 @@ Page({
     this.setData({ submitting: true, statusText: '正在获取微信手机号', statusTone: 'idle' });
     await this.commit(
       async () => requestWechatPhone(event.detail ?? {}),
-      maskPhone(phoneNumber)
+      phoneNumber
     );
   },
   async handleManualSubmit(this: ContactBindPageInstance) {
@@ -135,16 +135,17 @@ Page({
         phoneNumber: manualPhone,
         countryCode: manualCountryCode
       }),
-      maskPhone(manualPhone.replace(/\s+/g, ''))
+      manualPhone.replace(/\s+/g, '')
     );
   },
-  async commit(this: ContactBindPageInstance, action: () => Promise<unknown>, fallbackMaskedPhone = '') {
+  async commit(this: ContactBindPageInstance, action: () => Promise<unknown>, fallbackContactPhone = '') {
     try {
       const result = (await action()) as {
         update?: { contactPhoneMasked?: string };
       };
       updateProfile({
-        contactPhoneMasked: result.update?.contactPhoneMasked ?? fallbackMaskedPhone
+        contactPhone: fallbackContactPhone,
+        contactPhoneMasked: result.update?.contactPhoneMasked ?? maskPhone(fallbackContactPhone)
       });
       this.setData({ submitting: false, statusText: '联系方式已安全保存', statusTone: 'success' });
       if (this.data.redirectUrl) {

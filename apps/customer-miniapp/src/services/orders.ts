@@ -27,6 +27,10 @@ export interface OrderDetailItemViewModel {
   lineTotalLabel: string;
 }
 
+export interface OrderDetailPetViewModel {
+  name: string;
+}
+
 export interface OrderDetailViewModel {
   id: string;
   statusLabel: string;
@@ -36,6 +40,8 @@ export interface OrderDetailViewModel {
   addressLabel: string;
   contactLabel: string;
   petNamesLabel: string;
+  hasPets: boolean;
+  pets: OrderDetailPetViewModel[];
   paymentMethodLabel: string;
   remark: string;
   itemsSubtotalLabel: string;
@@ -149,6 +155,12 @@ function getPetNamesLabel(order: OrderRecord) {
   return order.snapshot.pets.map((item) => item.name).join('、');
 }
 
+function getPetRows(order: OrderRecord): OrderDetailPetViewModel[] {
+  return order.snapshot.pets.map((item) => ({
+    name: item.name
+  }));
+}
+
 function toOrderCard(order: OrderRecord): OrderCardViewModel {
   return {
     id: order.id,
@@ -200,6 +212,8 @@ export function getOrderDetailViewModel(order: OrderRecord | null) {
     return null;
   }
 
+  const pets = getPetRows(order);
+
   return {
     id: order.id,
     statusLabel: getOrderStatusLabel(order),
@@ -209,6 +223,8 @@ export function getOrderDetailViewModel(order: OrderRecord | null) {
     addressLabel: getAddressLabel(order),
     contactLabel: getContactLabel(order),
     petNamesLabel: getPetNamesLabel(order),
+    hasPets: pets.length > 0,
+    pets,
     paymentMethodLabel: getPaymentMethodLabel(order.paymentMethod),
     remark: order.snapshot.remark || '无备注',
     itemsSubtotalLabel: formatMoney(order.pricing.itemsSubtotal),

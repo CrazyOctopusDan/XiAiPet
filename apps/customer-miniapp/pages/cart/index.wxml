@@ -12,46 +12,54 @@
 
     <view class="cart-list">
       <scroll-view class="cart-list-scroll" scroll-y enable-flex>
-        <view
-          class="cart-swipe-row"
-          wx:for="{{items}}"
-          wx:key="id"
-        >
-          <view class="cart-delete-action" data-item-id="{{item.id}}" bindtap="handleRequestDelete">
-            <text class="cart-delete-label">删除</text>
+        <view class="cart-fulfillment-group" wx:for="{{itemGroups}}" wx:for-item="group" wx:key="key">
+          <view class="cart-fulfillment-head">
+            <text class="cart-fulfillment-title">{{group.label}}</text>
+            <text class="cart-fulfillment-count">{{group.items.length}} 件商品</text>
           </view>
 
           <view
-            class="cart-row {{swipedItemId === item.id ? 'swiped' : ''}}"
-            data-item-id="{{item.id}}"
-            bindtouchstart="handleRowSwipeStart"
-            bindtouchmove="handleRowSwipeMove"
-            bindtouchend="handleRowSwipeEnd"
-            bindtouchcancel="handleRowSwipeEnd"
+            class="cart-swipe-row"
+            wx:for="{{group.items}}"
+            wx:for-item="item"
+            wx:key="id"
           >
-            <view class="row-check" bindtap="handleToggleItem" data-item-id="{{item.id}}">
-              <view class="checkbox {{item.selected ? 'active' : ''}}"></view>
+            <view class="cart-delete-action" data-item-id="{{item.id}}" bindtap="handleRequestDelete">
+              <text class="cart-delete-label">删除</text>
             </view>
 
-            <image wx:if="{{item.thumbnail}}" class="row-image" mode="aspectFill" src="{{item.thumbnail}}" />
-            <view wx:else class="row-image row-image-placeholder"><text>{{item.name}}</text></view>
-
-            <view class="row-main">
-              <text class="row-name">{{item.name}}</text>
-
-              <view class="row-meta">
-                <view class="row-spec-trigger" wx:if="{{item.specs.length}}" data-item-id="{{item.id}}" bindtap="handleOpenSpecModal">
-                  <text class="row-spec-label">{{item.specLabel || '选择规格'}}</text>
-                </view>
-                <text class="row-stock">库存 {{item.stock}}</text>
+            <view
+              class="cart-row {{swipedItemId === item.id ? 'swiped' : ''}}"
+              data-item-id="{{item.id}}"
+              bindtouchstart="handleRowSwipeStart"
+              bindtouchmove="handleRowSwipeMove"
+              bindtouchend="handleRowSwipeEnd"
+              bindtouchcancel="handleRowSwipeEnd"
+            >
+              <view class="row-check" bindtap="handleToggleItem" data-item-id="{{item.id}}">
+                <view class="checkbox {{item.selected ? 'active' : ''}}"></view>
               </view>
 
-              <view class="row-footer">
-                <text class="row-price">￥{{item.price}}</text>
-                <view class="row-stepper">
-                  <view class="stepper-btn" data-item-id="{{item.id}}" bindtap="handleMinus">-</view>
-                  <text class="stepper-count">{{item.quantity}}</text>
-                  <view class="stepper-btn plus" data-item-id="{{item.id}}" bindtap="handlePlus">+</view>
+              <image wx:if="{{item.thumbnail}}" class="row-image" mode="aspectFill" src="{{item.thumbnail}}" />
+              <view wx:else class="row-image row-image-placeholder"><text>{{item.name}}</text></view>
+
+              <view class="row-main">
+                <text class="row-name">{{item.name}}</text>
+
+                <view class="row-meta">
+                  <view class="row-spec-trigger" wx:if="{{item.specs.length}}" data-item-id="{{item.id}}" bindtap="handleOpenSpecModal">
+                    <text class="row-spec-label">{{item.specLabel || '选择规格'}}</text>
+                  </view>
+                  <text class="row-stock">库存 {{item.stock}}</text>
+                </view>
+
+                <view class="row-footer">
+                  <text class="row-price">￥{{item.price}}</text>
+                  <view class="row-stepper">
+                    <view class="stepper-btn" data-item-id="{{item.id}}" bindtap="handleMinus">-</view>
+                    <text class="stepper-count">{{item.quantity}}</text>
+                    <view class="stepper-btn plus" data-item-id="{{item.id}}" bindtap="handlePlus">+</view>
+                  </view>
                 </view>
               </view>
             </view>
@@ -73,9 +81,10 @@
         已选 {{selectedCount}} 件 合计
         <text class="bottom-total-price">￥{{selectedTotalPrice}}</text>
       </view>
+      <text class="bottom-warning" wx:if="{{fulfillmentWarning}}">{{fulfillmentWarning}}</text>
     </view>
     <view class="bottom-actions">
-      <button class="checkout-button {{selectedCount ? '' : 'disabled'}}" disabled="{{!selectedCount}}" bindtap="handleCheckout">结算</button>
+      <button class="checkout-button {{selectedCount && canCheckoutSelectedItems ? '' : 'disabled'}}" disabled="{{!selectedCount || !canCheckoutSelectedItems}}" bindtap="handleCheckout">结算</button>
     </view>
   </view>
 
