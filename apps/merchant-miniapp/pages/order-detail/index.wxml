@@ -56,6 +56,23 @@
     </view>
 
     <view class="content-card">
+      <view class="section-head">
+        <text class="section-title">本次宠物</text>
+        <text class="print-status">{{detail.hasPets ? '已随订单携带' : '未选择宠物'}}</text>
+      </view>
+      <view wx:if="{{detail.hasPets}}">
+        <view class="pet-detail-card" wx:for="{{detail.pets}}" wx:key="name">
+          <view class="pet-detail-head">
+            <text class="pet-detail-name">{{item.name}}</text>
+            <text class="pet-detail-meta">{{item.genderLabel}} · {{item.birthdayLabel}}</text>
+          </view>
+          <text class="pet-allergy {{item.hasAllergyNotes ? 'warning' : ''}}">{{item.allergyNotesLabel}}</text>
+        </view>
+      </view>
+      <text class="remark-copy" wx:else>用户下单时没有勾选宠物。</text>
+    </view>
+
+    <view class="content-card">
       <text class="section-title">审计摘要</text>
       <view class="meta-row">
         <text class="meta-label">最近操作</text>

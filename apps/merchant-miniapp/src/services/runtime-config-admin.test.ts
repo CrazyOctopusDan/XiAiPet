@@ -32,6 +32,69 @@ describe('runtime config admin service', () => {
     ]);
   });
 
+  it('normalizes legacy runtime config values returned by the API', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      sections: [
+        {
+          sectionId: 'store-profile',
+          updatedAt: '2026-05-22T10:00:00.000Z',
+          updatedBy: 'seed',
+          value: { storeName: 'XiAiPet', storeAddress: 'Shanghai demo store', servicePhone: '13800000000' }
+        },
+        {
+          sectionId: 'delivery-rules',
+          updatedAt: '2026-05-22T10:00:00.000Z',
+          updatedBy: 'seed',
+          value: { deliveryFee: 12, minimumOrderAmount: 98, supportedModes: ['delivery', 'pickup'] }
+        },
+        {
+          sectionId: 'membership-tiers',
+          updatedAt: '2026-05-22T10:00:00.000Z',
+          updatedBy: 'seed',
+          value: { tiers: [{ id: 'standard', name: 'Standard', minimumBalance: 0 }] }
+        },
+        {
+          sectionId: 'banner',
+          updatedAt: '2026-05-22T10:00:00.000Z',
+          updatedBy: 'seed',
+          value: { imageFileId: 'cloud://dev-placeholder/banner.jpg', title: 'XiAiPet local banner' }
+        },
+        {
+          sectionId: 'custom-notice',
+          updatedAt: '2026-05-22T10:00:00.000Z',
+          updatedBy: 'seed',
+          value: { content: 'Local development notice' }
+        }
+      ]
+    });
+
+    const sections = await queryRuntimeConfigSections(request);
+    const view = getRuntimeConfigAdminViewModel(sections, {});
+
+    expect(view.sections.find((item) => item.sectionId === 'store-profile')?.storeFields).toMatchObject({
+      storeName: 'XiAiPet',
+      address: 'Shanghai demo store',
+      ownerPhone: '13800000000'
+    });
+    expect(view.sections.find((item) => item.sectionId === 'delivery-rules')?.deliveryRows).toEqual(LOCKED_DELIVERY_RULE_ROWS);
+    expect(view.sections.find((item) => item.sectionId === 'membership-tiers')?.membershipRows).toEqual([
+      expect.objectContaining({
+        tierId: 'standard',
+        threshold: 0,
+        name: 'Standard'
+      })
+    ]);
+    expect(view.sections.find((item) => item.sectionId === 'banner')?.bannerFields).toMatchObject({
+      fileId: 'cloud://dev-placeholder/banner.jpg',
+      altText: 'XiAiPet local banner'
+    });
+    expect(view.sections.find((item) => item.sectionId === 'custom-notice')?.customNoticeFields).toMatchObject({
+      enabled: true,
+      content: 'Local development notice'
+    });
+  });
+
   it('preserves membership tiers as threshold + name + description tuples', () => {
     const view = getRuntimeConfigAdminViewModel(
       [

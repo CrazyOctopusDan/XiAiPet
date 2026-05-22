@@ -152,7 +152,8 @@
       </view>
 
       <view class="checkout-item" wx:for="{{items}}" wx:key="id">
-        <image class="checkout-item-image" mode="aspectFill" src="{{item.thumbnail}}" />
+        <image wx:if="{{item.thumbnail}}" class="checkout-item-image" mode="aspectFill" src="{{item.thumbnail}}" />
+        <view wx:else class="checkout-item-image checkout-item-image-placeholder"><text>{{item.name}}</text></view>
         <view class="checkout-item-main">
           <text class="checkout-item-name">{{item.name}}</text>
           <text class="checkout-item-spec">{{item.specLabel || '默认规格'}} × {{item.quantity}}</text>

@@ -24,10 +24,12 @@ describe('runtime config schema', () => {
         updatedAt: '2026-04-17T12:00:00.000Z',
         updatedBy: createUpdatedBy(),
         value: {
+          storeName: '喜爱宠物烘焙',
           address: '上海市静安区南京西路 1266 号 8 楼',
           latitude: 31.2304,
           longitude: 121.4737,
-          contactPhone: '13800001234'
+          wechatId: 'xiaipet-bakery',
+          ownerPhone: '13800001234'
         }
       },
       {
@@ -84,13 +86,20 @@ describe('runtime config schema', () => {
     ).toBe(false);
   });
 
-  it('preserves the locked delivery-tier explainer rows instead of accepting arbitrary freeform payloads', () => {
+  it('accepts editable delivery-tier rows when numeric fields and explainer are valid', () => {
     const deliveryRulesSection: RuntimeConfigSectionDocument = {
       sectionId: 'delivery-rules',
       updatedAt: '2026-04-17T12:00:00.000Z',
       updatedBy: createUpdatedBy(),
       value: {
-        tiers: LOCKED_DELIVERY_RULE_ROWS
+        tiers: [
+          {
+            distanceKm: 8,
+            minimumOrderAmount: 128,
+            deliveryFee: 12,
+            explainer: '8.0 公里内 128 元起送，配送费 12 元'
+          }
+        ]
       }
     };
 
@@ -100,12 +109,11 @@ describe('runtime config schema', () => {
         ...deliveryRulesSection,
         value: {
           tiers: [
-            ...LOCKED_DELIVERY_RULE_ROWS.slice(0, 1),
             {
               distanceKm: 10,
-              minimumOrderAmount: 66,
+              minimumOrderAmount: -1,
               deliveryFee: 9,
-              explainer: '自定义算法'
+              explainer: '起送金额非法'
             }
           ]
         }
@@ -169,7 +177,7 @@ describe('runtime config schema', () => {
         updatedAt: '2026-04-17T12:00:00.000Z',
         updatedBy: createUpdatedBy(),
         value: {
-          fileId: 'https://example.com/banner.png',
+          fileId: 'https://example.com/banner.jpg',
           altText: '首页主 Banner'
         }
       })

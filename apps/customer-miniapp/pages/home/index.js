@@ -46,7 +46,14 @@ function getNavigationMetrics() {
 Page({
     data: {
         modules: buildHomeModulesFallback(),
-        heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId
+        heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId,
+        storeContact: {
+            wechatId: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.wechatId,
+            ownerPhone: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.ownerPhone
+        },
+        purchaseNotice: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().customNotice.content,
+        contactModalVisible: false,
+        noticeModalVisible: false
     },
     onShow() {
         var _a, _b, _c;
@@ -61,7 +68,12 @@ Page({
         finally {
             this.setData({
                 modules: decorateHomeModules(await modulePromise),
-                heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId
+                heroBannerSrc: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().banner.fileId,
+                storeContact: {
+                    wechatId: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.wechatId,
+                    ownerPhone: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.ownerPhone
+                },
+                purchaseNotice: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().customNotice.enabled ? (0, runtime_config_1.getCachedCustomerRuntimeConfig)().customNotice.content : ''
             });
         }
     },
@@ -74,9 +86,43 @@ Page({
             });
             return;
         }
+        if (moduleId === 'consulting') {
+            this.setData({ contactModalVisible: true });
+            return;
+        }
+        if (moduleId === 'notice') {
+            this.setData({ noticeModalVisible: true });
+            return;
+        }
         wx.showToast({
             title: '该模块下一阶段继续实现',
             icon: 'none'
+        });
+    },
+    handleCloseContactModal() {
+        this.setData({ contactModalVisible: false });
+    },
+    handleCloseNoticeModal() {
+        this.setData({ noticeModalVisible: false });
+    },
+    handleCopyContact(event) {
+        var _a, _b;
+        const value = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.value;
+        if (!value) {
+            wx.showToast({
+                title: '暂无可复制内容',
+                icon: 'none'
+            });
+            return;
+        }
+        wx.setClipboardData({
+            data: value,
+            success: () => {
+                wx.showToast({
+                    title: '已复制',
+                    icon: 'success'
+                });
+            }
         });
     },
     handleHomeTap() {

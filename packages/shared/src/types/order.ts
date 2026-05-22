@@ -57,6 +57,9 @@ export interface OrderItemSnapshot extends OrderItemSnapshotInput {
 export interface OrderPetSnapshot {
   id: string;
   name: string;
+  gender?: 'female' | 'male' | 'unknown';
+  birthday?: string;
+  allergyNotes?: string;
 }
 
 export interface OrderPricingBreakdown {

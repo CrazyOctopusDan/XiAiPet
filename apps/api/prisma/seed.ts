@@ -28,7 +28,7 @@ export function buildSeedRuntimeConfigSections() {
     },
     {
       id: 'banner',
-      value: { imageFileId: 'cloud://dev-placeholder/banner.png', title: 'XiAiPet local banner' }
+      value: { imageFileId: 'cloud://dev-placeholder/banner.jpg', title: 'XiAiPet local banner' }
     },
     {
       id: 'custom-notice',

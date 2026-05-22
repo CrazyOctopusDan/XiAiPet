@@ -25,7 +25,9 @@
 .section-toolbar,
 .tier-head,
 .field-pair,
-.delivery-row {
+.delivery-row,
+.location-card,
+.editor-head {
   display: flex;
   align-items: center;
 }
@@ -33,7 +35,9 @@
 .summary-head,
 .section-head,
 .section-toolbar,
-.tier-head {
+.tier-head,
+.location-card,
+.editor-head {
   justify-content: space-between;
 }
 
@@ -74,8 +78,14 @@
 .toolbar-link,
 .delivery-distance,
 .delivery-copy,
+.delivery-more,
+.location-title,
+.location-meta,
+.location-action,
 .tier-title,
-.tier-badge {
+.tier-badge,
+.editor-title,
+.editor-close {
   display: block;
 }
 
@@ -200,7 +210,8 @@
 .section-toolbar,
 .delivery-list,
 .tier-card,
-.field-area {
+.field-area,
+.location-card {
   margin-top: 22rpx;
 }
 
@@ -267,6 +278,40 @@
   line-height: 1.45;
 }
 
+.location-card {
+  min-height: 96rpx;
+  padding: 18rpx 20rpx;
+  border: 2rpx solid #E8DAC8;
+  border-radius: 18rpx;
+  background: #FFFDF8;
+  box-sizing: border-box;
+}
+
+.location-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.location-title {
+  color: #26333D;
+  font-size: 26rpx;
+  line-height: 1.35;
+}
+
+.location-meta {
+  margin-top: 6rpx;
+  color: #756756;
+  font-size: 22rpx;
+}
+
+.location-action {
+  flex: 0 0 auto;
+  margin-left: 18rpx;
+  color: #2E5B73;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
 .delivery-row {
   min-height: 68rpx;
   margin-top: 12rpx;
@@ -294,6 +339,15 @@
   color: #756756;
   font-size: 24rpx;
   line-height: 1.35;
+}
+
+.delivery-more {
+  flex: 0 0 auto;
+  margin-left: 14rpx;
+  color: #B99C77;
+  font-size: 28rpx;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .tier-card {
@@ -340,4 +394,47 @@
 .save-button {
   background: #2E5B73;
   color: #FFFFFF;
+}
+
+.editor-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx 24rpx;
+  box-sizing: border-box;
+  background: rgba(38, 51, 61, 0.34);
+}
+
+.editor-panel {
+  width: 100%;
+  max-width: 680rpx;
+  padding: 26rpx;
+  border: 2rpx solid #F0E2D0;
+  border-radius: 26rpx;
+  background: #FFFDF8;
+  box-shadow: 0 22rpx 52rpx rgba(38, 51, 61, 0.18);
+  box-sizing: border-box;
+}
+
+.editor-title {
+  color: #26333D;
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.editor-close {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 50%;
+  background: #FBF6EE;
+  color: #756756;
+  font-size: 36rpx;
+  line-height: 50rpx;
+  text-align: center;
 }

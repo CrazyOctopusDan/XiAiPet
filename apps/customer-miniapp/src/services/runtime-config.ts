@@ -2,6 +2,7 @@ import type {
   BannerRuntimeConfigValue,
   CustomNoticeRuntimeConfigValue,
   DeliveryRulesRuntimeConfigValue,
+  RuntimeConfigSectionDocument,
   StoreProfileRuntimeConfigValue
 } from '@xiaipet/shared/types/runtime-config';
 
@@ -37,21 +38,24 @@ interface ReadRuntimeConfigResult {
   store?: StoreProfileRuntimeConfigValue | null;
   customNotice?: CustomNoticeRuntimeConfigValue | null;
   deliveryRules?: DeliveryRulesRuntimeConfigValue | null;
+  sections?: RuntimeConfigSectionDocument[] | null;
 }
 
 type RuntimeConfigRequester = () => Promise<ReadRuntimeConfigResult>;
 
 const DEFAULT_RUNTIME_CONFIG: CustomerRuntimeConfig = {
   banner: {
-    fileId: '/assets/catalog/banner.png',
+    fileId: '/assets/catalog/banner.jpg',
     altText: '首页 Banner'
   },
   store: {
     name: '虾衣宠物烘焙工作室',
+    storeName: '虾衣宠物烘焙工作室',
     address: '上海市静安区南京西路 1266 号 8 楼',
     latitude: 31.22911,
     longitude: 121.44853,
-    contactPhone: ''
+    wechatId: '',
+    ownerPhone: ''
   },
   customNotice: {
     enabled: true,
@@ -83,24 +87,41 @@ function cloneRuntimeConfig(config: CustomerRuntimeConfig): CustomerRuntimeConfi
   };
 }
 
-function mergeRuntimeConfig(result: ReadRuntimeConfigResult): CustomerRuntimeConfig {
+function getSection<T extends RuntimeConfigSectionDocument['sectionId']>(
+  sections: RuntimeConfigSectionDocument[] | null | undefined,
+  sectionId: T
+) {
+  return sections?.find((section): section is Extract<RuntimeConfigSectionDocument, { sectionId: T }> => section.sectionId === sectionId) ?? null;
+}
+
+function normalizeStoreProfile(store: StoreProfileRuntimeConfigValue | null | undefined): CustomerStoreRuntimeConfig {
+  const value = store as Partial<StoreProfileRuntimeConfigValue> | null | undefined;
+  const storeName = value?.storeName || DEFAULT_RUNTIME_CONFIG.store.storeName;
+
   return {
-    banner: result.banner
-      ? {
-          ...result.banner
-        }
-      : { ...DEFAULT_RUNTIME_CONFIG.banner },
-    store: {
-      ...DEFAULT_RUNTIME_CONFIG.store,
-      ...(result.store ?? {})
-    },
-    customNotice: result.customNotice
-      ? {
-          ...result.customNotice
-        }
-      : { ...DEFAULT_RUNTIME_CONFIG.customNotice },
+    ...DEFAULT_RUNTIME_CONFIG.store,
+    ...(value ?? {}),
+    storeName,
+    name: storeName,
+    wechatId: value?.wechatId ?? DEFAULT_RUNTIME_CONFIG.store.wechatId,
+    ownerPhone: value?.ownerPhone ?? DEFAULT_RUNTIME_CONFIG.store.ownerPhone
+  };
+}
+
+function mergeRuntimeConfig(result: ReadRuntimeConfigResult): CustomerRuntimeConfig {
+  const bannerSection = getSection(result.sections, 'banner');
+  const storeSection = getSection(result.sections, 'store-profile');
+  const noticeSection = getSection(result.sections, 'custom-notice');
+  const deliverySection = getSection(result.sections, 'delivery-rules');
+  const banner = result.banner ?? bannerSection?.value ?? DEFAULT_RUNTIME_CONFIG.banner;
+  const customNotice = result.customNotice ?? noticeSection?.value ?? DEFAULT_RUNTIME_CONFIG.customNotice;
+
+  return {
+    banner: { ...banner },
+    store: normalizeStoreProfile(result.store ?? storeSection?.value),
+    customNotice: { ...customNotice },
     deliveryRules: {
-      tiers: (result.deliveryRules?.tiers ?? DEFAULT_RUNTIME_CONFIG.deliveryRules.tiers).map((row) => ({ ...row }))
+      tiers: ((result.deliveryRules ?? deliverySection?.value)?.tiers ?? DEFAULT_RUNTIME_CONFIG.deliveryRules.tiers).map((row) => ({ ...row }))
     }
   };
 }

@@ -53,22 +53,25 @@ function isStoreProfileValue(value) {
     if (!isObject(value)) {
         return false;
     }
-    return (hasOnlyKeys(value, ['address', 'latitude', 'longitude', 'contactPhone']) &&
+    return (hasOnlyKeys(value, ['storeName', 'address', 'latitude', 'longitude', 'wechatId', 'ownerPhone']) &&
+        isNonEmptyString(value.storeName) &&
         isNonEmptyString(value.address) &&
         isFiniteNumber(value.latitude) &&
         isFiniteNumber(value.longitude) &&
-        isNonEmptyString(value.contactPhone));
+        isNonEmptyString(value.wechatId) &&
+        isNonEmptyString(value.ownerPhone));
 }
-function isLockedDeliveryRuleRow(value, index) {
+function isDeliveryRuleRow(value) {
     if (!isObject(value)) {
         return false;
     }
-    const expected = exports.LOCKED_DELIVERY_RULE_ROWS[index];
     return (hasOnlyKeys(value, ['distanceKm', 'minimumOrderAmount', 'deliveryFee', 'explainer']) &&
-        value.distanceKm === expected.distanceKm &&
-        value.minimumOrderAmount === expected.minimumOrderAmount &&
-        value.deliveryFee === expected.deliveryFee &&
-        value.explainer === expected.explainer);
+        isFiniteNumber(value.distanceKm) &&
+        value.distanceKm > 0 &&
+        (value.minimumOrderAmount === null || (isFiniteNumber(value.minimumOrderAmount) && value.minimumOrderAmount >= 0)) &&
+        isFiniteNumber(value.deliveryFee) &&
+        value.deliveryFee >= 0 &&
+        isNonEmptyString(value.explainer));
 }
 function isMembershipTierConfig(value) {
     if (!isObject(value)) {
@@ -135,8 +138,8 @@ function isDeliveryRulesRuntimeConfigSection(value) {
         hasRuntimeConfigMeta(value, 'delivery-rules') &&
         hasOnlyKeys(value.value, ['tiers']) &&
         Array.isArray(value.value.tiers) &&
-        value.value.tiers.length === exports.LOCKED_DELIVERY_RULE_ROWS.length &&
-        value.value.tiers.every((tier, index) => isLockedDeliveryRuleRow(tier, index)));
+        value.value.tiers.length > 0 &&
+        value.value.tiers.every((tier) => isDeliveryRuleRow(tier)));
 }
 function isMembershipTiersRuntimeConfigSection(value) {
     if (!isObject(value) || !isObject(value.value)) {

@@ -256,7 +256,7 @@ function getCheckoutViewModel(now = new Date()) {
             latitude: runtimeConfig.store.latitude,
             longitude: runtimeConfig.store.longitude
         },
-        storePhone: runtimeConfig.store.contactPhone,
+        storePhone: runtimeConfig.store.ownerPhone,
         deliveryRuleExplainers: runtimeConfig.deliveryRules.tiers.map((item) => item.explainer)
     };
 }

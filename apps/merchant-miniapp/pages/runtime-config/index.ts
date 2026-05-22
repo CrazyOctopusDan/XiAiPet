@@ -4,6 +4,7 @@ declare function Page(options: Record<string, unknown>): void;
 import type { RuntimeConfigSectionDocument, RuntimeConfigSectionId } from '@xiaipet/shared/types/runtime-config';
 
 import {
+  buildDeliveryRuleExplainer,
   buildRuntimeConfigSectionDocument,
   getRuntimeConfigAdminViewModel,
   queryRuntimeConfigSections,
@@ -16,6 +17,13 @@ interface RuntimeConfigPageData {
   dirty: Record<string, boolean>;
   sections: RuntimeConfigSectionDocument[];
   view: ReturnType<typeof getRuntimeConfigAdminViewModel>;
+  deliveryEditorVisible: boolean;
+  deliveryEditorIndex: number;
+  deliveryEditorDraft: {
+    distanceKm: string;
+    minimumOrderAmount: string;
+    deliveryFee: string;
+  };
 }
 
 interface RuntimeConfigPageInstance {
@@ -23,6 +31,7 @@ interface RuntimeConfigPageInstance {
   setData(updates: Record<string, unknown>): void;
   refreshSections(): Promise<void>;
   patchSection(sectionId: RuntimeConfigSectionId, updater: (section: RuntimeConfigSectionDocument) => RuntimeConfigSectionDocument): void;
+  handleCloseDeliveryEditor(): void;
 }
 
 function getSection(sections: RuntimeConfigSectionDocument[], sectionId: RuntimeConfigSectionId) {
@@ -37,6 +46,30 @@ function refreshView(instance: RuntimeConfigPageInstance, sections: RuntimeConfi
   });
 }
 
+function getStoreProfileFallback() {
+  return {
+    storeName: '',
+    address: '',
+    latitude: 0,
+    longitude: 0,
+    wechatId: '',
+    ownerPhone: ''
+  };
+}
+
+function getDeliveryRulesSection(sections: RuntimeConfigSectionDocument[]) {
+  const section = getSection(sections, 'delivery-rules');
+  return section?.sectionId === 'delivery-rules' ? section : null;
+}
+
+function buildDeliveryRuleDraft(row?: { distanceKm: number; minimumOrderAmount: number | null; deliveryFee: number }) {
+  return {
+    distanceKm: row ? String(row.distanceKm) : '',
+    minimumOrderAmount: row?.minimumOrderAmount === null || row?.minimumOrderAmount === undefined ? '' : String(row.minimumOrderAmount),
+    deliveryFee: row ? String(row.deliveryFee) : ''
+  };
+}
+
 Page({
   data: {
     loading: true,
@@ -49,7 +82,10 @@ Page({
         deliveryRuleCount: 0
       },
       sections: []
-    }
+    },
+    deliveryEditorVisible: false,
+    deliveryEditorIndex: -1,
+    deliveryEditorDraft: buildDeliveryRuleDraft()
   },
   async onShow(this: RuntimeConfigPageInstance) {
     await this.refreshSections();
@@ -91,10 +127,50 @@ Page({
 
     this.patchSection('store-profile', (section) =>
       buildRuntimeConfigSectionDocument('store-profile', {
-        ...(section.sectionId === 'store-profile' ? section.value : { address: '', latitude: 0, longitude: 0, contactPhone: '' }),
-        [field]: field === 'latitude' || field === 'longitude' ? Number(value || 0) : value
+        ...(section.sectionId === 'store-profile' ? section.value : getStoreProfileFallback()),
+        [field]: value
       }, section)
     );
+  },
+  handleChooseStoreLocation(this: RuntimeConfigPageInstance) {
+    wx.chooseLocation({
+      success: (result: { name?: string; address?: string; latitude?: number; longitude?: number }) => {
+        this.patchSection('store-profile', (section) =>
+          buildRuntimeConfigSectionDocument(
+            'store-profile',
+            {
+              ...(section.sectionId === 'store-profile' ? section.value : getStoreProfileFallback()),
+              address: result.address || result.name || '',
+              latitude: result.latitude ?? 0,
+              longitude: result.longitude ?? 0
+            },
+            section
+          )
+        );
+      },
+      fail: (error: { errMsg?: string }) => {
+        const message = error.errMsg ?? '';
+
+        if (message.includes('cancel')) {
+          wx.showToast({
+            title: '已取消选择位置',
+            icon: 'none'
+          });
+          return;
+        }
+
+        const content = message.includes('auth') || message.includes('authorize') || message.includes('permission')
+          ? '位置权限未开启。请在微信开发者工具或手机系统权限中允许使用位置后重试。'
+          : '位置选择失败。请检查小程序后台是否开通位置接口，并确认 app.json 已声明位置权限用途。';
+
+        wx.showModal({
+          title: '无法选择店铺位置',
+          content,
+          showCancel: false,
+          confirmText: '知道了'
+        });
+      }
+    });
   },
   handleMembershipInput(
     this: RuntimeConfigPageInstance,
@@ -146,6 +222,132 @@ Page({
         section
       );
     });
+  },
+  handleAddDeliveryRule(this: RuntimeConfigPageInstance) {
+    this.setData({
+      deliveryEditorVisible: true,
+      deliveryEditorIndex: -1,
+      deliveryEditorDraft: buildDeliveryRuleDraft()
+    });
+  },
+  handleDeliveryRowTap(this: RuntimeConfigPageInstance, event: { currentTarget?: { dataset?: { index?: string } } }) {
+    const index = Number(event.currentTarget?.dataset?.index ?? -1);
+    const section = getDeliveryRulesSection(this.data.sections);
+    const row = section?.value.tiers[index];
+
+    if (!row) {
+      return;
+    }
+
+    wx.showActionSheet({
+      itemList: ['编辑', '删除'],
+      success: (result: { tapIndex?: number }) => {
+        if (result.tapIndex === 0) {
+          this.setData({
+            deliveryEditorVisible: true,
+            deliveryEditorIndex: index,
+            deliveryEditorDraft: buildDeliveryRuleDraft(row)
+          });
+        }
+
+        if (result.tapIndex === 1) {
+          wx.showModal({
+            title: '删除配送档',
+            content: `确认删除 ${row.distanceKm}km 配送档吗？`,
+            success: (modalResult: { confirm?: boolean }) => {
+              if (!modalResult.confirm) {
+                return;
+              }
+              this.patchSection('delivery-rules', (section) => {
+                if (section.sectionId !== 'delivery-rules') {
+                  return section;
+                }
+                if (section.value.tiers.length <= 1) {
+                  wx.showToast({
+                    title: '至少保留一个配送档',
+                    icon: 'none'
+                  });
+                  return section;
+                }
+                const tiers = section.value.tiers.filter((_, rowIndex) => rowIndex !== index);
+                return buildRuntimeConfigSectionDocument('delivery-rules', { tiers }, section);
+              });
+            }
+          });
+        }
+      }
+    });
+  },
+  handleDeliveryEditorInput(
+    this: RuntimeConfigPageInstance,
+    event: { currentTarget?: { dataset?: { field?: string } }; detail?: { value?: string } }
+  ) {
+    const field = event.currentTarget?.dataset?.field;
+
+    if (!field) {
+      return;
+    }
+
+    this.setData({
+      deliveryEditorDraft: {
+        ...this.data.deliveryEditorDraft,
+        [field]: event.detail?.value ?? ''
+      }
+    });
+  },
+  handleCloseDeliveryEditor(this: RuntimeConfigPageInstance) {
+    this.setData({
+      deliveryEditorVisible: false,
+      deliveryEditorIndex: -1,
+      deliveryEditorDraft: buildDeliveryRuleDraft()
+    });
+  },
+  handleConfirmDeliveryEditor(this: RuntimeConfigPageInstance) {
+    const distanceKm = Number(this.data.deliveryEditorDraft.distanceKm);
+    const minimumOrderAmount = this.data.deliveryEditorDraft.minimumOrderAmount.trim()
+      ? Number(this.data.deliveryEditorDraft.minimumOrderAmount)
+      : null;
+    const deliveryFee = Number(this.data.deliveryEditorDraft.deliveryFee);
+
+    if (!Number.isFinite(distanceKm) || distanceKm <= 0 || !Number.isFinite(deliveryFee) || deliveryFee < 0) {
+      wx.showToast({
+        title: '请填写有效配送数据',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (minimumOrderAmount !== null && (!Number.isFinite(minimumOrderAmount) || minimumOrderAmount < 0)) {
+      wx.showToast({
+        title: '请填写有效起送金额',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.patchSection('delivery-rules', (section) => {
+      if (section.sectionId !== 'delivery-rules') {
+        return section;
+      }
+
+      const row = {
+        distanceKm,
+        minimumOrderAmount,
+        deliveryFee,
+        explainer: buildDeliveryRuleExplainer({ distanceKm, minimumOrderAmount, deliveryFee })
+      };
+      const tiers = [...section.value.tiers];
+
+      if (this.data.deliveryEditorIndex >= 0) {
+        tiers[this.data.deliveryEditorIndex] = row;
+      } else {
+        tiers.push(row);
+      }
+
+      tiers.sort((left, right) => left.distanceKm - right.distanceKm);
+      return buildRuntimeConfigSectionDocument('delivery-rules', { tiers }, section);
+    });
+    this.handleCloseDeliveryEditor();
   },
   handleBannerInput(
     this: RuntimeConfigPageInstance,
@@ -233,9 +435,12 @@ Page({
   handleOpenDeliveryNotice() {
     wx.showModal({
       title: '配送费说明',
-      content: '配送费按距离和价格阶梯展示，保存后会同步到下单页。',
+      content: '点击配送档可以编辑或删除；新增和保存后会同步到用户端展示。',
       showCancel: false
     });
+  },
+  handleEditorTap() {
+    return undefined;
   },
   async handleSaveSection(this: RuntimeConfigPageInstance, event: { currentTarget?: { dataset?: { sectionId?: RuntimeConfigSectionId } } }) {
     const sectionId = event.currentTarget?.dataset?.sectionId;
@@ -247,6 +452,14 @@ Page({
     const section = getSection(this.data.sections, sectionId);
 
     if (!section) {
+      return;
+    }
+
+    if (section.sectionId === 'membership-tiers' && section.value.tiers.some((tier) => !tier.name.trim())) {
+      wx.showToast({
+        title: '请填写等级名称',
+        icon: 'none'
+      });
       return;
     }
 

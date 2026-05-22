@@ -128,7 +128,10 @@ export function buildCreateOrderPayload(paymentMethod: PaymentMethod, idempotenc
   const pricing = getCheckoutPricingPreview();
   const pets: OrderPetSnapshot[] = checkout.selectedPets.map((pet) => ({
     id: pet.id,
-    name: pet.name
+    name: pet.name,
+    gender: pet.gender,
+    birthday: pet.birthday,
+    allergyNotes: pet.allergyNotes
   }));
 
   return {

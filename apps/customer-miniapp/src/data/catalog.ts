@@ -104,9 +104,9 @@ export const catalogProducts: CatalogProduct[] = [
     memberLevelLabel: '普通会员可购',
     categoryId: 'cake-custom',
     deliveryModes: ['pickup', 'delivery', 'express'],
-    thumbnail: '/assets/catalog/product-card-reference.png',
-    gallery: ['/assets/catalog/product-card-reference.png', '/assets/catalog/detail-reference.png'],
-    detailImages: ['/assets/catalog/detail-reference.png', '/assets/catalog/detail-long-reference.png'],
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
     specs: [
       { id: 'coconut-wave-3-chicken', label: '3寸鸡肉', price: 288 },
       { id: 'coconut-wave-3-duck', label: '3寸鸭肉', price: 288 },
@@ -125,9 +125,9 @@ export const catalogProducts: CatalogProduct[] = [
     memberLevelLabel: '普通会员可购',
     categoryId: 'cake-custom',
     deliveryModes: ['pickup', 'delivery'],
-    thumbnail: '/assets/catalog/detail-reference.png',
-    gallery: ['/assets/catalog/detail-reference.png', '/assets/catalog/quick-buy-reference.png'],
-    detailImages: ['/assets/catalog/detail-reference.png', '/assets/catalog/detail-long-reference.png'],
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
     specs: [
       { id: 'retro-lolo-3-chicken', label: '3寸鸡肉', price: 308 },
       { id: 'retro-lolo-4-duck', label: '4寸鸭肉', price: 348 }
@@ -145,9 +145,9 @@ export const catalogProducts: CatalogProduct[] = [
     memberLevelLabel: '普通会员可购',
     categoryId: 'cake-custom',
     deliveryModes: ['pickup', 'delivery'],
-    thumbnail: '/assets/catalog/catalog-reference.png',
-    gallery: ['/assets/catalog/catalog-reference.png', '/assets/catalog/detail-reference.png'],
-    detailImages: ['/assets/catalog/detail-reference.png', '/assets/catalog/detail-long-reference.png'],
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
     specs: [
       { id: 'milk-ball-3-chicken', label: '3寸鸡肉', price: 248 },
       { id: 'milk-ball-4-duck', label: '4寸鸭肉', price: 288 }
@@ -165,9 +165,9 @@ export const catalogProducts: CatalogProduct[] = [
     memberLevelLabel: '普通会员可购',
     categoryId: 'cake-custom',
     deliveryModes: ['pickup', 'delivery', 'express'],
-    thumbnail: '/assets/catalog/catalog-reference.png',
-    gallery: ['/assets/catalog/catalog-reference.png', '/assets/catalog/detail-reference.png'],
-    detailImages: ['/assets/catalog/detail-reference.png', '/assets/catalog/detail-long-reference.png'],
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
     specs: [
       { id: 'spring-time-3-chicken', label: '3寸鸡肉', price: 248 },
       { id: 'spring-time-4-heart', label: '4寸狗狗夹心坯', price: 298 }
@@ -185,9 +185,9 @@ export const catalogProducts: CatalogProduct[] = [
     memberLevelLabel: '银卡会员可购',
     categoryId: 'cake-regular',
     deliveryModes: ['pickup', 'delivery', 'express'],
-    thumbnail: '/assets/catalog/detail-reference.png',
-    gallery: ['/assets/catalog/detail-reference.png', '/assets/catalog/detail-long-reference.png'],
-    detailImages: ['/assets/catalog/detail-long-reference.png', '/assets/catalog/detail-reference.png'],
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
     specs: [
       { id: 'ocean-party-3-chicken', label: '3寸鸡肉', price: 138 },
       { id: 'ocean-party-3-duck', label: '3寸鸭肉', price: 138 },
@@ -209,9 +209,9 @@ export const catalogProducts: CatalogProduct[] = [
     memberLevelLabel: '普通会员可购',
     categoryId: 'cookie',
     deliveryModes: ['pickup', 'delivery', 'express'],
-    thumbnail: '/assets/catalog/search-reference.png',
-    gallery: ['/assets/catalog/search-reference.png'],
-    detailImages: ['/assets/catalog/search-reference.png'],
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
     specs: []
   },
   {
@@ -226,9 +226,9 @@ export const catalogProducts: CatalogProduct[] = [
     memberLevelLabel: '普通会员可购',
     categoryId: 'snacks',
     deliveryModes: ['pickup', 'delivery', 'express'],
-    thumbnail: '/assets/catalog/sold-out-reference.png',
-    gallery: ['/assets/catalog/sold-out-reference.png'],
-    detailImages: ['/assets/catalog/sold-out-reference.png'],
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
     specs: [
       { id: 'seaweed-jerky-70g', label: '70g 鸡鸭混装', price: 29.9 }
     ]
@@ -245,9 +245,9 @@ export const catalogProducts: CatalogProduct[] = [
     memberLevelLabel: '普通会员可购',
     categoryId: 'cookie',
     deliveryModes: ['pickup', 'delivery', 'express'],
-    thumbnail: '/assets/catalog/sold-out-reference.png',
-    gallery: ['/assets/catalog/sold-out-reference.png'],
-    detailImages: ['/assets/catalog/sold-out-reference.png'],
+    thumbnail: '',
+    gallery: [],
+    detailImages: [],
     specs: []
   }
 ];

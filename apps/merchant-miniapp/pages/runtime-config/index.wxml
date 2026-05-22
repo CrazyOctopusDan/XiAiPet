@@ -42,12 +42,16 @@
       </view>
 
       <view class="form-stack" wx:if="{{item.sectionId === 'store-profile'}}">
-        <input class="field-input" data-field="address" value="{{item.storeFields.address}}" placeholder="店铺地址" bindinput="handleStoreInput" />
-        <view class="field-pair">
-          <input class="field-input field-half" data-field="latitude" value="{{item.storeFields.latitude}}" placeholder="纬度" bindinput="handleStoreInput" />
-          <input class="field-input field-half" data-field="longitude" value="{{item.storeFields.longitude}}" placeholder="经度" bindinput="handleStoreInput" />
+        <input class="field-input" data-field="storeName" value="{{item.storeFields.storeName}}" placeholder="店铺名称" bindinput="handleStoreInput" />
+        <view class="location-card" bindtap="handleChooseStoreLocation">
+          <view class="location-copy">
+            <text class="location-title">{{item.storeFields.address || '选择店铺位置'}}</text>
+            <text class="location-meta">用于计算用户配送距离</text>
+          </view>
+          <text class="location-action">选择</text>
         </view>
-        <input class="field-input" data-field="contactPhone" value="{{item.storeFields.contactPhone}}" placeholder="联系电话" bindinput="handleStoreInput" />
+        <input class="field-input" data-field="wechatId" value="{{item.storeFields.wechatId}}" placeholder="微信号" bindinput="handleStoreInput" />
+        <input class="field-input" data-field="ownerPhone" value="{{item.storeFields.ownerPhone}}" placeholder="店主手机号" bindinput="handleStoreInput" />
       </view>
 
       <view wx:if="{{item.sectionId === 'delivery-rules'}}">
@@ -56,11 +60,13 @@
           <text class="toolbar-link" bindtap="handleOpenDeliveryNotice">说明</text>
         </view>
         <view class="delivery-list">
-          <view class="delivery-row" wx:for="{{item.deliveryRows}}" wx:for-item="row" wx:key="explainer">
+          <view class="delivery-row" wx:for="{{item.deliveryRows}}" wx:for-item="row" wx:for-index="rowIndex" wx:key="explainer" data-index="{{rowIndex}}" bindtap="handleDeliveryRowTap">
             <text class="delivery-distance">{{row.distanceKm}}km</text>
             <text class="delivery-copy">{{row.explainer}}</text>
+            <text class="delivery-more">···</text>
           </view>
         </view>
+        <button class="ghost-button" bindtap="handleAddDeliveryRule">新增配送档</button>
       </view>
 
       <view wx:if="{{item.sectionId === 'membership-tiers'}}">
@@ -84,13 +90,26 @@
 
       <view wx:if="{{item.sectionId === 'custom-notice'}}">
         <view class="section-toolbar">
-          <text class="toolbar-copy">定制提示</text>
+          <text class="toolbar-copy">用户端首页点击「购前须知」后展示</text>
           <text class="toolbar-link" bindtap="handleNoticeToggle">{{item.customNoticeFields.enabled ? '已开启' : '已关闭'}}</text>
         </view>
-        <textarea class="field-area" data-field="content" value="{{item.customNoticeFields.content}}" placeholder="提示内容" bindinput="handleNoticeInput"></textarea>
+        <textarea class="field-area" data-field="content" value="{{item.customNoticeFields.content}}" placeholder="购前须知内容" bindinput="handleNoticeInput"></textarea>
       </view>
 
       <button class="save-button" data-section-id="{{item.sectionId}}" bindtap="handleSaveSection">保存{{item.title}}</button>
+    </view>
+  </view>
+
+  <view class="editor-mask" wx:if="{{deliveryEditorVisible}}" bindtap="handleCloseDeliveryEditor">
+    <view class="editor-panel" catchtap="handleEditorTap">
+      <view class="editor-head">
+        <text class="editor-title">{{deliveryEditorIndex >= 0 ? '编辑配送档' : '新增配送档'}}</text>
+        <text class="editor-close" bindtap="handleCloseDeliveryEditor">×</text>
+      </view>
+      <input class="field-input" type="digit" data-field="distanceKm" value="{{deliveryEditorDraft.distanceKm}}" placeholder="配送距离 km" bindinput="handleDeliveryEditorInput" />
+      <input class="field-input" type="digit" data-field="minimumOrderAmount" value="{{deliveryEditorDraft.minimumOrderAmount}}" placeholder="起送金额，可留空" bindinput="handleDeliveryEditorInput" />
+      <input class="field-input" type="digit" data-field="deliveryFee" value="{{deliveryEditorDraft.deliveryFee}}" placeholder="配送费" bindinput="handleDeliveryEditorInput" />
+      <button class="save-button" bindtap="handleConfirmDeliveryEditor">确认</button>
     </view>
   </view>
 </view>

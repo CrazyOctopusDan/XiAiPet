@@ -441,6 +441,23 @@
   background: #FFFDF5;
 }
 
+.checkout-item-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx;
+  background: linear-gradient(135deg, #FFFDF5 0%, #F6E396 100%);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.checkout-item-image-placeholder text {
+  font-size: 20rpx;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #40535C;
+}
+
 .checkout-item-main {
   flex: 1;
   min-width: 0;

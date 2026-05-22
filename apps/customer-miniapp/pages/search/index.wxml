@@ -11,7 +11,8 @@
 
   <view class="results-grid" wx:if="{{results.length}}">
     <view class="result-card" wx:for="{{results}}" wx:key="id" data-product-id="{{item.id}}" bindtap="handleProductTap">
-      <image class="result-image" mode="aspectFill" src="{{item.thumbnail}}" />
+      <image wx:if="{{item.thumbnail}}" class="result-image" mode="aspectFill" src="{{item.thumbnail}}" />
+      <view wx:else class="result-image result-image-placeholder"><text>{{item.name}}</text></view>
       <view class="soldout-mask" wx:if="{{item.soldOut}}">
         <text class="soldout-stamp">售罄</text>
       </view>
@@ -46,7 +47,8 @@
 
   <view class="quick-buy-mask" wx:if="{{showQuickBuy}}" catchtouchmove="handleMaskTouchMove">
     <view class="quick-buy-panel">
-      <image class="quick-buy-image" mode="aspectFill" src="{{selectedProduct.thumbnail}}" />
+      <image wx:if="{{selectedProduct.thumbnail}}" class="quick-buy-image" mode="aspectFill" src="{{selectedProduct.thumbnail}}" />
+      <view wx:else class="quick-buy-image quick-buy-image-placeholder"><text>{{selectedProduct.name}}</text></view>
       <view class="quick-buy-close" bindtap="handleQuickBuyClose">×</view>
       <view class="quick-buy-content">
         <text class="quick-buy-name">{{selectedProduct.name}}</text>

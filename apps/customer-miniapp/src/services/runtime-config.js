@@ -19,15 +19,17 @@ const LOCKED_DELIVERY_RULE_ROWS = [
 ];
 const DEFAULT_RUNTIME_CONFIG = {
     banner: {
-        fileId: '/assets/catalog/banner.png',
+        fileId: '/assets/catalog/banner.jpg',
         altText: '首页 Banner'
     },
     store: {
         name: '虾衣宠物烘焙工作室',
+        storeName: '虾衣宠物烘焙工作室',
         address: '上海市静安区南京西路 1266 号 8 楼',
         latitude: 31.22911,
         longitude: 121.44853,
-        contactPhone: ''
+        wechatId: '',
+        ownerPhone: ''
     },
     customNotice: {
         enabled: true,
@@ -54,25 +56,37 @@ function cloneRuntimeConfig(config) {
         }
     };
 }
-function mergeRuntimeConfig(result) {
-    var _a, _b, _c;
+function getSection(sections, sectionId) {
+    var _a;
+    return (_a = sections === null || sections === void 0 ? void 0 : sections.find((section) => section.sectionId === sectionId)) !== null && _a !== void 0 ? _a : null;
+}
+function normalizeStoreProfile(store) {
+    var _a, _b;
+    const value = store;
+    const storeName = (value === null || value === void 0 ? void 0 : value.storeName) || DEFAULT_RUNTIME_CONFIG.store.storeName;
     return {
-        banner: result.banner
-            ? {
-                ...result.banner
-            }
-            : { ...DEFAULT_RUNTIME_CONFIG.banner },
-        store: {
-            ...DEFAULT_RUNTIME_CONFIG.store,
-            ...((_a = result.store) !== null && _a !== void 0 ? _a : {})
-        },
-        customNotice: result.customNotice
-            ? {
-                ...result.customNotice
-            }
-            : { ...DEFAULT_RUNTIME_CONFIG.customNotice },
+        ...DEFAULT_RUNTIME_CONFIG.store,
+        ...(value !== null && value !== void 0 ? value : {}),
+        storeName,
+        name: storeName,
+        wechatId: (_a = value === null || value === void 0 ? void 0 : value.wechatId) !== null && _a !== void 0 ? _a : DEFAULT_RUNTIME_CONFIG.store.wechatId,
+        ownerPhone: (_b = value === null || value === void 0 ? void 0 : value.ownerPhone) !== null && _b !== void 0 ? _b : DEFAULT_RUNTIME_CONFIG.store.ownerPhone
+    };
+}
+function mergeRuntimeConfig(result) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const bannerSection = getSection(result.sections, 'banner');
+    const storeSection = getSection(result.sections, 'store-profile');
+    const noticeSection = getSection(result.sections, 'custom-notice');
+    const deliverySection = getSection(result.sections, 'delivery-rules');
+    const banner = (_b = (_a = result.banner) !== null && _a !== void 0 ? _a : bannerSection === null || bannerSection === void 0 ? void 0 : bannerSection.value) !== null && _b !== void 0 ? _b : DEFAULT_RUNTIME_CONFIG.banner;
+    const customNotice = (_d = (_c = result.customNotice) !== null && _c !== void 0 ? _c : noticeSection === null || noticeSection === void 0 ? void 0 : noticeSection.value) !== null && _d !== void 0 ? _d : DEFAULT_RUNTIME_CONFIG.customNotice;
+    return {
+        banner: { ...banner },
+        store: normalizeStoreProfile((_e = result.store) !== null && _e !== void 0 ? _e : storeSection === null || storeSection === void 0 ? void 0 : storeSection.value),
+        customNotice: { ...customNotice },
         deliveryRules: {
-            tiers: ((_c = (_b = result.deliveryRules) === null || _b === void 0 ? void 0 : _b.tiers) !== null && _c !== void 0 ? _c : DEFAULT_RUNTIME_CONFIG.deliveryRules.tiers).map((row) => ({ ...row }))
+            tiers: ((_h = (_g = ((_f = result.deliveryRules) !== null && _f !== void 0 ? _f : deliverySection === null || deliverySection === void 0 ? void 0 : deliverySection.value)) === null || _g === void 0 ? void 0 : _g.tiers) !== null && _h !== void 0 ? _h : DEFAULT_RUNTIME_CONFIG.deliveryRules.tiers).map((row) => ({ ...row }))
         }
     };
 }

@@ -5,7 +5,7 @@ import type { CatalogOssAssetReference } from './repository';
 
 type CustomerDeliveryMode = 'pickup' | 'delivery' | 'express';
 
-const DEFAULT_PRODUCT_DETAIL_IMAGES = ['/assets/catalog/detail-long-reference.png'];
+const DEFAULT_PRODUCT_DETAIL_IMAGES: string[] = [];
 
 interface CustomerCatalogCategory {
   id: string;
@@ -280,7 +280,7 @@ function mapCustomerProduct(product: CatalogProductRecord): CustomerCatalogProdu
     deliveryModes: getCustomerDeliveryModes(normalizedProduct),
     thumbnail,
     imageAsset: normalizedProduct.imageAsset,
-    gallery: gallery.length ? gallery : [thumbnail],
+    gallery: gallery.length ? gallery : thumbnail ? [thumbnail] : [],
     introductionImageAssets: normalizedProduct.introductionImageAssets,
     detailImages: detailImages.length ? detailImages : DEFAULT_PRODUCT_DETAIL_IMAGES,
     detailImageAssets: normalizedProduct.detailImageAssets,

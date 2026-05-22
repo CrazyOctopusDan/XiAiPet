@@ -20,6 +20,23 @@
   height: 670rpx;
 }
 
+.detail-swiper-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56rpx;
+  background: linear-gradient(135deg, #FFFDF5 0%, #F6E396 100%);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.detail-swiper-placeholder text {
+  font-size: 56rpx;
+  line-height: 1.12;
+  font-weight: 900;
+  color: #40535C;
+}
+
 .swiper-indicator {
   position: absolute;
   right: 28rpx;

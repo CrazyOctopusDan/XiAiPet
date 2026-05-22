@@ -47,6 +47,10 @@ Component({
     reserveSpace: {
       type: Boolean,
       value: true
+    },
+    navigateOnBack: {
+      type: Boolean,
+      value: true
     }
   },
   data: {
@@ -70,7 +74,9 @@ Component({
     },
     handleBackTap() {
       this.triggerEvent('back');
-      wx.navigateBack();
+      if (this.properties.navigateOnBack) {
+        wx.navigateBack();
+      }
     }
   }
 });

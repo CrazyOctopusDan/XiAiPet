@@ -252,6 +252,25 @@
   height: 360rpx;
 }
 
+.result-image-placeholder,
+.quick-buy-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #FFFDF5 0%, #F6E396 100%);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.result-image-placeholder text,
+.quick-buy-image-placeholder text {
+  font-size: 26rpx;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #40535C;
+}
+
 .quick-buy-close {
   position: absolute;
   right: 26rpx;

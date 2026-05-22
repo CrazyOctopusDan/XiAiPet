@@ -81,7 +81,10 @@ function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
       pets: [
         {
           id: 'pet-001',
-          name: '奶油'
+          name: '奶油',
+          gender: 'female',
+          birthday: '2023-04-12',
+          allergyNotes: '对鸡肉冻干敏感'
         }
       ],
       remark: '请提前 10 分钟联系'
@@ -336,6 +339,14 @@ describe('merchant orders service', () => {
       canPrintReceipt: false,
       printActionLabel: '打印小票',
       receiptPrintCountLabel: '尚未打印'
+    });
+    expect(detail?.hasPets).toBe(true);
+    expect(detail?.pets[0]).toMatchObject({
+      name: '奶油',
+      genderLabel: '女孩',
+      birthdayLabel: '生日 2023-04-12',
+      allergyNotesLabel: '过敏源：对鸡肉冻干敏感',
+      hasAllergyNotes: true
     });
     expect(detail?.auditSummary).toMatchObject({
       latestActionLabel: '订单创建'

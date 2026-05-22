@@ -9,4 +9,41 @@
       </view>
     </view>
   </view>
+
+  <view class="home-modal-mask" wx:if="{{contactModalVisible}}" bindtap="handleCloseContactModal">
+    <view class="home-modal" catchtap="handleHomeTap">
+      <view class="home-modal-head">
+        <text class="home-modal-title">售前咨询</text>
+        <text class="home-modal-close" bindtap="handleCloseContactModal">×</text>
+      </view>
+      <text class="home-modal-subtitle">需要确认定制细节时，可以先联系店主。</text>
+      <view class="contact-list">
+        <view class="contact-row">
+          <view class="contact-copy">
+            <text class="contact-label">微信号</text>
+            <text class="contact-value">{{storeContact.wechatId || '暂未配置'}}</text>
+          </view>
+          <button class="copy-button" data-value="{{storeContact.wechatId}}" bindtap="handleCopyContact">复制</button>
+        </view>
+        <view class="contact-row">
+          <view class="contact-copy">
+            <text class="contact-label">店主手机号</text>
+            <text class="contact-value">{{storeContact.ownerPhone || '暂未配置'}}</text>
+          </view>
+          <button class="copy-button" data-value="{{storeContact.ownerPhone}}" bindtap="handleCopyContact">复制</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="home-modal-mask" wx:if="{{noticeModalVisible}}" bindtap="handleCloseNoticeModal">
+    <view class="home-modal" catchtap="handleHomeTap">
+      <view class="home-modal-head">
+        <text class="home-modal-title">购前须知</text>
+        <text class="home-modal-close" bindtap="handleCloseNoticeModal">×</text>
+      </view>
+      <text class="notice-modal-copy">{{purchaseNotice || '购前须知暂未配置。'}}</text>
+      <button class="notice-modal-button" bindtap="handleCloseNoticeModal">我知道了</button>
+    </view>
+  </view>
 </view>

@@ -33,7 +33,8 @@
               <view class="checkbox {{item.selected ? 'active' : ''}}"></view>
             </view>
 
-            <image class="row-image" mode="aspectFill" src="{{item.thumbnail}}" />
+            <image wx:if="{{item.thumbnail}}" class="row-image" mode="aspectFill" src="{{item.thumbnail}}" />
+            <view wx:else class="row-image row-image-placeholder"><text>{{item.name}}</text></view>
 
             <view class="row-main">
               <text class="row-name">{{item.name}}</text>
@@ -80,7 +81,8 @@
 
   <view class="quick-buy-mask" wx:if="{{showSpecModal}}">
     <view class="quick-buy-panel">
-      <image class="quick-buy-image" mode="aspectFill" src="{{editingItem.thumbnail}}" />
+      <image wx:if="{{editingItem.thumbnail}}" class="quick-buy-image" mode="aspectFill" src="{{editingItem.thumbnail}}" />
+      <view wx:else class="quick-buy-image quick-buy-image-placeholder"><text>{{editingItem.name}}</text></view>
       <view class="quick-buy-close" bindtap="handleCloseSpecModal">×</view>
       <view class="quick-buy-content">
         <text class="quick-buy-name">{{editingItem.name}}</text>

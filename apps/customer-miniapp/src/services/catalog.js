@@ -16,9 +16,9 @@ exports.resetCatalogCache = resetCatalogCache;
 exports.hydrateCatalog = hydrateCatalog;
 const catalog_1 = require("../data/catalog");
 const api_client_1 = require("./api-client");
+const DEFAULT_PRODUCT_DETAIL_IMAGES = [];
 let cachedCatalogCategories = cloneCategories(catalog_1.catalogCategories);
 let cachedCatalogProducts = cloneProducts(catalog_1.catalogProducts);
-const DEFAULT_PRODUCT_DETAIL_IMAGES = ['/assets/catalog/detail-long-reference.png'];
 function getHomeModules() {
     return catalog_1.homeModules;
 }

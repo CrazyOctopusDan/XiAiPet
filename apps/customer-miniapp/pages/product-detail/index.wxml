@@ -1,12 +1,13 @@
 <view class="detail-page" wx:if="{{product}}">
   <page-nav theme="light" reserve-space="{{false}}" />
 
-  <swiper class="detail-swiper" circular="true" indicator-dots="false" current="{{swiperIndex - 1}}" bindchange="handleSwiperChange">
+  <swiper wx:if="{{product.gallery.length}}" class="detail-swiper" circular="true" indicator-dots="false" current="{{swiperIndex - 1}}" autoplay="{{product.gallery.length > 1}}" interval="3000" bindchange="handleSwiperChange">
     <swiper-item wx:for="{{product.gallery}}" wx:key="*this">
       <image class="detail-image" mode="aspectFill" src="{{item}}" />
     </swiper-item>
   </swiper>
-  <view class="swiper-indicator">{{swiperIndex}}/{{product.gallery.length}}</view>
+  <view wx:else class="detail-swiper detail-swiper-placeholder"><text>{{product.name}}</text></view>
+  <view class="swiper-indicator" wx:if="{{product.gallery.length}}">{{swiperIndex}}/{{product.gallery.length}}</view>
 
   <view class="detail-card intro-card">
     <text class="detail-title">{{product.name}}</text>
@@ -23,7 +24,7 @@
     <text class="selected-spec-text">当前选择：{{selectedSpecLabel}}</text>
   </view>
 
-  <view class="detail-card long-image-card">
+  <view class="detail-card long-image-card" wx:if="{{product.detailImages.length}}">
     <text class="section-title">商品详情</text>
     <image class="long-detail-image" wx:for="{{product.detailImages}}" wx:key="*this" mode="widthFix" src="{{item}}" />
   </view>

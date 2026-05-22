@@ -336,7 +336,8 @@ describe('orders pages', () => {
       'utf8'
     );
 
-    expect(detailTemplate).toContain('bindtap="handleBackTap"');
-    expect(detailTemplate).toContain('订单列表');
+    expect(detailTemplate).toContain('<page-nav');
+    expect(detailTemplate).toContain('bindback="handleBackTap"');
+    expect(detailTemplate).toContain('navigate-on-back="{{false}}"');
   });
 });

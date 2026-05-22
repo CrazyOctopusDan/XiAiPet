@@ -108,7 +108,10 @@ describe('order submit service', () => {
     expect(payload.pets).toEqual([
       expect.objectContaining({
         id: pet.id,
-        name: pet.name
+        name: pet.name,
+        gender: pet.gender,
+        birthday: pet.birthday,
+        allergyNotes: pet.allergyNotes
       })
     ]);
     expect(payload.idempotencyKey).toBe('checkout-20260417-001');

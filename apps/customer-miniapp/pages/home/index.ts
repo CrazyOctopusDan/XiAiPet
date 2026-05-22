@@ -11,6 +11,15 @@ interface NavigationMetrics {
 }
 
 interface HomePageInstance {
+  data: {
+    storeContact: {
+      wechatId: string;
+      ownerPhone: string;
+    };
+    purchaseNotice: string;
+    contactModalVisible: boolean;
+    noticeModalVisible: boolean;
+  };
   setData(data: Record<string, unknown>): void;
   refreshHome(): Promise<void>;
   getTabBar?(): { setSelectedKey?: (key: string) => void } | undefined;
@@ -67,7 +76,14 @@ function getNavigationMetrics(): NavigationMetrics {
 Page({
   data: {
     modules: buildHomeModulesFallback(),
-    heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId
+    heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId,
+    storeContact: {
+      wechatId: getCachedCustomerRuntimeConfig().store.wechatId,
+      ownerPhone: getCachedCustomerRuntimeConfig().store.ownerPhone
+    },
+    purchaseNotice: getCachedCustomerRuntimeConfig().customNotice.content,
+    contactModalVisible: false,
+    noticeModalVisible: false
   },
   onShow(this: HomePageInstance) {
     this.getTabBar?.()?.setSelectedKey?.('home');
@@ -81,7 +97,12 @@ Page({
     } finally {
       this.setData({
         modules: decorateHomeModules(await modulePromise),
-        heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId
+        heroBannerSrc: getCachedCustomerRuntimeConfig().banner.fileId,
+        storeContact: {
+          wechatId: getCachedCustomerRuntimeConfig().store.wechatId,
+          ownerPhone: getCachedCustomerRuntimeConfig().store.ownerPhone
+        },
+        purchaseNotice: getCachedCustomerRuntimeConfig().customNotice.enabled ? getCachedCustomerRuntimeConfig().customNotice.content : ''
       });
     }
   },
@@ -95,9 +116,46 @@ Page({
       return;
     }
 
+    if (moduleId === 'consulting') {
+      this.setData({ contactModalVisible: true });
+      return;
+    }
+
+    if (moduleId === 'notice') {
+      this.setData({ noticeModalVisible: true });
+      return;
+    }
+
     wx.showToast({
       title: '该模块下一阶段继续实现',
       icon: 'none'
+    });
+  },
+  handleCloseContactModal(this: HomePageInstance) {
+    this.setData({ contactModalVisible: false });
+  },
+  handleCloseNoticeModal(this: HomePageInstance) {
+    this.setData({ noticeModalVisible: false });
+  },
+  handleCopyContact(this: HomePageInstance, event: { currentTarget?: { dataset?: { value?: string } } }) {
+    const value = event.currentTarget?.dataset?.value;
+
+    if (!value) {
+      wx.showToast({
+        title: '暂无可复制内容',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.setClipboardData({
+      data: value,
+      success: () => {
+        wx.showToast({
+          title: '已复制',
+          icon: 'success'
+        });
+      }
     });
   },
   handleHomeTap() {

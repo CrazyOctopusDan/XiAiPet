@@ -20,10 +20,12 @@ describe('customer runtime config service', () => {
         altText: '本周主推'
       },
       store: {
+        storeName: '喜爱宠物烘焙',
         address: '上海市长宁区愚园路 1200 号',
         latitude: 31.2201,
         longitude: 121.4242,
-        contactPhone: '13900000000'
+        wechatId: 'xiaipet-bakery',
+        ownerPhone: '13900000000'
       },
       customNotice: {
         enabled: false,
@@ -50,8 +52,10 @@ describe('customer runtime config service', () => {
         altText: '本周主推'
       },
       store: {
+        storeName: '喜爱宠物烘焙',
         address: '上海市长宁区愚园路 1200 号',
-        contactPhone: '13900000000'
+        wechatId: 'xiaipet-bakery',
+        ownerPhone: '13900000000'
       },
       customNotice: {
         enabled: false,
@@ -82,11 +86,50 @@ describe('customer runtime config service', () => {
       })
     );
 
-    expect(runtimeConfig.banner.fileId).toBe('/assets/catalog/banner.png');
+    expect(runtimeConfig.banner.fileId).toBe('/assets/catalog/banner.jpg');
     expect(runtimeConfig.store.name).toBe('虾衣宠物烘焙工作室');
     expect(runtimeConfig.customNotice.enabled).toBe(false);
     expect(runtimeConfig.deliveryRules.tiers[0]?.explainer).toBe('5.0 公里内 98 元起送，配送费 0 元');
     expect(getCachedCustomerRuntimeConfig()).toMatchObject(runtimeConfig);
+  });
+
+  it('also reads runtime config from section documents returned by the API', async () => {
+    const runtimeConfig = await hydrateCustomerRuntimeConfig(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        sections: [
+          {
+            sectionId: 'store-profile',
+            updatedAt: '2026-05-22T10:00:00.000Z',
+            updatedBy: { openid: 'merchant', name: '店主' },
+            value: {
+              storeName: '喜爱宠物烘焙',
+              address: '上海市徐汇区永嘉路 88 号',
+              latitude: 31.2101,
+              longitude: 121.4501,
+              wechatId: 'xiaipet-vip',
+              ownerPhone: '13600000000'
+            }
+          },
+          {
+            sectionId: 'custom-notice',
+            updatedAt: '2026-05-22T10:00:00.000Z',
+            updatedBy: { openid: 'merchant', name: '店主' },
+            value: {
+              enabled: true,
+              content: '购前请确认配送时间。'
+            }
+          }
+        ]
+      })
+    );
+
+    expect(runtimeConfig.store).toMatchObject({
+      name: '喜爱宠物烘焙',
+      wechatId: 'xiaipet-vip',
+      ownerPhone: '13600000000'
+    });
+    expect(runtimeConfig.customNotice.content).toBe('购前请确认配送时间。');
   });
 
   it('resolves OSS banner asset URLs before falling back to fileId', () => {

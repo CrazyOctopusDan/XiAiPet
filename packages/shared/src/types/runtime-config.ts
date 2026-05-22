@@ -22,10 +22,12 @@ export interface RuntimeConfigSectionMeta {
 }
 
 export interface StoreProfileRuntimeConfigValue {
+  storeName: string;
   address: string;
   latitude: number;
   longitude: number;
-  contactPhone: string;
+  wechatId: string;
+  ownerPhone: string;
 }
 
 export interface DeliveryRuleTierRow {

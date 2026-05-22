@@ -99,7 +99,10 @@ function buildCreateOrderPayload(paymentMethod, idempotencyKey = createIdempoten
     const pricing = getCheckoutPricingPreview();
     const pets = checkout.selectedPets.map((pet) => ({
         id: pet.id,
-        name: pet.name
+        name: pet.name,
+        gender: pet.gender,
+        birthday: pet.birthday,
+        allergyNotes: pet.allergyNotes
     }));
     return {
         idempotencyKey,

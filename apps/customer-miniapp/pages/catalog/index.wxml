@@ -33,7 +33,8 @@
 
         <view class="product-grid">
           <view class="product-card" wx:for="{{item.availableProducts}}" wx:key="id" data-product-id="{{item.id}}" bindtap="handleProductTap">
-            <image class="product-image" mode="aspectFill" src="{{item.thumbnail}}" />
+            <image wx:if="{{item.thumbnail}}" class="product-image" mode="aspectFill" src="{{item.thumbnail}}" />
+            <view wx:else class="product-image product-image-placeholder"><text>{{item.name}}</text></view>
             <text class="product-name">{{item.name}}</text>
             <text class="product-summary">{{item.summary}}</text>
             <text class="product-member">{{item.memberLevelLabel}}</text>
@@ -43,9 +44,9 @@
               <view class="product-action-badge" wx:if="{{item.cartQuantity}}">{{item.cartQuantity > 99 ? '99+' : item.cartQuantity}}</view>
             </button>
             <view class="product-stepper" wx:elif="{{item.cartQuantity > 0}}" catchtap="handleActionTap">
-              <view class="stepper-circle" data-product-id="{{item.id}}" catchtap="handleDirectMinus">-</view>
-              <text class="stepper-value">{{item.cartQuantity}}</text>
-              <view class="stepper-circle plus" data-product-id="{{item.id}}" catchtap="handleDirectAdd">+</view>
+              <view class="stepper-btn" data-product-id="{{item.id}}" catchtap="handleDirectMinus">-</view>
+              <text class="stepper-count">{{item.cartQuantity}}</text>
+              <view class="stepper-btn plus" data-product-id="{{item.id}}" catchtap="handleDirectAdd">+</view>
             </view>
             <button class="product-action direct" wx:else data-product-id="{{item.id}}" catchtap="handleDirectAdd">+</button>
           </view>
@@ -57,7 +58,8 @@
 
         <view class="product-grid soldout-grid" wx:if="{{item.isSoldOutExpanded}}">
           <view class="product-card soldout" wx:for="{{item.soldOutProducts}}" wx:key="id" data-product-id="{{item.id}}" bindtap="handleProductTap">
-            <image class="product-image" mode="aspectFill" src="{{item.thumbnail}}" />
+            <image wx:if="{{item.thumbnail}}" class="product-image" mode="aspectFill" src="{{item.thumbnail}}" />
+            <view wx:else class="product-image product-image-placeholder"><text>{{item.name}}</text></view>
             <view class="soldout-mask">
               <text class="soldout-stamp">售罄</text>
             </view>
@@ -84,7 +86,8 @@
 
   <view class="quick-buy-mask" wx:if="{{showQuickBuy}}" catchtouchmove="handleMaskTouchMove">
     <view class="quick-buy-panel">
-      <image class="quick-buy-image" mode="aspectFill" src="{{selectedProduct.thumbnail}}" />
+      <image wx:if="{{selectedProduct.thumbnail}}" class="quick-buy-image" mode="aspectFill" src="{{selectedProduct.thumbnail}}" />
+      <view wx:else class="quick-buy-image quick-buy-image-placeholder"><text>{{selectedProduct.name}}</text></view>
       <view class="quick-buy-close" bindtap="handleQuickBuyClose">×</view>
       <view class="quick-buy-content">
         <text class="quick-buy-name">{{selectedProduct.name}}</text>

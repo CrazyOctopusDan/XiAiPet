@@ -574,10 +574,12 @@ describe('cart checkout flow', () => {
         ok: true,
         banner: null,
         store: {
+          storeName: '喜爱宠物烘焙',
           address: '上海市徐汇区永嘉路 88 号',
           latitude: 31.205,
           longitude: 121.44,
-          contactPhone: '13600000000'
+          wechatId: 'xiaipet-vip',
+          ownerPhone: '13600000000'
         },
         customNotice: {
           enabled: false,

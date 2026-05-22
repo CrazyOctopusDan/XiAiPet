@@ -129,7 +129,7 @@ describe('catalog service', () => {
               memberLevelLabel: '普通会员可购',
               categoryId: 'fresh',
               deliveryModes: ['pickup', 'delivery'],
-              thumbnail: '/assets/catalog/product-card-reference.png',
+              thumbnail: '',
               gallery: [],
               detailImages: [],
               specs: []
@@ -182,8 +182,8 @@ describe('catalog service', () => {
               description: '后台商品描述',
               detailContent: '用户端详情',
               categoryId: 'category-1778893800973',
-              imageFileId: '/assets/catalog/product-card-reference.png',
-              imagePreviewUrl: '/assets/catalog/product-card-reference.png',
+              imageFileId: '',
+              imagePreviewUrl: '',
               memberLevelId: null,
               status: 'published',
               stock: 5,
@@ -253,7 +253,7 @@ describe('catalog service', () => {
               name: '历史蛋糕',
               description: '早期保存的商品',
               categoryId: 'legacy-category',
-              imageFileId: '/assets/catalog/product-card-reference.png',
+              imageFileId: '',
               stock: 3,
               trackInventory: true,
               fulfillmentModes: [],
@@ -499,8 +499,8 @@ describe('catalog service', () => {
             basePrice: 88,
             stock: 5,
             fulfillmentModes: ['delivery'],
-            imageFileId: '/assets/catalog/product-card-reference.png',
-            imagePreviewUrl: '/assets/catalog/product-card-reference.png',
+            imageFileId: '',
+            imagePreviewUrl: '',
             detailImages: []
           }
         ]
@@ -509,7 +509,7 @@ describe('catalog service', () => {
 
     await hydrateCatalog(apiRequest as Parameters<typeof hydrateCatalog>[0]);
 
-    expect(getProductById('plain-cake')?.detailImages).toEqual(['/assets/catalog/detail-long-reference.png']);
+    expect(getProductById('plain-cake')?.detailImages).toEqual([]);
   });
 
   it('keeps local fallback catalog content when remote sections are missing', async () => {

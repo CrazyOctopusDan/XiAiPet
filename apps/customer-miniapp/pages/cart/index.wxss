@@ -450,6 +450,25 @@
   background: #FFFDF5;
 }
 
+.row-image-placeholder,
+.quick-buy-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18rpx;
+  background: linear-gradient(135deg, #FFFDF5 0%, #F6E396 100%);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.row-image-placeholder text,
+.quick-buy-image-placeholder text {
+  font-size: 24rpx;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #40535C;
+}
+
 .quick-buy-close {
   position: absolute;
   top: 24rpx;

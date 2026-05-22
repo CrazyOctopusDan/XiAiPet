@@ -336,40 +336,10 @@
   display: flex;
   align-items: center;
   gap: 12rpx;
-  height: 58rpx;
-  padding: 0 8rpx;
+  padding: 7rpx;
   border-radius: 999rpx;
   background: #FFFDF5;
   box-shadow: inset 0 0 0 2rpx rgba(80, 104, 105, 0.06);
-}
-
-.stepper-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 46rpx;
-  height: 46rpx;
-  border: 2rpx solid #D8EEF2;
-  border-radius: 50%;
-  background: #FFFFFF;
-  font-size: 32rpx;
-  line-height: 1;
-  font-weight: 800;
-  color: #7B8B92;
-}
-
-.stepper-circle.plus {
-  border-color: #40535C;
-  background: #F6E396;
-  color: #40535C;
-}
-
-.stepper-value {
-  min-width: 18rpx;
-  font-size: 24rpx;
-  font-weight: 900;
-  color: #40535C;
-  text-align: center;
 }
 
 .soldout-toggle {
@@ -476,20 +446,20 @@
 
 .cart-float-badge {
   position: absolute;
-  right: -6rpx;
-  top: -8rpx;
-  min-width: 36rpx;
-  height: 36rpx;
+  right: -10rpx;
+  top: -14rpx;
+  min-width: 44rpx;
+  height: 44rpx;
   padding: 0 8rpx;
   border: 4rpx solid #FFFFFF;
   border-radius: 999rpx;
   box-sizing: border-box;
   background: #E86B61;
-  font-size: 20rpx;
-  line-height: 28rpx;
+  font-size: 24rpx;
+  line-height: 36rpx;
   text-align: center;
   font-weight: 900;
-  color: #40535C;
+  color: #fff;
 }
 
 .quick-buy-mask {
@@ -519,6 +489,25 @@
   width: 100%;
   height: 330rpx;
   background: #FFFDF5;
+}
+
+.product-image-placeholder,
+.quick-buy-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #FFFDF5 0%, #F6E396 100%);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.product-image-placeholder text,
+.quick-buy-image-placeholder text {
+  font-size: 28rpx;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #40535C;
 }
 
 .quick-buy-close {
@@ -616,23 +605,39 @@
 .quick-buy-stepper {
   display: flex;
   align-items: center;
-  gap: 18rpx;
-  padding: 8rpx;
+  gap: 12rpx;
+  padding: 7rpx;
   border-radius: 999rpx;
   background: #FFFDF5;
+  box-shadow: inset 0 0 0 2rpx rgba(80, 104, 105, 0.06);
 }
 
 .stepper-btn {
-  width: 52rpx;
-  height: 52rpx;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46rpx;
+  height: 46rpx;
   border: 2rpx solid #D8EEF2;
   border-radius: 50%;
   background: #FFFFFF;
-  font-size: 36rpx;
-  line-height: 48rpx;
-  text-align: center;
+  font-size: 0;
+  line-height: 1;
   font-weight: 800;
   color: #7B8B92;
+}
+
+.stepper-btn::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18rpx;
+  height: 5rpx;
+  border-radius: 999rpx;
+  background: #7B8B92;
+  transform: translate(-50%, -50%);
 }
 
 .stepper-btn.plus {
@@ -641,13 +646,29 @@
   color: #40535C;
 }
 
+.stepper-btn.plus::before,
+.stepper-btn.plus::after {
+  background: #40535C;
+}
+
+.stepper-btn.plus::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5rpx;
+  height: 18rpx;
+  border-radius: 999rpx;
+  transform: translate(-50%, -50%);
+}
+
 .stepper-count {
-  min-width: 24rpx;
-  font-size: 30rpx;
-  line-height: 1.2;
+  min-width: 22rpx;
+  font-size: 25rpx;
+  line-height: 1;
   font-weight: 900;
-  color: #40535C;
   text-align: center;
+  color: #40535C;
 }
 
 .quick-buy-submit {

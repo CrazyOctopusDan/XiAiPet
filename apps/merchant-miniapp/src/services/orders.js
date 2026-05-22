@@ -177,6 +177,28 @@ function toDetailItems(order) {
         lineTotalLabel: formatMoney(item.lineTotal)
     }));
 }
+function getPetGenderLabel(gender) {
+    if (gender === 'female') {
+        return '女孩';
+    }
+    if (gender === 'male') {
+        return '男孩';
+    }
+    return '性别未设置';
+}
+function toDetailPets(order) {
+    return order.snapshot.pets.map((pet) => {
+        var _a;
+        const allergyNotes = (_a = pet.allergyNotes) === null || _a === void 0 ? void 0 : _a.trim();
+        return {
+            name: pet.name,
+            genderLabel: getPetGenderLabel(pet.gender),
+            birthdayLabel: pet.birthday ? `生日 ${pet.birthday}` : '生日未设置',
+            allergyNotesLabel: allergyNotes ? `过敏源：${allergyNotes}` : '暂无过敏源备注',
+            hasAllergyNotes: Boolean(allergyNotes)
+        };
+    });
+}
 function toTimelineViewModel(entry) {
     var _a, _b, _c;
     return {
@@ -340,6 +362,8 @@ function getMerchantOrderDetailViewModel(detail) {
         deliveryFeeLabel: formatMoney(order.pricing.deliveryFee),
         payableTotalLabel: formatMoney(order.pricing.payableTotal),
         items: toDetailItems(order),
+        pets: toDetailPets(order),
+        hasPets: order.snapshot.pets.length > 0,
         auditSummary: getAuditSummary(timeline),
         timeline: timeline.map(toTimelineViewModel),
         canPrintReceipt: order.status === 'paid',

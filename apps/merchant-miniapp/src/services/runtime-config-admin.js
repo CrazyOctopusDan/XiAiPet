@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LOCKED_DELIVERY_RULE_ROWS = void 0;
+exports.buildDeliveryRuleExplainer = buildDeliveryRuleExplainer;
 exports.queryRuntimeConfigSections = queryRuntimeConfigSections;
 exports.saveRuntimeConfigSection = saveRuntimeConfigSection;
 exports.uploadRuntimeBannerAsset = uploadRuntimeBannerAsset;
@@ -50,10 +51,12 @@ function getDefaultSections() {
             updatedAt: now,
             updatedBy,
             value: {
+                storeName: '虾衣宠物烘焙工作室',
                 address: '',
                 latitude: 0,
                 longitude: 0,
-                contactPhone: ''
+                wechatId: '',
+                ownerPhone: ''
             }
         },
         {
@@ -84,7 +87,7 @@ function getDefaultSections() {
             updatedAt: now,
             updatedBy,
             value: {
-                fileId: '/assets/catalog/home-hero.png',
+                fileId: '/assets/catalog/banner.jpg',
                 altText: '首页 Banner'
             }
         },
@@ -99,10 +102,132 @@ function getDefaultSections() {
         }
     ];
 }
+function isRecord(value) {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+function asString(value, fallback = '') {
+    return typeof value === 'string' ? value : fallback;
+}
+function asNumber(value, fallback = 0) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+function normalizeUpdatedBy(value, fallback) {
+    if (isRecord(value)) {
+        return {
+            openid: asString(value.openid, fallback.openid),
+            name: asString(value.name, fallback.name)
+        };
+    }
+    if (typeof value === 'string' && value) {
+        return {
+            openid: value,
+            name: value
+        };
+    }
+    return fallback;
+}
+function normalizeMembershipTier(value, index) {
+    if (!isRecord(value)) {
+        return null;
+    }
+    return {
+        tierId: asString(value.tierId, asString(value.id, `tier-${index + 1}`)),
+        threshold: asNumber(value.threshold, asNumber(value.minimumBalance)),
+        name: asString(value.name, '会员等级'),
+        description: asString(value.description)
+    };
+}
+function buildDeliveryRuleExplainer(row) {
+    const distanceLabel = `${row.distanceKm.toFixed(1)} 公里内`;
+    const minimumLabel = row.minimumOrderAmount === null ? '' : ` ${row.minimumOrderAmount} 元起送，`;
+    return `${distanceLabel}${minimumLabel}配送费 ${row.deliveryFee} 元`;
+}
+function normalizeDeliveryRuleTier(value, index) {
+    if (!isRecord(value)) {
+        return null;
+    }
+    const row = {
+        distanceKm: asNumber(value.distanceKm, index + 1),
+        minimumOrderAmount: value.minimumOrderAmount === null ? null : asNumber(value.minimumOrderAmount, 0),
+        deliveryFee: asNumber(value.deliveryFee),
+        explainer: asString(value.explainer)
+    };
+    return {
+        ...row,
+        explainer: row.explainer || buildDeliveryRuleExplainer(row)
+    };
+}
+function normalizeSection(section, fallback) {
+    const rawValue = isRecord(section.value) ? section.value : {};
+    const base = {
+        updatedAt: asString(section.updatedAt, fallback.updatedAt),
+        updatedBy: normalizeUpdatedBy(section.updatedBy, fallback.updatedBy)
+    };
+    if (fallback.sectionId === 'store-profile') {
+        return {
+            sectionId: fallback.sectionId,
+            ...base,
+            value: {
+                storeName: asString(rawValue.storeName, asString(rawValue.name, fallback.value.storeName)),
+                address: asString(rawValue.address, asString(rawValue.storeAddress, fallback.value.address)),
+                latitude: asNumber(rawValue.latitude, fallback.value.latitude),
+                longitude: asNumber(rawValue.longitude, fallback.value.longitude),
+                wechatId: asString(rawValue.wechatId, fallback.value.wechatId),
+                ownerPhone: asString(rawValue.ownerPhone, asString(rawValue.contactPhone, asString(rawValue.servicePhone, fallback.value.ownerPhone)))
+            }
+        };
+    }
+    if (fallback.sectionId === 'delivery-rules') {
+        const tiers = Array.isArray(rawValue.tiers)
+            ? rawValue.tiers.map((tier, index) => normalizeDeliveryRuleTier(tier, index)).filter((tier) => Boolean(tier))
+            : fallback.value.tiers;
+        return {
+            sectionId: fallback.sectionId,
+            ...base,
+            value: {
+                tiers: tiers.length ? tiers : fallback.value.tiers
+            }
+        };
+    }
+    if (fallback.sectionId === 'membership-tiers') {
+        const tiers = Array.isArray(rawValue.tiers)
+            ? rawValue.tiers.map((tier, index) => normalizeMembershipTier(tier, index)).filter((tier) => Boolean(tier))
+            : fallback.value.tiers;
+        return {
+            sectionId: fallback.sectionId,
+            ...base,
+            value: {
+                tiers: tiers.length ? tiers : fallback.value.tiers
+            }
+        };
+    }
+    if (fallback.sectionId === 'banner') {
+        return {
+            sectionId: fallback.sectionId,
+            ...base,
+            value: {
+                fileId: asString(rawValue.fileId, asString(rawValue.imageFileId, fallback.value.fileId)),
+                altText: asString(rawValue.altText, asString(rawValue.title, fallback.value.altText)),
+                asset: isRecord(rawValue.asset) ? rawValue.asset : fallback.value.asset
+            }
+        };
+    }
+    return {
+        sectionId: fallback.sectionId,
+        ...base,
+        value: {
+            enabled: typeof rawValue.enabled === 'boolean' ? rawValue.enabled : fallback.value.enabled,
+            content: asString(rawValue.content, fallback.value.content)
+        }
+    };
+}
 function mergeSections(sections) {
     const defaults = getDefaultSections();
     const sectionMap = new Map(sections.map((section) => [section.sectionId, section]));
-    return defaults.map((fallback) => { var _a; return (_a = sectionMap.get(fallback.sectionId)) !== null && _a !== void 0 ? _a : fallback; });
+    return defaults.map((fallback) => {
+        const section = sectionMap.get(fallback.sectionId);
+        return section ? normalizeSection(section, fallback) : fallback;
+    });
 }
 function getSectionTitle(sectionId) {
     if (sectionId === 'store-profile') {
@@ -117,7 +242,7 @@ function getSectionTitle(sectionId) {
     if (sectionId === 'banner') {
         return '首页 Banner';
     }
-    return '定制提示';
+    return '购前须知';
 }
 function getSectionIconToken(sectionId) {
     if (sectionId === 'store-profile') {
@@ -132,11 +257,11 @@ function getSectionIconToken(sectionId) {
     if (sectionId === 'banner') {
         return '图';
     }
-    return '提';
+    return '须';
 }
 function getSectionSummaryLabel(section) {
     if (section.sectionId === 'store-profile') {
-        return section.value.contactPhone ? '地址与电话已配置' : '补全地址与电话';
+        return section.value.address && section.value.ownerPhone ? '门店位置与联系方式已配置' : '补全门店位置与联系方式';
     }
     if (section.sectionId === 'delivery-rules') {
         return `${section.value.tiers.length} 个配送档`;
@@ -147,7 +272,7 @@ function getSectionSummaryLabel(section) {
     if (section.sectionId === 'banner') {
         return section.value.fileId ? '首页展示图已配置' : '上传首页展示图';
     }
-    return section.value.enabled ? '定制提示已开启' : '定制提示已关闭';
+    return section.value.enabled ? '购前须知已开启' : '购前须知已关闭';
 }
 async function queryRuntimeConfigSections(request = api_client_1.merchantApiRequest) {
     var _a;

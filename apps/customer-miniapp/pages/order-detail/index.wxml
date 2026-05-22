@@ -1,10 +1,5 @@
 <view class="order-detail-page">
-  <view class="detail-topbar">
-    <view class="detail-back-button" bindtap="handleBackTap">
-      <text class="detail-back-icon">‹</text>
-      <text class="detail-back-text">订单列表</text>
-    </view>
-  </view>
+  <page-nav theme="light" reserve-space="{{false}}" navigate-on-back="{{false}}" bindback="handleBackTap" />
 
   <view class="detail-hero">
     <text class="detail-title">订单详情</text>

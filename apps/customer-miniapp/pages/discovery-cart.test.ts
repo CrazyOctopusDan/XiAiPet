@@ -137,8 +137,8 @@ describe('discovery cart pages', () => {
               description: '商户配置商品',
               detailContent: '适合节日加餐',
               categoryId: 'merchant-seasonal',
-              imageFileId: '/assets/catalog/product-card-reference.png',
-              imagePreviewUrl: '/assets/catalog/product-card-reference.png',
+              imageFileId: '',
+              imagePreviewUrl: '',
               memberLevelId: null,
               status: 'published',
               stock: 8,
@@ -210,7 +210,7 @@ describe('discovery cart pages', () => {
               name: '南瓜小蛋糕',
               description: '商户配置商品',
               categoryId: 'merchant-seasonal',
-              imageFileId: '/assets/catalog/product-card-reference.png',
+              imageFileId: '',
               stock: 8,
               trackInventory: true,
               fulfillmentModes: ['delivery'],
@@ -258,6 +258,24 @@ describe('discovery cart pages', () => {
     expect(detailStyles).toMatch(/\.add-cart-button\.disabled \{[\s\S]*?background: #F6E396/);
     expect(detailStyles).toContain('padding: 22rpx 24rpx calc(24rpx + env(safe-area-inset-bottom))');
     expect(detailStyles).toContain('.add-cart-button::after');
+  });
+
+  it('uses the cart stepper button implementation on the catalog page', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const catalogTemplate = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.wxml',
+      'utf8'
+    );
+    const catalogStyles = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.wxss',
+      'utf8'
+    );
+
+    expect(catalogTemplate).not.toContain('stepper-circle');
+    expect(catalogTemplate).toContain('class="stepper-btn"');
+    expect(catalogStyles).toContain('.stepper-btn::before');
+    expect(catalogStyles).toContain('.stepper-btn.plus::after');
+    expect(catalogStyles).toMatch(/\.stepper-btn \{[\s\S]*?font-size: 0/);
   });
 
   it('opens quick buy in search when a spec product is added', async () => {

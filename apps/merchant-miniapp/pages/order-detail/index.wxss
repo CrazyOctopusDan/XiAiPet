@@ -253,10 +253,52 @@
 }
 
 .timeline-label,
-.product-name {
+.product-name,
+.pet-detail-name {
   color: #26333D;
   font-size: 26rpx;
   font-weight: 800;
+}
+
+.pet-detail-card {
+  margin-top: 18rpx;
+  padding: 20rpx;
+  border: 2rpx solid #F0E2D0;
+  border-radius: 20rpx;
+  background: #FBF6EE;
+}
+
+.pet-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.pet-detail-meta,
+.pet-allergy {
+  display: block;
+  color: #756756;
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+
+.pet-detail-meta {
+  min-width: 0;
+  flex: 1;
+  margin-left: 18rpx;
+  text-align: right;
+}
+
+.pet-allergy {
+  margin-top: 14rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 16rpx;
+  background: #FFFDF8;
+}
+
+.pet-allergy.warning {
+  color: #9A4A2F;
+  background: #FFF0E8;
 }
 
 .timeline-note {

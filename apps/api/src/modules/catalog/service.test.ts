@@ -160,8 +160,8 @@ describe('catalog service', () => {
           name: '南瓜小蛋糕',
           description: '商户配置商品',
           categoryId: 'seasonal',
-          imageFileId: '/assets/catalog/product-card-reference.png',
-          imagePreviewUrl: '/assets/catalog/product-card-reference.png',
+          imageFileId: '',
+          imagePreviewUrl: '',
           memberLevelId: null,
           status: 'published',
           stock: 8,
@@ -219,8 +219,8 @@ describe('catalog service', () => {
           memberLevelLabel: '普通会员可购',
           categoryId: 'seasonal',
           deliveryModes: ['delivery', 'pickup'],
-          thumbnail: '/assets/catalog/product-card-reference.png',
-          detailImages: ['/assets/catalog/detail-long-reference.png'],
+          thumbnail: '',
+          detailImages: [],
           specs: [{ id: 'small', label: '小份', price: 108 }]
         }
       ]

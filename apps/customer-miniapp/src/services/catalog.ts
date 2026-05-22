@@ -28,10 +28,10 @@ interface CatalogProductsResponse {
   products?: unknown[];
 }
 
+const DEFAULT_PRODUCT_DETAIL_IMAGES: string[] = [];
+
 let cachedCatalogCategories = cloneCategories(catalogCategories);
 let cachedCatalogProducts = cloneProducts(catalogProducts);
-
-const DEFAULT_PRODUCT_DETAIL_IMAGES = ['/assets/catalog/detail-long-reference.png'];
 
 export function getHomeModules(): HomeModule[] {
   return homeModules;

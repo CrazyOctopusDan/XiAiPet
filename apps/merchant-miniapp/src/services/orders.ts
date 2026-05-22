@@ -82,6 +82,14 @@ export interface MerchantOrderDetailItemViewModel {
   lineTotalLabel: string;
 }
 
+export interface MerchantOrderPetViewModel {
+  name: string;
+  genderLabel: string;
+  birthdayLabel: string;
+  allergyNotesLabel: string;
+  hasAllergyNotes: boolean;
+}
+
 export interface MerchantOrderTimelineViewModel {
   label: string;
   atLabel: string;
@@ -114,6 +122,8 @@ export interface MerchantOrderDetailViewModel {
   deliveryFeeLabel: string;
   payableTotalLabel: string;
   items: MerchantOrderDetailItemViewModel[];
+  pets: MerchantOrderPetViewModel[];
+  hasPets: boolean;
   auditSummary: MerchantOrderAuditSummaryViewModel;
   timeline: MerchantOrderTimelineViewModel[];
   canPrintReceipt: boolean;
@@ -359,6 +369,31 @@ function toDetailItems(order: MerchantManagedOrderRecord) {
   }));
 }
 
+function getPetGenderLabel(gender?: string) {
+  if (gender === 'female') {
+    return '女孩';
+  }
+
+  if (gender === 'male') {
+    return '男孩';
+  }
+
+  return '性别未设置';
+}
+
+function toDetailPets(order: MerchantManagedOrderRecord): MerchantOrderPetViewModel[] {
+  return order.snapshot.pets.map((pet) => {
+    const allergyNotes = pet.allergyNotes?.trim();
+    return {
+      name: pet.name,
+      genderLabel: getPetGenderLabel(pet.gender),
+      birthdayLabel: pet.birthday ? `生日 ${pet.birthday}` : '生日未设置',
+      allergyNotesLabel: allergyNotes ? `过敏源：${allergyNotes}` : '暂无过敏源备注',
+      hasAllergyNotes: Boolean(allergyNotes)
+    };
+  });
+}
+
 function toTimelineViewModel(entry: MerchantOrderTimelineEntry): MerchantOrderTimelineViewModel {
   return {
     label: entry.label,
@@ -561,6 +596,8 @@ export function getMerchantOrderDetailViewModel(detail: MerchantOrderDetailRespo
     deliveryFeeLabel: formatMoney(order.pricing.deliveryFee),
     payableTotalLabel: formatMoney(order.pricing.payableTotal),
     items: toDetailItems(order),
+    pets: toDetailPets(order),
+    hasPets: order.snapshot.pets.length > 0,
     auditSummary: getAuditSummary(timeline),
     timeline: timeline.map(toTimelineViewModel),
     canPrintReceipt: order.status === 'paid',
