@@ -1,6 +1,8 @@
 "use strict";
+var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", { value: true });
 const profile_1 = require("../../src/services/profile");
+const runtime_config_1 = require("../../src/services/runtime-config");
 function resolveProfileSafeTop() {
     var _a, _b, _c, _d, _e, _f;
     const fallbackRpx = 144;
@@ -13,9 +15,16 @@ function resolveProfileSafeTop() {
     }
     return Math.ceil(((menuBottom + 16) * 750) / windowWidth);
 }
+function getProfileMembershipCard(summary = (0, profile_1.getProfileSummary)()) {
+    var _a;
+    const cards = (0, runtime_config_1.buildMembershipTierCards)((0, runtime_config_1.getCachedCustomerRuntimeConfig)().membershipTiers.tiers);
+    return (_a = (0, runtime_config_1.findMembershipTierCardBySpent)(cards, summary.totalSpent)) !== null && _a !== void 0 ? _a : (0, runtime_config_1.findMembershipTierCard)(cards, summary.memberLevel);
+}
 Page({
     data: {
         summary: (0, profile_1.getProfileSummary)(),
+        membershipCardStyle: (_b = (_a = getProfileMembershipCard()) === null || _a === void 0 ? void 0 : _a.cardStyle) !== null && _b !== void 0 ? _b : '',
+        membershipCardName: (_d = (_c = getProfileMembershipCard()) === null || _c === void 0 ? void 0 : _c.name) !== null && _d !== void 0 ? _d : (0, profile_1.getProfileSummary)().memberLevel,
         profileSafeTop: 144
     },
     onShow() {
@@ -30,14 +39,22 @@ Page({
         });
     },
     async refreshSummary() {
+        var _a, _b;
         try {
-            await (0, profile_1.hydrateProfile)();
+            await Promise.all([
+                (0, profile_1.hydrateProfile)(),
+                (0, runtime_config_1.hydrateCustomerRuntimeConfig)()
+            ]);
         }
-        catch (_a) {
+        catch (_c) {
             // Keep the latest local profile snapshot visible if the network is unavailable.
         }
+        const summary = (0, profile_1.getProfileSummary)();
+        const membershipCard = getProfileMembershipCard(summary);
         this.setData({
-            summary: (0, profile_1.getProfileSummary)()
+            summary,
+            membershipCardStyle: (_a = membershipCard === null || membershipCard === void 0 ? void 0 : membershipCard.cardStyle) !== null && _a !== void 0 ? _a : '',
+            membershipCardName: (_b = membershipCard === null || membershipCard === void 0 ? void 0 : membershipCard.name) !== null && _b !== void 0 ? _b : summary.memberLevel
         });
     },
     handleHomeTap() {

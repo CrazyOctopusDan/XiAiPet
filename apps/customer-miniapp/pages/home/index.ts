@@ -129,6 +129,13 @@ Page({
       return;
     }
 
+    if (moduleId === 'vip') {
+      wx.navigateTo({
+        url: '/pages/membership/index'
+      });
+      return;
+    }
+
     wx.showToast({
       title: '该模块下一阶段继续实现',
       icon: 'none'
@@ -140,12 +147,13 @@ Page({
   handleCloseNoticeModal(this: HomePageInstance) {
     this.setData({ noticeModalVisible: false });
   },
-  handleCopyContact(this: HomePageInstance, event: { currentTarget?: { dataset?: { value?: string } } }) {
+  handleCopyContact(this: HomePageInstance, event: { currentTarget?: { dataset?: { value?: string; label?: string } } }) {
     const value = event.currentTarget?.dataset?.value;
+    const label = event.currentTarget?.dataset?.label ?? '联系方式';
 
     if (!value) {
       wx.showToast({
-        title: '暂无可复制内容',
+        title: `${label}暂未配置`,
         icon: 'none'
       });
       return;
@@ -155,8 +163,14 @@ Page({
       data: value,
       success: () => {
         wx.showToast({
-          title: '已复制',
+          title: `${label}已复制`,
           icon: 'success'
+        });
+      },
+      fail: () => {
+        wx.showToast({
+          title: '复制失败，请长按号码',
+          icon: 'none'
         });
       }
     });

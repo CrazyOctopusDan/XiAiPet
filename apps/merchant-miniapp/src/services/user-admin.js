@@ -1,7 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getBalanceLedgerViewModels = getBalanceLedgerViewModels;
+exports.getAddressViewModels = getAddressViewModels;
 exports.queryMerchantUsers = queryMerchantUsers;
 exports.fetchMerchantUserDetail = fetchMerchantUserDetail;
+exports.fetchMerchantUserAddresses = fetchMerchantUserAddresses;
+exports.fetchMerchantUserBalanceLedgers = fetchMerchantUserBalanceLedgers;
 exports.getUsersPageViewModel = getUsersPageViewModel;
 exports.getCachedLatestAdjustment = getCachedLatestAdjustment;
 exports.getUserDetailViewModel = getUserDetailViewModel;
@@ -59,6 +63,50 @@ function getBalanceAdjustmentShortNote(delta) {
     }
     return '余额未变化';
 }
+function getContactPhoneLabel(user) {
+    var _a;
+    return ((_a = user.contactPhone) === null || _a === void 0 ? void 0 : _a.trim()) || user.contactPhoneMasked || '未留手机号';
+}
+function getAmountTone(amount) {
+    if (amount > 0) {
+        return 'income';
+    }
+    if (amount < 0) {
+        return 'expense';
+    }
+    return 'neutral';
+}
+function getAmountLabel(amount) {
+    if (amount > 0) {
+        return `+${formatMoney(amount)}`;
+    }
+    if (amount < 0) {
+        return `-${formatMoney(Math.abs(amount))}`;
+    }
+    return formatMoney(0);
+}
+function getBalanceLedgerViewModels(ledgers = []) {
+    return ledgers.map((ledger) => ({
+        id: ledger.id,
+        title: ledger.normalizedTitle,
+        note: ledger.shortNote,
+        amountLabel: getAmountLabel(ledger.amountDelta),
+        balanceAfterLabel: `余额 ${formatMoney(ledger.balanceAfter)}`,
+        meta: `${ledger.operatorName} · ${formatDateTime(ledger.operatedAt)}`,
+        tone: getAmountTone(ledger.amountDelta)
+    }));
+}
+function getAddressViewModels(addresses = []) {
+    return addresses.map((address) => ({
+        id: address.id,
+        typeLabel: address.type === 'express' ? '快递地址' : '配送地址',
+        recipientLabel: address.recipientName,
+        phoneLabel: address.phoneNumber,
+        addressLabel: `${address.regionLabel} ${address.detailAddress}`,
+        tagLabel: address.tag || '未设置标签',
+        isDefault: address.isDefault
+    }));
+}
 async function queryMerchantUsers(input, request = api_client_1.merchantApiRequest) {
     var _a;
     const response = await request('/api/v1/merchant/users', {
@@ -79,6 +127,34 @@ async function fetchMerchantUserDetail(openid, request = api_client_1.merchantAp
     });
     return (_a = response.user) !== null && _a !== void 0 ? _a : null;
 }
+async function fetchMerchantUserAddresses(openid, request = api_client_1.merchantApiRequest) {
+    var _a;
+    const response = await request(`/api/v1/merchant/users/${openid}/addresses`, {
+        method: 'GET',
+        auth: 'merchant'
+    });
+    return (_a = response.addresses) !== null && _a !== void 0 ? _a : [];
+}
+async function fetchMerchantUserBalanceLedgers(openid, pagination = {}, request = api_client_1.merchantApiRequest) {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const response = await request(`/api/v1/merchant/users/${openid}/balance-ledgers`, {
+        method: 'GET',
+        query: {
+            cursor: (_a = pagination.cursor) !== null && _a !== void 0 ? _a : '0',
+            limit: String((_b = pagination.limit) !== null && _b !== void 0 ? _b : 20)
+        },
+        auth: 'merchant'
+    });
+    return {
+        records: (_c = response.records) !== null && _c !== void 0 ? _c : [],
+        pagination: (_d = response.pagination) !== null && _d !== void 0 ? _d : {
+            nextCursor: null,
+            hasMore: false,
+            limit: (_e = pagination.limit) !== null && _e !== void 0 ? _e : 20,
+            total: (_g = (_f = response.records) === null || _f === void 0 ? void 0 : _f.length) !== null && _g !== void 0 ? _g : 0
+        }
+    };
+}
 function getUsersPageViewModel(users) {
     return {
         isEmpty: users.length === 0,
@@ -91,7 +167,7 @@ function getUsersPageViewModel(users) {
             openid: user.openid,
             avatarUrl: user.avatarUrl,
             nickname: user.nickname,
-            contactPhoneMasked: user.contactPhoneMasked,
+            contactPhoneLabel: getContactPhoneLabel(user),
             membershipTierLabel: user.membershipTierLabel,
             currentBalanceLabel: formatMoney(user.currentBalance)
         }))
@@ -102,17 +178,35 @@ function getCachedLatestAdjustment(userOpenid) {
     return (_a = readUserDetailCache()[userOpenid]) !== null && _a !== void 0 ? _a : null;
 }
 function getUserDetailViewModel(user, latest) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
+    const detailUser = user;
+    const addressRows = getAddressViewModels((_a = detailUser.addresses) !== null && _a !== void 0 ? _a : []);
+    const ledgerRows = getBalanceLedgerViewModels((_b = detailUser.balanceLedgers) !== null && _b !== void 0 ? _b : []);
+    const addressCount = (_c = detailUser.addressCount) !== null && _c !== void 0 ? _c : addressRows.length;
+    const balanceLedgerCount = (_d = detailUser.balanceLedgerCount) !== null && _d !== void 0 ? _d : ledgerRows.length;
+    const contactPhoneLabel = getContactPhoneLabel(user);
     return {
         openid: user.openid,
         avatarUrl: user.avatarUrl,
         nickname: user.nickname,
         membershipTierLabel: user.membershipTierLabel,
-        contactPhoneMasked: user.contactPhoneMasked,
+        contactPhoneLabel,
         currentBalanceLabel: formatMoney(user.currentBalance),
-        latestOperationTitle: (_a = latest === null || latest === void 0 ? void 0 : latest.normalizedTitle) !== null && _a !== void 0 ? _a : '暂无最近操作',
-        latestOperationNote: (_b = latest === null || latest === void 0 ? void 0 : latest.shortNote) !== null && _b !== void 0 ? _b : '还没有余额调整记录',
-        latestOperationMeta: latest ? `${latest.operatorName} · ${formatDateTime(latest.operatedAt)}` : '等待第一次调整'
+        latestOperationTitle: (_e = latest === null || latest === void 0 ? void 0 : latest.normalizedTitle) !== null && _e !== void 0 ? _e : '暂无最近操作',
+        latestOperationNote: (_f = latest === null || latest === void 0 ? void 0 : latest.shortNote) !== null && _f !== void 0 ? _f : '还没有余额调整记录',
+        latestOperationMeta: latest ? `${latest.operatorName} · ${formatDateTime(latest.operatedAt)}` : '等待第一次调整',
+        basicRows: [
+            { label: '昵称', value: user.nickname },
+            { label: '手机号', value: contactPhoneLabel },
+            { label: '会员等级', value: user.membershipTierLabel }
+        ],
+        addressRows,
+        ledgerRows,
+        detailTabs: [
+            { key: 'basic', label: '基本信息', countLabel: '3' },
+            { key: 'addresses', label: '地址信息', countLabel: String(addressCount) },
+            { key: 'ledger', label: '余额流水', countLabel: String(balanceLedgerCount) }
+        ]
     };
 }
 function buildBalanceAdjustmentDraft(user, input) {
@@ -157,7 +251,7 @@ function buildBalanceAdjustmentDraft(user, input) {
     };
 }
 async function submitBalanceAdjustment(draft, request = api_client_1.merchantApiRequest, storage) {
-    var _a, _b;
+    var _a, _b, _c;
     const operator = getCurrentMerchantOperator();
     const payload = {
         userOpenid: draft.user.openid,
@@ -177,10 +271,11 @@ async function submitBalanceAdjustment(draft, request = api_client_1.merchantApi
         body: payload,
         auth: 'merchant'
     });
+    const responseLedger = (_a = response.ledger) !== null && _a !== void 0 ? _a : {};
     const cache = readUserDetailCache();
     cache[draft.user.openid] = {
-        normalizedTitle: (_a = response.ledger.normalizedTitle) !== null && _a !== void 0 ? _a : draft.reasonType,
-        shortNote: (_b = response.ledger.shortNote) !== null && _b !== void 0 ? _b : getBalanceAdjustmentShortNote(draft.delta),
+        normalizedTitle: (_b = responseLedger.normalizedTitle) !== null && _b !== void 0 ? _b : draft.reasonType,
+        shortNote: (_c = responseLedger.shortNote) !== null && _c !== void 0 ? _c : getBalanceAdjustmentShortNote(draft.delta),
         operatedAt: payload.operatedAt,
         operatorName: operator.name
     };

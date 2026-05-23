@@ -21,6 +21,7 @@ export interface CustomerProfileRecord {
   gender?: 'unknown' | 'female' | 'male';
   birthday?: string;
   birthdayLocked?: boolean;
+  contactPhone?: string;
   contactPhoneMasked?: string;
 }
 
@@ -29,6 +30,7 @@ export interface MerchantUserSearchItem {
   avatarUrl: string;
   nickname: string;
   contactPhoneMasked: string;
+  contactPhone?: string;
   membershipTierLabel: string;
   currentBalance: number;
 }
@@ -40,14 +42,52 @@ export interface MerchantLatestAdjustment {
   operatorName: string;
 }
 
+export interface MerchantBalanceLedgerEntry extends MerchantLatestAdjustment {
+  id: string;
+  amountDelta: number;
+  balanceBefore: number;
+  balanceAfter: number;
+}
+
+export interface MerchantUserAddressItem {
+  id: string;
+  type: 'city' | 'express';
+  recipientName: string;
+  phoneNumber: string;
+  regionLabel: string;
+  detailAddress: string;
+  tag: string;
+  isDefault: boolean;
+}
+
 export interface MerchantUserDetailItem extends MerchantUserSearchItem {
   latestAdjustment: MerchantLatestAdjustment | null;
+  addressCount?: number;
+  balanceLedgerCount?: number;
+  balanceLedgers: MerchantBalanceLedgerEntry[];
+  addresses: MerchantUserAddressItem[];
+}
+
+export interface PaginationInput {
+  cursor?: string | number;
+  limit?: string | number;
+}
+
+export interface MerchantBalanceLedgerPage {
+  records: MerchantBalanceLedgerEntry[];
+  pagination: {
+    nextCursor: string | null;
+    hasMore: boolean;
+    limit: number;
+    total: number;
+  };
 }
 
 interface UserRow {
   openid: string;
   status: string;
   phoneBindingState: string;
+  contactPhoneEncrypted?: string | null;
   contactPhoneMasked: string;
   contactPhoneCountryCode: string;
   lastLoginAt: Date | null;
@@ -73,12 +113,30 @@ interface CustomerProfileRow extends UserRow {
 }
 
 interface BalanceLedgerRow {
+  id: string;
   amountDelta: {
+    toNumber(): number;
+  };
+  balanceBefore: {
+    toNumber(): number;
+  };
+  balanceAfter: {
     toNumber(): number;
   };
   reason: string | null;
   operatorName: string | null;
   createdAt: Date;
+}
+
+interface AddressRow {
+  id: string;
+  recipientName: string;
+  phoneMasked: string;
+  regionLabel: string;
+  detailAddress: string;
+  tag: string;
+  isDefault: boolean;
+  snapshot: unknown | null;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -100,6 +158,7 @@ function normalizeProfile(value: unknown): CustomerProfileRecord | undefined {
         : undefined,
     birthday: typeof value.birthday === 'string' ? value.birthday : undefined,
     birthdayLocked: typeof value.birthdayLocked === 'boolean' ? value.birthdayLocked : undefined,
+    contactPhone: typeof value.contactPhone === 'string' ? value.contactPhone : undefined,
     contactPhoneMasked: typeof value.contactPhoneMasked === 'string' ? value.contactPhoneMasked : undefined
   };
 }
@@ -127,6 +186,21 @@ function getBalanceAdjustmentShortNote(delta: number) {
   return '余额未变化';
 }
 
+function getFullContactPhone(user: UserRow, profile?: CustomerProfileRecord) {
+  const profilePhone = profile?.contactPhone?.trim();
+  const storedPhone = user.contactPhoneEncrypted?.trim();
+
+  if (profilePhone) {
+    return profilePhone;
+  }
+
+  if (storedPhone) {
+    return storedPhone;
+  }
+
+  return user.contactPhoneMasked.includes('*') ? undefined : user.contactPhoneMasked;
+}
+
 function mapMerchantUser(user: MerchantUserSearchRow): MerchantUserSearchItem {
   const profile = normalizeProfile(user.profile);
   return {
@@ -134,8 +208,39 @@ function mapMerchantUser(user: MerchantUserSearchRow): MerchantUserSearchItem {
     avatarUrl: profile?.avatarUrl ?? profile?.avatarText ?? '',
     nickname: profile?.nickname || user.openid,
     contactPhoneMasked: profile?.contactPhoneMasked || user.contactPhoneMasked,
+    contactPhone: getFullContactPhone(user, profile),
     membershipTierLabel: '普通会员',
     currentBalance: user.balanceAccount?.balance.toNumber() ?? 0
+  };
+}
+
+function mapBalanceLedger(row: BalanceLedgerRow): MerchantBalanceLedgerEntry {
+  const amountDelta = row.amountDelta.toNumber();
+  const [reasonType] = (row.reason ?? '').split(/:\s*/, 2);
+  return {
+    id: row.id,
+    normalizedTitle: reasonType || '余额调整',
+    shortNote: getBalanceAdjustmentShortNote(amountDelta),
+    amountDelta,
+    balanceBefore: row.balanceBefore.toNumber(),
+    balanceAfter: row.balanceAfter.toNumber(),
+    operatedAt: row.createdAt.toISOString(),
+    operatorName: row.operatorName || '商户后台'
+  };
+}
+
+function mapMerchantUserAddress(row: AddressRow): MerchantUserAddressItem {
+  const snapshot = isObject(row.snapshot) ? row.snapshot : {};
+  const snapshotType = snapshot.type === 'express' ? 'express' : 'city';
+  return {
+    id: row.id,
+    type: snapshotType,
+    recipientName: row.recipientName,
+    phoneNumber: typeof snapshot.phoneNumber === 'string' ? snapshot.phoneNumber : row.phoneMasked,
+    regionLabel: row.regionLabel,
+    detailAddress: row.detailAddress,
+    tag: row.tag,
+    isDefault: row.isDefault
   };
 }
 
@@ -143,14 +248,21 @@ function mapLatestAdjustment(row: BalanceLedgerRow | null): MerchantLatestAdjust
   if (!row) {
     return null;
   }
-  const amountDelta = row.amountDelta.toNumber();
-  const [reasonType] = (row.reason ?? '').split(/:\s*/, 2);
+  const ledger = mapBalanceLedger(row);
   return {
-    normalizedTitle: reasonType || '余额调整',
-    shortNote: getBalanceAdjustmentShortNote(amountDelta),
-    operatedAt: row.createdAt.toISOString(),
-    operatorName: row.operatorName || '商户后台'
+    normalizedTitle: ledger.normalizedTitle,
+    shortNote: ledger.shortNote,
+    operatedAt: ledger.operatedAt,
+    operatorName: ledger.operatorName
   };
+}
+
+function normalizePagination(input: PaginationInput = {}) {
+  const parsedLimit = Number(input.limit ?? 20);
+  const parsedCursor = Number(input.cursor ?? 0);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(Math.trunc(parsedLimit), 1), 50) : 20;
+  const cursor = Number.isFinite(parsedCursor) ? Math.max(Math.trunc(parsedCursor), 0) : 0;
+  return { cursor, limit };
 }
 
 export function mapUser(row: UserRow): UserRecord {
@@ -194,7 +306,7 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
 
     async bindPhone(
       openid: string,
-      input: { maskedPhone: string; countryCode: string },
+      input: { maskedPhone: string; countryCode: string; phoneNumber?: string },
       at: Date = new Date()
     ): Promise<UserRecord> {
       await this.bootstrap(openid, at);
@@ -202,6 +314,7 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         where: { openid },
         data: {
           phoneBindingState: PHONE_BINDING_STATE.bound,
+          contactPhoneEncrypted: input.phoneNumber,
           contactPhoneMasked: input.maskedPhone,
           contactPhoneCountryCode: input.countryCode,
           updatedAt: at
@@ -273,16 +386,69 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         return { ok: true as const, user: null };
       }
 
-      const latestLedger = await client.balanceLedger.findFirst({
-        where: { openid },
-        orderBy: { createdAt: 'desc' }
-      }) as BalanceLedgerRow | null;
+      const [latestLedger, balanceLedgerCount, addressCount] = await Promise.all([
+        client.balanceLedger.findMany({
+          where: { openid },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }) as Promise<BalanceLedgerRow[]>,
+        client.balanceLedger.count({ where: { openid } }),
+        client.address.count({ where: { openid } })
+      ]);
 
       return {
         ok: true as const,
         user: {
           ...mapMerchantUser(user),
-          latestAdjustment: mapLatestAdjustment(latestLedger)
+          latestAdjustment: mapLatestAdjustment(latestLedger[0] ?? null),
+          addressCount,
+          balanceLedgerCount,
+          balanceLedgers: [],
+          addresses: []
+        }
+      };
+    },
+
+    async getMerchantUserAddresses(openid: string): Promise<{ ok: true; addresses: MerchantUserAddressItem[] }> {
+      const addresses = await client.address.findMany({
+        where: { openid },
+        orderBy: [
+          { isDefault: 'desc' },
+          { updatedAt: 'desc' }
+        ]
+      }) as AddressRow[];
+
+      return {
+        ok: true as const,
+        addresses: addresses.map(mapMerchantUserAddress)
+      };
+    },
+
+    async getMerchantUserBalanceLedgers(
+      openid: string,
+      paginationInput: PaginationInput = {}
+    ): Promise<{ ok: true } & MerchantBalanceLedgerPage> {
+      const pagination = normalizePagination(paginationInput);
+      const [total, ledgers] = await Promise.all([
+        client.balanceLedger.count({ where: { openid } }),
+        client.balanceLedger.findMany({
+          where: { openid },
+          orderBy: { createdAt: 'desc' },
+          skip: pagination.cursor,
+          take: pagination.limit
+        }) as Promise<BalanceLedgerRow[]>
+      ]);
+      const nextOffset = pagination.cursor + ledgers.length;
+      const hasMore = nextOffset < total;
+
+      return {
+        ok: true as const,
+        records: ledgers.map(mapBalanceLedger),
+        pagination: {
+          nextCursor: hasMore ? String(nextOffset) : null,
+          hasMore,
+          limit: pagination.limit,
+          total
         }
       };
     },

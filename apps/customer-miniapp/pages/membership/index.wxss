@@ -1,0 +1,259 @@
+.membership-page {
+  min-height: 100vh;
+  padding: 0 0 calc(64rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAF7F0 54%, #F6E9BD 100%);
+  color: #2F4048;
+}
+
+.membership-hero {
+  padding: 34rpx 32rpx 22rpx;
+}
+
+.membership-kicker,
+.membership-title,
+.membership-subtitle,
+.tier-badge,
+.tier-threshold,
+.tier-name,
+.tier-description,
+.rules-title,
+.rule-name,
+.rule-threshold,
+.rule-description {
+  display: block;
+}
+
+.membership-kicker {
+  color: #8A682C;
+  font-size: 24rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+}
+
+.membership-title {
+  margin-top: 10rpx;
+  color: #1D1A17;
+  font-size: 56rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.membership-subtitle {
+  max-width: 620rpx;
+  margin-top: 16rpx;
+  color: #687A82;
+  font-size: 26rpx;
+  line-height: 1.55;
+}
+
+.tier-swiper {
+  height: 436rpx;
+  margin-top: 18rpx;
+}
+
+.tier-card {
+  min-height: 372rpx;
+  position: relative;
+  overflow: hidden;
+  margin: 0 10rpx;
+  padding: 34rpx 34rpx 30rpx;
+  border: 1rpx solid var(--member-card-border);
+  border-radius: 36rpx;
+  box-sizing: border-box;
+  background: var(--member-card-bg);
+  box-shadow: var(--member-card-shadow);
+}
+
+.tier-card-glow {
+  width: 310rpx;
+  height: 310rpx;
+  position: absolute;
+  right: -110rpx;
+  top: -120rpx;
+  border-radius: 50%;
+  background: var(--member-card-glow);
+}
+
+.tier-card-line {
+  width: 220rpx;
+  height: 2rpx;
+  position: absolute;
+  right: 36rpx;
+  bottom: 74rpx;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.42) 52%, transparent 100%);
+}
+
+.tier-card-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.tier-badge {
+  color: var(--member-card-muted);
+  font-size: 24rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.tier-threshold-pill {
+  max-width: 350rpx;
+  padding: 12rpx 18rpx;
+  border: 1rpx solid var(--member-card-border);
+  border-radius: 999rpx;
+  background: var(--member-card-pill-bg);
+  box-sizing: border-box;
+  text-align: right;
+}
+
+.tier-threshold-label {
+  display: block;
+  color: var(--member-card-muted);
+  font-size: 18rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.tier-threshold {
+  margin-top: 4rpx;
+  color: var(--member-card-text);
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.tier-name {
+  position: relative;
+  z-index: 1;
+  margin-top: 66rpx;
+  color: var(--member-card-text);
+  font-size: 60rpx;
+  font-weight: 900;
+  line-height: 1.15;
+  text-shadow: 0 8rpx 22rpx rgba(0, 0, 0, 0.18);
+}
+
+.tier-description {
+  position: relative;
+  z-index: 1;
+  margin-top: 24rpx;
+  color: var(--member-card-muted);
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.tier-card-foot {
+  position: absolute;
+  left: 34rpx;
+  right: 34rpx;
+  bottom: 28rpx;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.tier-foot-label,
+.tier-foot-value {
+  display: block;
+  color: var(--member-card-muted);
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.tier-foot-value {
+  max-width: 260rpx;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tier-dots {
+  display: flex;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: -18rpx;
+}
+
+.tier-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 999rpx;
+  background: rgba(47, 64, 72, 0.22);
+}
+
+.tier-dot.active {
+  width: 34rpx;
+  background: #8A682C;
+}
+
+.rules-card {
+  margin: 34rpx 24rpx 0;
+  padding: 32rpx;
+  border: 1rpx solid rgba(28, 25, 23, 0.08);
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 22rpx 54rpx rgba(85, 64, 24, 0.08);
+}
+
+.rules-title {
+  color: #1D1A17;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.rule-row {
+  display: flex;
+  gap: 22rpx;
+  margin-top: 26rpx;
+  padding-top: 26rpx;
+  border-top: 1rpx solid rgba(29, 26, 23, 0.08);
+}
+
+.rule-row:first-of-type {
+  border-top: 0;
+}
+
+.rule-index {
+  flex: 0 0 auto;
+  width: 68rpx;
+  color: rgba(138, 104, 44, 0.45);
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.rule-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.rule-name {
+  color: #2F4048;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.rule-threshold {
+  margin-top: 8rpx;
+  color: #7A5C28;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.rule-description {
+  margin-top: 8rpx;
+  color: #687A82;
+  font-size: 24rpx;
+  line-height: 1.5;
+}

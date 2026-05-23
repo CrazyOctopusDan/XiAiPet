@@ -1,6 +1,6 @@
 <view class="profile-page" style="--profile-safe-top: {{profileSafeTop}}rpx;">
-  <view class="balance-card" bindtap="handleBalanceTap">
-    <text class="member-chip in-card">{{summary.memberLevel}}</text>
+  <view class="balance-card" style="{{membershipCardStyle}}" bindtap="handleBalanceTap">
+    <text class="member-chip in-card">{{membershipCardName || summary.memberLevel}}</text>
     <view class="balance-card-head">
       <view class="summary-avatar">{{summary.avatarText}}</view>
       <view class="summary-main">

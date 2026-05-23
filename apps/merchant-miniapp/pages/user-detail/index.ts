@@ -4,17 +4,30 @@ declare function Page(options: Record<string, unknown>): void;
 import type {
   MerchantBalanceAdjustmentAction,
   MerchantBalanceAdjustmentReasonType,
+  MerchantBalanceLedgerEntry,
+  MerchantUserAddressItem,
+  MerchantUserDetail,
   MerchantUserSearchListItem
 } from '@xiaipet/shared/types/user-admin';
 
 import {
   buildBalanceAdjustmentDraft,
+  fetchMerchantUserAddresses,
+  fetchMerchantUserBalanceLedgers,
   fetchMerchantUserDetail,
   getCachedLatestAdjustment,
   getUserDetailViewModel,
-  submitBalanceAdjustment
+  submitBalanceAdjustment,
+  type UserDetailTabKey
 } from '../../src/services/user-admin';
 import { getMerchantSession } from '../../src/services/api-client';
+
+interface UserDetailSections {
+  addresses?: MerchantUserAddressItem[];
+  balanceLedgers?: MerchantBalanceLedgerEntry[];
+  balanceLedgerCount?: number;
+  currentBalance?: number;
+}
 
 interface UserDetailPageData {
   user: MerchantUserSearchListItem | null;
@@ -28,12 +41,22 @@ interface UserDetailPageData {
   disableSubmitReason: string | null;
   submitting: boolean;
   canAdjustBalance: boolean;
+  activeDetailTab: UserDetailTabKey;
+  addressesLoaded: boolean;
+  addressesLoading: boolean;
+  ledgerLoaded: boolean;
+  ledgerLoading: boolean;
+  ledgerHasMore: boolean;
+  ledgerNextCursor: string | null;
 }
 
 interface UserDetailPageInstance {
   data: UserDetailPageData;
   setData(updates: Record<string, unknown>): void;
   refreshDetail(openid?: string): Promise<void>;
+  mergeDetailSections(sections: UserDetailSections): MerchantUserSearchListItem | MerchantUserDetail | null;
+  loadAddresses(): Promise<void>;
+  loadMoreLedgers(reset?: boolean): Promise<void>;
   updateDraftPreview(): void;
 }
 
@@ -49,7 +72,14 @@ Page({
     resultingBalanceLabel: '￥0.00',
     disableSubmitReason: '请输入调整金额',
     submitting: false,
-    canAdjustBalance: true
+    canAdjustBalance: true,
+    activeDetailTab: 'basic',
+    addressesLoaded: false,
+    addressesLoading: false,
+    ledgerLoaded: false,
+    ledgerLoading: false,
+    ledgerHasMore: false,
+    ledgerNextCursor: null
   },
   onLoad(this: UserDetailPageInstance, options?: { openid?: string }) {
     this.setData({
@@ -90,11 +120,100 @@ Page({
       wx.setStorageSync('merchant-selected-user', user);
       this.setData({
         user,
-        detail: getUserDetailViewModel(user, user.latestAdjustment)
+        detail: getUserDetailViewModel(user, user.latestAdjustment),
+        addressesLoaded: false,
+        addressesLoading: false,
+        ledgerLoaded: false,
+        ledgerLoading: false,
+        ledgerHasMore: false,
+        ledgerNextCursor: null
       });
       this.updateDraftPreview();
     } catch (error) {
       console.error('fetch merchant user detail failed', error);
+    }
+  },
+  mergeDetailSections(this: UserDetailPageInstance, sections: UserDetailSections) {
+    if (!this.data.user) {
+      return null;
+    }
+
+    const current = this.data.user as MerchantUserDetail;
+    const merged: MerchantUserDetail = {
+      ...current,
+      currentBalance: sections.currentBalance ?? current.currentBalance,
+      latestAdjustment: current.latestAdjustment ?? getCachedLatestAdjustment(current.openid),
+      addresses: sections.addresses ?? current.addresses ?? [],
+      balanceLedgers: sections.balanceLedgers ?? current.balanceLedgers ?? [],
+      addressCount: sections.addresses?.length ?? current.addressCount,
+      balanceLedgerCount: sections.balanceLedgerCount ?? current.balanceLedgerCount
+    };
+    wx.setStorageSync('merchant-selected-user', merged);
+    this.setData({
+      user: merged,
+      detail: getUserDetailViewModel(merged, merged.latestAdjustment)
+    });
+    this.updateDraftPreview();
+    return merged;
+  },
+  async loadAddresses(this: UserDetailPageInstance) {
+    if (!this.data.user || this.data.addressesLoading || this.data.addressesLoaded) {
+      return;
+    }
+
+    this.setData({ addressesLoading: true });
+    try {
+      const addresses = await fetchMerchantUserAddresses(this.data.user.openid);
+      this.mergeDetailSections({ addresses });
+      this.setData({
+        addressesLoaded: true,
+        addressesLoading: false
+      });
+    } catch (error) {
+      this.setData({ addressesLoading: false });
+      wx.showToast({
+        title: '地址加载失败',
+        icon: 'none'
+      });
+    }
+  },
+  async loadMoreLedgers(this: UserDetailPageInstance, reset = false) {
+    if (!this.data.user || this.data.ledgerLoading) {
+      return;
+    }
+    if (!reset && this.data.ledgerLoaded && !this.data.ledgerHasMore) {
+      return;
+    }
+
+    const cursor = reset ? '0' : this.data.ledgerNextCursor;
+    this.setData({ ledgerLoading: true });
+    try {
+      const page = await fetchMerchantUserBalanceLedgers(this.data.user.openid, {
+        cursor,
+        limit: 20
+      });
+      const currentLedgers = reset ? [] : ((this.data.user as MerchantUserDetail).balanceLedgers ?? []);
+      const existingIds = new Set(currentLedgers.map((item) => item.id));
+      const mergedLedgers = [
+        ...currentLedgers,
+        ...page.records.filter((item) => !existingIds.has(item.id))
+      ];
+      this.mergeDetailSections({
+        balanceLedgers: mergedLedgers,
+        balanceLedgerCount: page.pagination.total
+      });
+      this.setData({
+        ledgerLoaded: true,
+        ledgerLoading: false,
+        ledgerHasMore: page.pagination.hasMore,
+        ledgerNextCursor: page.pagination.nextCursor
+      });
+    } catch (error) {
+      this.setData({ ledgerLoading: false });
+      wx.showToast({
+        title: '流水加载失败',
+        icon: 'none'
+      });
     }
   },
   updateDraftPreview(this: UserDetailPageInstance) {
@@ -161,6 +280,23 @@ Page({
     });
     this.updateDraftPreview();
   },
+  handleDetailTabTap(this: UserDetailPageInstance, event: { currentTarget?: { dataset?: { tab?: UserDetailTabKey } } }) {
+    const nextTab = event.currentTarget?.dataset?.tab ?? 'basic';
+    this.setData({
+      activeDetailTab: nextTab
+    });
+    if (nextTab === 'addresses') {
+      void this.loadAddresses();
+    }
+    if (nextTab === 'ledger') {
+      void this.loadMoreLedgers(false);
+    }
+  },
+  onReachBottom(this: UserDetailPageInstance) {
+    if (this.data.activeDetailTab === 'ledger') {
+      void this.loadMoreLedgers(false);
+    }
+  },
   async handleConfirmAdjust(this: UserDetailPageInstance) {
     if (!this.data.user) {
       return;
@@ -207,9 +343,15 @@ Page({
             drawerOpen: false,
             user: updatedUser,
             amountText: '',
-            note: ''
+            note: '',
+            ledgerLoaded: false,
+            ledgerHasMore: false,
+            ledgerNextCursor: null
           });
           await this.refreshDetail(updatedUser.openid);
+          if (this.data.activeDetailTab === 'ledger') {
+            await this.loadMoreLedgers(true);
+          }
           wx.showToast({
             title: '调整成功',
             icon: 'success'

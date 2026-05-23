@@ -2,9 +2,18 @@ declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
 import { getPhoneBindingRedirectUrl, getProfileSummary, hasBoundPhone, hydrateProfile } from '../../src/services/profile';
+import {
+  buildMembershipTierCards,
+  findMembershipTierCard,
+  findMembershipTierCardBySpent,
+  getCachedCustomerRuntimeConfig,
+  hydrateCustomerRuntimeConfig
+} from '../../src/services/runtime-config';
 
 interface ProfilePageData {
   summary: ReturnType<typeof getProfileSummary>;
+  membershipCardStyle: string;
+  membershipCardName: string;
   profileSafeTop: number;
 }
 
@@ -30,9 +39,16 @@ function resolveProfileSafeTop() {
   return Math.ceil(((menuBottom + 16) * 750) / windowWidth);
 }
 
+function getProfileMembershipCard(summary = getProfileSummary()) {
+  const cards = buildMembershipTierCards(getCachedCustomerRuntimeConfig().membershipTiers.tiers);
+  return findMembershipTierCardBySpent(cards, summary.totalSpent) ?? findMembershipTierCard(cards, summary.memberLevel);
+}
+
 Page({
   data: {
     summary: getProfileSummary(),
+    membershipCardStyle: getProfileMembershipCard()?.cardStyle ?? '',
+    membershipCardName: getProfileMembershipCard()?.name ?? getProfileSummary().memberLevel,
     profileSafeTop: 144
   },
   onShow(this: ProfilePageInstance) {
@@ -47,12 +63,20 @@ Page({
   },
   async refreshSummary(this: ProfilePageInstance) {
     try {
-      await hydrateProfile();
+      await Promise.all([
+        hydrateProfile(),
+        hydrateCustomerRuntimeConfig()
+      ]);
     } catch {
       // Keep the latest local profile snapshot visible if the network is unavailable.
     }
+    const summary = getProfileSummary();
+    const membershipCard = getProfileMembershipCard(summary);
+
     this.setData({
-      summary: getProfileSummary()
+      summary,
+      membershipCardStyle: membershipCard?.cardStyle ?? '',
+      membershipCardName: membershipCard?.name ?? summary.memberLevel
     });
   },
   handleHomeTap() {

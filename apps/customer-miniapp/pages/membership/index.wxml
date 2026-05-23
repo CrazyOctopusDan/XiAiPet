@@ -1,0 +1,42 @@
+<view class="membership-page">
+  <page-nav theme="dark" title="会员权益" />
+  <view class="membership-hero">
+    <text class="membership-kicker">XiAiPet Member</text>
+    <text class="membership-title">会员权益</text>
+  </view>
+  <swiper class="tier-swiper" current="{{currentIndex}}" previous-margin="36rpx" next-margin="36rpx" bindchange="handleTierChange">
+    <swiper-item wx:for="{{tiers}}" wx:key="tierId">
+      <view class="tier-card" style="{{item.cardStyle}}">
+        <view class="tier-card-glow"></view>
+        <view class="tier-card-line"></view>
+        <view class="tier-card-head">
+          <text class="tier-badge">{{item.badgeLabel}}</text>
+          <view class="tier-threshold-pill">
+            <text class="tier-threshold-label">门槛</text>
+            <text class="tier-threshold">{{item.thresholdLabel}}</text>
+          </view>
+        </view>
+        <text class="tier-name">{{item.name}}</text>
+        <text class="tier-description">{{item.description}}</text>
+        <view class="tier-card-foot">
+          <text class="tier-foot-label">XiAiPet Membership</text>
+          <text class="tier-foot-value">{{item.tierId}}</text>
+        </view>
+      </view>
+    </swiper-item>
+  </swiper>
+  <view class="tier-dots">
+    <view class="tier-dot {{index === currentIndex ? 'active' : ''}}" wx:for="{{tiers}}" wx:key="tierId"></view>
+  </view>
+  <view class="rules-card">
+    <text class="rules-title">等级规则</text>
+    <view class="rule-row" wx:for="{{tiers}}" wx:key="tierId">
+      <view class="rule-index">{{index < 9 ? '0' : ''}}{{index + 1}}</view>
+      <view class="rule-copy">
+        <text class="rule-name">{{item.name}}</text>
+        <text class="rule-threshold">{{item.thresholdLabel}}</text>
+        <text class="rule-description">{{item.description}}</text>
+      </view>
+    </view>
+  </view>
+</view>

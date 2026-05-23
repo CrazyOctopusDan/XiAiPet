@@ -219,3 +219,11 @@
 .ledger-amount-wrap.expense .ledger-amount {
   color: #D05C45;
 }
+
+.balance-load-more {
+  padding: 28rpx 0 6rpx;
+  color: #7B8B92;
+  font-size: 24rpx;
+  font-weight: 700;
+  text-align: center;
+}

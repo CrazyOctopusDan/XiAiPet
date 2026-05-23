@@ -3,8 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetBalance = resetBalance;
 exports.getBalanceRecords = getBalanceRecords;
 exports.hydrateBalance = hydrateBalance;
+exports.loadMoreBalance = loadMoreBalance;
 exports.getMonthlyBalanceGroups = getMonthlyBalanceGroups;
 exports.getBalanceOverview = getBalanceOverview;
+exports.getBalancePagination = getBalancePagination;
 const api_client_1 = require("./api-client");
 const initialRecords = [
     {
@@ -68,9 +70,21 @@ const initialRecords = [
 ];
 let records = initialRecords.map((item) => ({ ...item }));
 let remoteOverview = null;
+let pagination = {
+    nextCursor: null,
+    hasMore: false,
+    limit: 20,
+    total: initialRecords.length
+};
 function resetBalance() {
     records = initialRecords.map((item) => ({ ...item }));
     remoteOverview = null;
+    pagination = {
+        nextCursor: null,
+        hasMore: false,
+        limit: 20,
+        total: initialRecords.length
+    };
 }
 function compareDescending(left, right) {
     return right.date.localeCompare(left.date);
@@ -96,13 +110,8 @@ function getBalanceRecords() {
         .sort(compareDescending)
         .map((item) => ({ ...item }));
 }
-async function hydrateBalance(request = api_client_1.customerApiRequest) {
-    var _a, _b;
-    const response = await request('/api/v1/customer/balance', {
-        method: 'GET',
-        auth: 'customer'
-    });
-    records = ((_a = response.records) !== null && _a !== void 0 ? _a : []).map((item) => ({
+function mapApiRecords(apiRecords = []) {
+    return apiRecords.map((item) => ({
         id: item.id,
         title: item.rawTitle,
         normalizedTitle: item.title,
@@ -111,10 +120,64 @@ async function hydrateBalance(request = api_client_1.customerApiRequest) {
         type: item.type,
         amount: item.amount
     }));
-    remoteOverview = (_b = response.overview) !== null && _b !== void 0 ? _b : null;
+}
+async function hydrateBalance(request = api_client_1.customerApiRequest) {
+    var _a, _b;
+    const response = await request('/api/v1/customer/balance', {
+        method: 'GET',
+        query: {
+            cursor: '0',
+            limit: '20'
+        },
+        auth: 'customer'
+    });
+    records = mapApiRecords(response.records);
+    remoteOverview = (_a = response.overview) !== null && _a !== void 0 ? _a : null;
+    pagination = (_b = response.pagination) !== null && _b !== void 0 ? _b : {
+        nextCursor: null,
+        hasMore: false,
+        limit: 20,
+        total: records.length
+    };
     return {
         overview: getBalanceOverview(),
-        groups: getMonthlyBalanceGroups()
+        groups: getMonthlyBalanceGroups(),
+        pagination: getBalancePagination()
+    };
+}
+async function loadMoreBalance(request = api_client_1.customerApiRequest) {
+    var _a, _b;
+    if (!pagination.hasMore || !pagination.nextCursor) {
+        return {
+            overview: getBalanceOverview(),
+            groups: getMonthlyBalanceGroups(),
+            pagination: getBalancePagination()
+        };
+    }
+    const response = await request('/api/v1/customer/balance', {
+        method: 'GET',
+        query: {
+            cursor: pagination.nextCursor,
+            limit: String(pagination.limit || 20)
+        },
+        auth: 'customer'
+    });
+    const existingIds = new Set(records.map((item) => item.id));
+    records = [
+        ...records,
+        ...mapApiRecords(response.records).filter((item) => !existingIds.has(item.id))
+    ];
+    remoteOverview = (_a = response.overview) !== null && _a !== void 0 ? _a : remoteOverview;
+    pagination = (_b = response.pagination) !== null && _b !== void 0 ? _b : {
+        nextCursor: null,
+        hasMore: false,
+        limit: pagination.limit,
+        total: records.length
+    };
+    return {
+        overview: getBalanceOverview(),
+        groups: getMonthlyBalanceGroups(),
+        pagination: getBalancePagination()
     };
 }
 function getMonthlyBalanceGroups() {
@@ -152,4 +215,7 @@ function getBalanceOverview() {
         totalIncome,
         totalExpense
     };
+}
+function getBalancePagination() {
+    return { ...pagination };
 }

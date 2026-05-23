@@ -58,7 +58,7 @@
           <text class="tier-badge">{{item.membershipTierLabel}}</text>
         </view>
         <view class="user-meta">
-          <text class="meta-chip">{{item.contactPhoneMasked}}</text>
+          <text class="meta-chip">{{item.contactPhoneLabel}}</text>
           <text class="meta-chip audit">余额审计</text>
         </view>
         <view class="balance-row">

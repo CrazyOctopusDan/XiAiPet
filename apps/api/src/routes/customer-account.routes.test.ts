@@ -60,11 +60,14 @@ describe('customer account data routes', () => {
     await app.inject({ method: 'GET', url: '/api/v1/customer/pets', headers: authHeader('openid-p') });
     await app.inject({ method: 'POST', url: '/api/v1/customer/pets', headers: authHeader('openid-p'), payload: { name: 'Lucky' } });
     await app.inject({ method: 'PUT', url: '/api/v1/customer/pets/pet-1', headers: authHeader('openid-p'), payload: { allergyNotes: '不吃鸡肉' } });
-    await app.inject({ method: 'GET', url: '/api/v1/customer/balance', headers: authHeader('openid-p') });
+    await app.inject({ method: 'GET', url: '/api/v1/customer/balance?cursor=20&limit=20', headers: authHeader('openid-p') });
 
     expect(listPets).toHaveBeenCalledWith('openid-p');
     expect(createPet).toHaveBeenCalledWith('openid-p', { name: 'Lucky' });
     expect(updatePet).toHaveBeenCalledWith('openid-p', 'pet-1', { allergyNotes: '不吃鸡肉' });
-    expect(getBalance).toHaveBeenCalledWith('openid-p');
+    expect(getBalance).toHaveBeenCalledWith('openid-p', {
+      cursor: '20',
+      limit: '20'
+    });
   });
 });

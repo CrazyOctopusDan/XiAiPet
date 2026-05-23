@@ -5,6 +5,8 @@ import type { MerchantUserSearchListItem } from '@xiaipet/shared/types/user-admi
 import { MERCHANT_SESSION_STORAGE_KEY } from './api-client';
 import {
   buildBalanceAdjustmentDraft,
+  fetchMerchantUserAddresses,
+  fetchMerchantUserBalanceLedgers,
   fetchMerchantUserDetail,
   getUserDetailViewModel,
   getUsersPageViewModel,
@@ -18,6 +20,7 @@ function createUser(overrides: Partial<MerchantUserSearchListItem> = {}): Mercha
     avatarUrl: 'https://example.com/avatar.png',
     nickname: '奶油妈妈',
     contactPhoneMasked: '138****1234',
+    contactPhone: '13800131234',
     membershipTierLabel: '金卡会员',
     currentBalance: 188,
     ...overrides
@@ -114,6 +117,7 @@ describe('user admin service', () => {
     expect(view.isEmpty).toBe(false);
     expect(view.cards[0]).toMatchObject({
       nickname: '奶油妈妈',
+      contactPhoneLabel: '13800131234',
       membershipTierLabel: '金卡会员',
       currentBalanceLabel: '￥188.00'
     });
@@ -134,7 +138,11 @@ describe('user admin service', () => {
           shortNote: '增加 ￥1000.00',
           operatedAt: '2026-05-18T11:35:00.000Z',
           operatorName: 'admin'
-        }
+        },
+        addressCount: 1,
+        balanceLedgerCount: 2,
+        balanceLedgers: [],
+        addresses: []
       }
     });
 
@@ -147,6 +155,59 @@ describe('user admin service', () => {
     });
     expect(request).toHaveBeenCalledWith('/api/v1/merchant/users/user-openid', {
       method: 'GET',
+      auth: 'merchant'
+    });
+  });
+
+  it('fetches merchant user addresses without pagination', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      addresses: [
+        {
+          id: 'addr-1',
+          type: 'city',
+          recipientName: '奶油妈妈',
+          phoneNumber: '13800131234',
+          regionLabel: '上海市 静安区',
+          detailAddress: '南京西路 1266 号',
+          tag: '家',
+          isDefault: true
+        }
+      ]
+    });
+
+    await expect(fetchMerchantUserAddresses('user-openid', request)).resolves.toHaveLength(1);
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/users/user-openid/addresses', {
+      method: 'GET',
+      auth: 'merchant'
+    });
+  });
+
+  it('fetches merchant user balance ledgers with cursor pagination', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      records: [],
+      pagination: {
+        nextCursor: '20',
+        hasMore: true,
+        limit: 20,
+        total: 48
+      }
+    });
+
+    await expect(fetchMerchantUserBalanceLedgers('user-openid', { cursor: '0', limit: 20 }, request)).resolves.toMatchObject({
+      pagination: {
+        nextCursor: '20',
+        hasMore: true,
+        total: 48
+      }
+    });
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/users/user-openid/balance-ledgers', {
+      method: 'GET',
+      query: {
+        cursor: '0',
+        limit: '20'
+      },
       auth: 'merchant'
     });
   });
@@ -242,8 +303,34 @@ describe('user admin service', () => {
     );
   });
 
-  it('builds user detail cards with current balance and latest known operation summary', () => {
-    const view = getUserDetailViewModel(createUser(), {
+  it('builds user detail cards with basic info, address rows, and full balance ledger rows', () => {
+    const view = getUserDetailViewModel({
+      ...createUser(),
+      addresses: [
+        {
+          id: 'addr-1',
+          type: 'city',
+          recipientName: '奶油妈妈',
+          phoneNumber: '13800131234',
+          regionLabel: '上海市 静安区',
+          detailAddress: '南京西路 1266 号',
+          tag: '家',
+          isDefault: true
+        }
+      ],
+      balanceLedgers: [
+        {
+          id: 'ledger-1',
+          normalizedTitle: '余额调整',
+          shortNote: '增加 ￥50.00',
+          amountDelta: 50,
+          balanceBefore: 138,
+          balanceAfter: 188,
+          operatedAt: '2026-04-18T10:00:00.000Z',
+          operatorName: '喜爱宠物烘焙工作室'
+        }
+      ]
+    }, {
       normalizedTitle: '余额调整',
       shortNote: '增加 ￥50.00',
       operatedAt: '2026-04-18T10:00:00.000Z',
@@ -252,8 +339,33 @@ describe('user admin service', () => {
 
     expect(view).toMatchObject({
       currentBalanceLabel: '￥188.00',
+      contactPhoneLabel: '13800131234',
       latestOperationTitle: '余额调整',
-      latestOperationNote: '增加 ￥50.00'
+      latestOperationNote: '增加 ￥50.00',
+      basicRows: expect.arrayContaining([
+        { label: '手机号', value: '13800131234' }
+      ]),
+      addressRows: [
+        expect.objectContaining({
+          typeLabel: '配送地址',
+          recipientLabel: '奶油妈妈',
+          isDefault: true
+        })
+      ],
+      ledgerRows: [
+        expect.objectContaining({
+          id: 'ledger-1',
+          amountLabel: '+￥50.00',
+          balanceAfterLabel: '余额 ￥188.00',
+          tone: 'income'
+        })
+      ],
+      detailTabs: [
+        { key: 'basic', label: '基本信息', countLabel: '3' },
+        { key: 'addresses', label: '地址信息', countLabel: '1' },
+        { key: 'ledger', label: '余额流水', countLabel: '1' }
+      ]
     });
+    expect(view.basicRows.some((row) => row.label === 'OpenID')).toBe(false);
   });
 });

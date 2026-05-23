@@ -35,7 +35,7 @@ export interface ApiRouteServices {
     listPets(openid: string): AsyncResult;
     createPet(openid: string, payload: unknown): AsyncResult;
     updatePet(openid: string, petId: string, payload: unknown): AsyncResult;
-    getBalance(openid: string): AsyncResult;
+    getBalance(openid: string, pagination?: { cursor?: string | number; limit?: string | number }): AsyncResult;
   };
   catalogService: {
     queryCustomerCategories(): AsyncResult;
@@ -57,6 +57,8 @@ export interface ApiRouteServices {
   merchantUserService: {
     searchMerchantUsers(merchantContext: unknown, query: { query?: string; searchField?: string }): AsyncResult;
     getMerchantUserDetail(merchantContext: unknown, openid: string): AsyncResult;
+    getMerchantUserAddresses(merchantContext: unknown, openid: string): AsyncResult;
+    getMerchantUserBalanceLedgers(merchantContext: unknown, openid: string, pagination?: { cursor?: string | number; limit?: string | number }): AsyncResult;
     adjustUserBalance(merchantContext: unknown, openid: string, payload: unknown): AsyncResult;
   };
   merchantAccountService: {

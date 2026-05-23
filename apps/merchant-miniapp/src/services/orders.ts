@@ -189,6 +189,57 @@ function getFulfillmentModeLabel(mode: OrderFulfillmentMode) {
   return '配送到家';
 }
 
+function parseLocalDateValue(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfLocalDate(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function getRelativeReservationPrefix(reservationDate: Date, now = new Date()) {
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((startOfLocalDate(reservationDate).getTime() - startOfLocalDate(now).getTime()) / millisecondsPerDay);
+
+  if (diffDays === -1) {
+    return '昨天';
+  }
+  if (diffDays === 0) {
+    return '今天';
+  }
+  if (diffDays === 1) {
+    return '明天';
+  }
+  return '';
+}
+
+function formatReservationDateLabel(reservation: MerchantManagedOrderRecord['snapshot']['fulfillment']['reservation']) {
+  const reservationDate = reservation?.dateValue ? parseLocalDateValue(reservation.dateValue) : null;
+
+  if (!reservationDate) {
+    return reservation?.dateLabel ?? '';
+  }
+
+  const now = new Date();
+  const relativePrefix = getRelativeReservationPrefix(reservationDate, now);
+  const sameYear = reservationDate.getFullYear() === now.getFullYear();
+  const dateLabel = sameYear
+    ? `${reservationDate.getMonth() + 1}月${reservationDate.getDate()}日`
+    : `${reservationDate.getFullYear()}年${reservationDate.getMonth() + 1}月${reservationDate.getDate()}日`;
+
+  return relativePrefix ? `${relativePrefix} ${dateLabel}` : dateLabel;
+}
+
 function getReservationLabel(order: MerchantManagedOrderRecord) {
   const reservation = order.snapshot.fulfillment.reservation;
 
@@ -196,7 +247,7 @@ function getReservationLabel(order: MerchantManagedOrderRecord) {
     return '待确认履约时间';
   }
 
-  return `${reservation.dateLabel} ${reservation.timeLabel}`;
+  return `${formatReservationDateLabel(reservation)} ${reservation.timeLabel}`;
 }
 
 function getAddressLabel(order: MerchantManagedOrderRecord) {
@@ -577,7 +628,8 @@ export function getMerchantOrderDetailViewModel(detail: MerchantOrderDetailRespo
     return null;
   }
 
-  const { order, timeline } = detail;
+  const order = normalizeMerchantOrder(detail.order);
+  const { timeline } = detail;
 
   return {
     id: order.id,

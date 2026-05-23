@@ -149,6 +149,7 @@ describe('merchant orders service', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -352,6 +353,56 @@ describe('merchant orders service', () => {
       latestActionLabel: '订单创建'
     });
     expect(detail?.statusOptions.map((item) => item.label)).toEqual(['待处理', '制作中', '配送中', '已完成', '已取消']);
+  });
+
+  it('normalizes backend order detail fulfillmentStatus before rendering the status pill', () => {
+    const detail = getMerchantOrderDetailViewModel({
+      order: {
+        ...createOrder({
+          fulfillmentState: undefined
+        }),
+        fulfillmentStatus: 'in_production'
+      },
+      timeline: []
+    });
+
+    expect(detail).toMatchObject({
+      statusLabel: '制作中'
+    });
+    expect(detail?.statusOptions.map((item) => item.label)).toEqual(['待处理', '配送中', '已完成', '已取消']);
+  });
+
+  it('recomputes reservation date copy against the current day instead of trusting the checkout snapshot label', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-23T10:00:00+08:00'));
+
+    const order = createOrder({
+      snapshot: {
+        ...createOrder().snapshot,
+        fulfillment: {
+          ...createOrder().snapshot.fulfillment,
+          reservation: {
+            dateValue: '2026-05-22',
+            dateLabel: '今天 5月22日',
+            timeValue: '14:00',
+            timeLabel: '14:00'
+          }
+        }
+      }
+    });
+    const detail = getMerchantOrderDetailViewModel({
+      order,
+      timeline: []
+    });
+    const listView = getMerchantOrdersPageViewModel([
+      {
+        groupLabel: '待处理',
+        orders: [order]
+      }
+    ]);
+
+    expect(detail?.scheduleLabel).toBe('昨天 5月22日 14:00');
+    expect(listView.groups[0]?.orders[0]?.scheduleLabel).toBe('昨天 5月22日 14:00');
   });
 
   it('shows receipt print metadata on paid order details', () => {

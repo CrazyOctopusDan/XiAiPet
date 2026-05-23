@@ -1,7 +1,6 @@
 {
   "__usePrivacyCheck__": true,
   "pages": [
-    "pages/launch/index",
     "pages/home/index",
     "pages/orders/index",
     "pages/order-detail/index",
@@ -12,6 +11,7 @@
     "pages/pets/index",
     "pages/pet-form/index",
     "pages/balance/index",
+    "pages/membership/index",
     "pages/catalog/index",
     "pages/search/index",
     "pages/cart/index",

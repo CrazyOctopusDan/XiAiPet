@@ -65,13 +65,14 @@ describe('user repository', () => {
     });
   });
 
-  it('loads merchant user detail with the latest balance ledger summary', async () => {
+  it('loads merchant user detail with full contact phone and section counts', async () => {
     const repository = createUserRepository({
       user: {
         findUnique: vi.fn(async () => ({
           openid: 'openid-1',
           status: 'active',
           phoneBindingState: 'BOUND',
+          contactPhoneEncrypted: '18811736099',
           contactPhoneMasked: '188****6099',
           contactPhoneCountryCode: '+86',
           lastLoginAt: new Date('2026-05-16T00:00:00.000Z'),
@@ -88,16 +89,28 @@ describe('user repository', () => {
         }))
       },
       balanceLedger: {
-        findFirst: vi.fn(async () => ({
-          id: 'ledger-1',
-          type: 'MANUAL_ADJUSTMENT',
-          amountDelta: {
-            toNumber: () => 1000
-          },
-          reason: '线下收款: 线下充值了',
-          operatorName: 'admin',
-          createdAt: new Date('2026-05-18T11:35:00.000Z')
-        }))
+        count: vi.fn(async () => 2),
+        findMany: vi.fn(async () => [
+          {
+            id: 'ledger-2',
+            type: 'MANUAL_ADJUSTMENT',
+            amountDelta: {
+              toNumber: () => -100
+            },
+            balanceBefore: {
+              toNumber: () => 1100
+            },
+            balanceAfter: {
+              toNumber: () => 1000
+            },
+            reason: '人工纠错: 扣回误充值',
+            operatorName: 'admin',
+            createdAt: new Date('2026-05-19T11:35:00.000Z')
+          }
+        ])
+      },
+      address: {
+        count: vi.fn(async () => 1)
       }
     } as any);
 
@@ -105,15 +118,109 @@ describe('user repository', () => {
       ok: true,
       user: {
         openid: 'openid-1',
+        contactPhone: '18811736099',
         currentBalance: 1000,
         latestAdjustment: {
-          normalizedTitle: '线下收款',
-          shortNote: '增加 ￥1000.00',
+          normalizedTitle: '人工纠错',
+          shortNote: '扣减 ￥100.00',
           operatorName: 'admin',
-          operatedAt: '2026-05-18T11:35:00.000Z'
-        }
+          operatedAt: '2026-05-19T11:35:00.000Z'
+        },
+        addressCount: 1,
+        balanceLedgerCount: 2,
+        balanceLedgers: [],
+        addresses: []
       }
     });
+  });
+
+  it('loads merchant user addresses without pagination', async () => {
+    const repository = createUserRepository({
+      address: {
+        findMany: vi.fn(async () => [
+          {
+            id: 'addr-1',
+            recipientName: 'Cookie大爹',
+            phoneMasked: '18811736099',
+            regionLabel: '浙江省 嘉兴市 南湖区',
+            detailAddress: '香樟国际 17幢805',
+            tag: '家',
+            isDefault: true,
+            snapshot: {
+              type: 'city',
+              phoneNumber: '18811736099'
+            }
+          }
+        ])
+      }
+    } as any);
+
+    await expect(repository.getMerchantUserAddresses('openid-1')).resolves.toEqual({
+      ok: true,
+      addresses: [
+        {
+          id: 'addr-1',
+          type: 'city',
+          recipientName: 'Cookie大爹',
+          phoneNumber: '18811736099',
+          regionLabel: '浙江省 嘉兴市 南湖区',
+          detailAddress: '香樟国际 17幢805',
+          tag: '家',
+          isDefault: true
+        }
+      ]
+    });
+  });
+
+  it('loads merchant user balance ledgers with offset pagination', async () => {
+    const findMany = vi.fn(async () => [
+      {
+        id: 'ledger-2',
+        type: 'MANUAL_ADJUSTMENT',
+        amountDelta: {
+          toNumber: () => -100
+        },
+        balanceBefore: {
+          toNumber: () => 1100
+        },
+        balanceAfter: {
+          toNumber: () => 1000
+        },
+        reason: '人工纠错: 扣回误充值',
+        operatorName: 'admin',
+        createdAt: new Date('2026-05-19T11:35:00.000Z')
+      }
+    ]);
+    const repository = createUserRepository({
+      balanceLedger: {
+        count: vi.fn(async () => 3),
+        findMany
+      }
+    } as any);
+
+    await expect(repository.getMerchantUserBalanceLedgers('openid-1', { cursor: '1', limit: '1' })).resolves.toMatchObject({
+      ok: true,
+      records: [
+        expect.objectContaining({
+          id: 'ledger-2',
+          amountDelta: -100,
+          balanceBefore: 1100,
+          balanceAfter: 1000
+        })
+      ],
+      pagination: {
+        nextCursor: '2',
+        hasMore: true,
+        limit: 1,
+        total: 3
+      }
+    });
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 1,
+        take: 1
+      })
+    );
   });
 
   it('lists bound merchant users when no search query is provided', async () => {
@@ -164,6 +271,7 @@ describe('user repository', () => {
         avatarUrl: '',
         nickname: '手机号会员',
         contactPhoneMasked: '138****8000',
+        contactPhone: undefined,
         membershipTierLabel: '普通会员',
         currentBalance: 0
       }
@@ -188,6 +296,7 @@ describe('user repository', () => {
             openid: 'openid-1',
             status: 'active',
             phoneBindingState: 'bound',
+            contactPhoneEncrypted: '13800131234',
             contactPhoneMasked: '138****1234',
             contactPhoneCountryCode: '+86',
             lastLoginAt: new Date('2026-05-16T00:00:00.000Z'),
@@ -213,6 +322,7 @@ describe('user repository', () => {
         avatarUrl: 'L',
         nickname: 'Lucky 家长',
         contactPhoneMasked: '138****1234',
+        contactPhone: '13800131234',
         membershipTierLabel: '普通会员',
         currentBalance: 28
       }

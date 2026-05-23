@@ -3,8 +3,10 @@ declare function Page(options: Record<string, unknown>): void;
 
 import {
   getBalanceOverview,
+  getBalancePagination,
   getMonthlyBalanceGroups,
   hydrateBalance,
+  loadMoreBalance,
   type MonthlyBalanceGroup
 } from '../../src/services/balance';
 import { getPhoneBindingRedirectUrl, hasBoundPhone, hydrateProfile } from '../../src/services/profile';
@@ -16,18 +18,25 @@ interface BalancePageData {
     totalExpense: number;
   };
   groups: MonthlyBalanceGroup[];
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
 }
 
 interface BalancePageInstance {
   data: BalancePageData;
   setData(data: Record<string, unknown>): void;
   refreshBalance(): Promise<void>;
+  loadMoreRecords(): Promise<void>;
 }
 
 Page({
   data: {
     overview: getBalanceOverview(),
-    groups: []
+    groups: [],
+    loading: false,
+    loadingMore: false,
+    hasMore: getBalancePagination().hasMore
   },
   onShow(this: BalancePageInstance) {
     void this.refreshBalance();
@@ -35,7 +44,9 @@ Page({
   async refreshBalance(this: BalancePageInstance) {
     this.setData({
       overview: getBalanceOverview(),
-      groups: getMonthlyBalanceGroups()
+      groups: getMonthlyBalanceGroups(),
+      hasMore: getBalancePagination().hasMore,
+      loading: true
     });
 
     try {
@@ -48,6 +59,7 @@ Page({
       wx.redirectTo({
         url: getPhoneBindingRedirectUrl('/pages/balance/index')
       });
+      this.setData({ loading: false });
       return;
     }
 
@@ -58,7 +70,30 @@ Page({
     }
     this.setData({
       overview: getBalanceOverview(),
-      groups: getMonthlyBalanceGroups()
+      groups: getMonthlyBalanceGroups(),
+      hasMore: getBalancePagination().hasMore,
+      loading: false
     });
+  },
+  async loadMoreRecords(this: BalancePageInstance) {
+    if (this.data.loading || this.data.loadingMore || !this.data.hasMore) {
+      return;
+    }
+
+    this.setData({ loadingMore: true });
+    try {
+      await loadMoreBalance();
+    } catch {
+      // Keep the current visible page if loading more fails.
+    }
+    this.setData({
+      overview: getBalanceOverview(),
+      groups: getMonthlyBalanceGroups(),
+      hasMore: getBalancePagination().hasMore,
+      loadingMore: false
+    });
+  },
+  onReachBottom(this: BalancePageInstance) {
+    void this.loadMoreRecords();
   }
 });

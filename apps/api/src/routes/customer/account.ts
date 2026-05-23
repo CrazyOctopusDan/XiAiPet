@@ -44,6 +44,7 @@ export async function customerAccountRoutes(
   });
 
   app.get('/balance', customerGuard, async (request) => {
-    return dependencies.customerAccountService.getBalance(request.auth?.openid ?? '');
+    const query = request.query as { cursor?: string; limit?: string } | undefined;
+    return dependencies.customerAccountService.getBalance(request.auth?.openid ?? '', query);
   });
 }

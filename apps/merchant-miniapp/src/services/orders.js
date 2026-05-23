@@ -35,12 +35,54 @@ function getFulfillmentModeLabel(mode) {
     }
     return '配送到家';
 }
+function parseLocalDateValue(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) {
+        return null;
+    }
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+function startOfLocalDate(value) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+function getRelativeReservationPrefix(reservationDate, now = new Date()) {
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
+    const diffDays = Math.round((startOfLocalDate(reservationDate).getTime() - startOfLocalDate(now).getTime()) / millisecondsPerDay);
+    if (diffDays === -1) {
+        return '昨天';
+    }
+    if (diffDays === 0) {
+        return '今天';
+    }
+    if (diffDays === 1) {
+        return '明天';
+    }
+    return '';
+}
+function formatReservationDateLabel(reservation) {
+    var _a;
+    const reservationDate = (reservation === null || reservation === void 0 ? void 0 : reservation.dateValue) ? parseLocalDateValue(reservation.dateValue) : null;
+    if (!reservationDate) {
+        return (_a = reservation === null || reservation === void 0 ? void 0 : reservation.dateLabel) !== null && _a !== void 0 ? _a : '';
+    }
+    const now = new Date();
+    const relativePrefix = getRelativeReservationPrefix(reservationDate, now);
+    const sameYear = reservationDate.getFullYear() === now.getFullYear();
+    const dateLabel = sameYear
+        ? `${reservationDate.getMonth() + 1}月${reservationDate.getDate()}日`
+        : `${reservationDate.getFullYear()}年${reservationDate.getMonth() + 1}月${reservationDate.getDate()}日`;
+    return relativePrefix ? `${relativePrefix} ${dateLabel}` : dateLabel;
+}
 function getReservationLabel(order) {
     const reservation = order.snapshot.fulfillment.reservation;
     if (!reservation) {
         return '待确认履约时间';
     }
-    return `${reservation.dateLabel} ${reservation.timeLabel}`;
+    return `${formatReservationDateLabel(reservation)} ${reservation.timeLabel}`;
 }
 function getAddressLabel(order) {
     const { fulfillment } = order.snapshot;
@@ -344,7 +386,8 @@ function getMerchantOrderDetailViewModel(detail) {
     if (!(detail === null || detail === void 0 ? void 0 : detail.order)) {
         return null;
     }
-    const { order, timeline } = detail;
+    const order = normalizeMerchantOrder(detail.order);
+    const { timeline } = detail;
     return {
         id: order.id,
         orderIdLabel: order.id,

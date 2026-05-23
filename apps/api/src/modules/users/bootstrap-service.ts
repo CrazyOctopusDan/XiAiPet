@@ -12,6 +12,7 @@ interface ProfileUpdateInput {
   gender?: 'unknown' | 'female' | 'male';
   birthday?: string;
   birthdayLocked?: boolean;
+  contactPhone?: string;
   contactPhoneMasked?: string;
   avatarText?: string;
 }
@@ -56,6 +57,7 @@ function isProfileUpdateInput(value: unknown): value is ProfileUpdateInput {
     ) &&
     (candidate.birthday === undefined || typeof candidate.birthday === 'string') &&
     (candidate.birthdayLocked === undefined || typeof candidate.birthdayLocked === 'boolean') &&
+    (candidate.contactPhone === undefined || typeof candidate.contactPhone === 'string') &&
     (candidate.contactPhoneMasked === undefined || typeof candidate.contactPhoneMasked === 'string') &&
     (candidate.avatarText === undefined || typeof candidate.avatarText === 'string')
   );
@@ -100,6 +102,7 @@ export function createIdentityService(userRepository = createUserRepository()) {
 
       const normalized = normalizePhoneBinding(input);
       await userRepository.bindPhone(openid, {
+        phoneNumber: normalized.phoneNumber,
         maskedPhone: normalized.maskedPhone,
         countryCode: normalized.countryCode
       });

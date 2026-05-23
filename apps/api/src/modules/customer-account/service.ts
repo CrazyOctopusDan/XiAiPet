@@ -157,6 +157,18 @@ function mapLedger(row: {
   };
 }
 
+function normalizePagination(input: { cursor?: string | number; limit?: string | number } = {}) {
+  const parsedLimit = Number(input.limit ?? 20);
+  const parsedCursor = Number(input.cursor ?? 0);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(Math.trunc(parsedLimit), 1), 50) : 20;
+  const cursor = Number.isFinite(parsedCursor) ? Math.max(Math.trunc(parsedCursor), 0) : 0;
+  return { cursor, limit };
+}
+
+function decimalToNumber(value: { toNumber(): number } | null | undefined) {
+  return value?.toNumber() ?? 0;
+}
+
 export function createCustomerAccountService(
   client: DbClient = getPrismaClient(),
   userRepository = createUserRepository(client)
@@ -282,16 +294,38 @@ export function createCustomerAccountService(
       return { ok: true as const, pet: mapPet(pet) };
     },
 
-    async getBalance(openid: string) {
+    async getBalance(openid: string, paginationInput: { cursor?: string | number; limit?: string | number } = {}) {
       await userRepository.bootstrap(openid);
-      const account = await client.balanceAccount.findUnique({ where: { openid } });
-      const ledgers = await client.balanceLedger.findMany({
-        where: { openid },
-        orderBy: { createdAt: 'desc' }
-      });
+      const pagination = normalizePagination(paginationInput);
+      const [account, incomeTotals, expenseTotals, total, ledgers] = await Promise.all([
+        client.balanceAccount.findUnique({ where: { openid } }),
+        client.balanceLedger.aggregate({
+          where: {
+            openid,
+            amountDelta: { gt: 0 }
+          },
+          _sum: { amountDelta: true }
+        }),
+        client.balanceLedger.aggregate({
+          where: {
+            openid,
+            amountDelta: { lt: 0 }
+          },
+          _sum: { amountDelta: true }
+        }),
+        client.balanceLedger.count({ where: { openid } }),
+        client.balanceLedger.findMany({
+          where: { openid },
+          orderBy: { createdAt: 'desc' },
+          skip: pagination.cursor,
+          take: pagination.limit
+        })
+      ]);
       const records = ledgers.map(mapLedger);
-      const totalIncome = records.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
-      const totalExpense = records.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+      const totalIncome = decimalToNumber(incomeTotals._sum.amountDelta);
+      const totalExpense = Math.abs(decimalToNumber(expenseTotals._sum.amountDelta));
+      const nextOffset = pagination.cursor + records.length;
+      const hasMore = nextOffset < total;
       return {
         ok: true as const,
         overview: {
@@ -299,7 +333,13 @@ export function createCustomerAccountService(
           totalIncome,
           totalExpense
         },
-        records
+        records,
+        pagination: {
+          nextCursor: hasMore ? String(nextOffset) : null,
+          hasMore,
+          limit: pagination.limit,
+          total
+        }
       };
     }
   };

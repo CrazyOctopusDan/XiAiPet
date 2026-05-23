@@ -42,5 +42,11 @@
         </view>
       </view>
     </view>
+
+    <view class="balance-load-more" wx:if="{{groups.length}}">
+      <text wx:if="{{loadingMore}}">正在加载更多流水</text>
+      <text wx:elif="{{!hasMore}}">已显示全部流水</text>
+      <text wx:else>继续下滑加载更多</text>
+    </view>
   </view>
 </view>

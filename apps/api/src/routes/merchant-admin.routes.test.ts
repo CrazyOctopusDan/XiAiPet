@@ -45,6 +45,8 @@ describe('merchant admin routes', () => {
     const merchantUserService = {
       searchMerchantUsers: vi.fn(async () => ({ ok: true, users: [] })),
       getMerchantUserDetail: vi.fn(async () => ({ ok: true, user: { openid: 'openid-1' } })),
+      getMerchantUserAddresses: vi.fn(async () => ({ ok: true, addresses: [] })),
+      getMerchantUserBalanceLedgers: vi.fn(async () => ({ ok: true, records: [], pagination: { nextCursor: null, hasMore: false, limit: 20, total: 0 } })),
       adjustUserBalance: vi.fn(async () => ({ ok: true, balanceAfter: 20, ledger: { id: 'l1' } }))
     };
     const runtimeConfigService = {
@@ -73,6 +75,8 @@ describe('merchant admin routes', () => {
     expect((await app.inject({ method: 'DELETE', url: '/api/v1/merchant/products/p1', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/users?query=138', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/users/openid-1', headers })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/users/openid-1/addresses', headers })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/users/openid-1/balance-ledgers?cursor=20&limit=20', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'POST', url: '/api/v1/merchant/users/openid-1/balance-adjustments', headers, payload: { delta: 20 } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/runtime-config/sections', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/api/v1/merchant/runtime-config?sectionKeys=banner', headers })).statusCode).toBe(200);
@@ -81,6 +85,11 @@ describe('merchant admin routes', () => {
     expect(catalogService.upsertMerchantProduct).toHaveBeenCalled();
     expect(catalogService.deleteMerchantProduct).toHaveBeenCalled();
     expect(merchantUserService.getMerchantUserDetail).toHaveBeenCalledWith(expect.any(Object), 'openid-1');
+    expect(merchantUserService.getMerchantUserAddresses).toHaveBeenCalledWith(expect.any(Object), 'openid-1');
+    expect(merchantUserService.getMerchantUserBalanceLedgers).toHaveBeenCalledWith(expect.any(Object), 'openid-1', {
+      cursor: '20',
+      limit: '20'
+    });
     expect(merchantUserService.adjustUserBalance).toHaveBeenCalled();
     expect(runtimeConfigService.upsertRuntimeConfigSection).toHaveBeenCalled();
   });
@@ -150,6 +159,8 @@ describe('merchant admin routes', () => {
         merchantUserService: {
           searchMerchantUsers: async () => ({ ok: true, users: [] }),
           getMerchantUserDetail: async () => ({ ok: true, user: { openid: 'openid-1' } }),
+          getMerchantUserAddresses: async () => ({ ok: true, addresses: [] }),
+          getMerchantUserBalanceLedgers: async () => ({ ok: true, records: [], pagination: { nextCursor: null, hasMore: false, limit: 20, total: 0 } }),
           adjustUserBalance
         }
       }

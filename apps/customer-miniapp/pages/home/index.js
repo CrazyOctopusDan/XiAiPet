@@ -90,6 +90,12 @@ Page({
             this.setData({ noticeModalVisible: true });
             return;
         }
+        if (moduleId === 'vip') {
+            wx.navigateTo({
+                url: '/pages/membership/index'
+            });
+            return;
+        }
         wx.showToast({
             title: '该模块下一阶段继续实现',
             icon: 'none'
@@ -102,11 +108,12 @@ Page({
         this.setData({ noticeModalVisible: false });
     },
     handleCopyContact(event) {
-        var _a, _b;
+        var _a, _b, _c, _d, _e;
         const value = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.value;
+        const label = (_e = (_d = (_c = event.currentTarget) === null || _c === void 0 ? void 0 : _c.dataset) === null || _d === void 0 ? void 0 : _d.label) !== null && _e !== void 0 ? _e : '联系方式';
         if (!value) {
             wx.showToast({
-                title: '暂无可复制内容',
+                title: `${label}暂未配置`,
                 icon: 'none'
             });
             return;
@@ -115,8 +122,14 @@ Page({
             data: value,
             success: () => {
                 wx.showToast({
-                    title: '已复制',
+                    title: `${label}已复制`,
                     icon: 'success'
+                });
+            },
+            fail: () => {
+                wx.showToast({
+                    title: '复制失败，请长按号码',
+                    icon: 'none'
                 });
             }
         });

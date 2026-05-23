@@ -56,8 +56,9 @@
   right: 28rpx;
   top: 28rpx;
   z-index: 2;
-  background: rgba(255, 230, 163, 0.16);
-  color: #40535C;
+  border: 1rpx solid var(--member-card-border);
+  background: var(--member-card-pill-bg);
+  color: var(--member-card-text);
 }
 
 .balance-card {
@@ -65,10 +66,8 @@
   overflow: hidden;
   padding: 30rpx;
   border-radius: 38rpx;
-  background:
-    radial-gradient(circle at 84% 8%, rgba(255, 230, 163, 0.32) 0, transparent 30%),
-    linear-gradient(145deg, #FFF8D8 0%, #F6E396 62%, #F2C46F 100%);
-  box-shadow: 0 26rpx 58rpx rgba(82, 116, 126, 0.22);
+  background: var(--member-card-bg);
+  box-shadow: var(--member-card-shadow);
 }
 
 .balance-card::after {
@@ -79,7 +78,7 @@
   width: 250rpx;
   height: 250rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--member-card-glow);
 }
 
 .balance-card-head {
@@ -101,7 +100,7 @@
   box-shadow: inset 0 -8rpx 0 rgba(64, 83, 92, 0.12);
   font-size: 46rpx;
   font-weight: 900;
-  color: #40535C;
+  color: var(--member-card-text);
 }
 
 .summary-main {
@@ -112,13 +111,13 @@
 .profile-name {
   font-size: 34rpx;
   font-weight: 900;
-  color: #40535C;
+  color: var(--member-card-text);
 }
 
 .profile-phone {
   margin-top: 8rpx;
   font-size: 23rpx;
-  color: #7B8B92;
+  color: var(--member-card-muted);
 }
 
 .balance-label {
@@ -127,7 +126,7 @@
   margin-top: 34rpx;
   font-size: 24rpx;
   font-weight: 800;
-  color: #7B8B92;
+  color: var(--member-card-muted);
 }
 
 .balance-line {
@@ -141,7 +140,7 @@
   padding-bottom: 12rpx;
   font-size: 38rpx;
   font-weight: 900;
-  color: #40535C;
+  color: var(--member-card-text);
 }
 
 .balance-amount {
@@ -149,7 +148,7 @@
   line-height: 1;
   font-weight: 900;
   letter-spacing: -3rpx;
-  color: #40535C;
+  color: var(--member-card-text);
 }
 
 .balance-foot {
@@ -163,7 +162,7 @@
 
 .balance-foot-text {
   font-size: 22rpx;
-  color: #7B8B92;
+  color: var(--member-card-muted);
 }
 
 .balance-action {
@@ -173,7 +172,7 @@
   background: rgba(255, 255, 255, 0.46);
   font-size: 22rpx;
   font-weight: 800;
-  color: #40535C;
+  color: var(--member-card-text);
 }
 
 .profile-facts {

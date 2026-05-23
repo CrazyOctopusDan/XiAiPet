@@ -1117,6 +1117,7 @@ describe('cart checkout flow', () => {
 
     expect(profileTemplate).not.toContain('下单前需要的个人资料、宠物、地址和余额上下文');
     expect(profileTemplate).toContain('class="balance-card"');
+    expect(profileTemplate).toContain('style="{{membershipCardStyle}}"');
     expect(profileTemplate).toContain('class="balance-amount"');
     expect(profileTemplate).toContain('bindtap="handleBalanceTap"');
     expect(profileTemplate).toContain('class="quick-grid"');
@@ -1125,6 +1126,7 @@ describe('cart checkout flow', () => {
     expect(profileTemplate).toContain('data-target="birthday"');
     expect(profileTemplate).toContain('data-target="contact"');
     expect(profileStyles).toContain('.balance-card');
+    expect(profileStyles).toContain('background: var(--member-card-bg)');
     expect(profileStyles).toContain('font-size: 76rpx');
     expect(profileStyles).toContain('display: grid');
     expect(profileStyles).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');

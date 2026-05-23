@@ -11,6 +11,7 @@ export interface MerchantUserSearchListItem {
   avatarUrl: string;
   nickname: string;
   contactPhoneMasked: string;
+  contactPhone?: string;
   membershipTierLabel: string;
   currentBalance: number;
 }
@@ -22,8 +23,40 @@ export interface MerchantLatestAdjustmentSummary {
   operatorName: string;
 }
 
+export interface MerchantBalanceLedgerEntry extends MerchantLatestAdjustmentSummary {
+  id: string;
+  amountDelta: number;
+  balanceBefore: number;
+  balanceAfter: number;
+}
+
+export interface MerchantUserAddressItem {
+  id: string;
+  type: 'city' | 'express';
+  recipientName: string;
+  phoneNumber: string;
+  regionLabel: string;
+  detailAddress: string;
+  tag: string;
+  isDefault: boolean;
+}
+
 export interface MerchantUserDetail extends MerchantUserSearchListItem {
   latestAdjustment: MerchantLatestAdjustmentSummary | null;
+  addressCount?: number;
+  balanceLedgerCount?: number;
+  balanceLedgers: MerchantBalanceLedgerEntry[];
+  addresses: MerchantUserAddressItem[];
+}
+
+export interface MerchantBalanceLedgerPage {
+  records: MerchantBalanceLedgerEntry[];
+  pagination: {
+    nextCursor: string | null;
+    hasMore: boolean;
+    limit: number;
+    total: number;
+  };
 }
 
 export interface MerchantUserSearchResult {

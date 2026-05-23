@@ -19,6 +19,17 @@ export async function merchantUserRoutes(
     return dependencies.merchantUserService.getMerchantUserDetail(request.merchant, params.openid);
   });
 
+  app.get('/users/:openid/addresses', adminGuard, async (request) => {
+    const params = request.params as { openid: string };
+    return dependencies.merchantUserService.getMerchantUserAddresses(request.merchant, params.openid);
+  });
+
+  app.get('/users/:openid/balance-ledgers', adminGuard, async (request) => {
+    const params = request.params as { openid: string };
+    const query = request.query as { cursor?: string; limit?: string } | undefined;
+    return dependencies.merchantUserService.getMerchantUserBalanceLedgers(request.merchant, params.openid, query);
+  });
+
   app.post('/users/:openid/balance-adjustments', adminGuard, async (request) => {
     const params = request.params as { openid: string };
     return dependencies.merchantUserService.adjustUserBalance(request.merchant, params.openid, request.body);

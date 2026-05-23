@@ -42,6 +42,14 @@ interface BalanceResponse {
   ok?: boolean;
   overview?: BalanceOverview;
   records?: BalanceRecord[];
+  pagination?: BalancePagination;
+}
+
+interface BalancePagination {
+  nextCursor: string | null;
+  hasMore: boolean;
+  limit: number;
+  total: number;
 }
 
 const initialRecords: BalanceLedgerFixture[] = [
@@ -107,10 +115,22 @@ const initialRecords: BalanceLedgerFixture[] = [
 
 let records: BalanceLedgerFixture[] = initialRecords.map((item) => ({ ...item }));
 let remoteOverview: BalanceOverview | null = null;
+let pagination: BalancePagination = {
+  nextCursor: null,
+  hasMore: false,
+  limit: 20,
+  total: initialRecords.length
+};
 
 export function resetBalance() {
   records = initialRecords.map((item) => ({ ...item }));
   remoteOverview = null;
+  pagination = {
+    nextCursor: null,
+    hasMore: false,
+    limit: 20,
+    total: initialRecords.length
+  };
 }
 
 function compareDescending(left: BalanceRecord, right: BalanceRecord) {
@@ -137,12 +157,8 @@ export function getBalanceRecords() {
     .map((item) => ({ ...item }));
 }
 
-export async function hydrateBalance(request: BalanceApiRequester = customerApiRequest) {
-  const response = await request<BalanceResponse>('/api/v1/customer/balance', {
-    method: 'GET',
-    auth: 'customer'
-  });
-  records = (response.records ?? []).map((item) => ({
+function mapApiRecords(apiRecords: BalanceRecord[] = []): BalanceLedgerFixture[] {
+  return apiRecords.map((item) => ({
     id: item.id,
     title: item.rawTitle,
     normalizedTitle: item.title,
@@ -151,10 +167,65 @@ export async function hydrateBalance(request: BalanceApiRequester = customerApiR
     type: item.type,
     amount: item.amount
   }));
+}
+
+export async function hydrateBalance(request: BalanceApiRequester = customerApiRequest) {
+  const response = await request<BalanceResponse>('/api/v1/customer/balance', {
+    method: 'GET',
+    query: {
+      cursor: '0',
+      limit: '20'
+    },
+    auth: 'customer'
+  });
+  records = mapApiRecords(response.records);
   remoteOverview = response.overview ?? null;
+  pagination = response.pagination ?? {
+    nextCursor: null,
+    hasMore: false,
+    limit: 20,
+    total: records.length
+  };
   return {
     overview: getBalanceOverview(),
-    groups: getMonthlyBalanceGroups()
+    groups: getMonthlyBalanceGroups(),
+    pagination: getBalancePagination()
+  };
+}
+
+export async function loadMoreBalance(request: BalanceApiRequester = customerApiRequest) {
+  if (!pagination.hasMore || !pagination.nextCursor) {
+    return {
+      overview: getBalanceOverview(),
+      groups: getMonthlyBalanceGroups(),
+      pagination: getBalancePagination()
+    };
+  }
+
+  const response = await request<BalanceResponse>('/api/v1/customer/balance', {
+    method: 'GET',
+    query: {
+      cursor: pagination.nextCursor,
+      limit: String(pagination.limit || 20)
+    },
+    auth: 'customer'
+  });
+  const existingIds = new Set(records.map((item) => item.id));
+  records = [
+    ...records,
+    ...mapApiRecords(response.records).filter((item) => !existingIds.has(item.id))
+  ];
+  remoteOverview = response.overview ?? remoteOverview;
+  pagination = response.pagination ?? {
+    nextCursor: null,
+    hasMore: false,
+    limit: pagination.limit,
+    total: records.length
+  };
+  return {
+    overview: getBalanceOverview(),
+    groups: getMonthlyBalanceGroups(),
+    pagination: getBalancePagination()
   };
 }
 
@@ -197,4 +268,8 @@ export function getBalanceOverview() {
     totalIncome,
     totalExpense
   };
+}
+
+export function getBalancePagination() {
+  return { ...pagination };
 }

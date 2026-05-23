@@ -49,6 +49,18 @@ export function createMerchantUserService(
       return userRepository.getMerchantUserDetail(openid);
     },
 
+    async getMerchantUserAddresses(_merchantContext: MerchantContext, openid: string) {
+      return userRepository.getMerchantUserAddresses(openid);
+    },
+
+    async getMerchantUserBalanceLedgers(
+      _merchantContext: MerchantContext,
+      openid: string,
+      pagination: { cursor?: string | number; limit?: string | number } = {}
+    ) {
+      return userRepository.getMerchantUserBalanceLedgers(openid, pagination);
+    },
+
     async searchMerchantUsers(_merchantContext: MerchantContext, query: { query?: string; searchField?: string }) {
       const users = await userRepository.searchUsers(query.query ?? '', 20);
       return { ok: true as const, users };

@@ -9,7 +9,7 @@
         <image class="avatar" src="{{detail.avatarUrl}}" mode="aspectFill"></image>
         <view class="summary-copy">
           <text class="page-title">{{detail.nickname}}</text>
-          <text class="page-subtitle">{{detail.contactPhoneMasked}}</text>
+          <text class="page-subtitle">{{detail.contactPhoneLabel}}</text>
         </view>
       </view>
 
@@ -25,14 +25,90 @@
       </view>
     </view>
 
-    <view class="history-card">
-      <view class="section-head">
-        <text class="section-title">最近操作</text>
-        <text class="section-badge">审计</text>
+    <view class="detail-card">
+      <view class="detail-tabs">
+        <view
+          class="detail-tab {{activeDetailTab === item.key ? 'active' : ''}}"
+          wx:for="{{detail.detailTabs}}"
+          wx:key="key"
+          data-tab="{{item.key}}"
+          bindtap="handleDetailTabTap"
+        >
+          <text class="detail-tab-label">{{item.label}}</text>
+          <text class="detail-tab-count">{{item.countLabel}}</text>
+        </view>
       </view>
-      <text class="history-title">{{detail.latestOperationTitle}}</text>
-      <text class="page-subtitle">{{detail.latestOperationNote}}</text>
-      <text class="page-subtitle">{{detail.latestOperationMeta}}</text>
+
+      <view class="detail-panel" wx:if="{{activeDetailTab === 'basic'}}">
+        <view class="section-head">
+          <text class="section-title">基本信息</text>
+          <text class="section-badge">资料</text>
+        </view>
+        <view class="basic-row" wx:for="{{detail.basicRows}}" wx:key="label">
+          <text class="basic-label">{{item.label}}</text>
+          <text class="basic-value">{{item.value}}</text>
+        </view>
+      </view>
+
+      <view class="detail-panel" wx:elif="{{activeDetailTab === 'addresses'}}">
+        <view class="section-head">
+          <text class="section-title">地址信息</text>
+          <text class="section-badge">履约</text>
+        </view>
+        <view wx:if="{{detail.addressRows.length}}">
+          <view class="address-row" wx:for="{{detail.addressRows}}" wx:key="id">
+            <view class="address-head">
+              <text class="history-title">{{item.typeLabel}}</text>
+              <text class="address-default" wx:if="{{item.isDefault}}">默认</text>
+            </view>
+            <text class="page-subtitle">{{item.recipientLabel}} {{item.phoneLabel}}</text>
+            <text class="page-subtitle">{{item.addressLabel}}</text>
+            <text class="page-subtitle">{{item.tagLabel}}</text>
+          </view>
+        </view>
+        <view class="empty-section" wx:elif="{{addressesLoading}}">
+          <text class="history-title">地址加载中</text>
+          <text class="page-subtitle">正在读取用户保存的配送和快递地址。</text>
+        </view>
+        <view class="empty-section" wx:else>
+          <text class="history-title">暂无地址</text>
+          <text class="page-subtitle">用户还没有保存配送或快递地址。</text>
+        </view>
+      </view>
+
+      <view class="detail-panel" wx:else>
+        <view class="section-head">
+          <text class="section-title">余额流水</text>
+          <text class="section-badge">审计</text>
+        </view>
+        <view wx:if="{{detail.ledgerRows.length}}">
+          <view class="ledger-row" wx:for="{{detail.ledgerRows}}" wx:key="id">
+            <view class="ledger-main">
+              <text class="history-title">{{item.title}}</text>
+              <text class="page-subtitle">{{item.note}}</text>
+              <text class="page-subtitle">{{item.meta}}</text>
+            </view>
+            <view class="ledger-side">
+              <text class="ledger-amount {{item.tone}}">{{item.amountLabel}}</text>
+              <text class="page-subtitle">{{item.balanceAfterLabel}}</text>
+            </view>
+          </view>
+          <view class="load-more-row">
+            <text class="page-subtitle" wx:if="{{ledgerLoading}}">正在加载更多流水</text>
+            <text class="page-subtitle" wx:elif="{{!ledgerHasMore}}">已显示全部流水</text>
+            <text class="page-subtitle" wx:else>继续下滑加载更多</text>
+          </view>
+        </view>
+      <view wx:elif="{{ledgerLoading}}">
+        <text class="history-title">流水加载中</text>
+        <text class="page-subtitle">正在读取用户余额流水。</text>
+      </view>
+      <view wx:else>
+        <text class="history-title">{{detail.latestOperationTitle}}</text>
+        <text class="page-subtitle">{{detail.latestOperationNote}}</text>
+        <text class="page-subtitle">{{detail.latestOperationMeta}}</text>
+      </view>
+      </view>
     </view>
   </view>
 
