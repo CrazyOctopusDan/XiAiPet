@@ -23,7 +23,7 @@ describe('checkout service', () => {
     resetCheckoutDraft();
   });
 
-  it('defaults to delivery mode and blocks submit until address, reservation, and notice are ready', () => {
+  it('defaults to delivery mode and blocks submit until registration, address, and reservation are ready', () => {
     const draft = getCheckoutDraft();
     const view = getCheckoutViewModel();
 
@@ -31,8 +31,9 @@ describe('checkout service', () => {
     expect(view.addressType).toBe('city');
     expect(view.canSubmit).toBe(false);
     expect(view.submitDisabledReasons).toEqual(
-      expect.arrayContaining(['missing_registration', 'missing_address', 'missing_reservation', 'custom_notice_unchecked'])
+      expect.arrayContaining(['missing_registration', 'missing_address', 'missing_reservation'])
     );
+    expect(view.submitDisabledReasons).not.toContain('custom_notice_unchecked');
   });
 
   it('hydrates pickup phone from the existing profile contact when switching to pickup', () => {

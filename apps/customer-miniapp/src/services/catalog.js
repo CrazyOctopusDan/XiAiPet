@@ -17,8 +17,12 @@ exports.hydrateCatalog = hydrateCatalog;
 const catalog_1 = require("../data/catalog");
 const api_client_1 = require("./api-client");
 const DEFAULT_PRODUCT_DETAIL_IMAGES = [];
-let cachedCatalogCategories = cloneCategories(catalog_1.catalogCategories);
-let cachedCatalogProducts = cloneProducts(catalog_1.catalogProducts);
+function shouldUseLocalCatalogFixtures() {
+    var _a, _b;
+    return ((_b = (_a = globalThis.process) === null || _a === void 0 ? void 0 : _a.env) === null || _b === void 0 ? void 0 : _b.NODE_ENV) === 'test';
+}
+let cachedCatalogCategories = shouldUseLocalCatalogFixtures() ? cloneCategories(catalog_1.catalogCategories) : [];
+let cachedCatalogProducts = shouldUseLocalCatalogFixtures() ? cloneProducts(catalog_1.catalogProducts) : [];
 function getHomeModules() {
     return catalog_1.homeModules;
 }
@@ -275,8 +279,8 @@ function resolveCatalogProductAssetUrls(product) {
     };
 }
 function resetCatalogCache() {
-    cachedCatalogCategories = cloneCategories(catalog_1.catalogCategories);
-    cachedCatalogProducts = cloneProducts(catalog_1.catalogProducts);
+    cachedCatalogCategories = shouldUseLocalCatalogFixtures() ? cloneCategories(catalog_1.catalogCategories) : [];
+    cachedCatalogProducts = shouldUseLocalCatalogFixtures() ? cloneProducts(catalog_1.catalogProducts) : [];
 }
 async function hydrateCatalog(request = api_client_1.customerApiRequest) {
     const [categoriesResponse, productsResponse] = await Promise.all([

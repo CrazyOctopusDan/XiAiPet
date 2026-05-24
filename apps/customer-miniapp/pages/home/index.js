@@ -58,22 +58,33 @@ Page({
     async refreshHome() {
         const modulePromise = (0, catalog_1.resolveHomeModuleImageSources)();
         try {
-            await (0, runtime_config_1.hydrateCustomerRuntimeConfig)();
+            await this.refreshRuntimeConfigFields();
         }
         finally {
             const homeLayout = buildHomeLayout(await modulePromise);
             this.setData({
                 ...homeLayout,
-                heroBannerSrc: HERO_BANNER_SRC,
-                storeContact: {
-                    wechatId: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.wechatId,
-                    ownerPhone: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().store.ownerPhone
-                },
-                purchaseNotice: (0, runtime_config_1.getCachedCustomerRuntimeConfig)().customNotice.enabled ? (0, runtime_config_1.getCachedCustomerRuntimeConfig)().customNotice.content : ''
+                heroBannerSrc: HERO_BANNER_SRC
             });
         }
     },
-    handleModuleTap(event) {
+    async refreshRuntimeConfigFields() {
+        try {
+            await (0, runtime_config_1.hydrateCustomerRuntimeConfig)();
+        }
+        catch (_a) {
+            // Keep visible values empty when the runtime config API is unavailable.
+        }
+        const runtimeConfig = (0, runtime_config_1.getCachedCustomerRuntimeConfig)();
+        this.setData({
+            storeContact: {
+                wechatId: runtimeConfig.store.wechatId,
+                ownerPhone: runtimeConfig.store.ownerPhone
+            },
+            purchaseNotice: runtimeConfig.customNotice.enabled ? runtimeConfig.customNotice.content : ''
+        });
+    },
+    async handleModuleTap(event) {
         var _a, _b;
         const moduleId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.moduleId;
         if (moduleId === 'preorder') {
@@ -83,10 +94,12 @@ Page({
             return;
         }
         if (moduleId === 'consulting') {
+            await this.refreshRuntimeConfigFields();
             this.setData({ contactModalVisible: true });
             return;
         }
         if (moduleId === 'notice') {
+            await this.refreshRuntimeConfigFields();
             this.setData({ noticeModalVisible: true });
             return;
         }

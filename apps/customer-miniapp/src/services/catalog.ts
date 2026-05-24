@@ -30,8 +30,12 @@ interface CatalogProductsResponse {
 
 const DEFAULT_PRODUCT_DETAIL_IMAGES: string[] = [];
 
-let cachedCatalogCategories = cloneCategories(catalogCategories);
-let cachedCatalogProducts = cloneProducts(catalogProducts);
+function shouldUseLocalCatalogFixtures() {
+  return (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV === 'test';
+}
+
+let cachedCatalogCategories = shouldUseLocalCatalogFixtures() ? cloneCategories(catalogCategories) : [];
+let cachedCatalogProducts = shouldUseLocalCatalogFixtures() ? cloneProducts(catalogProducts) : [];
 
 export function getHomeModules(): HomeModule[] {
   return homeModules;
@@ -341,8 +345,8 @@ export function resolveCatalogProductAssetUrls(product: CatalogProduct): Catalog
 }
 
 export function resetCatalogCache() {
-  cachedCatalogCategories = cloneCategories(catalogCategories);
-  cachedCatalogProducts = cloneProducts(catalogProducts);
+  cachedCatalogCategories = shouldUseLocalCatalogFixtures() ? cloneCategories(catalogCategories) : [];
+  cachedCatalogProducts = shouldUseLocalCatalogFixtures() ? cloneProducts(catalogProducts) : [];
 }
 
 export async function hydrateCatalog(request: CatalogApiRequester = customerApiRequest) {

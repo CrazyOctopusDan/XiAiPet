@@ -20,6 +20,9 @@ describe('membership page', () => {
     expect(script).toContain('getCachedCustomerRuntimeConfig().membershipTiers');
     expect(template).toContain('<swiper');
     expect(template).toContain('wx:for="{{tiers}}"');
+    expect(template).toContain('会员等级暂未配置');
+    expect(template).toContain('wx:if="{{!loading && !tiers.length}}"');
+    expect(template).toContain('wx:if="{{tiers.length}}"');
     expect(template).toContain('{{item.name}}');
     expect(template).toContain('{{item.thresholdLabel}}');
     expect(template).toContain('{{item.description}}');

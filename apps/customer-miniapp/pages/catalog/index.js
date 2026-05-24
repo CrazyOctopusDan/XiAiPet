@@ -40,7 +40,7 @@ Page({
             await (0, catalog_1.hydrateCatalog)();
         }
         catch (_a) {
-            // Keep the local fallback catalog usable when the customer API is unreachable.
+            // Keep the catalog empty when the customer API is unreachable.
         }
         this.refreshSections(this.data.activeDeliveryMode);
     },

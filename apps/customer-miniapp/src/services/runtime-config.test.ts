@@ -123,8 +123,20 @@ describe('customer runtime config service', () => {
     expect(runtimeConfig.store.name).toBe('虾衣宠物烘焙工作室');
     expect(runtimeConfig.customNotice.enabled).toBe(false);
     expect(runtimeConfig.deliveryRules.tiers[0]?.explainer).toBe('5.0 公里内 98 元起送，配送费 0 元');
-    expect(runtimeConfig.membershipTiers.tiers[0]?.name).toBe('普通会员');
+    expect(runtimeConfig.membershipTiers.tiers).toEqual([]);
     expect(getCachedCustomerRuntimeConfig()).toMatchObject(runtimeConfig);
+  });
+
+  it('does not expose local business copy or membership tiers before merchant config is loaded', () => {
+    const runtimeConfig = getCachedCustomerRuntimeConfig();
+
+    expect(runtimeConfig.store.wechatId).toBe('');
+    expect(runtimeConfig.store.ownerPhone).toBe('');
+    expect(runtimeConfig.customNotice).toEqual({
+      enabled: false,
+      content: ''
+    });
+    expect(runtimeConfig.membershipTiers.tiers).toEqual([]);
   });
 
   it('also reads runtime config from section documents returned by the API', async () => {

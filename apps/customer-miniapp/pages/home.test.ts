@@ -49,5 +49,7 @@ describe('home page', () => {
     expect(script).toContain('wx.setClipboardData');
     expect(script).toContain('`${label}已复制`');
     expect(script).toContain('复制失败，请长按号码');
+    expect(script).not.toContain('xiaipet-bakery');
+    expect(script).not.toContain('定制蛋糕请先联系店主沟通细节');
   });
 });

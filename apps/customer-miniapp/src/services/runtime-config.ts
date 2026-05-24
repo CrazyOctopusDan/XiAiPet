@@ -72,21 +72,14 @@ const DEFAULT_RUNTIME_CONFIG: CustomerRuntimeConfig = {
     ownerPhone: ''
   },
   customNotice: {
-    enabled: true,
-    content: '定制蛋糕请先联系店主沟通细节（微信号：xiaipet-bakery），已阅读后才可继续下单。'
+    enabled: false,
+    content: ''
   },
   deliveryRules: {
     tiers: LOCKED_DELIVERY_RULE_ROWS.map((row) => ({ ...row }))
   },
   membershipTiers: {
-    tiers: [
-      {
-        tierId: 'regular',
-        threshold: 0,
-        name: '普通会员',
-        description: '完成注册即可享受基础购买权益。'
-      }
-    ]
+    tiers: []
   }
 };
 

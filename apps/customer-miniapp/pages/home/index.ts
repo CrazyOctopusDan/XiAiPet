@@ -32,6 +32,7 @@ interface HomePageInstance {
   };
   setData(data: Record<string, unknown>): void;
   refreshHome(): Promise<void>;
+  refreshRuntimeConfigFields(): Promise<void>;
   getTabBar?(): { setSelectedKey?: (key: string) => void } | undefined;
 }
 
@@ -94,22 +95,33 @@ Page({
     const modulePromise = resolveHomeModuleImageSources();
 
     try {
-      await hydrateCustomerRuntimeConfig();
+      await this.refreshRuntimeConfigFields();
     } finally {
       const homeLayout = buildHomeLayout(await modulePromise);
 
       this.setData({
         ...homeLayout,
-        heroBannerSrc: HERO_BANNER_SRC,
-        storeContact: {
-          wechatId: getCachedCustomerRuntimeConfig().store.wechatId,
-          ownerPhone: getCachedCustomerRuntimeConfig().store.ownerPhone
-        },
-        purchaseNotice: getCachedCustomerRuntimeConfig().customNotice.enabled ? getCachedCustomerRuntimeConfig().customNotice.content : ''
+        heroBannerSrc: HERO_BANNER_SRC
       });
     }
   },
-  handleModuleTap(this: HomePageInstance, event: { currentTarget?: { dataset?: { moduleId?: string } } }) {
+  async refreshRuntimeConfigFields(this: HomePageInstance) {
+    try {
+      await hydrateCustomerRuntimeConfig();
+    } catch {
+      // Keep visible values empty when the runtime config API is unavailable.
+    }
+
+    const runtimeConfig = getCachedCustomerRuntimeConfig();
+    this.setData({
+      storeContact: {
+        wechatId: runtimeConfig.store.wechatId,
+        ownerPhone: runtimeConfig.store.ownerPhone
+      },
+      purchaseNotice: runtimeConfig.customNotice.enabled ? runtimeConfig.customNotice.content : ''
+    });
+  },
+  async handleModuleTap(this: HomePageInstance, event: { currentTarget?: { dataset?: { moduleId?: string } } }) {
     const moduleId = event.currentTarget?.dataset?.moduleId;
 
     if (moduleId === 'preorder') {
@@ -120,11 +132,13 @@ Page({
     }
 
     if (moduleId === 'consulting') {
+      await this.refreshRuntimeConfigFields();
       this.setData({ contactModalVisible: true });
       return;
     }
 
     if (moduleId === 'notice') {
+      await this.refreshRuntimeConfigFields();
       this.setData({ noticeModalVisible: true });
       return;
     }

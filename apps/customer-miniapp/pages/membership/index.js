@@ -7,20 +7,23 @@ function getMembershipTiersView() {
 Page({
     data: {
         tiers: getMembershipTiersView(),
-        currentIndex: 0
+        currentIndex: 0,
+        loading: false
     },
     onShow() {
         void this.refreshMembership();
     },
     async refreshMembership() {
+        this.setData({ loading: true });
         try {
             await (0, runtime_config_1.hydrateCustomerRuntimeConfig)();
         }
         catch (_a) {
-            // Keep the local membership config visible if the network is unavailable.
+            // Keep the membership section empty if the runtime config API is unavailable.
         }
         this.setData({
-            tiers: getMembershipTiersView()
+            tiers: getMembershipTiersView(),
+            loading: false
         });
     },
     handleTierChange(event) {

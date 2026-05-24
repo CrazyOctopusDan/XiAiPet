@@ -12,6 +12,7 @@ interface MembershipPageInstance {
   data: {
     tiers: MembershipTierCardViewModel[];
     currentIndex: number;
+    loading: boolean;
   };
   setData(data: Record<string, unknown>): void;
   refreshMembership(): Promise<void>;
@@ -24,20 +25,23 @@ function getMembershipTiersView() {
 Page({
   data: {
     tiers: getMembershipTiersView(),
-    currentIndex: 0
+    currentIndex: 0,
+    loading: false
   },
   onShow(this: MembershipPageInstance) {
     void this.refreshMembership();
   },
   async refreshMembership(this: MembershipPageInstance) {
+    this.setData({ loading: true });
     try {
       await hydrateCustomerRuntimeConfig();
     } catch {
-      // Keep the local membership config visible if the network is unavailable.
+      // Keep the membership section empty if the runtime config API is unavailable.
     }
 
     this.setData({
-      tiers: getMembershipTiersView()
+      tiers: getMembershipTiersView(),
+      loading: false
     });
   },
   handleTierChange(this: MembershipPageInstance, event: { detail?: { current?: number } }) {

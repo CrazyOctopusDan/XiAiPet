@@ -4,7 +4,11 @@
     <text class="membership-kicker">XiAiPet Member</text>
     <text class="membership-title">会员权益</text>
   </view>
-  <swiper class="tier-swiper" current="{{currentIndex}}" previous-margin="36rpx" next-margin="36rpx" bindchange="handleTierChange">
+  <view class="membership-empty" wx:if="{{!loading && !tiers.length}}">
+    <text class="membership-empty-title">会员等级暂未配置</text>
+    <text class="membership-empty-copy">店主配置会员等级后，这里会展示对应权益。</text>
+  </view>
+  <swiper wx:else class="tier-swiper" current="{{currentIndex}}" previous-margin="36rpx" next-margin="36rpx" bindchange="handleTierChange">
     <swiper-item wx:for="{{tiers}}" wx:key="tierId">
       <view class="tier-card" style="{{item.cardStyle}}">
         <view class="tier-card-glow"></view>
@@ -25,10 +29,10 @@
       </view>
     </swiper-item>
   </swiper>
-  <view class="tier-dots">
+  <view class="tier-dots" wx:if="{{tiers.length}}">
     <view class="tier-dot {{index === currentIndex ? 'active' : ''}}" wx:for="{{tiers}}" wx:key="tierId"></view>
   </view>
-  <view class="rules-card">
+  <view class="rules-card" wx:if="{{tiers.length}}">
     <text class="rules-title">等级规则</text>
     <view class="rule-row" wx:for="{{tiers}}" wx:key="tierId">
       <view class="rule-index">{{index < 9 ? '0' : ''}}{{index + 1}}</view>

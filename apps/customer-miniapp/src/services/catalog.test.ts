@@ -522,4 +522,22 @@ describe('catalog service', () => {
     expect(getCatalogCategories()[0]?.name).toBe('蛋糕｜定制系列');
     expect(getProductById('ocean-party')?.name).toBe('海洋奇遇');
   });
+
+  it('starts with an empty catalog outside tests so local fixture products are not shown to customers', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.resetModules();
+
+    try {
+      const productionCatalog = await import('./catalog');
+
+      productionCatalog.resetCatalogCache();
+
+      expect(productionCatalog.getCatalogCategories()).toEqual([]);
+      expect(productionCatalog.buildCatalogSections('delivery')).toEqual([]);
+      expect(productionCatalog.getProductById('ocean-party')).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
 });
