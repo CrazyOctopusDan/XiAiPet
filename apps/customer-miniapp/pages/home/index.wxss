@@ -157,13 +157,16 @@
 }
 
 .home-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
   background: #FBF1D2;
   color: #7A4A17;
   font-size: 38rpx;
-  line-height: 52rpx;
+  line-height: 1;
   text-align: center;
 }
 

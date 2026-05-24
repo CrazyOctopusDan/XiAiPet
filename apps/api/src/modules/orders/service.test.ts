@@ -52,6 +52,9 @@ describe('order service', () => {
       }
     };
     const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
       $transaction: vi.fn(async (callback) => callback(tx))
     };
     const service = createOrderService(client as any);
@@ -98,6 +101,20 @@ describe('order service', () => {
         deliveryFee: 0,
         payableTotal: 133
       }
+    });
+  });
+
+  it('rejects customer order creation before phone registration', async () => {
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'UNBOUND' }))
+      }
+    };
+    const service = createOrderService(client as any);
+
+    await expect(service.createCustomerOrder('openid-new', { idempotencyKey: 'checkout-key-1' })).rejects.toMatchObject({
+      code: 'CUSTOMER_NOT_REGISTERED',
+      statusCode: 403
     });
   });
 

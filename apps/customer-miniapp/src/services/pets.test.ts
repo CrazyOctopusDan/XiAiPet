@@ -16,13 +16,8 @@ describe('pets service', () => {
     resetPets();
   });
 
-  it('supports multiple pet profiles with stable fixture ids', () => {
-    const pets = getPets();
-
-    expect(pets.length).toBeGreaterThan(1);
-    expect(pets.map((item) => item.id)).toEqual(
-      expect.arrayContaining(['pet-pudding', 'pet-sesame'])
-    );
+  it('starts new users with no local pet fixtures', () => {
+    expect(getPets()).toEqual([]);
   });
 
   it('creates a new pet profile with a generated id', () => {
@@ -42,7 +37,12 @@ describe('pets service', () => {
   });
 
   it('updates an existing pet profile without changing its id', () => {
-    const existing = getPets()[0];
+    const existing = createPet({
+      name: '布丁',
+      gender: 'female',
+      birthday: '2023-04-12',
+      allergyNotes: ''
+    });
 
     if (!existing) {
       throw new Error('missing pet fixture');

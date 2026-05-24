@@ -17,47 +17,10 @@ exports.beginAddressSelection = beginAddressSelection;
 exports.getAddressSelectionRequest = getAddressSelectionRequest;
 exports.clearAddressSelectionRequest = clearAddressSelectionRequest;
 const api_client_1 = require("./api-client");
-const initialAddresses = [
-    {
-        id: 'address-city-home',
-        type: 'city',
-        recipientName: '虾衣妈妈',
-        phoneNumber: '13800001234',
-        regionLabel: '上海市 静安区',
-        detailAddress: '南京西路 1266 号 8 楼',
-        tag: '家'
-    },
-    {
-        id: 'address-city-studio',
-        type: 'city',
-        recipientName: '虾衣爸爸',
-        phoneNumber: '13700004567',
-        regionLabel: '上海市 徐汇区',
-        detailAddress: '永嘉路 511 弄 12 号',
-        tag: '工作室'
-    },
-    {
-        id: 'address-express-home',
-        type: 'express',
-        recipientName: '奶油',
-        phoneNumber: '13600007890',
-        regionLabel: '浙江省 杭州市 西湖区',
-        detailAddress: '文三路 90 号 2 单元 1102',
-        tag: '家'
-    },
-    {
-        id: 'address-express-office',
-        type: 'express',
-        recipientName: '雪团',
-        phoneNumber: '13500004321',
-        regionLabel: '江苏省 苏州市 工业园区',
-        detailAddress: '苏雅路 158 号 5 幢 603',
-        tag: '公司'
-    }
-];
+const initialAddresses = [];
 const initialSelectedIds = {
-    city: 'address-city-home',
-    express: 'address-express-home'
+    city: '',
+    express: ''
 };
 let addresses = initialAddresses.map((item) => ({ ...item }));
 let selectedIds = { ...initialSelectedIds };

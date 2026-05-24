@@ -9,22 +9,7 @@ exports.createPetRemote = createPetRemote;
 exports.updatePet = updatePet;
 exports.updatePetRemote = updatePetRemote;
 const api_client_1 = require("./api-client");
-const initialPets = [
-    {
-        id: 'pet-pudding',
-        name: '布丁',
-        gender: 'female',
-        birthday: '2023-04-12',
-        allergyNotes: '乳制品要减量'
-    },
-    {
-        id: 'pet-sesame',
-        name: '芝麻',
-        gender: 'male',
-        birthday: '2022-11-08',
-        allergyNotes: '对鸡肉冻干敏感'
-    }
-];
+const initialPets = [];
 let pets = initialPets.map((item) => ({ ...item }));
 let nextPetId = 1;
 function clonePet(pet) {

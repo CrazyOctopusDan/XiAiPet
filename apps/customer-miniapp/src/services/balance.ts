@@ -52,66 +52,7 @@ interface BalancePagination {
   total: number;
 }
 
-const initialRecords: BalanceLedgerFixture[] = [
-  {
-    id: 'balance-2026-04-1',
-    title: '后台人工调整',
-    normalizedTitle: '余额纠错',
-    shortNote: '余额调整至 ￥180.00',
-    date: '2026-04-15',
-    type: 'income',
-    amount: 300
-  },
-  {
-    id: 'balance-2026-04-2',
-    title: '蛋糕订单抵扣',
-    date: '2026-04-11',
-    type: 'expense',
-    amount: 88
-  },
-  {
-    id: 'balance-2026-03-1',
-    title: '售后补偿返还',
-    date: '2026-03-26',
-    type: 'income',
-    amount: 138
-  },
-  {
-    id: 'balance-2026-03-2',
-    title: '充值礼包',
-    date: '2026-03-09',
-    type: 'income',
-    amount: 300
-  },
-  {
-    id: 'balance-2026-03-3',
-    title: '生日蛋糕订单',
-    date: '2026-03-14',
-    type: 'expense',
-    amount: 268
-  },
-  {
-    id: 'balance-2026-03-4',
-    title: '冻干零食订单',
-    date: '2026-03-03',
-    type: 'expense',
-    amount: 114
-  },
-  {
-    id: 'balance-2026-02-1',
-    title: '会员充值',
-    date: '2026-02-20',
-    type: 'income',
-    amount: 300
-  },
-  {
-    id: 'balance-2026-02-2',
-    title: '首单试吃礼包',
-    date: '2026-02-22',
-    type: 'expense',
-    amount: 300
-  }
-];
+const initialRecords: BalanceLedgerFixture[] = [];
 
 let records: BalanceLedgerFixture[] = initialRecords.map((item) => ({ ...item }));
 let remoteOverview: BalanceOverview | null = null;

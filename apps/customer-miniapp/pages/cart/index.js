@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const catalog_1 = require("../../src/services/catalog");
 const cart_1 = require("../../src/services/cart");
+const profile_1 = require("../../src/services/profile");
 Page({
     data: {
         items: [],
@@ -206,13 +207,28 @@ Page({
     handleContinueShopping() {
         wx.navigateTo({ url: '/pages/catalog/index' });
     },
-    handleCheckout() {
+    async handleCheckout() {
         if (!this.data.selectedCount) {
             wx.showToast({ title: '请选择商品', icon: 'none' });
             return;
         }
         if (!this.data.canCheckoutSelectedItems) {
             wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
+            return;
+        }
+        if (!(0, profile_1.hasBoundPhone)()) {
+            const result = await wx.showModal({
+                title: '请先完善用户信息',
+                content: '绑定手机号才可以成为我们的会员，享受店内服务。',
+                confirmText: '去完善',
+                cancelText: '稍后再说',
+                confirmColor: '#40535C'
+            });
+            if (result === null || result === void 0 ? void 0 : result.confirm) {
+                wx.navigateTo({
+                    url: `/pages/profile-detail/index?redirect=${encodeURIComponent('/pages/cart/index')}`
+                });
+            }
             return;
         }
         wx.navigateTo({ url: '/pages/checkout/index?source=cart' });

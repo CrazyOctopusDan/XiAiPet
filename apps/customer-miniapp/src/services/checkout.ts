@@ -5,7 +5,7 @@ import {
   type CustomerAddress
 } from './address';
 import { getPets, type PetProfile } from './pets';
-import { getProfile } from './profile';
+import { getProfile, hasBoundPhone } from './profile';
 import { getCachedCustomerRuntimeConfig } from './runtime-config';
 import { getSelectedCartFulfillmentModes } from './cart';
 
@@ -257,6 +257,10 @@ function getSubmitDisabledReasons(mode: FulfillmentMode) {
 
   if (!getSelectedCartFulfillmentModes().length) {
     reasons.push('incompatible_fulfillment');
+  }
+
+  if (!hasBoundPhone()) {
+    reasons.push('missing_registration');
   }
 
   if (addressType && !selectedAddress) {

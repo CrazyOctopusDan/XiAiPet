@@ -17,6 +17,7 @@ import {
   type CartItem,
   type CartItemGroup
 } from '../../src/services/cart';
+import { hasBoundPhone } from '../../src/services/profile';
 
 interface CartPageData {
   items: CartItem[];
@@ -282,7 +283,7 @@ Page({
   handleContinueShopping() {
     wx.navigateTo({ url: '/pages/catalog/index' });
   },
-  handleCheckout(this: CartPageInstance) {
+  async handleCheckout(this: CartPageInstance) {
     if (!this.data.selectedCount) {
       wx.showToast({ title: '请选择商品', icon: 'none' });
       return;
@@ -290,6 +291,23 @@ Page({
 
     if (!this.data.canCheckoutSelectedItems) {
       wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
+      return;
+    }
+
+    if (!hasBoundPhone()) {
+      const result = await wx.showModal({
+        title: '请先完善用户信息',
+        content: '绑定手机号才可以成为我们的会员，享受店内服务。',
+        confirmText: '去完善',
+        cancelText: '稍后再说',
+        confirmColor: '#40535C'
+      });
+
+      if (result?.confirm) {
+        wx.navigateTo({
+          url: `/pages/profile-detail/index?redirect=${encodeURIComponent('/pages/cart/index')}`
+        });
+      }
       return;
     }
 

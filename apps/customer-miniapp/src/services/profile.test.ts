@@ -24,8 +24,8 @@ describe('profile service', () => {
       avatarText: '喜',
       nickname: '喜爱宠家长',
       memberLevel: '普通会员',
-      balance: 268,
-      totalSpent: 1288,
+      balance: 0,
+      totalSpent: 0,
       birthdayLabel: '未设置生日',
       contactPhoneLabel: '未绑定手机号'
     });

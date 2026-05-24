@@ -239,7 +239,7 @@ describe('cart checkout flow', () => {
   it('clears cart page items and summary when the user empties the cart', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
     const { getProductById } = await import('../src/services/catalog');
-    const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
 
     clearCart();
 
@@ -270,9 +270,11 @@ describe('cart checkout flow', () => {
   it('navigates from cart checkout into the checkout handoff page', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
     const { getProductById } = await import('../src/services/catalog');
-    const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { updateProfile } = await import('../src/services/profile');
 
     clearCart();
+    updateProfile({ contactPhoneMasked: '138****1234' });
 
     const product = getProductById('ocean-party');
 
@@ -284,10 +286,42 @@ describe('cart checkout flow', () => {
 
     const instance = createPageInstance(page);
     instance.onShow();
-    instance.handleCheckout();
+    await instance.handleCheckout();
 
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/checkout/index?source=cart'
+    });
+  });
+
+  it('prompts unregistered cart users to complete profile before checkout', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+
+    clearCart();
+    wx.showModal = vi.fn().mockResolvedValueOnce({ confirm: true, cancel: false });
+
+    const product = getProductById('ocean-party');
+
+    if (!product) {
+      throw new Error('missing product fixture');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+    await instance.handleCheckout();
+
+    expect(wx.showModal).toHaveBeenCalledWith({
+      title: '请先完善用户信息',
+      content: '绑定手机号才可以成为我们的会员，享受店内服务。',
+      confirmText: '去完善',
+      cancelText: '稍后再说',
+      confirmColor: '#40535C'
+    });
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/profile-detail/index?redirect=%2Fpages%2Fcart%2Findex'
     });
   });
 
@@ -652,12 +686,19 @@ describe('cart checkout flow', () => {
   it('shows the selected address summary on the checkout handoff page', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
     const { clearCart } = await import('../src/services/cart');
-    const { getAddresses, resetAddresses, selectAddress, setCheckoutAddressType } = await import('../src/services/address');
+    const { createAddress, resetAddresses, selectAddress, setCheckoutAddressType } = await import('../src/services/address');
 
     clearCart();
     resetAddresses();
 
-    const cityAddress = getAddresses('city')[0];
+    const cityAddress = createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '上海市 黄浦区',
+      detailAddress: '外滩 18 号 201',
+      tag: '公司'
+    });
 
     if (!cityAddress) {
       throw new Error('missing city address fixture');
@@ -688,7 +729,7 @@ describe('cart checkout flow', () => {
     instance.onShow();
 
     expect(instance.data.activeType).toBe('city');
-    expect(instance.data.addresses.length).toBeGreaterThan(0);
+    expect(instance.data.addresses).toEqual([]);
 
     const addressTemplate = await readFile(
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-list/index.wxml',
@@ -760,7 +801,7 @@ describe('cart checkout flow', () => {
       'express'
     ]);
     expect(instance.data.activeFulfillmentMode).toBe('delivery');
-    expect(instance.data.pickupPhone).toBe('13800001234');
+    expect(instance.data.pickupPhone).toBe('138****1234');
   });
 
   it('limits checkout fulfillment modes to the selected cart item intersection', async () => {
@@ -939,12 +980,18 @@ describe('cart checkout flow', () => {
   it('marks pet cards as selected so the checkout template can update the card color', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
     const { resetCheckoutDraft } = await import('../src/services/checkout');
-    const { getPets } = await import('../src/services/pets');
+    const { createPet, resetPets } = await import('../src/services/pets');
     const { readFile } = await import('node:fs/promises');
 
     resetCheckoutDraft();
+    resetPets();
 
-    const pet = getPets()[0];
+    const pet = createPet({
+      name: '布丁',
+      gender: 'female',
+      birthday: '2023-04-12',
+      allergyNotes: ''
+    });
 
     if (!pet) {
       throw new Error('missing pet fixture');
@@ -988,11 +1035,7 @@ describe('cart checkout flow', () => {
     const instance = createPageInstance(page);
     instance.onShow();
 
-    expect(instance.data.pets.length).toBeGreaterThan(0);
-    expect(instance.data.pets[0]).toMatchObject({
-      id: 'pet-pudding',
-      name: '布丁'
-    });
+    expect(instance.data.pets).toEqual([]);
 
     const petsTemplate = await readFile(
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/pets/index.wxml',
@@ -1093,6 +1136,20 @@ describe('cart checkout flow', () => {
     });
   });
 
+  it('passes profile detail redirect through to phone binding', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile-detail/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.onLoad({
+      redirect: '%2Fpages%2Fcart%2Findex'
+    });
+    instance.handleContactTap();
+
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/contact-bind/index?redirect=%2Fpages%2Fcart%2Findex'
+    });
+  });
+
   it('renders the profile hub as a balance-first account dashboard without the intro copy', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile/index.ts');
     const { updateProfile } = await import('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/src/services/profile');
@@ -1102,7 +1159,8 @@ describe('cart checkout flow', () => {
     instance.onShow();
 
     expect(instance.data.summary).toMatchObject({
-      balance: 268,
+      balance: 0,
+      totalSpent: 0,
       nickname: '喜爱宠家长'
     });
 
@@ -1170,15 +1228,11 @@ describe('cart checkout flow', () => {
     instance.onShow();
 
     expect(instance.data.overview).toMatchObject({
-      currentBalance: 268,
-      totalIncome: 1038,
-      totalExpense: 770
+      currentBalance: 0,
+      totalIncome: 0,
+      totalExpense: 0
     });
-    expect(instance.data.groups[0]).toMatchObject({
-      monthLabel: '2026 年 04 月',
-      totalIncome: 300,
-      totalExpense: 88
-    });
+    expect(instance.data.groups).toEqual([]);
 
     const balanceTemplate = await readFile(
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/balance/index.wxml',
@@ -1400,15 +1454,24 @@ describe('cart checkout flow', () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
     const { getProductById } = await import('../src/services/catalog');
     const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
-    const { getAddresses, resetAddresses, selectAddress } = await import('../src/services/address');
+    const { createAddress, resetAddresses, selectAddress } = await import('../src/services/address');
     const { resetCheckoutDraft, setCustomNoticeAcknowledged, setReservationSelection } = await import('../src/services/checkout');
+    const { updateProfile } = await import('../src/services/profile');
 
     clearCart();
     resetAddresses();
     resetCheckoutDraft();
 
     const product = getProductById('sea-sponge');
-    const address = getAddresses('city')[0];
+    updateProfile({ contactPhoneMasked: '138****1234' });
+    const address = createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '上海市 黄浦区',
+      detailAddress: '外滩 18 号 201',
+      tag: '公司'
+    });
 
     if (!product || !address) {
       throw new Error('missing checkout submit fixtures');
@@ -1447,15 +1510,24 @@ describe('cart checkout flow', () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
     const { getProductById } = await import('../src/services/catalog');
     const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
-    const { getAddresses, resetAddresses, selectAddress } = await import('../src/services/address');
+    const { createAddress, resetAddresses, selectAddress } = await import('../src/services/address');
     const { resetCheckoutDraft, setCustomNoticeAcknowledged, setReservationSelection } = await import('../src/services/checkout');
+    const { updateProfile } = await import('../src/services/profile');
 
     clearCart();
     resetAddresses();
     resetCheckoutDraft();
 
     const product = getProductById('sea-sponge');
-    const address = getAddresses('city')[0];
+    updateProfile({ contactPhoneMasked: '138****1234' });
+    const address = createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '上海市 黄浦区',
+      detailAddress: '外滩 18 号 201',
+      tag: '公司'
+    });
 
     if (!product || !address) {
       throw new Error('missing checkout failure fixtures');
@@ -1511,15 +1583,24 @@ describe('cart checkout flow', () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
     const { getProductById } = await import('../src/services/catalog');
     const { addCartItem, clearCart } = await import('../src/services/cart');
-    const { getAddresses, resetAddresses, selectAddress } = await import('../src/services/address');
+    const { createAddress, resetAddresses, selectAddress } = await import('../src/services/address');
     const { resetCheckoutDraft, setCustomNoticeAcknowledged, setReservationSelection } = await import('../src/services/checkout');
+    const { updateProfile } = await import('../src/services/profile');
 
     clearCart();
     resetAddresses();
     resetCheckoutDraft();
 
     const product = getProductById('sea-sponge');
-    const address = getAddresses('city')[0];
+    updateProfile({ contactPhoneMasked: '138****1234' });
+    const address = createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '上海市 黄浦区',
+      detailAddress: '外滩 18 号 201',
+      tag: '公司'
+    });
 
     if (!product || !address) {
       throw new Error('missing checkout submit fixtures');

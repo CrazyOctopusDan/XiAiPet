@@ -8,7 +8,13 @@ Page({
             { value: 'unknown', label: '暂不设置' },
             { value: 'female', label: '女孩' },
             { value: 'male', label: '男孩' }
-        ]
+        ],
+        redirectUrl: ''
+    },
+    onLoad(options) {
+        this.setData({
+            redirectUrl: resolveRedirectUrl(options === null || options === void 0 ? void 0 : options.redirect)
+        });
     },
     onShow() {
         this.refreshProfile();
@@ -86,7 +92,19 @@ Page({
     },
     handleContactTap() {
         wx.navigateTo({
-            url: '/pages/contact-bind/index?source=profile-detail'
+            url: (0, profile_1.getPhoneBindingRedirectUrl)(this.data.redirectUrl || '/pages/profile-detail/index')
         });
     }
 });
+function resolveRedirectUrl(value) {
+    if (!value) {
+        return '';
+    }
+    try {
+        const decoded = decodeURIComponent(value);
+        return decoded.startsWith('/pages/') ? decoded : '';
+    }
+    catch (_a) {
+        return '';
+    }
+}

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { getAddresses, resetAddresses, selectAddress } from './address';
+import { createAddress, resetAddresses, selectAddress } from './address';
 import {
   ensureContactPhoneFromProfile,
   getCheckoutDraft,
@@ -12,7 +12,7 @@ import {
   setReservationSelection,
   toggleSelectedPet
 } from './checkout';
-import { resetPets, getPets } from './pets';
+import { createPet, resetPets, getPets } from './pets';
 import { resetProfile, updateProfile } from './profile';
 
 describe('checkout service', () => {
@@ -31,7 +31,7 @@ describe('checkout service', () => {
     expect(view.addressType).toBe('city');
     expect(view.canSubmit).toBe(false);
     expect(view.submitDisabledReasons).toEqual(
-      expect.arrayContaining(['missing_reservation', 'custom_notice_unchecked'])
+      expect.arrayContaining(['missing_registration', 'missing_address', 'missing_reservation', 'custom_notice_unchecked'])
     );
   });
 
@@ -51,7 +51,14 @@ describe('checkout service', () => {
   });
 
   it('hydrates the shared order contact from the selected delivery address before masked profile contact', () => {
-    const cityAddress = getAddresses('city')[0];
+    const cityAddress = createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '上海市 黄浦区',
+      detailAddress: '外滩 18 号 201',
+      tag: '公司'
+    });
 
     if (!cityAddress) {
       throw new Error('missing city address fixture');
@@ -75,7 +82,37 @@ describe('checkout service', () => {
   });
 
   it('supports multi-pet selection and only requires reservation for delivery or pickup', () => {
-    const cityAddress = getAddresses('city')[0];
+    updateProfile({
+      contactPhoneMasked: '138****1234'
+    });
+    const cityAddress = createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '上海市 黄浦区',
+      detailAddress: '外滩 18 号 201',
+      tag: '公司'
+    });
+    createAddress({
+      type: 'express',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '浙江省 杭州市',
+      detailAddress: '文三路 90 号',
+      tag: '家'
+    });
+    createPet({
+      name: '布丁',
+      gender: 'female',
+      birthday: '2023-04-12',
+      allergyNotes: ''
+    });
+    createPet({
+      name: '芝麻',
+      gender: 'male',
+      birthday: '2022-11-08',
+      allergyNotes: ''
+    });
     const pets = getPets();
 
     if (!cityAddress || pets.length < 2) {

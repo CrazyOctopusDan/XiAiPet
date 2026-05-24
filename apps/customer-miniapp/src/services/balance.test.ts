@@ -15,44 +15,18 @@ describe('balance service', () => {
     resetBalance();
   });
 
-  it('returns grouped monthly ledger sections in reverse chronological order', () => {
+  it('starts new users with no local balance ledger records', () => {
     const groups = getMonthlyBalanceGroups();
 
-    expect(groups.map((item) => item.month)).toEqual(['2026-04', '2026-03', '2026-02']);
-    expect(groups[0]?.items[0]).toMatchObject({
-      id: 'balance-2026-04-1',
-      type: 'income'
-    });
+    expect(groups).toEqual([]);
   });
 
-  it('calculates monthly income and expense totals', () => {
-    const april = getMonthlyBalanceGroups()[0];
-
-    expect(april).toMatchObject({
-      month: '2026-04',
-      totalIncome: 300,
-      totalExpense: 88
-    });
-  });
-
-  it('exposes current balance overview for the balance page header', () => {
+  it('exposes a zero balance overview before the customer balance API is loaded', () => {
     expect(getBalanceOverview()).toMatchObject({
-      currentBalance: 268,
-      totalIncome: 1038,
-      totalExpense: 770
+      currentBalance: 0,
+      totalIncome: 0,
+      totalExpense: 0
     });
-  });
-
-  it('maps merchant adjustments to normalized title plus short note without exposing internal remarks', () => {
-    const april = getMonthlyBalanceGroups()[0];
-    const merchantAdjustment = april?.items.find((item) => item.id === 'balance-2026-04-1');
-
-    expect(merchantAdjustment).toMatchObject({
-      title: '余额纠错',
-      note: '余额调整至 ￥180.00',
-      rawTitle: '后台人工调整'
-    });
-    expect(merchantAdjustment?.note).not.toContain('仅商户内部可见');
   });
 
   it('hydrates balance overview and ledger records from the customer balance API', async () => {
@@ -99,7 +73,15 @@ describe('balance service', () => {
     expect(getMonthlyBalanceGroups()).toEqual([
       expect.objectContaining({
         month: '2026-05',
-        totalIncome: 300
+        totalIncome: 300,
+        items: [
+          expect.objectContaining({
+            id: 'ledger-api-1',
+            title: '余额纠错',
+            note: '余额调整至 ￥180.00',
+            rawTitle: '后台人工调整'
+          })
+        ]
       })
     ]);
     expect(getBalancePagination()).toMatchObject({

@@ -171,6 +171,9 @@ function getSubmitDisabledReasons(mode) {
     if (!(0, cart_1.getSelectedCartFulfillmentModes)().length) {
         reasons.push('incompatible_fulfillment');
     }
+    if (!(0, profile_1.hasBoundPhone)()) {
+        reasons.push('missing_registration');
+    }
     if (addressType && !selectedAddress) {
         reasons.push('missing_address');
     }

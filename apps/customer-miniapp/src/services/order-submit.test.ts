@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { OrderRecord } from '@xiaipet/shared';
 
-import { getAddresses, resetAddresses, selectAddress } from './address';
+import { createAddress, resetAddresses, selectAddress } from './address';
 import { CustomerApiError, type CustomerApiRequester } from './api-client';
 import { addCartItem, clearCart } from './cart';
 import {
@@ -13,7 +13,7 @@ import {
   toggleSelectedPet
 } from './checkout';
 import { getProductById } from './catalog';
-import { resetPets, getPets } from './pets';
+import { createPet, resetPets } from './pets';
 import { resetProfile, updateProfile } from './profile';
 import {
   buildCreateOrderPayload,
@@ -54,6 +54,26 @@ function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
   };
 }
 
+function createCityAddressFixture() {
+  return createAddress({
+    type: 'city',
+    recipientName: '奶油',
+    phoneNumber: '13900001111',
+    regionLabel: '上海市 黄浦区',
+    detailAddress: '外滩 18 号 201',
+    tag: '公司'
+  });
+}
+
+function createPetFixture(name = '布丁') {
+  return createPet({
+    name,
+    gender: 'female',
+    birthday: '2023-04-12',
+    allergyNotes: ''
+  });
+}
+
 describe('order submit service', () => {
   beforeEach(() => {
     resetAddresses();
@@ -61,12 +81,13 @@ describe('order submit service', () => {
     resetCheckoutDraft();
     resetPets();
     resetProfile();
+    updateProfile({ contactPhoneMasked: '138****1234' });
   });
 
   it('builds a delivery order payload with fee preview and frozen snapshot fields', () => {
     const product = getProductById('ocean-party');
-    const address = getAddresses('city')[0];
-    const pet = getPets()[0];
+    const address = createCityAddressFixture();
+    const pet = createPetFixture();
 
     if (!product || !address || !pet) {
       throw new Error('missing order fixtures');
@@ -133,7 +154,7 @@ describe('order submit service', () => {
 
   it('includes the bound profile contact phone in delivery order fulfillment snapshots', () => {
     const product = getProductById('sea-sponge');
-    const address = getAddresses('city')[0];
+    const address = createCityAddressFixture();
 
     if (!product || !address) {
       throw new Error('missing delivery contact fixtures');
@@ -160,7 +181,7 @@ describe('order submit service', () => {
 
   it('creates a balance order and returns the paid order from the HTTP payment route', async () => {
     const product = getProductById('sea-sponge');
-    const address = getAddresses('city')[0];
+    const address = createCityAddressFixture();
 
     if (!product || !address) {
       throw new Error('missing submit fixtures');
@@ -239,7 +260,7 @@ describe('order submit service', () => {
 
   it('syncs WeChat payment when the payment route returns a pending status', async () => {
     const product = getProductById('sea-sponge');
-    const address = getAddresses('city')[0];
+    const address = createCityAddressFixture();
 
     if (!product || !address) {
       throw new Error('missing submit fixtures');
@@ -313,7 +334,7 @@ describe('order submit service', () => {
 
   it('surfaces insufficient balance as a stable service error code', async () => {
     const product = getProductById('sea-sponge');
-    const address = getAddresses('city')[0];
+    const address = createCityAddressFixture();
 
     if (!product || !address) {
       throw new Error('missing submit fixtures');

@@ -3,6 +3,7 @@ declare function Page(options: Record<string, unknown>): void;
 
 import {
   getProfile,
+  getPhoneBindingRedirectUrl,
   saveProfile,
   setBirthday,
   updateProfile,
@@ -13,6 +14,7 @@ import {
 interface ProfileDetailPageData {
   profile: CustomerProfile;
   genderOptions: Array<{ value: ProfileGender; label: string }>;
+  redirectUrl: string;
 }
 
 interface ProfileDetailPageInstance {
@@ -28,7 +30,13 @@ Page({
       { value: 'unknown', label: '暂不设置' },
       { value: 'female', label: '女孩' },
       { value: 'male', label: '男孩' }
-    ]
+    ],
+    redirectUrl: ''
+  },
+  onLoad(this: ProfileDetailPageInstance, options?: { redirect?: string }) {
+    this.setData({
+      redirectUrl: resolveRedirectUrl(options?.redirect)
+    });
   },
   onShow(this: ProfileDetailPageInstance) {
     this.refreshProfile();
@@ -110,9 +118,22 @@ Page({
 
     this.refreshProfile();
   },
-  handleContactTap() {
+  handleContactTap(this: ProfileDetailPageInstance) {
     wx.navigateTo({
-      url: '/pages/contact-bind/index?source=profile-detail'
+      url: getPhoneBindingRedirectUrl(this.data.redirectUrl || '/pages/profile-detail/index')
     });
   }
 });
+
+function resolveRedirectUrl(value?: string) {
+  if (!value) {
+    return '';
+  }
+
+  try {
+    const decoded = decodeURIComponent(value);
+    return decoded.startsWith('/pages/') ? decoded : '';
+  } catch {
+    return '';
+  }
+}

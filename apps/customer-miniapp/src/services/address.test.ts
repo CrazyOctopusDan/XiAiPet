@@ -23,7 +23,30 @@ describe('address service', () => {
     resetAddresses();
   });
 
+  it('starts new users with no local address fixtures', () => {
+    expect(getAddresses()).toEqual([]);
+    expect(getSelectedAddress('city')).toBe(null);
+    expect(getSelectedAddress('express')).toBe(null);
+  });
+
   it('filters city and express addresses from a shared store', () => {
+    createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '上海市 黄浦区',
+      detailAddress: '外滩 18 号 201',
+      tag: '公司'
+    });
+    createAddress({
+      type: 'express',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '浙江省 杭州市',
+      detailAddress: '文三路 90 号',
+      tag: '家'
+    });
+
     expect(getAddresses('city').every((item) => item.type === 'city')).toBe(true);
     expect(getAddresses('express').every((item) => item.type === 'express')).toBe(true);
   });
@@ -62,7 +85,14 @@ describe('address service', () => {
   });
 
   it('selects an address per type and exposes the checkout address type', () => {
-    const expressAddress = getAddresses('express')[0];
+    const expressAddress = createAddress({
+      type: 'express',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '浙江省 杭州市',
+      detailAddress: '文三路 90 号',
+      tag: '家'
+    });
 
     if (!expressAddress) {
       throw new Error('missing express address fixture');

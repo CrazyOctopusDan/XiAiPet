@@ -151,6 +151,13 @@ export function createOrderService(
       if (!payload || typeof payload !== 'object') {
         throw new ApiError('INVALID_ORDER', 'Invalid order payload', 400);
       }
+      const user = await client.user.findUnique({
+        where: { openid },
+        select: { phoneBindingState: true }
+      });
+      if (!user || user.phoneBindingState !== 'BOUND') {
+        throw new ApiError('CUSTOMER_NOT_REGISTERED', 'Customer must bind phone before ordering', 403);
+      }
       const order = await this.createPendingOrder(normalizeCreateOrderPayload(openid, payload));
       return { ok: true, order };
     },

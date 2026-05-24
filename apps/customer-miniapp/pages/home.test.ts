@@ -14,6 +14,8 @@ describe('home page', () => {
     expect(template).not.toContain('module-card-action');
     expect(template).not.toContain("item.id !== 'consulting'");
     expect(styles).toContain('align-items: center');
+    expect(styles).toContain('.home-modal-close');
+    expect(styles).toContain('justify-content: center');
     expect(styles).not.toContain('.module-card-action');
     expect(styles).not.toContain('align-items: flex-end');
   });

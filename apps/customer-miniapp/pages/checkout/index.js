@@ -297,6 +297,12 @@ Page({
             return;
         }
         if (!this.data.canSubmit) {
+            if (this.data.submitDisabledReasons.includes('missing_registration')) {
+                wx.navigateTo({
+                    url: (0, profile_1.getPhoneBindingRedirectUrl)('/pages/checkout/index')
+                });
+                return;
+            }
             wx.showToast({
                 title: '请先补齐订单信息',
                 icon: 'none'

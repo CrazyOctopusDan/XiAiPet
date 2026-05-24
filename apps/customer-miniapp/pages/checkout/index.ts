@@ -19,7 +19,7 @@ import {
 } from '../../src/services/checkout';
 import { getCartItems, getCartSummary, removeSelectedCartItems, type CartItem } from '../../src/services/cart';
 import { getPets, hydratePets, type PetProfile } from '../../src/services/pets';
-import { hydrateProfile } from '../../src/services/profile';
+import { getPhoneBindingRedirectUrl, hydrateProfile } from '../../src/services/profile';
 import { getCheckoutPricingPreview, getDeliveryFeePreview, submitOrder } from '../../src/services/order-submit';
 import { hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 import { setPendingOrdersHighlight } from '../../src/services/tab-navigation';
@@ -394,6 +394,12 @@ Page({
     }
 
     if (!this.data.canSubmit) {
+      if (this.data.submitDisabledReasons.includes('missing_registration')) {
+        wx.navigateTo({
+          url: getPhoneBindingRedirectUrl('/pages/checkout/index')
+        });
+        return;
+      }
       wx.showToast({
         title: '请先补齐订单信息',
         icon: 'none'
