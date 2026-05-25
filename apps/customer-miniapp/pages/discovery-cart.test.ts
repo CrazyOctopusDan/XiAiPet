@@ -106,6 +106,7 @@ describe('discovery cart pages', () => {
     expect(catalogStyles).toContain('.catalog-empty');
     expect(catalogStyles).toContain('border: 4rpx solid #40535C');
     expect(catalogStyles).toContain('background: #40535C');
+    expect(catalogStyles).toMatch(/\.product-price \{[\s\S]*?bottom: 16rpx;[\s\S]*?height: 60rpx/);
     expect(catalogStyles).toContain('bottom: calc(42rpx + env(safe-area-inset-bottom))');
     expect(catalogStyles).toContain('align-items: center');
     expect(catalogStyles).toContain('padding: calc(96rpx + env(safe-area-inset-top)) 24rpx calc(96rpx + env(safe-area-inset-bottom))');

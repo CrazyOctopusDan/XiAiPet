@@ -303,8 +303,11 @@
 
 .product-price {
   position: absolute;
+  display: flex;
+  align-items: center;
   left: 0;
-  bottom: 22rpx;
+  bottom: 16rpx;
+  height: 60rpx;
   font-size: 28rpx;
   line-height: 1.2;
   font-weight: 900;
@@ -345,10 +348,10 @@
 
 .product-action-badge {
   position: absolute;
-  top: -12rpx;
-  right: -10rpx;
-  min-width: 34rpx;
-  height: 34rpx;
+  top: -16rpx;
+  right: -12rpx;
+  min-width: 38rpx;
+  height: 38rpx;
   padding: 0 8rpx;
   display: flex;
   align-items: center;
@@ -357,16 +360,16 @@
   border-radius: 999rpx;
   box-sizing: border-box;
   background: #E86B61;
-  font-size: 18rpx;
+  font-size: 20rpx;
   font-weight: 900;
   line-height: 1;
-  color: #40535C;
+  color: #fff;
 }
 
 .product-stepper {
   position: absolute;
   right: 12rpx;
-  bottom: 16rpx;
+  bottom: 13rpx;
   display: flex;
   align-items: center;
   gap: 12rpx;
