@@ -86,7 +86,7 @@ describe('merchant API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        url: 'http://118.178.173.241/api/v1/merchant/auth/login',
+        url: 'https://api.xiaipet.vip/api/v1/merchant/auth/login',
         method: 'POST',
         data: {
           username: 'admin',
@@ -97,7 +97,7 @@ describe('merchant API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        url: 'http://118.178.173.241/api/v1/merchant/orders',
+        url: 'https://api.xiaipet.vip/api/v1/merchant/orders',
         header: expect.objectContaining({
           Authorization: 'Bearer merchant-token'
         })
@@ -301,8 +301,8 @@ describe('merchant API client', () => {
     expect(getMerchantApiBaseUrl()).toBe('https://temporary-merchant.example.com');
   });
 
-  it('uses the Alibaba ECS API for development builds', () => {
-    expect(MERCHANT_API_DEVELOPMENT_BASE_URL).toBe('http://118.178.173.241');
-    expect(getMerchantApiBaseUrl()).toBe('http://118.178.173.241');
+  it('uses the HTTPS API domain for development builds', () => {
+    expect(MERCHANT_API_DEVELOPMENT_BASE_URL).toBe(MERCHANT_API_PRODUCTION_BASE_URL);
+    expect(getMerchantApiBaseUrl()).toBe('https://api.xiaipet.vip');
   });
 });

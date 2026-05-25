@@ -4,7 +4,7 @@ exports.CUSTOMER_API_BASE_URL = exports.CUSTOMER_API_DEVELOPMENT_BASE_URL = expo
 exports.getCustomerApiBaseUrl = getCustomerApiBaseUrl;
 const CUSTOMER_API_BASE_URL_OVERRIDE_KEY = '__XIAIPET_CUSTOMER_API_BASE_URL__';
 exports.CUSTOMER_API_PRODUCTION_BASE_URL = 'https://api.xiaipet.vip';
-exports.CUSTOMER_API_DEVELOPMENT_BASE_URL = 'http://118.178.173.241';
+exports.CUSTOMER_API_DEVELOPMENT_BASE_URL = exports.CUSTOMER_API_PRODUCTION_BASE_URL;
 function trimTrailingSlash(value) {
     return value.replace(/\/+$/, '');
 }

@@ -81,7 +81,7 @@ describe('customer API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        url: 'http://118.178.173.241/api/v1/customer/auth/login',
+        url: 'https://api.xiaipet.vip/api/v1/customer/auth/login',
         method: 'POST',
         data: {
           code: 'wx-login-code'
@@ -91,7 +91,7 @@ describe('customer API client', () => {
     expect(requestMock).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        url: 'http://118.178.173.241/api/v1/customer/bootstrap',
+        url: 'https://api.xiaipet.vip/api/v1/customer/bootstrap',
         data: {},
         header: expect.objectContaining({
           Authorization: 'Bearer customer-token',
@@ -205,8 +205,8 @@ describe('customer API client', () => {
     clearCustomerSession();
   });
 
-  it('uses the Alibaba ECS API for development builds', () => {
-    expect(CUSTOMER_API_DEVELOPMENT_BASE_URL).toBe('http://118.178.173.241');
-    expect(getCustomerApiBaseUrl()).toBe('http://118.178.173.241');
+  it('uses the HTTPS API domain for development builds', () => {
+    expect(CUSTOMER_API_DEVELOPMENT_BASE_URL).toBe(CUSTOMER_API_PRODUCTION_BASE_URL);
+    expect(getCustomerApiBaseUrl()).toBe('https://api.xiaipet.vip');
   });
 });
