@@ -34,7 +34,8 @@ describe('loadApiConfig', () => {
       customerWechatAppId: 'dev-customer-app-id',
       customerWechatAppSecret: 'dev-customer-app-secret',
       merchantWechatAppId: 'dev-merchant-app-id',
-      merchantWechatAppSecret: 'dev-merchant-app-secret'
+      merchantWechatAppSecret: 'dev-merchant-app-secret',
+      wechatPay: null
     });
   });
 
@@ -59,7 +60,11 @@ describe('loadApiConfig', () => {
         CUSTOMER_WECHAT_APP_ID: 'prod-customer-app-id',
         CUSTOMER_WECHAT_APP_SECRET: 'prod-customer-app-secret',
         MERCHANT_WECHAT_APP_ID: 'prod-merchant-app-id',
-        MERCHANT_WECHAT_APP_SECRET: 'prod-merchant-app-secret'
+        MERCHANT_WECHAT_APP_SECRET: 'prod-merchant-app-secret',
+        WECHAT_PAY_MCH_ID: '1900000001',
+        WECHAT_PAY_MCH_SERIAL_NO: 'pay-serial-no',
+        WECHAT_PAY_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\\ntest\\n-----END PRIVATE KEY-----',
+        WECHAT_PAY_NOTIFY_URL: 'https://api.xiaipet.vip/api/v1/customer/orders/payment-notify'
       })
     ).toEqual({
       nodeEnv: 'production',
@@ -80,7 +85,14 @@ describe('loadApiConfig', () => {
       customerWechatAppId: 'prod-customer-app-id',
       customerWechatAppSecret: 'prod-customer-app-secret',
       merchantWechatAppId: 'prod-merchant-app-id',
-      merchantWechatAppSecret: 'prod-merchant-app-secret'
+      merchantWechatAppSecret: 'prod-merchant-app-secret',
+      wechatPay: {
+        mchId: '1900000001',
+        mchSerialNo: 'pay-serial-no',
+        privateKey: '-----BEGIN PRIVATE KEY-----\\ntest\\n-----END PRIVATE KEY-----',
+        notifyUrl: 'https://api.xiaipet.vip/api/v1/customer/orders/payment-notify',
+        apiBaseUrl: undefined
+      }
     });
   });
 
@@ -99,6 +111,28 @@ describe('loadApiConfig', () => {
     expect(config.customerWechatAppSecret).toBe('test-customer-wechat-app-secret');
     expect(config.merchantWechatAppId).toBe('test-merchant-wechat-app-id');
     expect(config.merchantWechatAppSecret).toBe('test-merchant-wechat-app-secret');
+    expect(config.wechatPay).toBeNull();
+  });
+
+  it('rejects partial WeChat Pay configuration', () => {
+    expect(() =>
+      loadApiConfig({
+        NODE_ENV: 'production',
+        DATABASE_URL: 'mysql://xiaipet:secret@127.0.0.1:3307/xiaipet_dev',
+        API_SESSION_SECRET: PROD_SESSION_SECRET,
+        OSS_REGION: 'oss-cn-hangzhou',
+        OSS_BUCKET: 'xiaipet-assets',
+        OSS_ENDPOINT: 'oss-cn-hangzhou.aliyuncs.com',
+        OSS_PUBLIC_BASE_URL: 'https://xiaipet-assets.oss-cn-hangzhou.aliyuncs.com',
+        OSS_ACCESS_KEY_ID: 'oss-id',
+        OSS_ACCESS_KEY_SECRET: 'oss-secret',
+        CUSTOMER_WECHAT_APP_ID: 'customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'merchant-app-secret',
+        WECHAT_PAY_MCH_ID: '1900000001'
+      })
+    ).toThrow('Invalid WECHAT_PAY_*');
   });
 
   it('rejects invalid ports', () => {

@@ -121,14 +121,14 @@ function findReservationSelection(options: ReservationDayOption[], dateValue: st
 
 const PAYMENT_METHODS: PaymentMethodOption[] = [
   {
-    value: 'wechat',
-    label: '微信支付',
-    hint: '走微信支付收银台'
-  },
-  {
     value: 'balance',
     label: '余额支付',
     hint: '优先扣除当前账户余额'
+  },
+  {
+    value: 'wechat',
+    label: '微信支付',
+    hint: '走微信支付收银台'
   }
 ];
 
@@ -162,7 +162,7 @@ Page({
     storePhone: '',
     deliveryRuleRows: [],
     paymentMethods: PAYMENT_METHODS,
-    activePaymentMethod: 'wechat',
+    activePaymentMethod: 'balance',
     deliveryFee: 0,
     payableTotal: 0,
     deliveryFeeLabel: '待确认',
@@ -197,7 +197,7 @@ Page({
     const view = getCheckoutViewModel();
     const pricing = getCheckoutPricingPreview();
     const deliveryFeePreview = getDeliveryFeePreview(view.selectedAddress);
-    const activePaymentMethod = this.data.activePaymentMethod ?? 'wechat';
+    const activePaymentMethod = this.data.activePaymentMethod ?? 'balance';
     const selectedPetIds = view.selectedPets.map((item) => item.id);
     const selectedPetIdSet = new Set(selectedPetIds);
 

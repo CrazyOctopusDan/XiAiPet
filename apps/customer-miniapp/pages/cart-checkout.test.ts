@@ -1444,10 +1444,10 @@ describe('cart checkout flow', () => {
     instance.onShow();
 
     expect(instance.data.paymentMethods.map((item: { value: string }) => item.value)).toEqual([
-      'wechat',
-      'balance'
+      'balance',
+      'wechat'
     ]);
-    expect(instance.data.activePaymentMethod).toBe('wechat');
+    expect(instance.data.activePaymentMethod).toBe('balance');
   });
 
   it('redirects to order detail after a successful checkout submit and clears purchased cart items', async () => {

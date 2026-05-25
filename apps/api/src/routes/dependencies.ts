@@ -10,6 +10,7 @@ import type { MerchantAccountRecord } from '../modules/merchant-accounts/service
 import { createOrderService } from '../modules/orders/service';
 import {
   createMockPaymentProvider,
+  createWechatPayProvider,
   createUnconfiguredWechatPaymentProvider,
   type PaymentProvider
 } from '../modules/payments/provider';
@@ -111,7 +112,14 @@ export function createApiRouteDependencies(
   overrides: ApiRouteDependencyOverrides = {}
 ): ApiRouteDependencies {
   const paymentProvider = overrides.paymentProvider ?? (
-    config.nodeEnv === 'production' ? createUnconfiguredWechatPaymentProvider() : createMockPaymentProvider()
+    config.wechatPay
+      ? createWechatPayProvider({
+        appId: config.customerWechatAppId,
+        ...config.wechatPay
+      })
+      : config.nodeEnv === 'production'
+        ? createUnconfiguredWechatPaymentProvider()
+        : createMockPaymentProvider()
   );
   const identityService = overrides.identityService ?? createIdentityService();
   const merchantAccountService = overrides.merchantAccountService ?? createMerchantAccountService();

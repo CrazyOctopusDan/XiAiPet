@@ -258,7 +258,7 @@ describe('order submit service', () => {
     });
   });
 
-  it('syncs WeChat payment when the payment route returns a pending status', async () => {
+  it('opens WeChat payment before syncing a pending WeChat payment', async () => {
     const product = getProductById('sea-sponge');
     const address = createCityAddressFixture();
 
@@ -276,6 +276,11 @@ describe('order submit service', () => {
       timeLabel: '11:00'
     });
 
+    const requestPayment = vi.fn((options: Record<string, unknown>) => {
+      (options.success as () => void)?.();
+    });
+    vi.stubGlobal('wx', { requestPayment });
+
     const request = vi.fn(async (path: string) => {
       if (path === '/api/v1/customer/orders') {
         return {
@@ -288,7 +293,11 @@ describe('order submit service', () => {
           ok: true,
           paymentStatus: 'pending_wechat',
           paymentParams: {
-            timeStamp: '123'
+            timeStamp: '123',
+            nonceStr: 'nonce-1',
+            package: 'prepay_id=prepay-1',
+            signType: 'RSA',
+            paySign: 'pay-sign-1'
           },
           order: createOrder({
             status: 'payment_processing',
@@ -330,6 +339,13 @@ describe('order submit service', () => {
       method: 'POST',
       auth: 'customer'
     });
+    expect(requestPayment).toHaveBeenCalledWith(expect.objectContaining({
+      timeStamp: '123',
+      nonceStr: 'nonce-1',
+      package: 'prepay_id=prepay-1',
+      signType: 'RSA',
+      paySign: 'pay-sign-1'
+    }));
   });
 
   it('surfaces insufficient balance as a stable service error code', async () => {

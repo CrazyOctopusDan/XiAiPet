@@ -21,7 +21,8 @@ export const testConfig: ApiConfig = {
   customerWechatAppId: 'test-customer-app-id',
   customerWechatAppSecret: 'test-customer-app-secret',
   merchantWechatAppId: 'test-merchant-app-id',
-  merchantWechatAppSecret: 'test-merchant-app-secret'
+  merchantWechatAppSecret: 'test-merchant-app-secret',
+  wechatPay: null
 };
 
 export function authHeader(openid = 'customer-openid', audience: AuthSessionAudience = 'customer') {

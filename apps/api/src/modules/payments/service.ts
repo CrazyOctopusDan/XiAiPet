@@ -1,2 +1,2 @@
-export { createMockPaymentProvider, createUnconfiguredWechatPaymentProvider } from './provider';
-export type { PaymentProvider, WechatPaymentStartResult } from './provider';
+export { createMockPaymentProvider, createUnconfiguredWechatPaymentProvider, createWechatPayProvider } from './provider';
+export type { PaymentProvider, WechatPaymentStartResult, WechatPayProviderOptions } from './provider';

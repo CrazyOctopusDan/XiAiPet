@@ -18,6 +18,13 @@ export interface ApiConfig {
   customerWechatAppSecret: string;
   merchantWechatAppId: string;
   merchantWechatAppSecret: string;
+  wechatPay: {
+    mchId: string;
+    mchSerialNo: string;
+    privateKey: string;
+    notifyUrl: string;
+    apiBaseUrl?: string;
+  } | null;
 }
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
@@ -113,6 +120,34 @@ function parseOssPublicBaseUrl(rawValue: string | undefined, nodeEnv: string): s
   return value;
 }
 
+function parseOptionalWechatPayConfig(raw: NodeJS.ProcessEnv, nodeEnv: string): ApiConfig['wechatPay'] {
+  const mchId = raw.WECHAT_PAY_MCH_ID?.trim();
+  const mchSerialNo = raw.WECHAT_PAY_MCH_SERIAL_NO?.trim();
+  const privateKey = raw.WECHAT_PAY_PRIVATE_KEY?.trim();
+  const notifyUrl = raw.WECHAT_PAY_NOTIFY_URL?.trim();
+  const provided = [mchId, mchSerialNo, privateKey, notifyUrl].filter(Boolean).length;
+
+  if (provided === 0) {
+    return null;
+  }
+
+  if (provided < 4) {
+    throw new Error('Invalid WECHAT_PAY_*: expected merchant id, serial number, private key and notify url together');
+  }
+
+  if (nodeEnv === 'production' && !notifyUrl?.startsWith('https://')) {
+    throw new Error('Invalid WECHAT_PAY_NOTIFY_URL: expected an HTTPS URL in production');
+  }
+
+  return {
+    mchId: mchId as string,
+    mchSerialNo: mchSerialNo as string,
+    privateKey: privateKey as string,
+    notifyUrl: notifyUrl as string,
+    apiBaseUrl: raw.WECHAT_PAY_API_BASE_URL?.trim() || undefined
+  };
+}
+
 export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
   const nodeEnv = raw.NODE_ENV ?? 'development';
   const port = parsePort(raw.API_PORT);
@@ -136,6 +171,7 @@ export function loadApiConfig(raw: NodeJS.ProcessEnv = process.env): ApiConfig {
     customerWechatAppId: parseRequiredSecret(raw.CUSTOMER_WECHAT_APP_ID, nodeEnv, 'CUSTOMER_WECHAT_APP_ID'),
     customerWechatAppSecret: parseRequiredSecret(raw.CUSTOMER_WECHAT_APP_SECRET, nodeEnv, 'CUSTOMER_WECHAT_APP_SECRET'),
     merchantWechatAppId: parseRequiredSecret(raw.MERCHANT_WECHAT_APP_ID, nodeEnv, 'MERCHANT_WECHAT_APP_ID'),
-    merchantWechatAppSecret: parseRequiredSecret(raw.MERCHANT_WECHAT_APP_SECRET, nodeEnv, 'MERCHANT_WECHAT_APP_SECRET')
+    merchantWechatAppSecret: parseRequiredSecret(raw.MERCHANT_WECHAT_APP_SECRET, nodeEnv, 'MERCHANT_WECHAT_APP_SECRET'),
+    wechatPay: parseOptionalWechatPayConfig(raw, nodeEnv)
   };
 }

@@ -44,14 +44,14 @@ function findReservationSelection(options, dateValue, timeValue) {
 }
 const PAYMENT_METHODS = [
     {
-        value: 'wechat',
-        label: '微信支付',
-        hint: '走微信支付收银台'
-    },
-    {
         value: 'balance',
         label: '余额支付',
         hint: '优先扣除当前账户余额'
+    },
+    {
+        value: 'wechat',
+        label: '微信支付',
+        hint: '走微信支付收银台'
     }
 ];
 let checkoutSubmissionLocked = false;
@@ -83,7 +83,7 @@ Page({
         storePhone: '',
         deliveryRuleRows: [],
         paymentMethods: PAYMENT_METHODS,
-        activePaymentMethod: 'wechat',
+        activePaymentMethod: 'balance',
         deliveryFee: 0,
         payableTotal: 0,
         deliveryFeeLabel: '待确认',
@@ -120,7 +120,7 @@ Page({
         const view = (0, checkout_1.getCheckoutViewModel)();
         const pricing = (0, order_submit_1.getCheckoutPricingPreview)();
         const deliveryFeePreview = (0, order_submit_1.getDeliveryFeePreview)(view.selectedAddress);
-        const activePaymentMethod = (_a = this.data.activePaymentMethod) !== null && _a !== void 0 ? _a : 'wechat';
+        const activePaymentMethod = (_a = this.data.activePaymentMethod) !== null && _a !== void 0 ? _a : 'balance';
         const selectedPetIds = view.selectedPets.map((item) => item.id);
         const selectedPetIdSet = new Set(selectedPetIds);
         this.setData({

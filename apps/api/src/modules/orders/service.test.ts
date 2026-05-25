@@ -118,6 +118,82 @@ describe('order service', () => {
     });
   });
 
+  it('records WeChat prepay metadata and marks the order paid after provider sync succeeds', async () => {
+    const order = createOrderRow({
+      paymentMethod: 'WECHAT',
+      paymentStatus: 'PENDING',
+      payableTotal: decimal(68)
+    });
+    const client = {
+      order: {
+        findUnique: vi.fn(async () => order),
+        update: vi.fn(async ({ data }) =>
+          createOrderRow({
+            ...order,
+            status: data.status ?? 'PAYMENT_PROCESSING',
+            paymentStatus: data.paymentStatus ?? 'PROCESSING',
+            paidAt: data.paidAt ?? null
+          })
+        )
+      },
+      payment: {
+        upsert: vi.fn(async ({ create, update }) => ({ ...create, ...update }))
+      }
+    };
+    const paymentProvider = {
+      startWechatPayment: vi.fn(async () => ({
+        prepayId: 'wx-prepay-1',
+        outTradeNo: 'order-1',
+        paymentParams: {
+          timeStamp: '1700000000',
+          nonceStr: 'nonce-1',
+          package: 'prepay_id=wx-prepay-1',
+          signType: 'RSA',
+          paySign: 'pay-sign-1'
+        }
+      })),
+      syncWechatPayment: vi.fn(async () => ({
+        tradeState: 'SUCCESS',
+        transactionId: 'wx-transaction-1',
+        paidAt: new Date('2026-05-25T08:00:00.000Z')
+      }))
+    };
+    const service = createOrderService(client as any, paymentProvider);
+
+    const started = await service.startCustomerPayment('openid-1', 'order-1');
+    const synced = await service.syncCustomerPayment('openid-1', 'order-1');
+
+    expect(started).toMatchObject({
+      ok: true,
+      paymentStatus: 'pending_wechat',
+      paymentParams: {
+        package: 'prepay_id=wx-prepay-1'
+      }
+    });
+    expect(client.payment.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        orderId: 'order-1',
+        method: 'WECHAT',
+        status: 'PROCESSING',
+        outTradeNo: 'order-1',
+        prepayId: 'wx-prepay-1'
+      })
+    }));
+    expect(synced).toMatchObject({
+      ok: true,
+      order: {
+        status: 'paid',
+        paymentStatus: 'paid'
+      }
+    });
+    expect(paymentProvider.syncWechatPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'order-1'
+      }),
+      { openid: 'openid-1' }
+    );
+  });
+
   it('filters merchant orders by active/history scope and fulfillment mode', async () => {
     const client = {
       order: {

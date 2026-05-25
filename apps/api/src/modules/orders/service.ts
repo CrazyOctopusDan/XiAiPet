@@ -198,12 +198,19 @@ export function createOrderService(
         }
       }
       const processing = await orderRepository.markPaymentProcessing(orderId);
-      const paymentParams = await paymentProvider.startWechatPayment(processing, { openid });
+      const paymentStart = await paymentProvider.startWechatPayment(processing, { openid });
+      await createPaymentRepository(client).upsertPayment({
+        orderId,
+        method: 'wechat',
+        status: 'processing',
+        outTradeNo: paymentStart.outTradeNo,
+        prepayId: paymentStart.prepayId
+      });
       return {
         ok: true as const,
         paymentStatus: 'pending_wechat',
         order: processing,
-        paymentParams: paymentParams.paymentParams
+        paymentParams: paymentStart.paymentParams
       };
     },
 
@@ -222,6 +229,35 @@ export function createOrderService(
       if (!order || order.openid !== openid) {
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
       }
+
+      if (order.paymentMethod === 'wechat' && order.paymentStatus !== 'paid') {
+        const syncedPayment = await paymentProvider.syncWechatPayment(order, { openid });
+
+        if (syncedPayment.tradeState === 'SUCCESS') {
+          await createPaymentRepository(client).upsertPayment({
+            orderId,
+            method: 'wechat',
+            status: 'paid',
+            outTradeNo: orderId,
+            transactionId: syncedPayment.transactionId,
+            paidAt: syncedPayment.paidAt ?? new Date()
+          });
+          const paidOrder = await createPaymentRepository(client).markOrderPaid(orderId, syncedPayment.paidAt);
+          return { ok: true as const, order: paidOrder };
+        }
+
+        if (syncedPayment.failureCode) {
+          await createPaymentRepository(client).upsertPayment({
+            orderId,
+            method: 'wechat',
+            status: 'processing',
+            outTradeNo: orderId,
+            failureCode: syncedPayment.failureCode,
+            failureMessage: syncedPayment.failureMessage
+          });
+        }
+      }
+
       return { ok: true as const, order };
     },
 

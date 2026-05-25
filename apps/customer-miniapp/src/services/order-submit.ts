@@ -14,6 +14,8 @@ import { getCartItems, getSelectedCartFulfillmentModes } from './cart';
 import { ensureContactPhoneFromProfile, getCheckoutViewModel } from './checkout';
 import { getCachedCustomerRuntimeConfig } from './runtime-config';
 
+declare const wx: any;
+
 interface DeliveryFeePreview {
   distanceKm: number;
   fee: number;
@@ -203,6 +205,21 @@ function toSubmitOrderError(error: unknown): Error {
   return error instanceof Error ? error : new Error('submit_order_failed');
 }
 
+function requestWechatPayment(paymentParams: Record<string, unknown>) {
+  return new Promise<void>((resolve, reject) => {
+    if (typeof wx?.requestPayment !== 'function') {
+      reject(new Error('WECHAT_PAY_UNAVAILABLE'));
+      return;
+    }
+
+    wx.requestPayment({
+      ...paymentParams,
+      success: () => resolve(),
+      fail: () => reject(new Error('WECHAT_PAY_CANCELLED'))
+    });
+  });
+}
+
 export async function submitOrder(
   paymentMethod: PaymentMethod,
   request: CustomerApiRequester = customerApiRequest,
@@ -244,6 +261,12 @@ export async function submitOrder(
       paymentMethod === 'wechat' &&
       (payOrderResponse.paymentStatus === 'pending_wechat' || payOrderResponse.paymentStatus === 'processing')
     ) {
+      if (!payOrderResponse.paymentParams) {
+        throw new Error('missing_wechat_payment_params');
+      }
+
+      await requestWechatPayment(payOrderResponse.paymentParams);
+
       const syncOrderPaymentResponse = await request<SyncPaymentResult>(
         `/api/v1/customer/orders/${createOrderResponse.order.id}/payment-sync`,
         {

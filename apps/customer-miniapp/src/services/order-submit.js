@@ -143,6 +143,19 @@ function toSubmitOrderError(error) {
     }
     return error instanceof Error ? error : new Error('submit_order_failed');
 }
+function requestWechatPayment(paymentParams) {
+    return new Promise((resolve, reject) => {
+        if (typeof (wx === null || wx === void 0 ? void 0 : wx.requestPayment) !== 'function') {
+            reject(new Error('WECHAT_PAY_UNAVAILABLE'));
+            return;
+        }
+        wx.requestPayment({
+            ...paymentParams,
+            success: () => resolve(),
+            fail: () => reject(new Error('WECHAT_PAY_CANCELLED'))
+        });
+    });
+}
 async function submitOrder(paymentMethod, request = api_client_1.customerApiRequest, options = {}) {
     var _a, _b, _c;
     const payload = buildCreateOrderPayload(paymentMethod, options.idempotencyKey);
@@ -170,6 +183,10 @@ async function submitOrder(paymentMethod, request = api_client_1.customerApiRequ
         }
         if (paymentMethod === 'wechat' &&
             (payOrderResponse.paymentStatus === 'pending_wechat' || payOrderResponse.paymentStatus === 'processing')) {
+            if (!payOrderResponse.paymentParams) {
+                throw new Error('missing_wechat_payment_params');
+            }
+            await requestWechatPayment(payOrderResponse.paymentParams);
             const syncOrderPaymentResponse = await request(`/api/v1/customer/orders/${createOrderResponse.order.id}/payment-sync`, {
                 method: 'POST',
                 auth: 'customer'
