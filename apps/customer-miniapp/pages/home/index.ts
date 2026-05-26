@@ -161,34 +161,6 @@ Page({
   handleCloseNoticeModal(this: HomePageInstance) {
     this.setData({ noticeModalVisible: false });
   },
-  handleCopyContact(this: HomePageInstance, event: { currentTarget?: { dataset?: { value?: string; label?: string } } }) {
-    const value = event.currentTarget?.dataset?.value;
-    const label = event.currentTarget?.dataset?.label ?? '联系方式';
-
-    if (!value) {
-      wx.showToast({
-        title: `${label}暂未配置`,
-        icon: 'none'
-      });
-      return;
-    }
-
-    wx.setClipboardData({
-      data: value,
-      success: () => {
-        wx.showToast({
-          title: `${label}已复制`,
-          icon: 'success'
-        });
-      },
-      fail: () => {
-        wx.showToast({
-          title: '复制失败，请长按号码',
-          icon: 'none'
-        });
-      }
-    });
-  },
   handleHomeTap() {
     return undefined;
   },

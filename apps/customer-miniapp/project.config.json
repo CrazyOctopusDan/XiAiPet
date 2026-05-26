@@ -2,7 +2,6 @@
   "appid": "wx132ec4cb42c2dbf6",
   "compileType": "miniprogram",
   "miniprogramRoot": ".",
-  "cloudfunctionRoot": "../cloud-functions/dist/functions",
   "setting": {
     "es6": true,
     "enhance": true,
@@ -33,6 +32,5 @@
     "ignore": [],
     "include": []
   },
-  "editorSetting": {},
-  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
+  "editorSetting": {}
 }

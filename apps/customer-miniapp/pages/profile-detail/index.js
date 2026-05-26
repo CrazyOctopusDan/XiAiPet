@@ -16,7 +16,13 @@ Page({
             redirectUrl: resolveRedirectUrl(options === null || options === void 0 ? void 0 : options.redirect)
         });
     },
-    onShow() {
+    async onShow() {
+        try {
+            await (0, profile_1.hydrateProfile)();
+        }
+        catch (_a) {
+            // The form can still use the latest local profile if the network is unavailable.
+        }
         this.refreshProfile();
     },
     refreshProfile() {

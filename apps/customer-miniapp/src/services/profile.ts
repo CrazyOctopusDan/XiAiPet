@@ -124,8 +124,8 @@ export function getProfileSummary() {
   };
 }
 
-export function hasBoundPhone(input: Pick<CustomerProfile, 'contactPhoneMasked'> = profile) {
-  return Boolean(input.contactPhoneMasked.trim());
+export function hasBoundPhone(input: Pick<CustomerProfile, 'contactPhone' | 'contactPhoneMasked'> = profile) {
+  return Boolean(input.contactPhone.trim() || input.contactPhoneMasked.trim());
 }
 
 export function getPhoneBindingRedirectUrl(redirectUrl?: string) {

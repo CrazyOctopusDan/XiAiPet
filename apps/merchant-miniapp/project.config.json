@@ -2,7 +2,6 @@
   "appid": "wx67a9e5c04fc983ea",
   "compileType": "miniprogram",
   "miniprogramRoot": ".",
-  "cloudfunctionRoot": "../cloud-functions/dist/functions",
   "setting": {
     "es6": true,
     "enhance": true,

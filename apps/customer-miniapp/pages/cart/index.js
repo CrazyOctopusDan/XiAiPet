@@ -217,6 +217,14 @@ Page({
             return;
         }
         if (!(0, profile_1.hasBoundPhone)()) {
+            try {
+                await (0, profile_1.hydrateProfile)();
+            }
+            catch (_a) {
+                // Keep the local registration state when profile hydration is unavailable.
+            }
+        }
+        if (!(0, profile_1.hasBoundPhone)()) {
             const result = await wx.showModal({
                 title: '请先完善用户信息',
                 content: '绑定手机号才可以成为我们的会员，享受店内服务。',

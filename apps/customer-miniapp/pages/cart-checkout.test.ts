@@ -293,6 +293,52 @@ describe('cart checkout flow', () => {
     });
   });
 
+  it('hydrates the server profile before blocking checkout for a locally empty phone state', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { resetProfile } = await import('../src/services/profile');
+
+    clearCart();
+    resetProfile();
+
+    const defaultRequest = createDefaultRequestMock();
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/profile') {
+        respondApi(options, {
+          ok: true,
+          profile: {
+            nickname: 'Cookie大爹',
+            contactPhoneMasked: '188****6099',
+            contactPhone: '18811736099'
+          }
+        });
+        return;
+      }
+
+      defaultRequest(options);
+    });
+
+    const product = getProductById('ocean-party');
+
+    if (!product) {
+      throw new Error('missing product fixture');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+    await instance.handleCheckout();
+
+    expect(wx.showModal).not.toHaveBeenCalled();
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/checkout/index?source=cart'
+    });
+  });
+
   it('prompts unregistered cart users to complete profile before checkout', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
     const { getProductById } = await import('../src/services/catalog');
@@ -1133,6 +1179,46 @@ describe('cart checkout flow', () => {
     expect(instance.data.profile).toMatchObject({
       birthday: '2024-05-09',
       birthdayLocked: true
+    });
+  });
+
+  it('hydrates saved profile data when opening the profile detail page', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile-detail/index.ts');
+    const { resetProfile } = await import('../src/services/profile');
+
+    resetProfile();
+    const defaultRequest = createDefaultRequestMock();
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/profile') {
+        respondApi(options, {
+          ok: true,
+          profile: {
+            nickname: 'Cookie大爹',
+            gender: 'male',
+            birthday: '2024-05-09',
+            birthdayLocked: true,
+            contactPhoneMasked: '188****6099',
+            contactPhone: '18811736099'
+          }
+        });
+        return;
+      }
+
+      defaultRequest(options);
+    });
+
+    const instance = createPageInstance(page);
+    await instance.onShow();
+
+    expect(instance.data.profile).toMatchObject({
+      nickname: 'Cookie大爹',
+      gender: 'male',
+      birthday: '2024-05-09',
+      birthdayLocked: true,
+      contactPhoneMasked: '188****6099',
+      contactPhone: '18811736099'
     });
   });
 

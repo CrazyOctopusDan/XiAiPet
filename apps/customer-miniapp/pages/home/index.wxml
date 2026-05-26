@@ -28,18 +28,12 @@
             <text class="contact-label">微信号</text>
             <text class="contact-value">{{storeContact.wechatId || '暂未配置'}}</text>
           </view>
-          <button class="copy-button" data-label="微信号" data-value="{{storeContact.wechatId}}" bindtap="handleCopyContact">
-            复制
-          </button>
         </view>
         <view class="contact-row">
           <view class="contact-copy">
             <text class="contact-label">店主手机号</text>
             <text class="contact-value">{{storeContact.ownerPhone || '暂未配置'}}</text>
           </view>
-          <button class="copy-button" data-label="手机号" data-value="{{storeContact.ownerPhone}}" bindtap="handleCopyContact">
-            复制
-          </button>
         </view>
       </view>
     </view>
@@ -51,7 +45,7 @@
         <text class="home-modal-close" bindtap="handleCloseNoticeModal">×</text>
       </view>
       <text class="notice-modal-copy">{{purchaseNotice || '购前须知暂未配置。'}}</text>
-      <button class="notice-modal-button" bindtap="handleCloseNoticeModal">我知道了</button>
+      <view class="notice-modal-button" bindtap="handleCloseNoticeModal">我知道了</view>
     </view>
   </view>
 </view>

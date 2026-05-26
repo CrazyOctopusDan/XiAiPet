@@ -4,6 +4,7 @@ declare function Page(options: Record<string, unknown>): void;
 import {
   getProfile,
   getPhoneBindingRedirectUrl,
+  hydrateProfile,
   saveProfile,
   setBirthday,
   updateProfile,
@@ -21,6 +22,7 @@ interface ProfileDetailPageInstance {
   data: ProfileDetailPageData;
   setData(data: Record<string, unknown>): void;
   refreshProfile(): void;
+  onShow(): Promise<void>;
 }
 
 Page({
@@ -38,7 +40,12 @@ Page({
       redirectUrl: resolveRedirectUrl(options?.redirect)
     });
   },
-  onShow(this: ProfileDetailPageInstance) {
+  async onShow(this: ProfileDetailPageInstance) {
+    try {
+      await hydrateProfile();
+    } catch {
+      // The form can still use the latest local profile if the network is unavailable.
+    }
     this.refreshProfile();
   },
   refreshProfile(this: ProfileDetailPageInstance) {

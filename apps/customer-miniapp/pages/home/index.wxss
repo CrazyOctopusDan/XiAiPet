@@ -215,23 +215,13 @@
   word-break: break-all;
 }
 
-.copy-button,
 .notice-modal-button {
   border: none;
   border-radius: 999rpx;
   box-sizing: border-box;
+  padding: 0;
   font-size: 26rpx;
   font-weight: 800;
-}
-
-.copy-button {
-  flex: 0 0 auto;
-  width: 112rpx;
-  height: 58rpx;
-  margin-left: 18rpx;
-  background: #D8EEF2;
-  color: #40535C;
-  line-height: 58rpx;
 }
 
 .notice-modal-copy {

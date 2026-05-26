@@ -120,33 +120,6 @@ Page({
     handleCloseNoticeModal() {
         this.setData({ noticeModalVisible: false });
     },
-    handleCopyContact(event) {
-        var _a, _b, _c, _d, _e;
-        const value = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.value;
-        const label = (_e = (_d = (_c = event.currentTarget) === null || _c === void 0 ? void 0 : _c.dataset) === null || _d === void 0 ? void 0 : _d.label) !== null && _e !== void 0 ? _e : '联系方式';
-        if (!value) {
-            wx.showToast({
-                title: `${label}暂未配置`,
-                icon: 'none'
-            });
-            return;
-        }
-        wx.setClipboardData({
-            data: value,
-            success: () => {
-                wx.showToast({
-                    title: `${label}已复制`,
-                    icon: 'success'
-                });
-            },
-            fail: () => {
-                wx.showToast({
-                    title: '复制失败，请长按号码',
-                    icon: 'none'
-                });
-            }
-        });
-    },
     handleHomeTap() {
         return undefined;
     },

@@ -17,7 +17,7 @@ import {
   type CartItem,
   type CartItemGroup
 } from '../../src/services/cart';
-import { hasBoundPhone } from '../../src/services/profile';
+import { hasBoundPhone, hydrateProfile } from '../../src/services/profile';
 
 interface CartPageData {
   items: CartItem[];
@@ -292,6 +292,14 @@ Page({
     if (!this.data.canCheckoutSelectedItems) {
       wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
       return;
+    }
+
+    if (!hasBoundPhone()) {
+      try {
+        await hydrateProfile();
+      } catch {
+        // Keep the local registration state when profile hydration is unavailable.
+      }
     }
 
     if (!hasBoundPhone()) {

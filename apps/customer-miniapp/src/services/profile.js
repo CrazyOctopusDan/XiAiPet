@@ -84,7 +84,7 @@ function getProfileSummary() {
     };
 }
 function hasBoundPhone(input = profile) {
-    return Boolean(input.contactPhoneMasked.trim());
+    return Boolean(input.contactPhone.trim() || input.contactPhoneMasked.trim());
 }
 function getPhoneBindingRedirectUrl(redirectUrl) {
     const baseUrl = '/pages/contact-bind/index';
