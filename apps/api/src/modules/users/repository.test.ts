@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createUserRepository } from './repository';
 
 describe('user repository', () => {
-  it('hydrates customer profile totalSpent from paid order totals', async () => {
+  it('hydrates customer profile totalSpent from orders and member level from recharge totals', async () => {
     const upsert = vi.fn(async () => ({
       openid: 'openid-1',
       status: 'ACTIVE',
@@ -19,6 +19,13 @@ describe('user repository', () => {
       _sum: {
         payableTotal: {
           toNumber: () => 932
+        }
+      }
+    }));
+    const rechargeAggregate = vi.fn(async () => ({
+      _sum: {
+        amountDelta: {
+          toNumber: () => 800
         }
       }
     }));
@@ -46,13 +53,39 @@ describe('user repository', () => {
       },
       order: {
         aggregate
+      },
+      balanceLedger: {
+        aggregate: rechargeAggregate
+      },
+      runtimeConfigSection: {
+        findUnique: vi.fn(async () => ({
+          id: 'membership-tiers',
+          value: {
+            tiers: [
+              {
+                tierId: 'standard',
+                threshold: 0,
+                name: '普通会员',
+                description: '默认等级'
+              },
+              {
+                tierId: 'gold',
+                threshold: 1000,
+                name: '金卡会员',
+                description: '充值满 1000 元'
+              }
+            ]
+          }
+        }))
       }
     } as any);
 
     await expect(repository.getCustomerProfile('openid-1')).resolves.toMatchObject({
       nickname: 'Cookie大爹',
+      memberLevel: '普通会员',
       balance: 932,
-      totalSpent: 932
+      totalSpent: 932,
+      totalRecharge: 800
     });
     expect(aggregate).toHaveBeenCalledWith({
       where: {
@@ -61,6 +94,23 @@ describe('user repository', () => {
       },
       _sum: {
         payableTotal: true
+      }
+    });
+    expect(rechargeAggregate).toHaveBeenCalledWith({
+      where: {
+        openid: 'openid-1',
+        OR: [
+          { type: 'RECHARGE' },
+          {
+            type: 'MANUAL_ADJUSTMENT',
+            reason: {
+              startsWith: '充值'
+            }
+          }
+        ]
+      },
+      _sum: {
+        amountDelta: true
       }
     });
   });
@@ -89,6 +139,13 @@ describe('user repository', () => {
         }))
       },
       balanceLedger: {
+        aggregate: vi.fn(async () => ({
+          _sum: {
+            amountDelta: {
+              toNumber: () => 1200
+            }
+          }
+        })),
         count: vi.fn(async () => 2),
         findMany: vi.fn(async () => [
           {
@@ -111,6 +168,27 @@ describe('user repository', () => {
       },
       address: {
         count: vi.fn(async () => 1)
+      },
+      runtimeConfigSection: {
+        findUnique: vi.fn(async () => ({
+          id: 'membership-tiers',
+          value: {
+            tiers: [
+              {
+                tierId: 'standard',
+                threshold: 0,
+                name: '普通会员',
+                description: '默认等级'
+              },
+              {
+                tierId: 'gold',
+                threshold: 1000,
+                name: '金卡会员',
+                description: '充值满 1000 元'
+              }
+            ]
+          }
+        }))
       }
     } as any);
 
@@ -119,6 +197,7 @@ describe('user repository', () => {
       user: {
         openid: 'openid-1',
         contactPhone: '18811736099',
+        membershipTierLabel: '金卡会员',
         currentBalance: 1000,
         latestAdjustment: {
           normalizedTitle: '人工纠错',

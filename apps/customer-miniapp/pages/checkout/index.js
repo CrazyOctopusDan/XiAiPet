@@ -296,7 +296,10 @@ Page({
         if (checkoutSubmissionLocked || this.data.submitting) {
             return;
         }
+        checkoutSubmissionLocked = true;
+        await this.refreshCustomerContext();
         if (!this.data.canSubmit) {
+            checkoutSubmissionLocked = false;
             if (this.data.submitDisabledReasons.includes('missing_registration')) {
                 wx.navigateTo({
                     url: (0, profile_1.getPhoneBindingRedirectUrl)('/pages/checkout/index')
@@ -309,7 +312,6 @@ Page({
             });
             return;
         }
-        checkoutSubmissionLocked = true;
         this.setData({ submitting: true });
         try {
             const result = await (0, order_submit_1.submitOrder)(this.data.activePaymentMethod);

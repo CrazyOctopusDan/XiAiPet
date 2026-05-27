@@ -89,5 +89,121 @@ describe('merchant user service', () => {
         shortNote: '增加 ￥1000.00'
       }
     });
+    expect(balanceService.adjustBalance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'manual_adjustment'
+      })
+    );
+  });
+
+  it('records merchant recharge adjustments as recharge ledger entries for increases and decreases', async () => {
+    const balanceService = {
+      adjustBalance: vi.fn(async () => ({
+        accountId: 'account-1',
+        openid: 'openid-1',
+        balanceBefore: 0,
+        balanceAfter: 1000,
+        ledgerId: 'ledger-1'
+      }))
+    };
+    const service = createMerchantUserService({} as any, balanceService as any);
+
+    await service.adjustUserBalance(
+      { openid: 'acct-admin', storeName: '门店管理员' } as any,
+      'openid-1',
+      {
+        userOpenid: 'openid-1',
+        reasonType: '充值',
+        note: '线下充值了',
+        operatedAt: '2026-05-18T11:35:00.000Z',
+        delta: 1000
+      }
+    );
+
+    expect(balanceService.adjustBalance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'recharge',
+        reason: '充值: 线下充值了'
+      })
+    );
+
+    await service.adjustUserBalance(
+      { openid: 'acct-admin', storeName: '门店管理员' } as any,
+      'openid-1',
+      {
+        userOpenid: 'openid-1',
+        reasonType: '充值',
+        note: '扣回误充值',
+        operatedAt: '2026-05-18T11:40:00.000Z',
+        delta: -100
+      }
+    );
+
+    expect(balanceService.adjustBalance).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'recharge',
+        amountDelta: -100,
+        reason: '充值: 扣回误充值'
+      })
+    );
+  });
+
+  it('normalizes merchant balance adjustment money fields to two decimal places before writing ledgers', async () => {
+    const balanceService = {
+      adjustBalance: vi.fn(async () => ({
+        accountId: 'account-1',
+        openid: 'openid-1',
+        balanceBefore: 0,
+        balanceAfter: 50.99,
+        ledgerId: 'ledger-1'
+      }))
+    };
+    const service = createMerchantUserService({} as any, balanceService as any);
+
+    await service.adjustUserBalance(
+      { openid: 'acct-admin', storeName: '门店管理员' } as any,
+      'openid-1',
+      {
+        userOpenid: 'openid-1',
+        reasonType: '充值',
+        note: '线下充值了',
+        operatedAt: '2026-05-18T11:35:00.000Z',
+        delta: 50.999
+      }
+    );
+
+    expect(balanceService.adjustBalance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amountDelta: 50.99,
+        metadata: expect.objectContaining({
+          delta: 50.99
+        })
+      })
+    );
+  });
+
+  it('rejects legacy set-target balance adjustments', async () => {
+    const balanceService = {
+      adjustBalance: vi.fn()
+    };
+    const service = createMerchantUserService({} as any, balanceService as any);
+
+    await expect(
+      service.adjustUserBalance(
+        { openid: 'acct-admin', storeName: '门店管理员' } as any,
+        'openid-1',
+        {
+          userOpenid: 'openid-1',
+          action: 'set',
+          reasonType: '人工纠错',
+          note: '指定余额',
+          operatedAt: '2026-05-18T11:35:00.000Z',
+          delta: 50
+        }
+      )
+    ).rejects.toMatchObject({
+      code: 'INVALID_BALANCE_ADJUSTMENT'
+    });
+    expect(balanceService.adjustBalance).not.toHaveBeenCalled();
   });
 });

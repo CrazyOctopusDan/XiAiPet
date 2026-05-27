@@ -2,6 +2,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const user_admin_1 = require("../../src/services/user-admin");
 const api_client_1 = require("../../src/services/api-client");
+function normalizeMoneyInputText(value) {
+    const sanitized = (value !== null && value !== void 0 ? value : '').replace(/[^\d.]/g, '');
+    const [integerPart = '', ...decimalParts] = sanitized.split('.');
+    if (!sanitized.includes('.')) {
+        return integerPart;
+    }
+    return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
+}
+function normalizeBalanceAction(action) {
+    return action === 'deduct' ? 'deduct' : 'add';
+}
 Page({
     data: {
         user: null,
@@ -191,18 +202,20 @@ Page({
         });
     },
     handleActionTap(event) {
-        var _a, _b, _c;
+        var _a, _b;
         this.setData({
-            action: (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.action) !== null && _c !== void 0 ? _c : 'add'
+            action: normalizeBalanceAction((_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.action)
         });
         this.updateDraftPreview();
     },
     handleAmountInput(event) {
-        var _a, _b;
+        var _a;
+        const amountText = normalizeMoneyInputText((_a = event.detail) === null || _a === void 0 ? void 0 : _a.value);
         this.setData({
-            amountText: (_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : ''
+            amountText
         });
         this.updateDraftPreview();
+        return amountText;
     },
     handleReasonTap(event) {
         var _a, _b, _c;
@@ -253,7 +266,7 @@ Page({
             });
             return;
         }
-        const risky = this.data.action === 'deduct' || this.data.action === 'set';
+        const risky = this.data.action === 'deduct';
         wx.showModal({
             title: '确认余额调整',
             content: risky

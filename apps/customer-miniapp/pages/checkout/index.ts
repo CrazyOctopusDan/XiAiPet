@@ -393,7 +393,11 @@ Page({
       return;
     }
 
+    checkoutSubmissionLocked = true;
+    await this.refreshCustomerContext();
+
     if (!this.data.canSubmit) {
+      checkoutSubmissionLocked = false;
       if (this.data.submitDisabledReasons.includes('missing_registration')) {
         wx.navigateTo({
           url: getPhoneBindingRedirectUrl('/pages/checkout/index')
@@ -407,7 +411,6 @@ Page({
       return;
     }
 
-    checkoutSubmissionLocked = true;
     this.setData({ submitting: true });
 
     try {

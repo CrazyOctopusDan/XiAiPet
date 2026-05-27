@@ -50,7 +50,7 @@ describe('runtime config schema', () => {
               tierId: 'gold',
               threshold: 998,
               name: '金卡会员',
-              description: '累计消费满 998 元可升级。'
+              description: '累计充值满 998 元可升级。'
             }
           ]
         }
@@ -133,7 +133,7 @@ describe('runtime config schema', () => {
               tierId: 'gold',
               threshold: 998,
               name: '金卡会员',
-              description: '累计消费满 998 元可升级。'
+              description: '累计充值满 998 元可升级。'
             }
           ]
         }

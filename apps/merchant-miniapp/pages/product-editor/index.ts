@@ -126,17 +126,42 @@ function normalizeAssetForDraft(asset: OssAssetReference): OssAssetReference {
   };
 }
 
+function parseMoneyInput(value: string | number | undefined): number {
+  const numeric = Number(value ?? 0);
+
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return 0;
+  }
+
+  return Math.floor(numeric * 100) / 100;
+}
+
+function normalizeMoneyInputText(value: string | undefined): string {
+  const sanitized = (value ?? '').replace(/[^\d.]/g, '');
+  const [integerPart = '', ...decimalParts] = sanitized.split('.');
+
+  if (!sanitized.includes('.')) {
+    return integerPart;
+  }
+
+  return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
+}
+
+function isPendingMoneyInput(value: string | undefined): boolean {
+  return typeof value === 'string' && /^\d*\.$/.test(value);
+}
+
 function updateSpecRow(draft: CatalogProductEditorPayload, index: number, key: 'label' | 'surcharge', value: string) {
   draft.pricing.specs[index] = {
     ...draft.pricing.specs[index],
-    [key]: key === 'surcharge' ? Number(value || 0) : value
+    [key]: key === 'surcharge' ? parseMoneyInput(value) : value
   };
 }
 
 function updateFormulaRow(draft: CatalogProductEditorPayload, index: number, key: 'label' | 'surcharge', value: string) {
   draft.pricing.formulas[index] = {
     ...draft.pricing.formulas[index],
-    [key]: key === 'surcharge' ? Number(value || 0) : value
+    [key]: key === 'surcharge' ? parseMoneyInput(value) : value
   };
 }
 
@@ -413,8 +438,14 @@ Page({
     refreshEditorView(this, draft, this.data.activeStep);
   },
   handleBasePriceInput(this: ProductEditorPageInstance, event: { detail?: { value?: string } }) {
-    const draft = { ...this.data.draft, pricing: { ...this.data.draft.pricing, basePrice: Number(event.detail?.value ?? 0) } };
+    const value = normalizeMoneyInputText(event.detail?.value);
+    if (isPendingMoneyInput(value)) {
+      return value;
+    }
+
+    const draft = { ...this.data.draft, pricing: { ...this.data.draft.pricing, basePrice: parseMoneyInput(value) } };
     refreshEditorView(this, draft, this.data.activeStep);
+    return value;
   },
   handleAddSpec(this: ProductEditorPageInstance) {
     const draft = {
@@ -439,6 +470,11 @@ Page({
     if (index < 0 || !field) {
       return;
     }
+    const value = field === 'surcharge' ? normalizeMoneyInputText(event.detail?.value) : (event.detail?.value ?? '');
+
+    if (field === 'surcharge' && isPendingMoneyInput(value)) {
+      return value;
+    }
 
     const draft = {
       ...this.data.draft,
@@ -447,8 +483,9 @@ Page({
         specs: [...this.data.draft.pricing.specs]
       }
     };
-    updateSpecRow(draft, index, field, event.detail?.value ?? '');
+    updateSpecRow(draft, index, field, value);
     refreshEditorView(this, draft, this.data.activeStep);
+    return value;
   },
   handleRemoveSpec(this: ProductEditorPageInstance, event: { currentTarget?: { dataset?: { index?: string } } }) {
     const index = Number(event.currentTarget?.dataset?.index ?? -1);
@@ -484,6 +521,11 @@ Page({
     if (index < 0 || !field) {
       return;
     }
+    const value = field === 'surcharge' ? normalizeMoneyInputText(event.detail?.value) : (event.detail?.value ?? '');
+
+    if (field === 'surcharge' && isPendingMoneyInput(value)) {
+      return value;
+    }
 
     const draft = {
       ...this.data.draft,
@@ -492,8 +534,9 @@ Page({
         formulas: [...this.data.draft.pricing.formulas]
       }
     };
-    updateFormulaRow(draft, index, field, event.detail?.value ?? '');
+    updateFormulaRow(draft, index, field, value);
     refreshEditorView(this, draft, this.data.activeStep);
+    return value;
   },
   handleRemoveFormula(this: ProductEditorPageInstance, event: { currentTarget?: { dataset?: { index?: string } } }) {
     const index = Number(event.currentTarget?.dataset?.index ?? -1);

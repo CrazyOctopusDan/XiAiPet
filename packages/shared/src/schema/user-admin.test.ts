@@ -94,7 +94,7 @@ describe('merchant user admin contracts', () => {
     ).toBe(false);
   });
 
-  it('treats direct set-balance as a first-class action alongside add and deduct', () => {
+  it('rejects direct set-balance adjustments because membership level depends on net recharge composition', () => {
     expect(
       isMerchantUserBalanceAdjustmentPayload({
         userOpenid: 'user-openid',
@@ -112,6 +112,6 @@ describe('merchant user admin contracts', () => {
         afterBalance: 80,
         requiresConfirmation: true
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 });

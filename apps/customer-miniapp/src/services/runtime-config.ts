@@ -171,7 +171,7 @@ function mixColor(from: string, to: string, ratio: number) {
 }
 
 function formatMembershipThreshold(value: number) {
-  return value <= 0 ? '默认会员等级' : `累计消费满 ${value} 元`;
+  return value <= 0 ? '默认会员等级' : `累计充值满 ${value} 元`;
 }
 
 function buildMembershipCardStyle(progress: number) {
@@ -276,9 +276,9 @@ export function findMembershipTierCard(cards: MembershipTierCardViewModel[], mem
   return cards.find((card) => card.name === memberLevel) ?? cards[0] ?? null;
 }
 
-export function findMembershipTierCardBySpent(cards: MembershipTierCardViewModel[], totalSpent: number) {
+export function findMembershipTierCardByRecharge(cards: MembershipTierCardViewModel[], totalRecharge: number) {
   return cards
-    .filter((card) => card.threshold <= totalSpent)
+    .filter((card) => card.threshold <= totalRecharge)
     .sort((left, right) => right.threshold - left.threshold)[0] ?? cards[0] ?? null;
 }
 

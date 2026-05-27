@@ -319,7 +319,7 @@ function getRuntimeConfigAdminViewModel(sections, dirty) {
             membershipRows: section.sectionId === 'membership-tiers'
                 ? section.value.tiers.map((tier) => ({
                     ...tier,
-                    thresholdLabel: `累计消费门槛 ${tier.threshold}`
+                    thresholdLabel: `累计充值门槛 ${tier.threshold}`
                 }))
                 : undefined,
             bannerFields: section.sectionId === 'banner' ? section.value : undefined,

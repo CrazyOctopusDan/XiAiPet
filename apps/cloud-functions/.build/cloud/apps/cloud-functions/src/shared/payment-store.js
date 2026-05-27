@@ -17,14 +17,14 @@ function getNormalizedTitle(reasonType) {
     return '商户调整';
 }
 function getShortNote(payload) {
-    const amount = Math.abs(payload.action === 'set' ? payload.targetBalance - payload.beforeBalance : payload.delta).toFixed(2);
+    const amount = Math.abs(payload.delta).toFixed(2);
     if (payload.action === 'add') {
         return `余额增加 ￥${amount}`;
     }
     if (payload.action === 'deduct') {
         return `余额扣减 ￥${amount}`;
     }
-    return `余额调整至 ￥${payload.targetBalance.toFixed(2)}`;
+    return '余额未变化';
 }
 function getCloudSdk() {
     try {
@@ -152,9 +152,7 @@ function createPaymentStore() {
             const ledgers = transaction.collection('balance_ledgers');
             const accountSnapshot = await accounts.doc(payload.userOpenid).get();
             const currentBalance = Number(accountSnapshot.data?.balance ?? 0);
-            const nextBalance = payload.action === 'set'
-                ? Number(payload.targetBalance.toFixed(2))
-                : Number((currentBalance + payload.delta).toFixed(2));
+            const nextBalance = Number((currentBalance + payload.delta).toFixed(2));
             if (nextBalance < 0) {
                 await transaction.rollback();
                 return {
@@ -166,7 +164,7 @@ function createPaymentStore() {
             const ledger = {
                 id: `ledger-merchant-${payload.userOpenid}-${payload.operatedAt.replace(/\D/g, '')}`,
                 openid: payload.userOpenid,
-                amountDelta: payload.action === 'set' ? Number((nextBalance - currentBalance).toFixed(2)) : payload.delta,
+                amountDelta: payload.delta,
                 beforeBalance: currentBalance,
                 afterBalance: nextBalance,
                 reason: 'merchant_adjustment',

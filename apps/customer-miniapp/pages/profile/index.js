@@ -18,7 +18,7 @@ function resolveProfileSafeTop() {
 function getProfileMembershipCard(summary = (0, profile_1.getProfileSummary)()) {
     var _a;
     const cards = (0, runtime_config_1.buildMembershipTierCards)((0, runtime_config_1.getCachedCustomerRuntimeConfig)().membershipTiers.tiers);
-    return (_a = (0, runtime_config_1.findMembershipTierCardBySpent)(cards, summary.totalSpent)) !== null && _a !== void 0 ? _a : (0, runtime_config_1.findMembershipTierCard)(cards, summary.memberLevel);
+    return (_a = (0, runtime_config_1.findMembershipTierCardByRecharge)(cards, summary.totalRecharge)) !== null && _a !== void 0 ? _a : (0, runtime_config_1.findMembershipTierCard)(cards, summary.memberLevel);
 }
 Page({
     data: {

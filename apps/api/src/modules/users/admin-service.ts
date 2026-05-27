@@ -5,10 +5,14 @@ import { createUserRepository } from './repository';
 
 interface MerchantUserBalanceAdjustmentPayload {
   userOpenid: string;
+  action?: 'add' | 'deduct';
   reasonType: string;
   note: string;
   operatedAt: string;
   delta: number;
+  beforeBalance?: number;
+  targetBalance?: number;
+  afterBalance?: number;
 }
 
 function formatMoney(value: number) {
@@ -25,6 +29,18 @@ function getBalanceAdjustmentShortNote(delta: number) {
   return '余额未变化';
 }
 
+function getLedgerType(reasonType: string): 'recharge' | 'manual_adjustment' {
+  return reasonType === '充值' ? 'recharge' : 'manual_adjustment';
+}
+
+function normalizeMoney(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.floor(value * 100) / 100;
+}
+
 function isMerchantUserBalanceAdjustmentPayload(value: unknown): value is MerchantUserBalanceAdjustmentPayload {
   if (!value || typeof value !== 'object') {
     return false;
@@ -36,7 +52,8 @@ function isMerchantUserBalanceAdjustmentPayload(value: unknown): value is Mercha
     typeof candidate.note === 'string' &&
     typeof candidate.operatedAt === 'string' &&
     typeof candidate.delta === 'number' &&
-    Number.isFinite(candidate.delta)
+    Number.isFinite(candidate.delta) &&
+    (candidate.action === undefined || candidate.action === 'add' || candidate.action === 'deduct')
   );
 }
 
@@ -73,15 +90,23 @@ export function createMerchantUserService(
       if (payload.userOpenid !== targetOpenid) {
         throw new ApiError('INVALID_BALANCE_ADJUSTMENT', 'Balance adjustment target mismatch', 400);
       }
+      const normalizedDelta = normalizeMoney(payload.delta);
+      const normalizedPayload = {
+        ...payload,
+        delta: normalizedDelta,
+        beforeBalance: typeof payload.beforeBalance === 'number' ? normalizeMoney(payload.beforeBalance) : payload.beforeBalance,
+        targetBalance: typeof payload.targetBalance === 'number' ? normalizeMoney(payload.targetBalance) : payload.targetBalance,
+        afterBalance: typeof payload.afterBalance === 'number' ? normalizeMoney(payload.afterBalance) : payload.afterBalance
+      };
       const ledger = await balanceService.adjustBalance({
         openid: targetOpenid,
-        amountDelta: payload.delta,
-        type: 'manual_adjustment',
+        amountDelta: normalizedDelta,
+        type: getLedgerType(payload.reasonType),
         operatorId: merchantContext.openid,
         operatorName: merchantContext.storeName,
         reason: `${payload.reasonType}: ${payload.note}`,
         idempotencyKey: `merchant-adjust-${targetOpenid}-${payload.operatedAt}`,
-        metadata: payload
+        metadata: normalizedPayload
       });
       return {
         ok: true as const,

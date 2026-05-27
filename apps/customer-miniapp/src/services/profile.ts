@@ -9,13 +9,14 @@ export interface CustomerProfile {
   memberLevel: string;
   balance: number;
   totalSpent: number;
+  totalRecharge: number;
   birthday: string;
   birthdayLocked: boolean;
   contactPhone: string;
   contactPhoneMasked: string;
 }
 
-interface UpdateProfileInput {
+interface SaveProfileInput {
   nickname?: string;
   gender?: ProfileGender;
   birthday?: string;
@@ -24,11 +25,12 @@ interface UpdateProfileInput {
   contactPhoneMasked?: string;
 }
 
+type ProfilePatch = Partial<CustomerProfile>;
 type ProfileApiRequester = <T>(path: string, options?: CustomerApiRequestOptions) => Promise<T>;
 
 interface SaveProfileResponse {
   ok?: boolean;
-  profile?: UpdateProfileInput;
+  profile?: ProfilePatch;
 }
 
 interface HydrateProfileResponse {
@@ -43,6 +45,7 @@ const initialProfile: CustomerProfile = {
   memberLevel: '普通会员',
   balance: 0,
   totalSpent: 0,
+  totalRecharge: 0,
   birthday: '',
   birthdayLocked: false,
   contactPhone: '',
@@ -59,17 +62,33 @@ export function getProfile() {
   return { ...profile };
 }
 
-export function updateProfile(input: UpdateProfileInput) {
+function normalizeProfilePatch(input: ProfilePatch) {
+  const next = { ...input };
+
+  if (typeof next.balance !== 'number' || !Number.isFinite(next.balance)) {
+    delete next.balance;
+  }
+  if (typeof next.totalSpent !== 'number' || !Number.isFinite(next.totalSpent)) {
+    delete next.totalSpent;
+  }
+  if (typeof next.totalRecharge !== 'number' || !Number.isFinite(next.totalRecharge)) {
+    delete next.totalRecharge;
+  }
+
+  return next;
+}
+
+export function updateProfile(input: ProfilePatch) {
   profile = {
     ...profile,
-    ...input
+    ...normalizeProfilePatch(input)
   };
 
   return getProfile();
 }
 
 export async function saveProfile(
-  input: UpdateProfileInput,
+  input: SaveProfileInput,
   request: ProfileApiRequester = customerApiRequest
 ) {
   const response = await request<SaveProfileResponse>('/api/v1/customer/profile', {
@@ -119,6 +138,7 @@ export function getProfileSummary() {
     memberLevel: profile.memberLevel,
     balance: profile.balance,
     totalSpent: profile.totalSpent,
+    totalRecharge: profile.totalRecharge,
     birthdayLabel: profile.birthday || '未设置生日',
     contactPhoneLabel: profile.contactPhone || profile.contactPhoneMasked || '未绑定手机号'
   };

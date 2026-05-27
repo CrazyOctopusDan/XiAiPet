@@ -58,7 +58,7 @@
         <text class="section-badge">2 / 3</text>
       </view>
 
-      <input class="field-input" type="number" placeholder="基准价格" value="{{draft.pricing.basePrice}}" bindinput="handleBasePriceInput" />
+      <input class="field-input" type="digit" placeholder="基准价格" value="{{draft.pricing.basePrice}}" bindinput="handleBasePriceInput" />
 
       <view class="line-editor">
         <view class="line-editor-head">
@@ -67,7 +67,7 @@
         </view>
         <view class="line-row" wx:for="{{draft.pricing.specs}}" wx:key="id">
           <input class="field-input compact name-input" data-index="{{index}}" data-field="label" placeholder="规格名称" value="{{item.label}}" bindinput="handleSpecInput" />
-          <input class="field-input compact price-input" data-index="{{index}}" data-field="surcharge" type="number" placeholder="加价" value="{{item.surcharge}}" bindinput="handleSpecInput" />
+          <input class="field-input compact price-input" data-index="{{index}}" data-field="surcharge" type="digit" placeholder="加价" value="{{item.surcharge}}" bindinput="handleSpecInput" />
           <button class="mini-button danger" data-index="{{index}}" bindtap="handleRemoveSpec">删除</button>
         </view>
       </view>
@@ -79,7 +79,7 @@
         </view>
         <view class="line-row" wx:for="{{draft.pricing.formulas}}" wx:key="id">
           <input class="field-input compact name-input" data-index="{{index}}" data-field="label" placeholder="配方名称" value="{{item.label}}" bindinput="handleFormulaInput" />
-          <input class="field-input compact price-input" data-index="{{index}}" data-field="surcharge" type="number" placeholder="加价" value="{{item.surcharge}}" bindinput="handleFormulaInput" />
+          <input class="field-input compact price-input" data-index="{{index}}" data-field="surcharge" type="digit" placeholder="加价" value="{{item.surcharge}}" bindinput="handleFormulaInput" />
           <button class="mini-button danger" data-index="{{index}}" bindtap="handleRemoveFormula">删除</button>
         </view>
       </view>

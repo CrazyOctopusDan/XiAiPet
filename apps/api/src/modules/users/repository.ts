@@ -1,4 +1,4 @@
-import { ORDER_STATUS, PHONE_BINDING_STATE, USER_STATUS, toSharedEnum } from '../../db/enums';
+import { LEDGER_TYPE, ORDER_STATUS, PHONE_BINDING_STATE, USER_STATUS, toSharedEnum } from '../../db/enums';
 import { getPrismaClient } from '../../db/prisma';
 import type { DbClient } from '../../db/types';
 
@@ -139,6 +139,11 @@ interface AddressRow {
   snapshot: unknown | null;
 }
 
+interface MembershipTierRow {
+  threshold: number;
+  name: string;
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -201,7 +206,85 @@ function getFullContactPhone(user: UserRow, profile?: CustomerProfileRecord) {
   return user.contactPhoneMasked.includes('*') ? undefined : user.contactPhoneMasked;
 }
 
-function mapMerchantUser(user: MerchantUserSearchRow): MerchantUserSearchItem {
+function toNumber(value: unknown): number {
+  if (value && typeof value === 'object' && 'toNumber' in value && typeof value.toNumber === 'function') {
+    return value.toNumber();
+  }
+
+  const numeric = Number(value ?? 0);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function normalizeMembershipTiers(value: unknown): MembershipTierRow[] {
+  if (!isObject(value) || !Array.isArray(value.tiers)) {
+    return [];
+  }
+
+  return value.tiers
+    .filter((tier): tier is Record<string, unknown> => isObject(tier))
+    .map((tier) => ({
+      threshold: toNumber(tier.threshold),
+      name: typeof tier.name === 'string' ? tier.name.trim() : ''
+    }))
+    .filter((tier) => tier.name && tier.threshold >= 0)
+    .sort((left, right) => left.threshold - right.threshold);
+}
+
+async function getMembershipTiers(client: DbClient): Promise<MembershipTierRow[]> {
+  const runtimeConfigSection = (client as unknown as {
+    runtimeConfigSection?: {
+      findUnique?: (input: { where: { id: string } }) => Promise<{ value: unknown } | null>;
+    };
+  }).runtimeConfigSection;
+
+  if (!runtimeConfigSection?.findUnique) {
+    return [];
+  }
+
+  const section = await runtimeConfigSection.findUnique({
+    where: {
+      id: 'membership-tiers'
+    }
+  });
+  return normalizeMembershipTiers(section?.value);
+}
+
+async function getRechargeTotal(client: DbClient, openid: string): Promise<number> {
+  const balanceLedger = (client as unknown as {
+    balanceLedger?: {
+      aggregate?: (input: unknown) => Promise<{ _sum?: { amountDelta?: unknown } }>;
+    };
+  }).balanceLedger;
+
+  if (!balanceLedger?.aggregate) {
+    return 0;
+  }
+
+  const result = await balanceLedger.aggregate({
+    where: {
+      openid,
+      OR: [
+        { type: LEDGER_TYPE.recharge },
+        {
+          type: LEDGER_TYPE.manual_adjustment,
+          reason: {
+            startsWith: '充值'
+          }
+        }
+      ]
+    },
+    _sum: {
+      amountDelta: true
+    }
+  });
+  return toNumber(result._sum?.amountDelta);
+}
+
+function getMembershipTierLabel(tiers: MembershipTierRow[], rechargeTotal: number) {
+  return tiers.reduce((matched, tier) => (rechargeTotal >= tier.threshold ? tier.name : matched), '普通会员');
+}
+
+function mapMerchantUser(user: MerchantUserSearchRow, membershipTierLabel = '普通会员'): MerchantUserSearchItem {
   const profile = normalizeProfile(user.profile);
   return {
     openid: user.openid,
@@ -209,7 +292,7 @@ function mapMerchantUser(user: MerchantUserSearchRow): MerchantUserSearchItem {
     nickname: profile?.nickname || user.openid,
     contactPhoneMasked: profile?.contactPhoneMasked || user.contactPhoneMasked,
     contactPhone: getFullContactPhone(user, profile),
-    membershipTierLabel: '普通会员',
+    membershipTierLabel,
     currentBalance: user.balanceAccount?.balance.toNumber() ?? 0
   };
 }
@@ -347,7 +430,7 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
 
     async getCustomerProfile(openid: string) {
       await this.bootstrap(openid);
-      const [user, paidOrderTotals] = await Promise.all([
+      const [user, paidOrderTotals, membershipTiers, rechargeTotal] = await Promise.all([
         client.user.findUnique({
           where: { openid },
           include: { balanceAccount: true }
@@ -360,16 +443,19 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
           _sum: {
             payableTotal: true
           }
-        })
+        }),
+        getMembershipTiers(client),
+        getRechargeTotal(client, openid)
       ]);
       const profile = normalizeProfile(user?.profile);
       return {
         avatarText: profile?.avatarText ?? '喜',
         nickname: profile?.nickname ?? '喜爱宠家长',
         gender: profile?.gender ?? 'unknown',
-        memberLevel: '普通会员',
+        memberLevel: getMembershipTierLabel(membershipTiers, rechargeTotal),
         balance: user?.balanceAccount?.balance.toNumber() ?? 0,
         totalSpent: paidOrderTotals._sum.payableTotal?.toNumber() ?? 0,
+        totalRecharge: rechargeTotal,
         birthday: profile?.birthday ?? '',
         birthdayLocked: profile?.birthdayLocked ?? false,
         contactPhoneMasked: profile?.contactPhoneMasked || user?.contactPhoneMasked || ''
@@ -386,20 +472,22 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         return { ok: true as const, user: null };
       }
 
-      const [latestLedger, balanceLedgerCount, addressCount] = await Promise.all([
+      const [latestLedger, balanceLedgerCount, addressCount, membershipTiers, rechargeTotal] = await Promise.all([
         client.balanceLedger.findMany({
           where: { openid },
           orderBy: { createdAt: 'desc' },
           take: 1
         }) as Promise<BalanceLedgerRow[]>,
         client.balanceLedger.count({ where: { openid } }),
-        client.address.count({ where: { openid } })
+        client.address.count({ where: { openid } }),
+        getMembershipTiers(client),
+        getRechargeTotal(client, openid)
       ]);
 
       return {
         ok: true as const,
         user: {
-          ...mapMerchantUser(user),
+          ...mapMerchantUser(user, getMembershipTierLabel(membershipTiers, rechargeTotal)),
           latestAdjustment: mapLatestAdjustment(latestLedger[0] ?? null),
           addressCount,
           balanceLedgerCount,
@@ -478,7 +566,15 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         take: limit
       });
 
-      return (users as MerchantUserSearchRow[]).map(mapMerchantUser);
+      const rows = users as MerchantUserSearchRow[];
+      if (!rows.length) {
+        return [];
+      }
+
+      const membershipTiers = await getMembershipTiers(client);
+      return Promise.all(
+        rows.map(async (user) => mapMerchantUser(user, getMembershipTierLabel(membershipTiers, await getRechargeTotal(client, user.openid))))
+      );
     }
   };
 }

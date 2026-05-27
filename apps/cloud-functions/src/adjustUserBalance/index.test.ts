@@ -15,7 +15,7 @@ const merchantUser = {
 function createPayload() {
   return {
     userOpenid: 'user-openid',
-    action: 'set' as const,
+    action: 'deduct' as const,
     reasonType: '人工纠错' as const,
     note: '修正重复到账金额',
     operator: {
@@ -37,7 +37,7 @@ describe('adjustUserBalance cloud function', () => {
       balanceAfter: 100,
       ledger: {
         normalizedTitle: '余额纠错',
-        shortNote: '余额调整至 ￥100.00'
+        shortNote: '余额扣减 ￥20.00'
       }
     }));
 
@@ -56,7 +56,7 @@ describe('adjustUserBalance cloud function', () => {
       balanceAfter: 100,
       ledger: {
         normalizedTitle: '余额纠错',
-        shortNote: '余额调整至 ￥100.00'
+        shortNote: '余额扣减 ￥20.00'
       }
     });
     expect(applyMerchantBalanceAdjustment).toHaveBeenCalledWith(createPayload());

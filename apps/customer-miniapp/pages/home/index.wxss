@@ -236,10 +236,14 @@
 }
 
 .notice-modal-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 72rpx;
   margin-top: 22rpx;
   background: #40535C;
   color: #FFFFFF;
-  line-height: 72rpx;
+  line-height: 1;
+  text-align: center;
 }

@@ -5,7 +5,7 @@ import { getPhoneBindingRedirectUrl, getProfileSummary, hasBoundPhone, hydratePr
 import {
   buildMembershipTierCards,
   findMembershipTierCard,
-  findMembershipTierCardBySpent,
+  findMembershipTierCardByRecharge,
   getCachedCustomerRuntimeConfig,
   hydrateCustomerRuntimeConfig
 } from '../../src/services/runtime-config';
@@ -41,7 +41,7 @@ function resolveProfileSafeTop() {
 
 function getProfileMembershipCard(summary = getProfileSummary()) {
   const cards = buildMembershipTierCards(getCachedCustomerRuntimeConfig().membershipTiers.tiers);
-  return findMembershipTierCardBySpent(cards, summary.totalSpent) ?? findMembershipTierCard(cards, summary.memberLevel);
+  return findMembershipTierCardByRecharge(cards, summary.totalRecharge) ?? findMembershipTierCard(cards, summary.memberLevel);
 }
 
 Page({

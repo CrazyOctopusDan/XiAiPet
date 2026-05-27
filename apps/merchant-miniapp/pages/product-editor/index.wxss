@@ -267,6 +267,11 @@
   min-height: 64rpx;
 }
 
+.line-editor-head .mini-button {
+  margin-left: auto;
+  margin-right: 0;
+}
+
 .detail-image-head {
   margin-top: 22rpx;
 }

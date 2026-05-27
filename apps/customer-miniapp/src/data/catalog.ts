@@ -32,7 +32,7 @@ export const homeModules: HomeModule[] = [
     id: 'vip',
     title: '会员权益',
     subtitle: '查看会员等级 & 权益',
-    description: '根据累计消费解锁不同等级和购买门槛。',
+    description: '根据累计充值解锁不同等级和购买门槛。',
     accent: '#F6D66C',
     imageFileId: '/assets/catalog/会员权益_v3.png',
     imageAltText: '会员权益'

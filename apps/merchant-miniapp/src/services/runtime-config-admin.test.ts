@@ -111,7 +111,7 @@ describe('runtime config admin service', () => {
                 tierId: 'vip',
                 threshold: 500,
                 name: '金卡会员',
-                description: '累计消费满 500 元'
+                description: '累计充值满 500 元'
               }
             ]
           }
@@ -124,9 +124,9 @@ describe('runtime config admin service', () => {
       dirtyLabel: '未保存',
       membershipRows: [
         expect.objectContaining({
-          thresholdLabel: '累计消费门槛 500',
+          thresholdLabel: '累计充值门槛 500',
           name: '金卡会员',
-          description: '累计消费满 500 元'
+          description: '累计充值满 500 元'
         })
       ]
     });

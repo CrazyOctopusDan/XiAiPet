@@ -60,6 +60,21 @@ interface UserDetailPageInstance {
   updateDraftPreview(): void;
 }
 
+function normalizeMoneyInputText(value: string | undefined): string {
+  const sanitized = (value ?? '').replace(/[^\d.]/g, '');
+  const [integerPart = '', ...decimalParts] = sanitized.split('.');
+
+  if (!sanitized.includes('.')) {
+    return integerPart;
+  }
+
+  return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
+}
+
+function normalizeBalanceAction(action?: MerchantBalanceAdjustmentAction): MerchantBalanceAdjustmentAction {
+  return action === 'deduct' ? 'deduct' : 'add';
+}
+
 Page({
   data: {
     user: null,
@@ -255,15 +270,17 @@ Page({
     event: { currentTarget?: { dataset?: { action?: MerchantBalanceAdjustmentAction } } }
   ) {
     this.setData({
-      action: event.currentTarget?.dataset?.action ?? 'add'
+      action: normalizeBalanceAction(event.currentTarget?.dataset?.action)
     });
     this.updateDraftPreview();
   },
   handleAmountInput(this: UserDetailPageInstance, event: { detail?: { value?: string } }) {
+    const amountText = normalizeMoneyInputText(event.detail?.value);
     this.setData({
-      amountText: event.detail?.value ?? ''
+      amountText
     });
     this.updateDraftPreview();
+    return amountText;
   },
   handleReasonTap(
     this: UserDetailPageInstance,
@@ -317,7 +334,7 @@ Page({
       return;
     }
 
-    const risky = this.data.action === 'deduct' || this.data.action === 'set';
+    const risky = this.data.action === 'deduct';
 
     wx.showModal({
       title: '确认余额调整',

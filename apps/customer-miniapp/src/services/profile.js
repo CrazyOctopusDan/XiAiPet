@@ -17,6 +17,7 @@ const initialProfile = {
     memberLevel: '普通会员',
     balance: 0,
     totalSpent: 0,
+    totalRecharge: 0,
     birthday: '',
     birthdayLocked: false,
     contactPhone: '',
@@ -29,10 +30,23 @@ function resetProfile() {
 function getProfile() {
     return { ...profile };
 }
+function normalizeProfilePatch(input) {
+    const next = { ...input };
+    if (typeof next.balance !== 'number' || !Number.isFinite(next.balance)) {
+        delete next.balance;
+    }
+    if (typeof next.totalSpent !== 'number' || !Number.isFinite(next.totalSpent)) {
+        delete next.totalSpent;
+    }
+    if (typeof next.totalRecharge !== 'number' || !Number.isFinite(next.totalRecharge)) {
+        delete next.totalRecharge;
+    }
+    return next;
+}
 function updateProfile(input) {
     profile = {
         ...profile,
-        ...input
+        ...normalizeProfilePatch(input)
     };
     return getProfile();
 }
@@ -79,6 +93,7 @@ function getProfileSummary() {
         memberLevel: profile.memberLevel,
         balance: profile.balance,
         totalSpent: profile.totalSpent,
+        totalRecharge: profile.totalRecharge,
         birthdayLabel: profile.birthday || '未设置生日',
         contactPhoneLabel: profile.contactPhone || profile.contactPhoneMasked || '未绑定手机号'
     };

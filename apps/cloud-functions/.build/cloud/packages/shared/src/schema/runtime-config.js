@@ -8,6 +8,7 @@ exports.isMembershipTiersRuntimeConfigSection = isMembershipTiersRuntimeConfigSe
 exports.isBannerRuntimeConfigSection = isBannerRuntimeConfigSection;
 exports.isCustomNoticeRuntimeConfigSection = isCustomNoticeRuntimeConfigSection;
 const runtime_config_1 = require("../types/runtime-config");
+const assets_1 = require("./assets");
 exports.LOCKED_DELIVERY_RULE_ROWS = [
     { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
     { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
@@ -35,9 +36,6 @@ function isNonEmptyString(value) {
 function isFiniteNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
 }
-function isCloudBaseFileId(value) {
-    return isNonEmptyString(value) && value.startsWith('cloud://');
-}
 function isRuntimeConfigUpdatedBy(value) {
     if (!isObject(value)) {
         return false;
@@ -55,22 +53,25 @@ function isStoreProfileValue(value) {
     if (!isObject(value)) {
         return false;
     }
-    return (hasOnlyKeys(value, ['address', 'latitude', 'longitude', 'contactPhone']) &&
+    return (hasOnlyKeys(value, ['storeName', 'address', 'latitude', 'longitude', 'wechatId', 'ownerPhone']) &&
+        isNonEmptyString(value.storeName) &&
         isNonEmptyString(value.address) &&
         isFiniteNumber(value.latitude) &&
         isFiniteNumber(value.longitude) &&
-        isNonEmptyString(value.contactPhone));
+        isNonEmptyString(value.wechatId) &&
+        isNonEmptyString(value.ownerPhone));
 }
-function isLockedDeliveryRuleRow(value, index) {
+function isDeliveryRuleRow(value) {
     if (!isObject(value)) {
         return false;
     }
-    const expected = exports.LOCKED_DELIVERY_RULE_ROWS[index];
     return (hasOnlyKeys(value, ['distanceKm', 'minimumOrderAmount', 'deliveryFee', 'explainer']) &&
-        value.distanceKm === expected.distanceKm &&
-        value.minimumOrderAmount === expected.minimumOrderAmount &&
-        value.deliveryFee === expected.deliveryFee &&
-        value.explainer === expected.explainer);
+        isFiniteNumber(value.distanceKm) &&
+        value.distanceKm > 0 &&
+        (value.minimumOrderAmount === null || (isFiniteNumber(value.minimumOrderAmount) && value.minimumOrderAmount >= 0)) &&
+        isFiniteNumber(value.deliveryFee) &&
+        value.deliveryFee >= 0 &&
+        isNonEmptyString(value.explainer));
 }
 function isMembershipTierConfig(value) {
     if (!isObject(value)) {
@@ -87,9 +88,10 @@ function isBannerValue(value) {
     if (!isObject(value)) {
         return false;
     }
-    return (hasOnlyKeys(value, ['fileId', 'altText']) &&
-        isCloudBaseFileId(value.fileId) &&
-        isNonEmptyString(value.altText));
+    return ((hasOnlyKeys(value, ['fileId', 'altText']) || hasOnlyKeys(value, ['fileId', 'altText', 'asset'])) &&
+        (0, assets_1.isAssetStorageId)(value.fileId) &&
+        isNonEmptyString(value.altText) &&
+        (value.asset === undefined || (0, assets_1.isOssAssetReference)(value.asset)));
 }
 function isCustomNoticeValue(value) {
     if (!isObject(value)) {
@@ -136,8 +138,8 @@ function isDeliveryRulesRuntimeConfigSection(value) {
         hasRuntimeConfigMeta(value, 'delivery-rules') &&
         hasOnlyKeys(value.value, ['tiers']) &&
         Array.isArray(value.value.tiers) &&
-        value.value.tiers.length === exports.LOCKED_DELIVERY_RULE_ROWS.length &&
-        value.value.tiers.every((tier, index) => isLockedDeliveryRuleRow(tier, index)));
+        value.value.tiers.length > 0 &&
+        value.value.tiers.every((tier) => isDeliveryRuleRow(tier)));
 }
 function isMembershipTiersRuntimeConfigSection(value) {
     if (!isObject(value) || !isObject(value.value)) {

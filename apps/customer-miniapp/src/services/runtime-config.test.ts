@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildMembershipTierCards,
   findMembershipTierCard,
-  findMembershipTierCardBySpent,
+  findMembershipTierCardByRecharge,
   getCachedCustomerRuntimeConfig,
   hydrateCustomerRuntimeConfig,
   resetCustomerRuntimeConfigCache,
@@ -56,7 +56,7 @@ describe('customer runtime config service', () => {
             tierId: 'gold',
             threshold: 998,
             name: '金卡会员',
-            description: '累计消费满 998 元可升级。'
+            description: '累计充值满 998 元可升级。'
           }
         ]
       }
@@ -176,7 +176,7 @@ describe('customer runtime config service', () => {
                   tierId: 'silver',
                   threshold: 500,
                   name: '银卡会员',
-                  description: '累计消费满 500 元可升级。'
+                  description: '累计充值满 500 元可升级。'
                 }
               ]
             }
@@ -196,7 +196,7 @@ describe('customer runtime config service', () => {
         tierId: 'silver',
         threshold: 500,
         name: '银卡会员',
-        description: '累计消费满 500 元可升级。'
+        description: '累计充值满 500 元可升级。'
       }
     ]);
   });
@@ -286,11 +286,11 @@ describe('customer runtime config service', () => {
       tierId: 'base',
       name: '标准'
     });
-    expect(findMembershipTierCardBySpent(cards, 12000)).toMatchObject({
+    expect(findMembershipTierCardByRecharge(cards, 12000)).toMatchObject({
       tierId: 'top',
       name: '超级买家'
     });
-    expect(findMembershipTierCardBySpent(cards, 200)).toMatchObject({
+    expect(findMembershipTierCardByRecharge(cards, 200)).toMatchObject({
       tierId: 'base',
       name: '标准'
     });

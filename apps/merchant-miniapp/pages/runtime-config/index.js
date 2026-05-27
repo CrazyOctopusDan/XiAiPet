@@ -33,6 +33,21 @@ function buildDeliveryRuleDraft(row) {
         deliveryFee: row ? String(row.deliveryFee) : ''
     };
 }
+function normalizeMoneyInputText(value) {
+    const sanitized = (value !== null && value !== void 0 ? value : '').replace(/[^\d.]/g, '');
+    const [integerPart = '', ...decimalParts] = sanitized.split('.');
+    if (!sanitized.includes('.')) {
+        return integerPart;
+    }
+    return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
+}
+function parseMoneyInput(value) {
+    const numeric = Number(normalizeMoneyInputText(value));
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+        return 0;
+    }
+    return Math.floor(numeric * 100) / 100;
+}
 Page({
     data: {
         loading: true,
@@ -126,10 +141,10 @@ Page({
         });
     },
     handleMembershipInput(event) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         const index = Number((_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : -1);
         const field = (_e = (_d = event.currentTarget) === null || _d === void 0 ? void 0 : _d.dataset) === null || _e === void 0 ? void 0 : _e.field;
-        const value = (_g = (_f = event.detail) === null || _f === void 0 ? void 0 : _f.value) !== null && _g !== void 0 ? _g : '';
+        const value = field === 'threshold' ? normalizeMoneyInputText((_f = event.detail) === null || _f === void 0 ? void 0 : _f.value) : ((_h = (_g = event.detail) === null || _g === void 0 ? void 0 : _g.value) !== null && _h !== void 0 ? _h : '');
         this.patchSection('membership-tiers', (section) => {
             if (section.sectionId !== 'membership-tiers') {
                 return section;
@@ -141,10 +156,11 @@ Page({
             }
             tiers[index] = {
                 ...current,
-                [field]: field === 'threshold' ? Number(value || 0) : value
+                [field]: field === 'threshold' ? parseMoneyInput(value) : value
             };
             return (0, runtime_config_admin_1.buildRuntimeConfigSectionDocument)('membership-tiers', { tiers }, section);
         });
+        return value;
     },
     handleAddTier() {
         this.patchSection('membership-tiers', (section) => {
@@ -223,12 +239,17 @@ Page({
         if (!field) {
             return;
         }
+        const rawValue = (_d = (_c = event.detail) === null || _c === void 0 ? void 0 : _c.value) !== null && _d !== void 0 ? _d : '';
+        const value = field === 'minimumOrderAmount' || field === 'deliveryFee'
+            ? normalizeMoneyInputText(rawValue)
+            : rawValue;
         this.setData({
             deliveryEditorDraft: {
                 ...this.data.deliveryEditorDraft,
-                [field]: (_d = (_c = event.detail) === null || _c === void 0 ? void 0 : _c.value) !== null && _d !== void 0 ? _d : ''
+                [field]: value
             }
         });
+        return value;
     },
     handleCloseDeliveryEditor() {
         this.setData({

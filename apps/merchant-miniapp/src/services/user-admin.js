@@ -28,9 +28,12 @@ function formatDateTime(value) {
     return `${month}-${day} ${hours}:${minutes}`;
 }
 function readUserDetailCache() {
-    var _a;
     try {
-        return (_a = wx.getStorageSync(USER_DETAIL_CACHE_KEY)) !== null && _a !== void 0 ? _a : {};
+        const cache = wx.getStorageSync(USER_DETAIL_CACHE_KEY);
+        if (!cache || typeof cache !== 'object' || Array.isArray(cache)) {
+            return {};
+        }
+        return cache;
     }
     catch (error) {
         return {};
@@ -62,6 +65,15 @@ function getBalanceAdjustmentShortNote(delta) {
         return `扣减 ${formatMoney(Math.abs(delta))}`;
     }
     return '余额未变化';
+}
+function normalizeMoney(value) {
+    if (!Number.isFinite(value)) {
+        return 0;
+    }
+    return Math.floor(value * 100) / 100;
+}
+function normalizeBalanceAdjustmentAction(action) {
+    return action === 'deduct' ? 'deduct' : 'add';
 }
 function getContactPhoneLabel(user) {
     var _a;
@@ -210,34 +222,31 @@ function getUserDetailViewModel(user, latest) {
     };
 }
 function buildBalanceAdjustmentDraft(user, input) {
+    const action = normalizeBalanceAdjustmentAction(input.action);
     const parsedAmount = Number(input.amountText || 0);
-    const amount = Number.isFinite(parsedAmount) ? parsedAmount : 0;
+    const amount = normalizeMoney(parsedAmount);
     let delta = 0;
     let targetBalance = user.currentBalance;
-    if (input.action === 'add') {
+    if (action === 'add') {
         delta = amount;
         targetBalance = user.currentBalance + amount;
     }
-    else if (input.action === 'deduct') {
+    else {
         delta = -amount;
         targetBalance = user.currentBalance - amount;
     }
-    else {
-        targetBalance = amount;
-        delta = amount - user.currentBalance;
-    }
+    delta = normalizeMoney(delta);
+    targetBalance = normalizeMoney(targetBalance);
     const disableSubmitReason = targetBalance < 0
         ? '调整后余额不能小于 0'
         : !input.note.trim()
             ? '请填写备注'
             : amount <= 0
-                ? input.action === 'set'
-                    ? '请输入目标余额'
-                    : '请输入调整金额'
+                ? '请输入调整金额'
                 : null;
     return {
         user,
-        action: input.action,
+        action,
         amountText: input.amountText,
         amount,
         reasonType: input.reasonType,

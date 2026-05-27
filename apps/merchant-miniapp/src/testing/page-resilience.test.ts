@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 import { MERCHANT_SESSION_STORAGE_KEY } from '../services/api-client';
 
@@ -227,5 +228,200 @@ describe('merchant page API resilience', () => {
       title: '保存失败',
       icon: 'none'
     });
+  });
+
+  it('keeps product money inputs within two decimal places', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/product-editor/index.ts');
+    const instance = createPageInstance(page);
+    instance.setData({
+      draft: {
+        ...instance.data.draft,
+        pricing: {
+          ...instance.data.draft.pricing,
+          specs: [
+            {
+              id: 'spec-1',
+              label: '4 inch',
+              surcharge: 0
+            }
+          ],
+          formulas: [
+            {
+              id: 'formula-1',
+              label: 'Chicken',
+              surcharge: 0
+            }
+          ]
+        }
+      }
+    });
+
+    instance.handleBasePriceInput({ detail: { value: '128.129' } });
+    instance.handleSpecInput({
+      currentTarget: { dataset: { index: '0', field: 'surcharge' } },
+      detail: { value: '10.999' }
+    });
+    instance.handleFormulaInput({
+      currentTarget: { dataset: { index: '0', field: 'surcharge' } },
+      detail: { value: '6.666' }
+    });
+
+    expect(instance.data.draft.pricing.basePrice).toBe(128.12);
+    expect(instance.data.draft.pricing.specs[0].surcharge).toBe(10.99);
+    expect(instance.data.draft.pricing.formulas[0].surcharge).toBe(6.66);
+  });
+
+  it('does not overwrite an in-progress decimal point while editing prices', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/product-editor/index.ts');
+    const instance = createPageInstance(page);
+    instance.setData({
+      draft: {
+        ...instance.data.draft,
+        pricing: {
+          ...instance.data.draft.pricing,
+          basePrice: 128,
+          specs: [
+            {
+              id: 'spec-1',
+              label: '4 inch',
+              surcharge: 10
+            }
+          ],
+          formulas: [
+            {
+              id: 'formula-1',
+              label: 'Chicken',
+              surcharge: 6
+            }
+          ]
+        }
+      }
+    });
+    const setData = vi.spyOn(instance, 'setData');
+
+    const baseResult = instance.handleBasePriceInput({ detail: { value: '128.' } });
+    const specResult = instance.handleSpecInput({
+      currentTarget: { dataset: { index: '0', field: 'surcharge' } },
+      detail: { value: '10.' }
+    });
+    const formulaResult = instance.handleFormulaInput({
+      currentTarget: { dataset: { index: '0', field: 'surcharge' } },
+      detail: { value: '6.' }
+    });
+
+    expect(baseResult).toBe('128.');
+    expect(specResult).toBe('10.');
+    expect(formulaResult).toBe('6.');
+    expect(instance.data.draft.pricing.basePrice).toBe(128);
+    expect(instance.data.draft.pricing.specs[0].surcharge).toBe(10);
+    expect(instance.data.draft.pricing.formulas[0].surcharge).toBe(6);
+    expect(setData).not.toHaveBeenCalled();
+  });
+
+  it('normalizes merchant balance amount input without dropping decimals', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/user-detail/index.ts');
+    const instance = createPageInstance(page);
+    instance.setData({
+      user: {
+        openid: 'openid-1',
+        avatarUrl: '',
+        nickname: 'Cookie大爹',
+        contactPhoneMasked: '188****6099',
+        contactPhone: '18811736099',
+        membershipTierLabel: '普通会员',
+        currentBalance: 188
+      },
+      note: '门店充值'
+    });
+
+    expect(instance.handleAmountInput({ detail: { value: '50.' } })).toBe('50.');
+    expect(instance.data.amountText).toBe('50.');
+    expect(instance.handleAmountInput({ detail: { value: '50.999' } })).toBe('50.99');
+    expect(instance.data.amountText).toBe('50.99');
+    expect(instance.data.resultingBalanceLabel).toBe('￥238.99');
+  });
+
+  it('normalizes runtime-config money inputs to two decimal places', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/runtime-config/index.ts');
+    const instance = createPageInstance(page);
+    instance.setData({
+      sections: [
+        {
+          sectionId: 'membership-tiers',
+          updatedAt: '2026-05-27T00:00:00.000Z',
+          updatedBy: {
+            openid: 'merchant',
+            name: '店主'
+          },
+          value: {
+            tiers: [
+              {
+                tierId: 'vip',
+                threshold: 0,
+                name: '金卡会员',
+                description: '充值门槛'
+              }
+            ]
+          }
+        }
+      ],
+      dirty: {},
+      deliveryEditorDraft: {
+        distanceKm: '',
+        minimumOrderAmount: '',
+        deliveryFee: ''
+      }
+    });
+
+    expect(instance.handleDeliveryEditorInput({
+      currentTarget: { dataset: { field: 'minimumOrderAmount' } },
+      detail: { value: '98.999' }
+    })).toBe('98.99');
+    expect(instance.handleDeliveryEditorInput({
+      currentTarget: { dataset: { field: 'deliveryFee' } },
+      detail: { value: '12.' }
+    })).toBe('12.');
+    expect(instance.data.deliveryEditorDraft.minimumOrderAmount).toBe('98.99');
+    expect(instance.data.deliveryEditorDraft.deliveryFee).toBe('12.');
+
+    expect(instance.handleMembershipInput({
+      currentTarget: { dataset: { index: '0', field: 'threshold' } },
+      detail: { value: '500.999' }
+    })).toBe('500.99');
+    expect(instance.data.sections[0].value.tiers[0].threshold).toBe(500.99);
+  });
+
+  it('uses decimal keyboard inputs for product prices', () => {
+    const wxml = readFileSync('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/product-editor/index.wxml', 'utf8');
+
+    expect(wxml).toContain('type="digit" placeholder="基准价格" value="{{draft.pricing.basePrice}}"');
+    expect(wxml).toContain('data-field="surcharge" type="digit" placeholder="加价"');
+    expect(wxml).not.toMatch(/type="number" placeholder="基准价格"|data-field="surcharge" type="number" placeholder="加价"/);
+    expect(wxml.match(/type="digit"/g)).toHaveLength(3);
+  });
+
+  it('right-aligns product editor add buttons in line headers', () => {
+    const wxss = readFileSync('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/product-editor/index.wxss', 'utf8');
+
+    expect(wxss).toContain('.line-editor-head .mini-button');
+    expect(wxss).toContain('margin-left: auto;');
+    expect(wxss).toContain('margin-right: 0;');
+  });
+
+  it('uses decimal keyboard inputs for merchant balance adjustments', () => {
+    const wxml = readFileSync('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/user-detail/index.wxml', 'utf8');
+
+    expect(wxml).toContain('class="field-input" type="digit" placeholder="调整金额"');
+    expect(wxml).not.toContain('class="field-input" type="number"');
+    expect(wxml).not.toContain('data-action="set"');
+    expect(wxml).not.toContain('指定余额');
+  });
+
+  it('uses decimal keyboard inputs for runtime-config money fields', () => {
+    const wxml = readFileSync('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/runtime-config/index.wxml', 'utf8');
+
+    expect(wxml).toContain('data-field="threshold" type="digit"');
+    expect(wxml).toContain('data-field="minimumOrderAmount"');
+    expect(wxml).toContain('data-field="deliveryFee"');
   });
 });

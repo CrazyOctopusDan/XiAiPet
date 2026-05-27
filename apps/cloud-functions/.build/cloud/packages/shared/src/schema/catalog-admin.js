@@ -4,6 +4,7 @@ exports.isCatalogCategoryRecord = isCatalogCategoryRecord;
 exports.isCatalogCategoryDeletePreflight = isCatalogCategoryDeletePreflight;
 exports.isCatalogProductEditorPayload = isCatalogProductEditorPayload;
 exports.isCatalogProductAdminRecord = isCatalogProductAdminRecord;
+const assets_1 = require("./assets");
 const PRODUCT_STATUSES = new Set(['draft', 'published', 'archived']);
 const FULFILLMENT_MODES = new Set(['delivery', 'pickup', 'express']);
 function isObject(value) {
@@ -24,11 +25,20 @@ function isNonNegativeInteger(value) {
 function isShortIconToken(value) {
     return isNonEmptyString(value) && Array.from(value.trim()).length <= 4;
 }
-function isCloudBaseFileId(value) {
-    return isNonEmptyString(value) && value.startsWith('cloud://');
-}
 function isOptionalString(value) {
     return value === undefined || typeof value === 'string';
+}
+function isOptionalAssetReference(value) {
+    return value === undefined || (0, assets_1.isOssAssetReference)(value);
+}
+function isOptionalAssetReferenceArray(value) {
+    return value === undefined || (Array.isArray(value) && value.every(assets_1.isOssAssetReference));
+}
+function isOptionalBasicImageAssetArray(value) {
+    return value === undefined || (Array.isArray(value) && value.length <= 3 && value.every(assets_1.isOssAssetReference));
+}
+function isOptionalDetailImageAssetArray(value) {
+    return value === undefined || (Array.isArray(value) && value.length <= 9 && value.every(assets_1.isOssAssetReference));
 }
 function isMemberLevelId(value) {
     return value === null || isNonEmptyString(value);
@@ -113,8 +123,11 @@ function isCatalogProductEditorPayload(value) {
         isNonEmptyString(basicInfo.description) &&
         isNonEmptyString(basicInfo.categoryId) &&
         !Array.isArray(basicInfo.categoryId) &&
-        isCloudBaseFileId(basicInfo.imageFileId) &&
+        (0, assets_1.isAssetStorageId)(basicInfo.imageFileId) &&
+        isOptionalAssetReference(basicInfo.imageAsset) &&
         isOptionalString(basicInfo.imagePreviewUrl) &&
+        isOptionalBasicImageAssetArray(basicInfo.introductionImageAssets) &&
+        isOptionalDetailImageAssetArray(basicInfo.detailImageAssets) &&
         isMemberLevelId(basicInfo.memberLevelId) &&
         isNonNegativeInteger(basicInfo.stock) &&
         isNonNegativeNumber(pricing.basePrice) &&
@@ -136,8 +149,11 @@ function isCatalogProductAdminRecord(value) {
         isNonEmptyString(value.description) &&
         isNonEmptyString(value.categoryId) &&
         !Array.isArray(value.categoryId) &&
-        isCloudBaseFileId(value.imageFileId) &&
+        (0, assets_1.isAssetStorageId)(value.imageFileId) &&
+        isOptionalAssetReference(value.imageAsset) &&
         isOptionalString(value.imagePreviewUrl) &&
+        isOptionalBasicImageAssetArray(value.introductionImageAssets) &&
+        isOptionalDetailImageAssetArray(value.detailImageAssets) &&
         isMemberLevelId(value.memberLevelId) &&
         typeof value.status === 'string' &&
         PRODUCT_STATUSES.has(value.status) &&

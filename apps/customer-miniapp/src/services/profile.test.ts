@@ -26,6 +26,7 @@ describe('profile service', () => {
       memberLevel: '普通会员',
       balance: 0,
       totalSpent: 0,
+      totalRecharge: 0,
       birthdayLabel: '未设置生日',
       contactPhoneLabel: '未绑定手机号'
     });
@@ -144,6 +145,7 @@ describe('profile service', () => {
           memberLevel: '普通会员',
           balance: 180,
           totalSpent: 520,
+          totalRecharge: 998,
           birthday: '2024-05-09',
           birthdayLocked: true,
           contactPhoneMasked: '138****8000'
@@ -156,6 +158,7 @@ describe('profile service', () => {
     expect(getProfileSummary()).toMatchObject({
       nickname: 'Lucky 家长',
       balance: 180,
+      totalRecharge: 998,
       contactPhoneLabel: '138****8000'
     });
   });

@@ -224,7 +224,30 @@ describe('user admin service', () => {
     expect(draft.disableSubmitReason).toBe('调整后余额不能小于 0');
   });
 
-  it('submits add, deduct, and set-target adjustments with confirmation and operator identity', async () => {
+  it('limits balance adjustment money values to two decimal places', () => {
+    const addDraft = buildBalanceAdjustmentDraft(createUser(), {
+      action: 'add',
+      amountText: '50.999',
+      reasonType: '充值',
+      note: '门店补充储值'
+    });
+    const deductDraft = buildBalanceAdjustmentDraft(createUser(), {
+      action: 'deduct',
+      amountText: '50.999',
+      reasonType: '人工纠错',
+      note: '扣回误充值'
+    });
+
+    expect(addDraft.amount).toBe(50.99);
+    expect(addDraft.delta).toBe(50.99);
+    expect(addDraft.afterBalance).toBe(238.99);
+    expect(addDraft.resultingBalanceLabel).toBe('￥238.99');
+    expect(deductDraft.amount).toBe(50.99);
+    expect(deductDraft.delta).toBe(-50.99);
+    expect(deductDraft.afterBalance).toBe(137.01);
+  });
+
+  it('submits balance adjustments with confirmation and operator identity', async () => {
     const request = vi.fn().mockResolvedValue({
       ok: true,
       balanceAfter: 238,
@@ -301,6 +324,38 @@ describe('user admin service', () => {
         })
       })
     );
+  });
+
+  it('recovers from a non-object latest-adjustment cache when submitting balance adjustments', async () => {
+    storage.set('merchant-user-detail-cache', '');
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      balanceAfter: 187.01,
+      ledger: {
+        normalizedTitle: '人工纠错',
+        shortNote: '扣减 ￥0.99'
+      }
+    });
+
+    await expect(
+      submitBalanceAdjustment(
+        buildBalanceAdjustmentDraft(createUser(), {
+          action: 'deduct',
+          amountText: '0.99',
+          reasonType: '人工纠错',
+          note: '我试试'
+        }),
+        request
+      )
+    ).resolves.toMatchObject({
+      balanceAfter: 187.01
+    });
+    expect(storage.get('merchant-user-detail-cache')).toMatchObject({
+      'user-openid': {
+        normalizedTitle: '人工纠错',
+        shortNote: '扣减 ￥0.99'
+      }
+    });
   });
 
   it('builds user detail cards with basic info, address rows, and full balance ledger rows', () => {

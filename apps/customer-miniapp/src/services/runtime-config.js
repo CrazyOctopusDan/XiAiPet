@@ -5,7 +5,7 @@ exports.resolveRuntimeBannerImageSrc = resolveRuntimeBannerImageSrc;
 exports.resetCustomerRuntimeConfigCache = resetCustomerRuntimeConfigCache;
 exports.buildMembershipTierCards = buildMembershipTierCards;
 exports.findMembershipTierCard = findMembershipTierCard;
-exports.findMembershipTierCardBySpent = findMembershipTierCardBySpent;
+exports.findMembershipTierCardByRecharge = findMembershipTierCardByRecharge;
 exports.hydrateCustomerRuntimeConfig = hydrateCustomerRuntimeConfig;
 const api_client_1 = require("./api-client");
 const LOCKED_DELIVERY_RULE_ROWS = [
@@ -116,7 +116,7 @@ function mixColor(from, to, ratio) {
     return `#${toHex(start.red + (end.red - start.red) * safeRatio)}${toHex(start.green + (end.green - start.green) * safeRatio)}${toHex(start.blue + (end.blue - start.blue) * safeRatio)}`.toUpperCase();
 }
 function formatMembershipThreshold(value) {
-    return value <= 0 ? '默认会员等级' : `累计消费满 ${value} 元`;
+    return value <= 0 ? '默认会员等级' : `累计充值满 ${value} 元`;
 }
 function buildMembershipCardStyle(progress) {
     const safeProgress = clamp(progress);
@@ -210,10 +210,10 @@ function findMembershipTierCard(cards, memberLevel) {
     var _a, _b;
     return (_b = (_a = cards.find((card) => card.name === memberLevel)) !== null && _a !== void 0 ? _a : cards[0]) !== null && _b !== void 0 ? _b : null;
 }
-function findMembershipTierCardBySpent(cards, totalSpent) {
+function findMembershipTierCardByRecharge(cards, totalRecharge) {
     var _a, _b;
     return (_b = (_a = cards
-        .filter((card) => card.threshold <= totalSpent)
+        .filter((card) => card.threshold <= totalRecharge)
         .sort((left, right) => right.threshold - left.threshold)[0]) !== null && _a !== void 0 ? _a : cards[0]) !== null && _b !== void 0 ? _b : null;
 }
 async function hydrateCustomerRuntimeConfig(requestRuntimeConfig = getRuntimeConfigRequester()) {

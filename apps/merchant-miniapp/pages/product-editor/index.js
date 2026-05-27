@@ -73,16 +73,34 @@ function normalizeAssetForDraft(asset) {
         }))
     };
 }
+function parseMoneyInput(value) {
+    const numeric = Number(value !== null && value !== void 0 ? value : 0);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+        return 0;
+    }
+    return Math.floor(numeric * 100) / 100;
+}
+function normalizeMoneyInputText(value) {
+    const sanitized = (value !== null && value !== void 0 ? value : '').replace(/[^\d.]/g, '');
+    const [integerPart = '', ...decimalParts] = sanitized.split('.');
+    if (!sanitized.includes('.')) {
+        return integerPart;
+    }
+    return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
+}
+function isPendingMoneyInput(value) {
+    return typeof value === 'string' && /^\d*\.$/.test(value);
+}
 function updateSpecRow(draft, index, key, value) {
     draft.pricing.specs[index] = {
         ...draft.pricing.specs[index],
-        [key]: key === 'surcharge' ? Number(value || 0) : value
+        [key]: key === 'surcharge' ? parseMoneyInput(value) : value
     };
 }
 function updateFormulaRow(draft, index, key, value) {
     draft.pricing.formulas[index] = {
         ...draft.pricing.formulas[index],
-        [key]: key === 'surcharge' ? Number(value || 0) : value
+        [key]: key === 'surcharge' ? parseMoneyInput(value) : value
     };
 }
 function assetToStorageId(asset) {
@@ -336,9 +354,14 @@ Page({
         refreshEditorView(this, draft, this.data.activeStep);
     },
     handleBasePriceInput(event) {
-        var _a, _b;
-        const draft = { ...this.data.draft, pricing: { ...this.data.draft.pricing, basePrice: Number((_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : 0) } };
+        var _a;
+        const value = normalizeMoneyInputText((_a = event.detail) === null || _a === void 0 ? void 0 : _a.value);
+        if (isPendingMoneyInput(value)) {
+            return value;
+        }
+        const draft = { ...this.data.draft, pricing: { ...this.data.draft.pricing, basePrice: parseMoneyInput(value) } };
         refreshEditorView(this, draft, this.data.activeStep);
+        return value;
     },
     handleAddSpec() {
         const draft = {
@@ -354,11 +377,15 @@ Page({
         refreshEditorView(this, draft, this.data.activeStep);
     },
     handleSpecInput(event) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         const index = Number((_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : -1);
         const field = (_e = (_d = event.currentTarget) === null || _d === void 0 ? void 0 : _d.dataset) === null || _e === void 0 ? void 0 : _e.field;
         if (index < 0 || !field) {
             return;
+        }
+        const value = field === 'surcharge' ? normalizeMoneyInputText((_f = event.detail) === null || _f === void 0 ? void 0 : _f.value) : ((_h = (_g = event.detail) === null || _g === void 0 ? void 0 : _g.value) !== null && _h !== void 0 ? _h : '');
+        if (field === 'surcharge' && isPendingMoneyInput(value)) {
+            return value;
         }
         const draft = {
             ...this.data.draft,
@@ -367,8 +394,9 @@ Page({
                 specs: [...this.data.draft.pricing.specs]
             }
         };
-        updateSpecRow(draft, index, field, (_g = (_f = event.detail) === null || _f === void 0 ? void 0 : _f.value) !== null && _g !== void 0 ? _g : '');
+        updateSpecRow(draft, index, field, value);
         refreshEditorView(this, draft, this.data.activeStep);
+        return value;
     },
     handleRemoveSpec(event) {
         var _a, _b, _c;
@@ -396,11 +424,15 @@ Page({
         refreshEditorView(this, draft, this.data.activeStep);
     },
     handleFormulaInput(event) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         const index = Number((_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : -1);
         const field = (_e = (_d = event.currentTarget) === null || _d === void 0 ? void 0 : _d.dataset) === null || _e === void 0 ? void 0 : _e.field;
         if (index < 0 || !field) {
             return;
+        }
+        const value = field === 'surcharge' ? normalizeMoneyInputText((_f = event.detail) === null || _f === void 0 ? void 0 : _f.value) : ((_h = (_g = event.detail) === null || _g === void 0 ? void 0 : _g.value) !== null && _h !== void 0 ? _h : '');
+        if (field === 'surcharge' && isPendingMoneyInput(value)) {
+            return value;
         }
         const draft = {
             ...this.data.draft,
@@ -409,8 +441,9 @@ Page({
                 formulas: [...this.data.draft.pricing.formulas]
             }
         };
-        updateFormulaRow(draft, index, field, (_g = (_f = event.detail) === null || _f === void 0 ? void 0 : _f.value) !== null && _g !== void 0 ? _g : '');
+        updateFormulaRow(draft, index, field, value);
         refreshEditorView(this, draft, this.data.activeStep);
+        return value;
     },
     handleRemoveFormula(event) {
         var _a, _b, _c;

@@ -75,7 +75,7 @@
             <text class="tier-title">{{row.name || '未命名等级'}}</text>
             <text class="tier-badge">{{row.thresholdLabel}}</text>
           </view>
-          <input class="field-input" data-index="{{rowIndex}}" data-field="threshold" value="{{row.threshold}}" placeholder="累计消费门槛" bindinput="handleMembershipInput" />
+          <input class="field-input" data-index="{{rowIndex}}" data-field="threshold" type="digit" value="{{row.threshold}}" placeholder="累计充值门槛" bindinput="handleMembershipInput" />
           <input class="field-input" data-index="{{rowIndex}}" data-field="name" value="{{row.name}}" placeholder="等级名称" bindinput="handleMembershipInput" />
           <input class="field-input" data-index="{{rowIndex}}" data-field="description" value="{{row.description}}" placeholder="等级说明" bindinput="handleMembershipInput" />
         </view>

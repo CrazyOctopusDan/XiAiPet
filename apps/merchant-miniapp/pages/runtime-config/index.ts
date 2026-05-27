@@ -70,6 +70,27 @@ function buildDeliveryRuleDraft(row?: { distanceKm: number; minimumOrderAmount: 
   };
 }
 
+function normalizeMoneyInputText(value: string | undefined): string {
+  const sanitized = (value ?? '').replace(/[^\d.]/g, '');
+  const [integerPart = '', ...decimalParts] = sanitized.split('.');
+
+  if (!sanitized.includes('.')) {
+    return integerPart;
+  }
+
+  return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
+}
+
+function parseMoneyInput(value: string | undefined): number {
+  const numeric = Number(normalizeMoneyInputText(value));
+
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return 0;
+  }
+
+  return Math.floor(numeric * 100) / 100;
+}
+
 Page({
   data: {
     loading: true,
@@ -178,7 +199,7 @@ Page({
   ) {
     const index = Number(event.currentTarget?.dataset?.index ?? -1);
     const field = event.currentTarget?.dataset?.field;
-    const value = event.detail?.value ?? '';
+    const value = field === 'threshold' ? normalizeMoneyInputText(event.detail?.value) : (event.detail?.value ?? '');
 
     this.patchSection('membership-tiers', (section) => {
       if (section.sectionId !== 'membership-tiers') {
@@ -194,11 +215,12 @@ Page({
 
       tiers[index] = {
         ...current,
-        [field]: field === 'threshold' ? Number(value || 0) : value
+        [field]: field === 'threshold' ? parseMoneyInput(value) : value
       };
 
       return buildRuntimeConfigSectionDocument('membership-tiers', { tiers }, section);
     });
+    return value;
   },
   handleAddTier(this: RuntimeConfigPageInstance) {
     this.patchSection('membership-tiers', (section) => {
@@ -287,13 +309,18 @@ Page({
     if (!field) {
       return;
     }
+    const rawValue = event.detail?.value ?? '';
+    const value = field === 'minimumOrderAmount' || field === 'deliveryFee'
+      ? normalizeMoneyInputText(rawValue)
+      : rawValue;
 
     this.setData({
       deliveryEditorDraft: {
         ...this.data.deliveryEditorDraft,
-        [field]: event.detail?.value ?? ''
+        [field]: value
       }
     });
+    return value;
   },
   handleCloseDeliveryEditor(this: RuntimeConfigPageInstance) {
     this.setData({

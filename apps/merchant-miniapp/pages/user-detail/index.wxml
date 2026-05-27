@@ -122,10 +122,9 @@
     <view class="pill-row">
       <view class="pill {{action === 'add' ? 'active' : ''}}" data-action="add" bindtap="handleActionTap">增加</view>
       <view class="pill {{action === 'deduct' ? 'active' : ''}}" data-action="deduct" bindtap="handleActionTap">扣减</view>
-      <view class="pill {{action === 'set' ? 'active' : ''}}" data-action="set" bindtap="handleActionTap">指定余额</view>
     </view>
 
-    <input class="field-input" type="number" placeholder="{{action === 'set' ? '目标余额' : '调整金额'}}" value="{{amountText}}" bindinput="handleAmountInput" />
+    <input class="field-input" type="digit" placeholder="调整金额" value="{{amountText}}" bindinput="handleAmountInput" />
 
     <view class="pill-row">
       <view class="pill {{reasonType === '充值' ? 'active' : ''}}" data-reason="充值" bindtap="handleReasonTap">充值</view>
@@ -136,7 +135,7 @@
     </view>
 
     <textarea class="field-area" placeholder="备注" value="{{note}}" bindinput="handleNoteInput"></textarea>
-    <text class="page-subtitle" wx:if="{{action === 'deduct' || action === 'set'}}">调整后余额 {{resultingBalanceLabel}}</text>
+    <text class="page-subtitle" wx:if="{{action === 'deduct'}}">调整后余额 {{resultingBalanceLabel}}</text>
     <text class="error-copy" wx:if="{{disableSubmitReason}}">{{disableSubmitReason}}</text>
     <button class="action-button" loading="{{submitting}}" disabled="{{!!disableSubmitReason}}" bindtap="handleConfirmAdjust">确认调整</button>
   </view>

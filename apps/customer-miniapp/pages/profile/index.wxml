@@ -14,7 +14,7 @@
       <text class="balance-amount">{{summary.balance}}</text>
     </view>
     <view class="balance-foot">
-      <text class="balance-foot-text">累计消费 ￥{{summary.totalSpent}}</text>
+      <text class="balance-foot-text">累计充值 ￥{{summary.totalRecharge}}</text>
       <text class="balance-action">查看流水</text>
     </view>
   </view>

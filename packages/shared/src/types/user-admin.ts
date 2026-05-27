@@ -63,7 +63,7 @@ export interface MerchantUserSearchResult {
   users: MerchantUserSearchListItem[];
 }
 
-export const MERCHANT_BALANCE_ADJUSTMENT_ACTIONS = ['add', 'deduct', 'set'] as const;
+export const MERCHANT_BALANCE_ADJUSTMENT_ACTIONS = ['add', 'deduct'] as const;
 export type MerchantBalanceAdjustmentAction = (typeof MERCHANT_BALANCE_ADJUSTMENT_ACTIONS)[number];
 
 export const MERCHANT_BALANCE_ADJUSTMENT_REASON_TYPES = [
