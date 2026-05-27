@@ -57,6 +57,7 @@ const TOP_MEMBERSHIP_THEME = {
     end: '#6B4E1E',
     accent: '#CA8A04'
 };
+const BANNER_OSS_PROCESS = 'image/resize,m_lfit,w_750/format,webp/quality,q_80';
 let cachedRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);
 function getRuntimeConfigRequester() {
     return () => (0, api_client_1.customerApiRequest)('/api/v1/customer/runtime-config', {
@@ -170,7 +171,21 @@ function getCachedCustomerRuntimeConfig() {
 }
 function resolveRuntimeBannerImageSrc(banner) {
     var _a, _b, _c, _d, _e;
-    return (_e = (_c = (_b = (_a = banner.asset) === null || _a === void 0 ? void 0 : _a.variants.find((variant) => variant.name === 'banner')) === null || _b === void 0 ? void 0 : _b.url) !== null && _c !== void 0 ? _c : (_d = banner.asset) === null || _d === void 0 ? void 0 : _d.url) !== null && _e !== void 0 ? _e : banner.fileId;
+    const rawUrl = (_e = (_c = (_b = (_a = banner.asset) === null || _a === void 0 ? void 0 : _a.variants.find((variant) => variant.name === 'banner')) === null || _b === void 0 ? void 0 : _b.url) !== null && _c !== void 0 ? _c : (_d = banner.asset) === null || _d === void 0 ? void 0 : _d.url) !== null && _e !== void 0 ? _e : banner.fileId;
+    return appendBannerOssProcess(rawUrl);
+}
+function appendBannerOssProcess(url) {
+    if (!/^https?:\/\//.test(url)) {
+        return url;
+    }
+    const normalizedUrl = url.startsWith('http://') ? `https://${url.slice('http://'.length)}` : url;
+    const [base, query = ''] = normalizedUrl.split('?');
+    const params = query
+        .split('&')
+        .filter(Boolean)
+        .filter((param) => !param.startsWith('x-oss-process='));
+    const queryPrefix = params.length ? `${params.join('&')}&` : '';
+    return `${base}?${queryPrefix}x-oss-process=${BANNER_OSS_PROCESS}`;
 }
 function resetCustomerRuntimeConfigCache() {
     cachedRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);

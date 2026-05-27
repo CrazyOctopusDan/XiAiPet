@@ -13,26 +13,26 @@ exports.ASSET_ROLE_RULES = {
     'product-cover': {
         cropScale: '1:1',
         variants: {
-            thumbnail: { width: 480, height: 480, maxSizeBytes: 184320, quality: 80 },
-            display: { width: 960, height: 960, maxSizeBytes: 460800, quality: 82 }
+            thumbnail: { width: 360, height: 360, maxSizeBytes: 122880, quality: 76 },
+            display: { width: 720, height: 720, maxSizeBytes: 307200, quality: 80 }
         }
     },
     'product-introduction': {
         cropScale: '4:3',
         variants: {
-            display: { width: 960, height: 720, maxSizeBytes: 512000, quality: 82 }
+            display: { width: 750, height: 670, maxSizeBytes: 409600, quality: 80 }
         }
     },
     'product-detail': {
         cropScale: '3:4',
         variants: {
-            detail: { width: 960, height: 1280, maxSizeBytes: 716800, quality: 82 }
+            detail: { width: 720, height: 1280, maxSizeBytes: 512000, quality: 78, mode: 'm_lfit', includeHeight: false }
         }
     },
     'runtime-banner': {
         cropScale: '16:9',
         variants: {
-            banner: { width: 1280, height: 720, maxSizeBytes: 665600, quality: 82 }
+            banner: { width: 750, height: 750, maxSizeBytes: 409600, quality: 80, mode: 'm_lfit', includeHeight: false }
         }
     }
 };
@@ -71,8 +71,11 @@ function normalizeImageContentType(path) {
     return 'image/jpeg';
 }
 function appendOssProcess(url, rule) {
+    var _a;
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}x-oss-process=image/resize,m_fill,w_${rule.width},h_${rule.height}/quality,q_${rule.quality}`;
+    const mode = (_a = rule.mode) !== null && _a !== void 0 ? _a : 'm_fill';
+    const height = rule.includeHeight === false ? '' : `,h_${rule.height}`;
+    return `${url}${separator}x-oss-process=image/resize,${mode},w_${rule.width}${height}/format,webp/quality,q_${rule.quality}`;
 }
 function getRuleMaxSizeBytes(role, variantName) {
     var _a, _b;

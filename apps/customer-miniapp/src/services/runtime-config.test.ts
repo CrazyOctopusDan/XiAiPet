@@ -229,7 +229,7 @@ describe('customer runtime config service', () => {
           }
         ]
       }
-    })).toBe('https://assets.example.test/banner-banner.jpg');
+    })).toBe('https://assets.example.test/banner-banner.jpg?x-oss-process=image/resize,m_lfit,w_750/format,webp/quality,q_80');
   });
 
   it('creates a stable low-to-high membership card progression for any number of tiers', () => {

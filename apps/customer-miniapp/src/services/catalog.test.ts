@@ -445,9 +445,65 @@ describe('catalog service', () => {
       specs: []
     });
 
-    expect(product.thumbnail).toBe('https://assets.example.test/cover-thumbnail.jpg');
-    expect(product.gallery).toEqual(['https://assets.example.test/intro-display.jpg']);
-    expect(product.detailImages).toEqual(['https://assets.example.test/detail.jpg']);
+    expect(product.thumbnail).toBe('https://assets.example.test/cover-thumbnail.jpg?x-oss-process=image/resize,m_fill,w_360,h_360/format,webp/quality,q_76');
+    expect(product.gallery).toEqual(['https://assets.example.test/intro-display.jpg?x-oss-process=image/resize,m_fill,w_750,h_670/format,webp/quality,q_80']);
+    expect(product.detailImages).toEqual(['https://assets.example.test/detail.jpg?x-oss-process=image/resize,m_lfit,w_720/format,webp/quality,q_78']);
+  });
+
+  it('keeps compact thumbnails for lists while exposing display images for quick-buy panels', () => {
+    const product = resolveCatalogProductAssetUrls({
+      id: 'asset-cake',
+      name: '资产蛋糕',
+      summary: 'OSS',
+      description: 'OSS',
+      price: 128,
+      stock: 1,
+      soldOut: false,
+      cartActionLabel: '选规格',
+      memberLevelLabel: '普通会员可购',
+      categoryId: 'cakes',
+      deliveryModes: ['delivery'],
+      thumbnail: '',
+      imageAsset: {
+        provider: 'oss',
+        role: 'product-cover',
+        bucket: 'bucket',
+        region: 'oss-cn-shanghai',
+        objectKey: 'cover.jpg',
+        url: 'https://assets.example.test/cover.jpg',
+        width: 720,
+        height: 720,
+        sizeBytes: 1000,
+        contentType: 'image/jpeg',
+        uploadedAt: '2026-05-11T00:00:00.000Z',
+        variants: [
+          {
+            name: 'thumbnail',
+            objectKey: 'cover.jpg',
+            url: 'https://assets.example.test/cover.jpg?x-oss-process=image/resize,m_fill,w_360,h_360/format,webp/quality,q_76',
+            width: 360,
+            height: 360,
+            sizeBytes: 500,
+            contentType: 'image/jpeg'
+          },
+          {
+            name: 'display',
+            objectKey: 'cover.jpg',
+            url: 'https://assets.example.test/cover.jpg?x-oss-process=image/resize,m_fill,w_720,h_720/format,webp/quality,q_80',
+            width: 720,
+            height: 720,
+            sizeBytes: 1000,
+            contentType: 'image/jpeg'
+          }
+        ]
+      },
+      gallery: [],
+      detailImages: [],
+      specs: [{ id: '4-inch', label: '4 inch', price: 128 }]
+    });
+
+    expect(product.thumbnail).toContain('w_360,h_360');
+    expect(product.quickBuyImage).toContain('w_720,h_720');
   });
 
   it('adds https before rendering protocol-less remote product image URLs', () => {

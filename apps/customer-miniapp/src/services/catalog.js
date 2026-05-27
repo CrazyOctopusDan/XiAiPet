@@ -17,6 +17,17 @@ exports.hydrateCatalog = hydrateCatalog;
 const catalog_1 = require("../data/catalog");
 const api_client_1 = require("./api-client");
 const DEFAULT_PRODUCT_DETAIL_IMAGES = [];
+const OSS_DISPLAY_RULES = {
+    thumbnail: 'image/resize,m_fill,w_360,h_360/format,webp/quality,q_76',
+    display: 'image/resize,m_fill,w_720,h_720/format,webp/quality,q_80',
+    detail: 'image/resize,m_lfit,w_720/format,webp/quality,q_78',
+    banner: 'image/resize,m_lfit,w_750/format,webp/quality,q_80'
+};
+const OSS_ROLE_DISPLAY_RULES = {
+    'product-introduction': {
+        display: 'image/resize,m_fill,w_750,h_670/format,webp/quality,q_80'
+    }
+};
 function shouldUseLocalCatalogFixtures() {
     var _a, _b;
     return ((_b = (_a = globalThis.process) === null || _a === void 0 ? void 0 : _a.env) === null || _b === void 0 ? void 0 : _b.NODE_ENV) === 'test';
@@ -123,6 +134,19 @@ function normalizeImageUrlForDisplay(value) {
 function imageUrl(value) {
     return value ? normalizeImageUrlForDisplay(value) : value;
 }
+function appendOssProcess(url, process) {
+    const [base, query = ''] = url.split('?');
+    const params = query
+        .split('&')
+        .filter(Boolean)
+        .filter((param) => !param.startsWith('x-oss-process='));
+    const queryPrefix = params.length ? `${params.join('&')}&` : '';
+    return `${base}?${queryPrefix}x-oss-process=${process}`;
+}
+function getOssDisplayProcess(asset, variantName) {
+    var _a, _b;
+    return (_b = (_a = OSS_ROLE_DISPLAY_RULES[asset.role]) === null || _a === void 0 ? void 0 : _a[variantName]) !== null && _b !== void 0 ? _b : OSS_DISPLAY_RULES[variantName];
+}
 function asNumber(value, fallback = 0) {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -167,7 +191,12 @@ function getVariantUrl(asset, variantName) {
     if (!asset) {
         return undefined;
     }
-    return imageUrl((_b = (_a = asset.variants.find((variant) => variant.name === variantName)) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : asset.url);
+    const rawUrl = imageUrl((_b = (_a = asset.variants.find((variant) => variant.name === variantName)) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : asset.url);
+    const process = getOssDisplayProcess(asset, variantName);
+    if (!rawUrl || !process || !/^https?:\/\//.test(rawUrl)) {
+        return rawUrl;
+    }
+    return appendOssProcess(rawUrl, process);
 }
 function normalizeAssetArray(value) {
     const assets = getArray(value).filter(isAssetReference);
@@ -192,7 +221,7 @@ function normalizeProductSpecs(product, basePrice) {
         .filter((spec) => spec.id && spec.label);
 }
 function normalizeProduct(product) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e;
     if (!isObject(product)) {
         return null;
     }
@@ -208,6 +237,18 @@ function normalizeProduct(product) {
     const price = asNumber(product.price, asNumber(product.basePrice));
     const specs = normalizeProductSpecs(product, price);
     const thumbnail = (_b = imageUrl((_a = getVariantUrl(imageAsset, 'thumbnail')) !== null && _a !== void 0 ? _a : asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId))))) !== null && _b !== void 0 ? _b : '';
+    const gallery = (introductionImageAssets === null || introductionImageAssets === void 0 ? void 0 : introductionImageAssets.length)
+        ? introductionImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'display')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
+        : getArray(product.gallery)
+            .filter((item) => typeof item === 'string')
+            .map(normalizeImageUrlForDisplay);
+    const detailImages = (detailImageAssets === null || detailImageAssets === void 0 ? void 0 : detailImageAssets.length)
+        ? detailImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
+        : getArray(product.detailImages).filter((item) => typeof item === 'string').length
+            ? getArray(product.detailImages)
+                .filter((item) => typeof item === 'string')
+                .map(normalizeImageUrlForDisplay)
+            : DEFAULT_PRODUCT_DETAIL_IMAGES;
     return {
         id,
         name,
@@ -227,20 +268,11 @@ function normalizeProduct(product) {
         categoryId,
         deliveryModes: normalizeDeliveryModes(product),
         thumbnail,
+        quickBuyImage: (_e = imageUrl((_d = (_c = getVariantUrl(imageAsset, 'display')) !== null && _c !== void 0 ? _c : gallery[0]) !== null && _d !== void 0 ? _d : thumbnail)) !== null && _e !== void 0 ? _e : '',
         imageAsset,
-        gallery: (introductionImageAssets === null || introductionImageAssets === void 0 ? void 0 : introductionImageAssets.length)
-            ? introductionImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'display')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
-            : getArray(product.gallery)
-                .filter((item) => typeof item === 'string')
-                .map(normalizeImageUrlForDisplay),
+        gallery,
         introductionImageAssets,
-        detailImages: (detailImageAssets === null || detailImageAssets === void 0 ? void 0 : detailImageAssets.length)
-            ? detailImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'detail')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
-            : getArray(product.detailImages).filter((item) => typeof item === 'string').length
-                ? getArray(product.detailImages)
-                    .filter((item) => typeof item === 'string')
-                    .map(normalizeImageUrlForDisplay)
-                : DEFAULT_PRODUCT_DETAIL_IMAGES,
+        detailImages,
         detailImageAssets,
         specs
     };
@@ -261,7 +293,7 @@ function cloneProducts(products) {
     });
 }
 function resolveCatalogProductAssetUrls(product) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     const thumbnail = (_d = imageUrl((_c = (_a = getVariantUrl(product.imageAsset, 'thumbnail')) !== null && _a !== void 0 ? _a : (_b = product.imageAsset) === null || _b === void 0 ? void 0 : _b.url) !== null && _c !== void 0 ? _c : product.thumbnail)) !== null && _d !== void 0 ? _d : '';
     const gallery = ((_e = product.introductionImageAssets) === null || _e === void 0 ? void 0 : _e.length)
         ? product.introductionImageAssets.map((asset) => { var _a, _b; return (_b = imageUrl((_a = getVariantUrl(asset, 'display')) !== null && _a !== void 0 ? _a : asset.url)) !== null && _b !== void 0 ? _b : ''; })
@@ -271,9 +303,11 @@ function resolveCatalogProductAssetUrls(product) {
         : product.detailImages.length
             ? product.detailImages.map(normalizeImageUrlForDisplay)
             : DEFAULT_PRODUCT_DETAIL_IMAGES;
+    const quickBuyImage = (_k = imageUrl((_j = (_h = (_g = getVariantUrl(product.imageAsset, 'display')) !== null && _g !== void 0 ? _g : gallery[0]) !== null && _h !== void 0 ? _h : product.quickBuyImage) !== null && _j !== void 0 ? _j : thumbnail)) !== null && _k !== void 0 ? _k : '';
     return {
         ...product,
         thumbnail,
+        quickBuyImage,
         gallery,
         detailImages
     };

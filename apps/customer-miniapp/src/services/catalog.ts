@@ -29,6 +29,17 @@ interface CatalogProductsResponse {
 }
 
 const DEFAULT_PRODUCT_DETAIL_IMAGES: string[] = [];
+const OSS_DISPLAY_RULES: Partial<Record<OssAssetVariantName, string>> = {
+  thumbnail: 'image/resize,m_fill,w_360,h_360/format,webp/quality,q_76',
+  display: 'image/resize,m_fill,w_720,h_720/format,webp/quality,q_80',
+  detail: 'image/resize,m_lfit,w_720/format,webp/quality,q_78',
+  banner: 'image/resize,m_lfit,w_750/format,webp/quality,q_80'
+};
+const OSS_ROLE_DISPLAY_RULES: Partial<Record<OssAssetReference['role'], Partial<Record<OssAssetVariantName, string>>>> = {
+  'product-introduction': {
+    display: 'image/resize,m_fill,w_750,h_670/format,webp/quality,q_80'
+  }
+};
 
 function shouldUseLocalCatalogFixtures() {
   return (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV === 'test';
@@ -161,6 +172,20 @@ function imageUrl(value: string | undefined) {
   return value ? normalizeImageUrlForDisplay(value) : value;
 }
 
+function appendOssProcess(url: string, process: string) {
+  const [base, query = ''] = url.split('?');
+  const params = query
+    .split('&')
+    .filter(Boolean)
+    .filter((param) => !param.startsWith('x-oss-process='));
+  const queryPrefix = params.length ? `${params.join('&')}&` : '';
+  return `${base}?${queryPrefix}x-oss-process=${process}`;
+}
+
+function getOssDisplayProcess(asset: OssAssetReference, variantName: OssAssetVariantName) {
+  return OSS_ROLE_DISPLAY_RULES[asset.role]?.[variantName] ?? OSS_DISPLAY_RULES[variantName];
+}
+
 function asNumber(value: unknown, fallback = 0) {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -217,7 +242,13 @@ function getVariantUrl(asset: OssAssetReference | undefined, variantName: OssAss
     return undefined;
   }
 
-  return imageUrl(asset.variants.find((variant) => variant.name === variantName)?.url ?? asset.url);
+  const rawUrl = imageUrl(asset.variants.find((variant) => variant.name === variantName)?.url ?? asset.url);
+  const process = getOssDisplayProcess(asset, variantName);
+  if (!rawUrl || !process || !/^https?:\/\//.test(rawUrl)) {
+    return rawUrl;
+  }
+
+  return appendOssProcess(rawUrl, process);
 }
 
 function normalizeAssetArray(value: unknown): OssAssetReference[] | undefined {
@@ -268,6 +299,19 @@ function normalizeProduct(product: unknown): CatalogProduct | null {
       asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId)))
   ) ?? '';
 
+  const gallery = introductionImageAssets?.length
+    ? introductionImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'display') ?? asset.url) ?? '')
+    : getArray(product.gallery)
+        .filter((item): item is string => typeof item === 'string')
+        .map(normalizeImageUrlForDisplay);
+  const detailImages = detailImageAssets?.length
+    ? detailImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'detail') ?? asset.url) ?? '')
+    : getArray(product.detailImages).filter((item): item is string => typeof item === 'string').length
+      ? getArray(product.detailImages)
+          .filter((item): item is string => typeof item === 'string')
+          .map(normalizeImageUrlForDisplay)
+      : DEFAULT_PRODUCT_DETAIL_IMAGES;
+
   return {
     id,
     name,
@@ -289,20 +333,11 @@ function normalizeProduct(product: unknown): CatalogProduct | null {
     categoryId,
     deliveryModes: normalizeDeliveryModes(product),
     thumbnail,
+    quickBuyImage: imageUrl(getVariantUrl(imageAsset, 'display') ?? gallery[0] ?? thumbnail) ?? '',
     imageAsset,
-    gallery: introductionImageAssets?.length
-      ? introductionImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'display') ?? asset.url) ?? '')
-      : getArray(product.gallery)
-          .filter((item): item is string => typeof item === 'string')
-          .map(normalizeImageUrlForDisplay),
+    gallery,
     introductionImageAssets,
-    detailImages: detailImageAssets?.length
-      ? detailImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'detail') ?? asset.url) ?? '')
-      : getArray(product.detailImages).filter((item): item is string => typeof item === 'string').length
-        ? getArray(product.detailImages)
-            .filter((item): item is string => typeof item === 'string')
-            .map(normalizeImageUrlForDisplay)
-        : DEFAULT_PRODUCT_DETAIL_IMAGES,
+    detailImages,
     detailImageAssets,
     specs
   };
@@ -335,10 +370,12 @@ export function resolveCatalogProductAssetUrls(product: CatalogProduct): Catalog
     : product.detailImages.length
       ? product.detailImages.map(normalizeImageUrlForDisplay)
       : DEFAULT_PRODUCT_DETAIL_IMAGES;
+  const quickBuyImage = imageUrl(getVariantUrl(product.imageAsset, 'display') ?? gallery[0] ?? product.quickBuyImage ?? thumbnail) ?? '';
 
   return {
     ...product,
     thumbnail,
+    quickBuyImage,
     gallery,
     detailImages
   };

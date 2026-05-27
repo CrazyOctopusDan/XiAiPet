@@ -96,6 +96,7 @@ const TOP_MEMBERSHIP_THEME = {
   end: '#6B4E1E',
   accent: '#CA8A04'
 };
+const BANNER_OSS_PROCESS = 'image/resize,m_lfit,w_750/format,webp/quality,q_80';
 
 let cachedRuntimeConfig: CustomerRuntimeConfig = cloneRuntimeConfig(DEFAULT_RUNTIME_CONFIG);
 
@@ -229,7 +230,23 @@ export function getCachedCustomerRuntimeConfig() {
 }
 
 export function resolveRuntimeBannerImageSrc(banner: BannerRuntimeConfigValue) {
-  return banner.asset?.variants.find((variant) => variant.name === 'banner')?.url ?? banner.asset?.url ?? banner.fileId;
+  const rawUrl = banner.asset?.variants.find((variant) => variant.name === 'banner')?.url ?? banner.asset?.url ?? banner.fileId;
+  return appendBannerOssProcess(rawUrl);
+}
+
+function appendBannerOssProcess(url: string) {
+  if (!/^https?:\/\//.test(url)) {
+    return url;
+  }
+
+  const normalizedUrl = url.startsWith('http://') ? `https://${url.slice('http://'.length)}` : url;
+  const [base, query = ''] = normalizedUrl.split('?');
+  const params = query
+    .split('&')
+    .filter(Boolean)
+    .filter((param) => !param.startsWith('x-oss-process='));
+  const queryPrefix = params.length ? `${params.join('&')}&` : '';
+  return `${base}?${queryPrefix}x-oss-process=${BANNER_OSS_PROCESS}`;
 }
 
 export function resetCustomerRuntimeConfigCache() {

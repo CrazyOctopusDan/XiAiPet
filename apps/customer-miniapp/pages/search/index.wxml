@@ -47,7 +47,7 @@
 
   <view class="quick-buy-mask" wx:if="{{showQuickBuy}}" catchtouchmove="handleMaskTouchMove">
     <view class="quick-buy-panel">
-      <image wx:if="{{selectedProduct.thumbnail}}" class="quick-buy-image" mode="aspectFill" src="{{selectedProduct.thumbnail}}" />
+      <image wx:if="{{selectedProduct.quickBuyImage || selectedProduct.thumbnail}}" class="quick-buy-image" mode="aspectFill" src="{{selectedProduct.quickBuyImage || selectedProduct.thumbnail}}" />
       <view wx:else class="quick-buy-image quick-buy-image-placeholder"><text>{{selectedProduct.name}}</text></view>
       <view class="quick-buy-close" bindtap="handleQuickBuyClose">×</view>
       <view class="quick-buy-content">

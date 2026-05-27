@@ -39,6 +39,7 @@ export interface CatalogProduct {
   categoryId: string;
   deliveryModes: DeliveryMode[];
   thumbnail: string;
+  quickBuyImage?: string;
   imageAsset?: OssAssetReference;
   gallery: string[];
   introductionImageAssets?: OssAssetReference[];

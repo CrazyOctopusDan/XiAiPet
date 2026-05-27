@@ -10,6 +10,8 @@ export interface AssetVariantRule {
   height: number;
   maxSizeBytes: number;
   quality: number;
+  mode?: 'm_fill' | 'm_lfit';
+  includeHeight?: boolean;
 }
 
 export interface AssetRoleRule {
@@ -21,26 +23,26 @@ export const ASSET_ROLE_RULES: Record<OssAssetRole, AssetRoleRule> = {
   'product-cover': {
     cropScale: '1:1',
     variants: {
-      thumbnail: { width: 480, height: 480, maxSizeBytes: 184_320, quality: 80 },
-      display: { width: 960, height: 960, maxSizeBytes: 460_800, quality: 82 }
+      thumbnail: { width: 360, height: 360, maxSizeBytes: 122_880, quality: 76 },
+      display: { width: 720, height: 720, maxSizeBytes: 307_200, quality: 80 }
     }
   },
   'product-introduction': {
     cropScale: '4:3',
     variants: {
-      display: { width: 960, height: 720, maxSizeBytes: 512_000, quality: 82 }
+      display: { width: 750, height: 670, maxSizeBytes: 409_600, quality: 80 }
     }
   },
   'product-detail': {
     cropScale: '3:4',
     variants: {
-      detail: { width: 960, height: 1280, maxSizeBytes: 716_800, quality: 82 }
+      detail: { width: 720, height: 1280, maxSizeBytes: 512_000, quality: 78, mode: 'm_lfit', includeHeight: false }
     }
   },
   'runtime-banner': {
     cropScale: '16:9',
     variants: {
-      banner: { width: 1280, height: 720, maxSizeBytes: 665_600, quality: 82 }
+      banner: { width: 750, height: 750, maxSizeBytes: 409_600, quality: 80, mode: 'm_lfit', includeHeight: false }
     }
   }
 };
@@ -139,7 +141,9 @@ function normalizeImageContentType(path: string) {
 
 function appendOssProcess(url: string, rule: AssetVariantRule) {
   const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}x-oss-process=image/resize,m_fill,w_${rule.width},h_${rule.height}/quality,q_${rule.quality}`;
+  const mode = rule.mode ?? 'm_fill';
+  const height = rule.includeHeight === false ? '' : `,h_${rule.height}`;
+  return `${url}${separator}x-oss-process=image/resize,${mode},w_${rule.width}${height}/format,webp/quality,q_${rule.quality}`;
 }
 
 function getRuleMaxSizeBytes(role: OssAssetRole, variantName: OssAssetVariantName) {

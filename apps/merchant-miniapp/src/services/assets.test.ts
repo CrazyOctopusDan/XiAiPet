@@ -251,7 +251,77 @@ describe('merchant asset upload service', () => {
     });
 
     expect(result.asset.variants.map((variant) => variant.name).sort()).toEqual(['display', 'thumbnail']);
-    expect(result.asset.variants.every((variant) => variant.url.includes('x-oss-process=image/resize'))).toBe(true);
+    expect(result.asset.variants).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        name: 'thumbnail',
+        width: 360,
+        height: 360,
+        url: 'https://assets.example.test/key-display?x-oss-process=image/resize,m_fill,w_360,h_360/format,webp/quality,q_76'
+      }),
+      expect.objectContaining({
+        name: 'display',
+        width: 720,
+        height: 720,
+        url: 'https://assets.example.test/key-display?x-oss-process=image/resize,m_fill,w_720,h_720/format,webp/quality,q_80'
+      })
+    ]));
     expect((globalThis as any).wx.uploadFile).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses width-only WebP processing for long detail images and homepage banners', async () => {
+    (globalThis as any).wx = {
+      uploadFile: vi.fn((options) => options.success({ statusCode: 200 }))
+    };
+    const request = vi.fn((path: string, options: any) => {
+      if (path.endsWith('/upload-policies')) {
+        return Promise.resolve({
+          upload: {
+            method: 'POST',
+            url: 'https://oss.example.test',
+            fileFieldName: 'file',
+            formData: { key: `key-${options.body.role}` },
+            objectKey: `key-${options.body.role}`,
+            expiresAt: '2026-05-11T00:15:00.000Z',
+            confirmToken: `token-${options.body.role}`
+          }
+        });
+      }
+
+      return Promise.resolve({
+        storageId: `oss://bucket/${options.body.objectKey}`,
+        asset: {
+          provider: 'oss',
+          role: options.body.role,
+          bucket: 'bucket',
+          region: 'oss-cn-shanghai',
+          objectKey: options.body.objectKey,
+          url: `https://assets.example.test/${options.body.objectKey}`,
+          width: options.body.width,
+          height: options.body.height,
+          sizeBytes: 1000,
+          contentType: 'image/jpeg',
+          uploadedAt: '2026-05-11T00:00:00.000Z',
+          variants: []
+        }
+      });
+    }) as unknown as MerchantApiRequester;
+
+    const detail = await uploadMerchantAsset('product-detail', {
+      filePath: '/tmp/detail.jpg',
+      fileSizeBytes: 1000,
+      request
+    });
+    const banner = await uploadMerchantAsset('runtime-banner', {
+      filePath: '/tmp/banner.jpg',
+      fileSizeBytes: 1000,
+      request
+    });
+
+    expect(detail.asset.variants[0]?.url).toBe(
+      'https://assets.example.test/key-product-detail?x-oss-process=image/resize,m_lfit,w_720/format,webp/quality,q_78'
+    );
+    expect(banner.asset.variants[0]?.url).toBe(
+      'https://assets.example.test/key-runtime-banner?x-oss-process=image/resize,m_lfit,w_750/format,webp/quality,q_80'
+    );
   });
 });
