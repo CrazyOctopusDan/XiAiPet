@@ -15,6 +15,10 @@ interface MerchantUserBalanceAdjustmentPayload {
   afterBalance?: number;
 }
 
+const MEMBERSHIP_RECHARGE_REASON_TYPES = new Set(['充值', '线下收款', '退款']);
+const ADD_REASON_TYPES = new Set(['充值', '线下收款', '赠送', '优惠券', '其他']);
+const DEDUCT_REASON_TYPES = new Set(['退款', '取消赠送', '其他']);
+
 function formatMoney(value: number) {
   return `￥${Math.abs(value).toFixed(2)}`;
 }
@@ -30,7 +34,7 @@ function getBalanceAdjustmentShortNote(delta: number) {
 }
 
 function getLedgerType(reasonType: string): 'recharge' | 'manual_adjustment' {
-  return reasonType === '充值' ? 'recharge' : 'manual_adjustment';
+  return MEMBERSHIP_RECHARGE_REASON_TYPES.has(reasonType) ? 'recharge' : 'manual_adjustment';
 }
 
 function normalizeMoney(value: number) {
@@ -46,14 +50,19 @@ function isMerchantUserBalanceAdjustmentPayload(value: unknown): value is Mercha
     return false;
   }
   const candidate = value as Record<string, unknown>;
+  const action = candidate.action;
+  const reasonTypes = action === 'deduct' ? DEDUCT_REASON_TYPES : ADD_REASON_TYPES;
+  const delta = candidate.delta;
   return (
     typeof candidate.userOpenid === 'string' &&
+    (action === 'add' || action === 'deduct') &&
     typeof candidate.reasonType === 'string' &&
+    reasonTypes.has(candidate.reasonType) &&
     typeof candidate.note === 'string' &&
     typeof candidate.operatedAt === 'string' &&
-    typeof candidate.delta === 'number' &&
-    Number.isFinite(candidate.delta) &&
-    (candidate.action === undefined || candidate.action === 'add' || candidate.action === 'deduct')
+    typeof delta === 'number' &&
+    Number.isFinite(delta) &&
+    ((action === 'add' && delta > 0) || (action === 'deduct' && delta < 0))
   );
 }
 

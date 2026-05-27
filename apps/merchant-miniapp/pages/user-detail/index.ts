@@ -15,6 +15,7 @@ import {
   fetchMerchantUserAddresses,
   fetchMerchantUserBalanceLedgers,
   fetchMerchantUserDetail,
+  getBalanceAdjustmentReasonOptions,
   getCachedLatestAdjustment,
   getUserDetailViewModel,
   submitBalanceAdjustment,
@@ -34,6 +35,7 @@ interface UserDetailPageData {
   detail: ReturnType<typeof getUserDetailViewModel> | null;
   drawerOpen: boolean;
   action: MerchantBalanceAdjustmentAction;
+  reasonOptions: MerchantBalanceAdjustmentReasonType[];
   amountText: string;
   reasonType: MerchantBalanceAdjustmentReasonType;
   note: string;
@@ -81,6 +83,7 @@ Page({
     detail: null,
     drawerOpen: false,
     action: 'add',
+    reasonOptions: getBalanceAdjustmentReasonOptions('add'),
     amountText: '',
     reasonType: '充值',
     note: '',
@@ -244,6 +247,7 @@ Page({
     });
 
     this.setData({
+      reasonType: draft.reasonType,
       resultingBalanceLabel: draft.resultingBalanceLabel,
       disableSubmitReason: draft.disableSubmitReason
     });
@@ -269,8 +273,12 @@ Page({
     this: UserDetailPageInstance,
     event: { currentTarget?: { dataset?: { action?: MerchantBalanceAdjustmentAction } } }
   ) {
+    const action = normalizeBalanceAction(event.currentTarget?.dataset?.action);
+    const reasonOptions = getBalanceAdjustmentReasonOptions(action);
     this.setData({
-      action: normalizeBalanceAction(event.currentTarget?.dataset?.action)
+      action,
+      reasonOptions,
+      reasonType: reasonOptions[0]
     });
     this.updateDraftPreview();
   },
@@ -286,8 +294,9 @@ Page({
     this: UserDetailPageInstance,
     event: { currentTarget?: { dataset?: { reason?: MerchantBalanceAdjustmentReasonType } } }
   ) {
+    const reasonType = event.currentTarget?.dataset?.reason ?? this.data.reasonOptions[0] ?? '充值';
     this.setData({
-      reasonType: event.currentTarget?.dataset?.reason ?? '充值'
+      reasonType
     });
     this.updateDraftPreview();
   },

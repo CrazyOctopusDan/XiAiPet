@@ -75,6 +75,7 @@ describe('merchant user service', () => {
         'openid-1',
         {
           userOpenid: 'openid-1',
+          action: 'add',
           reasonType: '线下收款',
           note: '线下充值了',
           operatedAt: '2026-05-18T11:35:00.000Z',
@@ -91,7 +92,7 @@ describe('merchant user service', () => {
     });
     expect(balanceService.adjustBalance).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'manual_adjustment'
+        type: 'recharge'
       })
     );
   });
@@ -113,6 +114,7 @@ describe('merchant user service', () => {
       'openid-1',
       {
         userOpenid: 'openid-1',
+        action: 'add',
         reasonType: '充值',
         note: '线下充值了',
         operatedAt: '2026-05-18T11:35:00.000Z',
@@ -132,8 +134,9 @@ describe('merchant user service', () => {
       'openid-1',
       {
         userOpenid: 'openid-1',
-        reasonType: '充值',
-        note: '扣回误充值',
+        action: 'deduct',
+        reasonType: '退款',
+        note: '退款扣回',
         operatedAt: '2026-05-18T11:40:00.000Z',
         delta: -100
       }
@@ -143,7 +146,28 @@ describe('merchant user service', () => {
       expect.objectContaining({
         type: 'recharge',
         amountDelta: -100,
-        reason: '充值: 扣回误充值'
+        reason: '退款: 退款扣回'
+      })
+    );
+
+    await service.adjustUserBalance(
+      { openid: 'acct-admin', storeName: '门店管理员' } as any,
+      'openid-1',
+      {
+        userOpenid: 'openid-1',
+        action: 'add',
+        reasonType: '线下收款',
+        note: '线下收款入账',
+        operatedAt: '2026-05-18T11:45:00.000Z',
+        delta: 300
+      }
+    );
+
+    expect(balanceService.adjustBalance).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'recharge',
+        amountDelta: 300,
+        reason: '线下收款: 线下收款入账'
       })
     );
   });
@@ -165,6 +189,7 @@ describe('merchant user service', () => {
       'openid-1',
       {
         userOpenid: 'openid-1',
+        action: 'add',
         reasonType: '充值',
         note: '线下充值了',
         operatedAt: '2026-05-18T11:35:00.000Z',
@@ -195,10 +220,35 @@ describe('merchant user service', () => {
         {
           userOpenid: 'openid-1',
           action: 'set',
-          reasonType: '人工纠错',
+          reasonType: '其他',
           note: '指定余额',
           operatedAt: '2026-05-18T11:35:00.000Z',
           delta: 50
+        }
+      )
+    ).rejects.toMatchObject({
+      code: 'INVALID_BALANCE_ADJUSTMENT'
+    });
+    expect(balanceService.adjustBalance).not.toHaveBeenCalled();
+  });
+
+  it('rejects balance adjustment reasons that do not match the selected direction', async () => {
+    const balanceService = {
+      adjustBalance: vi.fn()
+    };
+    const service = createMerchantUserService({} as any, balanceService as any);
+
+    await expect(
+      service.adjustUserBalance(
+        { openid: 'acct-admin', storeName: '门店管理员' } as any,
+        'openid-1',
+        {
+          userOpenid: 'openid-1',
+          action: 'deduct',
+          reasonType: '充值',
+          note: '方向错误',
+          operatedAt: '2026-05-18T11:35:00.000Z',
+          delta: -50
         }
       )
     ).rejects.toMatchObject({

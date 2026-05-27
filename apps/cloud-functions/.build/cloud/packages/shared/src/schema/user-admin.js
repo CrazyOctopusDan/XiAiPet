@@ -28,6 +28,12 @@ function isMerchantBalanceAdjustmentOperator(value) {
         isNonEmptyString(candidate.openid) &&
         isNonEmptyString(candidate.name));
 }
+function isReasonAllowedForAction(action, reasonType) {
+    const reasons = action === 'deduct'
+        ? user_admin_1.MERCHANT_BALANCE_ADJUSTMENT_DEDUCT_REASON_TYPES
+        : user_admin_1.MERCHANT_BALANCE_ADJUSTMENT_ADD_REASON_TYPES;
+    return typeof reasonType === 'string' && reasons.includes(reasonType);
+}
 function isMerchantUserSearchListItem(value) {
     if (!value || typeof value !== 'object') {
         return false;
@@ -87,6 +93,7 @@ function isMerchantUserBalanceAdjustmentPayload(value) {
         !isNonEmptyString(candidate.userOpenid) ||
         !user_admin_1.MERCHANT_BALANCE_ADJUSTMENT_ACTIONS.includes(candidate.action) ||
         !user_admin_1.MERCHANT_BALANCE_ADJUSTMENT_REASON_TYPES.includes(candidate.reasonType) ||
+        !isReasonAllowedForAction(candidate.action, candidate.reasonType) ||
         !isNonEmptyString(candidate.note) ||
         !isMerchantBalanceAdjustmentOperator(candidate.operator) ||
         !isNonEmptyString(candidate.operatedAt) ||

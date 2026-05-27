@@ -270,6 +270,18 @@ async function getRechargeTotal(client: DbClient, openid: string): Promise<numbe
           reason: {
             startsWith: '充值'
           }
+        },
+        {
+          type: LEDGER_TYPE.manual_adjustment,
+          reason: {
+            startsWith: '线下收款'
+          }
+        },
+        {
+          type: LEDGER_TYPE.manual_adjustment,
+          reason: {
+            startsWith: '退款'
+          }
         }
       ]
     },

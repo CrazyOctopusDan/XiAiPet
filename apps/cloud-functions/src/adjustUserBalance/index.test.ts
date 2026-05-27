@@ -16,7 +16,7 @@ function createPayload() {
   return {
     userOpenid: 'user-openid',
     action: 'deduct' as const,
-    reasonType: '人工纠错' as const,
+    reasonType: '退款' as const,
     note: '修正重复到账金额',
     operator: {
       openid: 'merchant-openid',
@@ -36,7 +36,7 @@ describe('adjustUserBalance cloud function', () => {
     const applyMerchantBalanceAdjustment = vi.fn(async () => ({
       balanceAfter: 100,
       ledger: {
-        normalizedTitle: '余额纠错',
+        normalizedTitle: '退款',
         shortNote: '余额扣减 ￥20.00'
       }
     }));
@@ -55,7 +55,7 @@ describe('adjustUserBalance cloud function', () => {
     expect(result).toMatchObject({
       balanceAfter: 100,
       ledger: {
-        normalizedTitle: '余额纠错',
+        normalizedTitle: '退款',
         shortNote: '余额扣减 ￥20.00'
       }
     });

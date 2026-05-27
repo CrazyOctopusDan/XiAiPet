@@ -5,14 +5,20 @@ function getNormalizedTitle(reasonType) {
     if (reasonType === '充值') {
         return '商户充值';
     }
-    if (reasonType === '补偿') {
-        return '商户补偿';
-    }
-    if (reasonType === '人工纠错') {
-        return '余额纠错';
-    }
     if (reasonType === '线下收款') {
         return '线下收款';
+    }
+    if (reasonType === '赠送') {
+        return '商户赠送';
+    }
+    if (reasonType === '优惠券') {
+        return '优惠券';
+    }
+    if (reasonType === '退款') {
+        return '退款';
+    }
+    if (reasonType === '取消赠送') {
+        return '取消赠送';
     }
     return '商户调整';
 }

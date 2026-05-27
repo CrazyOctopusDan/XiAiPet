@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getBalanceAdjustmentReasonOptions = getBalanceAdjustmentReasonOptions;
 exports.getBalanceLedgerViewModels = getBalanceLedgerViewModels;
 exports.getAddressViewModels = getAddressViewModels;
 exports.queryMerchantUsers = queryMerchantUsers;
@@ -13,6 +14,8 @@ exports.buildBalanceAdjustmentDraft = buildBalanceAdjustmentDraft;
 exports.submitBalanceAdjustment = submitBalanceAdjustment;
 const api_client_1 = require("./api-client");
 const USER_DETAIL_CACHE_KEY = 'merchant-user-detail-cache';
+const ADD_REASON_OPTIONS = ['充值', '线下收款', '赠送', '优惠券', '其他'];
+const DEDUCT_REASON_OPTIONS = ['退款', '取消赠送', '其他'];
 function formatMoney(value) {
     return `￥${value.toFixed(2)}`;
 }
@@ -74,6 +77,13 @@ function normalizeMoney(value) {
 }
 function normalizeBalanceAdjustmentAction(action) {
     return action === 'deduct' ? 'deduct' : 'add';
+}
+function getBalanceAdjustmentReasonOptions(action) {
+    return [...(action === 'deduct' ? DEDUCT_REASON_OPTIONS : ADD_REASON_OPTIONS)];
+}
+function normalizeBalanceAdjustmentReason(action, reasonType) {
+    const options = getBalanceAdjustmentReasonOptions(action);
+    return options.includes(reasonType) ? reasonType : options[0];
 }
 function getContactPhoneLabel(user) {
     var _a;
@@ -223,6 +233,7 @@ function getUserDetailViewModel(user, latest) {
 }
 function buildBalanceAdjustmentDraft(user, input) {
     const action = normalizeBalanceAdjustmentAction(input.action);
+    const reasonType = normalizeBalanceAdjustmentReason(action, input.reasonType);
     const parsedAmount = Number(input.amountText || 0);
     const amount = normalizeMoney(parsedAmount);
     let delta = 0;
@@ -249,7 +260,7 @@ function buildBalanceAdjustmentDraft(user, input) {
         action,
         amountText: input.amountText,
         amount,
-        reasonType: input.reasonType,
+        reasonType,
         note: input.note,
         beforeBalance: user.currentBalance,
         delta,

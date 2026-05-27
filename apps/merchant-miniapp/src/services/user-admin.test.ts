@@ -8,6 +8,7 @@ import {
   fetchMerchantUserAddresses,
   fetchMerchantUserBalanceLedgers,
   fetchMerchantUserDetail,
+  getBalanceAdjustmentReasonOptions,
   getUserDetailViewModel,
   getUsersPageViewModel,
   queryMerchantUsers,
@@ -216,7 +217,7 @@ describe('user admin service', () => {
     const draft = buildBalanceAdjustmentDraft(createUser(), {
       action: 'deduct',
       amountText: '200',
-      reasonType: '补偿',
+      reasonType: '退款',
       note: '售后扣回'
     });
 
@@ -234,7 +235,7 @@ describe('user admin service', () => {
     const deductDraft = buildBalanceAdjustmentDraft(createUser(), {
       action: 'deduct',
       amountText: '50.999',
-      reasonType: '人工纠错',
+      reasonType: '退款',
       note: '扣回误充值'
     });
 
@@ -245,6 +246,24 @@ describe('user admin service', () => {
     expect(deductDraft.amount).toBe(50.99);
     expect(deductDraft.delta).toBe(-50.99);
     expect(deductDraft.afterBalance).toBe(137.01);
+  });
+
+  it('exposes action-specific balance adjustment reason options and normalizes stale reasons', () => {
+    expect(getBalanceAdjustmentReasonOptions('add')).toEqual(['充值', '线下收款', '赠送', '优惠券', '其他']);
+    expect(getBalanceAdjustmentReasonOptions('deduct')).toEqual(['退款', '取消赠送', '其他']);
+
+    expect(buildBalanceAdjustmentDraft(createUser(), {
+      action: 'deduct',
+      amountText: '20',
+      reasonType: '充值',
+      note: '切换方向后原因回退'
+    }).reasonType).toBe('退款');
+    expect(buildBalanceAdjustmentDraft(createUser(), {
+      action: 'add',
+      amountText: '20',
+      reasonType: '退款',
+      note: '切换方向后原因回退'
+    }).reasonType).toBe('充值');
   });
 
   it('submits balance adjustments with confirmation and operator identity', async () => {
@@ -342,7 +361,7 @@ describe('user admin service', () => {
         buildBalanceAdjustmentDraft(createUser(), {
           action: 'deduct',
           amountText: '0.99',
-          reasonType: '人工纠错',
+          reasonType: '退款',
           note: '我试试'
         }),
         request

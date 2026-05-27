@@ -109,6 +109,8 @@ export interface BalanceAdjustmentDraft {
 }
 
 const USER_DETAIL_CACHE_KEY = 'merchant-user-detail-cache';
+const ADD_REASON_OPTIONS: MerchantBalanceAdjustmentReasonType[] = ['充值', '线下收款', '赠送', '优惠券', '其他'];
+const DEDUCT_REASON_OPTIONS: MerchantBalanceAdjustmentReasonType[] = ['退款', '取消赠送', '其他'];
 
 function formatMoney(value: number) {
   return `￥${value.toFixed(2)}`;
@@ -184,6 +186,18 @@ function normalizeMoney(value: number) {
 
 function normalizeBalanceAdjustmentAction(action: MerchantBalanceAdjustmentAction): MerchantBalanceAdjustmentAction {
   return action === 'deduct' ? 'deduct' : 'add';
+}
+
+export function getBalanceAdjustmentReasonOptions(action: MerchantBalanceAdjustmentAction): MerchantBalanceAdjustmentReasonType[] {
+  return [...(action === 'deduct' ? DEDUCT_REASON_OPTIONS : ADD_REASON_OPTIONS)];
+}
+
+function normalizeBalanceAdjustmentReason(
+  action: MerchantBalanceAdjustmentAction,
+  reasonType: MerchantBalanceAdjustmentReasonType
+): MerchantBalanceAdjustmentReasonType {
+  const options = getBalanceAdjustmentReasonOptions(action);
+  return options.includes(reasonType) ? reasonType : options[0];
 }
 
 function getContactPhoneLabel(user: Pick<MerchantUserSearchListItem, 'contactPhoneMasked' | 'contactPhone'>) {
@@ -366,6 +380,7 @@ export function buildBalanceAdjustmentDraft(
   input: BalanceAdjustmentDraftInput
 ): BalanceAdjustmentDraft {
   const action = normalizeBalanceAdjustmentAction(input.action);
+  const reasonType = normalizeBalanceAdjustmentReason(action, input.reasonType);
   const parsedAmount = Number(input.amountText || 0);
   const amount = normalizeMoney(parsedAmount);
   let delta = 0;
@@ -395,7 +410,7 @@ export function buildBalanceAdjustmentDraft(
     action,
     amountText: input.amountText,
     amount,
-    reasonType: input.reasonType,
+    reasonType,
     note: input.note,
     beforeBalance: user.currentBalance,
     delta,

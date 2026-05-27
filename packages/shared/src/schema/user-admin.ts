@@ -7,6 +7,8 @@ import type {
 } from '../types/user-admin';
 import {
   MERCHANT_BALANCE_ADJUSTMENT_ACTIONS,
+  MERCHANT_BALANCE_ADJUSTMENT_ADD_REASON_TYPES,
+  MERCHANT_BALANCE_ADJUSTMENT_DEDUCT_REASON_TYPES,
   MERCHANT_BALANCE_ADJUSTMENT_REASON_TYPES,
   MERCHANT_USER_SEARCH_FIELDS
 } from '../types/user-admin';
@@ -46,6 +48,13 @@ function isMerchantBalanceAdjustmentOperator(
     isNonEmptyString(candidate.openid) &&
     isNonEmptyString(candidate.name)
   );
+}
+
+function isReasonAllowedForAction(action: unknown, reasonType: unknown) {
+  const reasons: readonly string[] = action === 'deduct'
+    ? MERCHANT_BALANCE_ADJUSTMENT_DEDUCT_REASON_TYPES
+    : MERCHANT_BALANCE_ADJUSTMENT_ADD_REASON_TYPES;
+  return typeof reasonType === 'string' && reasons.includes(reasonType);
 }
 
 function isMerchantUserSearchListItem(value: unknown): value is MerchantUserSearchListItem {
@@ -130,6 +139,7 @@ export function isMerchantUserBalanceAdjustmentPayload(
     !MERCHANT_BALANCE_ADJUSTMENT_REASON_TYPES.includes(
       candidate.reasonType as (typeof MERCHANT_BALANCE_ADJUSTMENT_REASON_TYPES)[number]
     ) ||
+    !isReasonAllowedForAction(candidate.action, candidate.reasonType) ||
     !isNonEmptyString(candidate.note) ||
     !isMerchantBalanceAdjustmentOperator(candidate.operator) ||
     !isNonEmptyString(candidate.operatedAt) ||

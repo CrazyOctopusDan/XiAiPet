@@ -106,6 +106,18 @@ describe('user repository', () => {
             reason: {
               startsWith: '充值'
             }
+          },
+          {
+            type: 'MANUAL_ADJUSTMENT',
+            reason: {
+              startsWith: '线下收款'
+            }
+          },
+          {
+            type: 'MANUAL_ADJUSTMENT',
+            reason: {
+              startsWith: '退款'
+            }
           }
         ]
       },

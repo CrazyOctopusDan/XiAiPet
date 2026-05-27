@@ -412,9 +412,12 @@ describe('merchant page API resilience', () => {
     const wxml = readFileSync('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/user-detail/index.wxml', 'utf8');
 
     expect(wxml).toContain('class="field-input" type="digit" placeholder="调整金额"');
+    expect(wxml).toContain('wx:for="{{reasonOptions}}"');
     expect(wxml).not.toContain('class="field-input" type="number"');
     expect(wxml).not.toContain('data-action="set"');
     expect(wxml).not.toContain('指定余额');
+    expect(wxml).not.toContain('人工纠错');
+    expect(wxml).not.toContain('补偿');
   });
 
   it('uses decimal keyboard inputs for runtime-config money fields', () => {

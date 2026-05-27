@@ -66,12 +66,21 @@ export interface MerchantUserSearchResult {
 export const MERCHANT_BALANCE_ADJUSTMENT_ACTIONS = ['add', 'deduct'] as const;
 export type MerchantBalanceAdjustmentAction = (typeof MERCHANT_BALANCE_ADJUSTMENT_ACTIONS)[number];
 
-export const MERCHANT_BALANCE_ADJUSTMENT_REASON_TYPES = [
+export const MERCHANT_BALANCE_ADJUSTMENT_ADD_REASON_TYPES = [
   '充值',
-  '补偿',
-  '人工纠错',
   '线下收款',
+  '赠送',
+  '优惠券',
   '其他'
+] as const;
+export const MERCHANT_BALANCE_ADJUSTMENT_DEDUCT_REASON_TYPES = [
+  '退款',
+  '取消赠送',
+  '其他'
+] as const;
+export const MERCHANT_BALANCE_ADJUSTMENT_REASON_TYPES = [
+  ...MERCHANT_BALANCE_ADJUSTMENT_ADD_REASON_TYPES,
+  ...MERCHANT_BALANCE_ADJUSTMENT_DEDUCT_REASON_TYPES
 ] as const;
 export type MerchantBalanceAdjustmentReasonType =
   (typeof MERCHANT_BALANCE_ADJUSTMENT_REASON_TYPES)[number];

@@ -19,6 +19,7 @@ Page({
         detail: null,
         drawerOpen: false,
         action: 'add',
+        reasonOptions: (0, user_admin_1.getBalanceAdjustmentReasonOptions)('add'),
         amountText: '',
         reasonType: '充值',
         note: '',
@@ -180,6 +181,7 @@ Page({
             note: this.data.note
         });
         this.setData({
+            reasonType: draft.reasonType,
             resultingBalanceLabel: draft.resultingBalanceLabel,
             disableSubmitReason: draft.disableSubmitReason
         });
@@ -203,8 +205,12 @@ Page({
     },
     handleActionTap(event) {
         var _a, _b;
+        const action = normalizeBalanceAction((_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.action);
+        const reasonOptions = (0, user_admin_1.getBalanceAdjustmentReasonOptions)(action);
         this.setData({
-            action: normalizeBalanceAction((_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.action)
+            action,
+            reasonOptions,
+            reasonType: reasonOptions[0]
         });
         this.updateDraftPreview();
     },
@@ -218,9 +224,10 @@ Page({
         return amountText;
     },
     handleReasonTap(event) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
+        const reasonType = (_d = (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.reason) !== null && _c !== void 0 ? _c : this.data.reasonOptions[0]) !== null && _d !== void 0 ? _d : '充值';
         this.setData({
-            reasonType: (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.reason) !== null && _c !== void 0 ? _c : '充值'
+            reasonType
         });
         this.updateDraftPreview();
     },
