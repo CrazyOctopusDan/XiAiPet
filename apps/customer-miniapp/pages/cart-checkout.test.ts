@@ -151,6 +151,7 @@ async function loadPageModule(modulePath: string) {
     requirePrivacyAuthorize: vi.fn(),
     showToast: vi.fn(),
     showModal: vi.fn(),
+    chooseLocation: vi.fn(),
     navigateTo: vi.fn(),
     navigateBack: vi.fn(),
     redirectTo: vi.fn(),
@@ -800,8 +801,8 @@ describe('cart checkout flow', () => {
     expect(addressStyles).not.toContain('.address-title');
   });
 
-  it('renders the address form with top spacing and a fixed safe-area save action', async () => {
-    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+  it('renders the address form with map picking for city delivery coordinates', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
     const { readFile } = await import('node:fs/promises');
 
     const instance = createPageInstance(page);
@@ -820,17 +821,53 @@ describe('cart checkout flow', () => {
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.wxss',
       'utf8'
     );
+    const appConfig = JSON.parse(await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/app.json',
+      'utf8'
+    ));
 
     expect(formTemplate).not.toContain('class="address-form-hero"');
     expect(formTemplate).not.toContain('class="address-form-subtitle"');
     expect(formTemplate).toContain('class="address-form-context"');
     expect(formTemplate).toContain('class="address-form-fixed-action"');
+    expect(formTemplate).toContain('bindtap="handleChooseLocation"');
+    expect(formTemplate).toContain('同城配送需要用地图位置计算配送费，请一定选择一个地址。');
     expect(formTemplate).toContain('cursor-spacing="120"');
+    expect(formStyles).toContain('.location-button::after');
     expect(formStyles).toContain('padding: 32rpx 24rpx 0');
     expect(formStyles).toContain('.address-form-fixed-action');
     expect(formStyles).toContain('position: fixed');
     expect(formStyles).toContain('padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom))');
     expect(formStyles).toContain('padding-bottom: calc(180rpx + env(safe-area-inset-bottom))');
+    expect(appConfig.requiredPrivateInfos).toContain('chooseLocation');
+    expect(appConfig.permission['scope.userLocation'].desc).toContain('计算配送费');
+
+    instance.onLoad({ type: 'city' });
+    instance.handleRecipientInput({ detail: { value: '奶油' } });
+    instance.handlePhoneInput({ detail: { value: '13900001111' } });
+    instance.handleRegionInput({ detail: { value: '浙江省 杭州市' } });
+    instance.handleDetailInput({ detail: { value: '文三路 90 号' } });
+    await instance.handleSubmit();
+    expect(wx.showToast).toHaveBeenCalledWith({ title: '请选择地图地址，用于计算配送费', icon: 'none' });
+
+    wx.chooseLocation.mockImplementationOnce((options: {
+      success: (result: { name: string; address: string; latitude: number; longitude: number }) => void;
+    }) => {
+      options.success({
+        name: '银泰百货',
+        address: '浙江省杭州市西湖区文三路',
+        latitude: 30.2767,
+        longitude: 120.1258
+      });
+    });
+
+    instance.handleChooseLocation();
+    expect(instance.data.form).toMatchObject({
+      regionLabel: '浙江省杭州市西湖区文三路',
+      detailAddress: '银泰百货',
+      latitude: 30.2767,
+      longitude: 120.1258
+    });
   });
 
   it('exposes delivery, pickup, and express fulfillment modes on the checkout page', async () => {

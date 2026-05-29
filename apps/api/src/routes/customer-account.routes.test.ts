@@ -26,13 +26,23 @@ describe('customer account data routes', () => {
     });
 
     await app.inject({ method: 'GET', url: '/api/v1/customer/addresses?type=city', headers: authHeader('openid-a') });
-    await app.inject({ method: 'POST', url: '/api/v1/customer/addresses', headers: authHeader('openid-a'), payload: { type: 'city' } });
-    await app.inject({ method: 'PUT', url: '/api/v1/customer/addresses/addr-1', headers: authHeader('openid-a'), payload: { tag: '家' } });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/customer/addresses',
+      headers: authHeader('openid-a'),
+      payload: { type: 'city', latitude: 30.2767, longitude: 120.1258 }
+    });
+    await app.inject({
+      method: 'PUT',
+      url: '/api/v1/customer/addresses/addr-1',
+      headers: authHeader('openid-a'),
+      payload: { tag: '家', latitude: 30.277, longitude: 120.126 }
+    });
     await app.inject({ method: 'PUT', url: '/api/v1/customer/addresses/addr-1/default', headers: authHeader('openid-a') });
 
     expect(listAddresses).toHaveBeenCalledWith('openid-a', { type: 'city' });
-    expect(createAddress).toHaveBeenCalledWith('openid-a', { type: 'city' });
-    expect(updateAddress).toHaveBeenCalledWith('openid-a', 'addr-1', { tag: '家' });
+    expect(createAddress).toHaveBeenCalledWith('openid-a', { type: 'city', latitude: 30.2767, longitude: 120.1258 });
+    expect(updateAddress).toHaveBeenCalledWith('openid-a', 'addr-1', { tag: '家', latitude: 30.277, longitude: 120.126 });
     expect(setDefaultAddress).toHaveBeenCalledWith('openid-a', 'addr-1');
   });
 

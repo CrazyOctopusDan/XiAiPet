@@ -24,6 +24,8 @@ interface CreateAddressInput {
   regionLabel: string;
   detailAddress: string;
   tag: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface UpdateAddressInput {
@@ -32,6 +34,8 @@ interface UpdateAddressInput {
   regionLabel?: string;
   detailAddress?: string;
   tag?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 type AddressApiRequester = <T>(path: string, options?: CustomerApiRequestOptions) => Promise<T>;

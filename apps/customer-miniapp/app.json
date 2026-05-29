@@ -26,6 +26,14 @@
     "backgroundColor": "#FFFDF5",
     "backgroundTextStyle": "light"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于选择同城配送地址并计算配送费"
+    }
+  },
+  "requiredPrivateInfos": [
+    "chooseLocation"
+  ],
   "tabBar": {
     "custom": true,
     "color": "#6D553B",

@@ -208,9 +208,15 @@ describe('address service', () => {
       phoneNumber: '13900001111',
       regionLabel: '浙江省 杭州市',
       detailAddress: '文三路 90 号',
-      tag: '家'
+      tag: '家',
+      latitude: 30.2767,
+      longitude: 120.1258
     }, request);
-    await updateAddressRemote('addr-created', { detailAddress: '文三路 91 号' }, request);
+    await updateAddressRemote('addr-created', {
+      detailAddress: '文三路 91 号',
+      latitude: 30.277,
+      longitude: 120.126
+    }, request);
     await persistSelectedAddress('addr-created', request);
 
     expect(calls.map((call) => [call.path, call.options?.method])).toEqual([
@@ -218,6 +224,8 @@ describe('address service', () => {
       ['/api/v1/customer/addresses/addr-created', 'PUT'],
       ['/api/v1/customer/addresses/addr-created/default', 'PUT']
     ]);
+    expect(calls[0]?.options?.body).toMatchObject({ latitude: 30.2767, longitude: 120.1258 });
+    expect(calls[1]?.options?.body).toMatchObject({ latitude: 30.277, longitude: 120.126 });
     expect(getSelectedAddress('express')).toMatchObject({ id: 'addr-created' });
   });
 });

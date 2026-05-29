@@ -15,6 +15,8 @@ interface AddressInput {
   regionLabel?: string;
   detailAddress?: string;
   tag?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface PetInput {
@@ -50,7 +52,9 @@ function validateAddressInput(value: unknown, partial = false): AddressInput {
     (candidate.phoneNumber !== undefined && typeof candidate.phoneNumber !== 'string') ||
     (candidate.regionLabel !== undefined && typeof candidate.regionLabel !== 'string') ||
     (candidate.detailAddress !== undefined && typeof candidate.detailAddress !== 'string') ||
-    (candidate.tag !== undefined && typeof candidate.tag !== 'string')
+    (candidate.tag !== undefined && typeof candidate.tag !== 'string') ||
+    (candidate.latitude !== undefined && (typeof candidate.latitude !== 'number' || !Number.isFinite(candidate.latitude))) ||
+    (candidate.longitude !== undefined && (typeof candidate.longitude !== 'number' || !Number.isFinite(candidate.longitude)))
   ) {
     throw new ApiError('INVALID_ADDRESS', 'Invalid address payload', 400);
   }
@@ -109,7 +113,9 @@ function mapAddress(row: {
     regionLabel: row.regionLabel,
     detailAddress: row.detailAddress,
     tag: row.tag,
-    isDefault: row.isDefault
+    isDefault: row.isDefault,
+    latitude: typeof snapshot.latitude === 'number' ? snapshot.latitude : undefined,
+    longitude: typeof snapshot.longitude === 'number' ? snapshot.longitude : undefined
   };
 }
 
@@ -198,7 +204,9 @@ export function createCustomerAccountService(
           tag: input.tag?.trim() || '常用',
           snapshot: {
             type,
-            phoneNumber: input.phoneNumber!.trim()
+            phoneNumber: input.phoneNumber!.trim(),
+            ...(input.latitude !== undefined ? { latitude: input.latitude } : {}),
+            ...(input.longitude !== undefined ? { longitude: input.longitude } : {})
           } as Prisma.InputJsonValue
         }
       });
@@ -214,7 +222,9 @@ export function createCustomerAccountService(
       const snapshot = {
         ...getSnapshotObject(existing.snapshot),
         ...(input.type ? { type: input.type } : {}),
-        ...(input.phoneNumber ? { phoneNumber: input.phoneNumber.trim() } : {})
+        ...(input.phoneNumber ? { phoneNumber: input.phoneNumber.trim() } : {}),
+        ...(input.latitude !== undefined ? { latitude: input.latitude } : {}),
+        ...(input.longitude !== undefined ? { longitude: input.longitude } : {})
       };
       const address = await client.address.update({
         where: { id: addressId },

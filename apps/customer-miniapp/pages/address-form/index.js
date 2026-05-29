@@ -15,6 +15,10 @@ function createEmptyForm(type) {
 function getTypeLabel(type) {
     return type === 'express' ? '快递地址' : '同城地址';
 }
+function hasLocation(value) {
+    return typeof value.latitude === 'number' && Number.isFinite(value.latitude) &&
+        typeof value.longitude === 'number' && Number.isFinite(value.longitude);
+}
 Page({
     data: {
         mode: 'create',
@@ -76,6 +80,38 @@ Page({
             }
         });
     },
+    handleChooseLocation() {
+        wx.chooseLocation({
+            success: (result) => {
+                var _a, _b;
+                const address = ((_a = result.address) !== null && _a !== void 0 ? _a : '').trim();
+                const name = ((_b = result.name) !== null && _b !== void 0 ? _b : '').trim();
+                const latitude = result.latitude;
+                const longitude = result.longitude;
+                if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+                    wx.showToast({ title: '未获取到经纬度，请重新选择', icon: 'none' });
+                    return;
+                }
+                this.setData({
+                    form: {
+                        ...this.data.form,
+                        regionLabel: address || this.data.form.regionLabel,
+                        detailAddress: name || this.data.form.detailAddress,
+                        latitude,
+                        longitude
+                    }
+                });
+            },
+            fail: (error) => {
+                var _a;
+                if ((_a = error.errMsg) === null || _a === void 0 ? void 0 : _a.includes('cancel')) {
+                    wx.showToast({ title: '位置选择已取消', icon: 'none' });
+                    return;
+                }
+                wx.showToast({ title: '位置选择失败，请重试', icon: 'none' });
+            }
+        });
+    },
     async handleSubmit() {
         const recipientName = this.data.form.recipientName.trim();
         const phoneNumber = this.data.form.phoneNumber.trim();
@@ -86,6 +122,10 @@ Page({
             wx.showToast({ title: '请补齐地址信息', icon: 'none' });
             return;
         }
+        if (this.data.form.type === 'city' && !hasLocation(this.data.form)) {
+            wx.showToast({ title: '请选择地图地址，用于计算配送费', icon: 'none' });
+            return;
+        }
         try {
             if (this.data.mode === 'edit' && this.data.form.id) {
                 await (0, address_1.updateAddressRemote)(this.data.form.id, {
@@ -93,7 +133,9 @@ Page({
                     phoneNumber,
                     regionLabel,
                     detailAddress,
-                    tag
+                    tag,
+                    latitude: this.data.form.latitude,
+                    longitude: this.data.form.longitude
                 });
             }
             else {
@@ -103,7 +145,9 @@ Page({
                     phoneNumber,
                     regionLabel,
                     detailAddress,
-                    tag
+                    tag,
+                    latitude: this.data.form.latitude,
+                    longitude: this.data.form.longitude
                 });
             }
         }

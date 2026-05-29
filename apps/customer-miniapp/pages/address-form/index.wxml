@@ -22,6 +22,22 @@
         <input class="text-input" value="{{form.regionLabel}}" bindinput="handleRegionInput" placeholder="例如：上海市 静安区" cursor-spacing="120" />
       </view>
       <view class="field-block">
+        <view class="field-label-row">
+          <text class="field-label">地图位置</text>
+          <button class="location-button" bindtap="handleChooseLocation">
+            {{form.latitude !== undefined && form.longitude !== undefined ? '重新选择' : '选择位置'}}
+          </button>
+        </view>
+        <view class="location-card {{form.latitude !== undefined && form.longitude !== undefined ? 'is-selected' : ''}}">
+          <text class="location-title">
+            {{form.latitude !== undefined && form.longitude !== undefined ? '已选择地图位置' : '还没有选择地图位置'}}
+          </text>
+          <text class="location-desc">
+            {{form.type === 'city' ? '同城配送需要用地图位置计算配送费，请一定选择一个地址。' : '快递地址也可以选择位置来快速填写地址。'}}
+          </text>
+        </view>
+      </view>
+      <view class="field-block">
         <text class="field-label">详细地址</text>
         <textarea class="text-area" value="{{form.detailAddress}}" bindinput="handleDetailInput" placeholder="门牌号、楼层、房间号" cursor-spacing="120" />
       </view>
