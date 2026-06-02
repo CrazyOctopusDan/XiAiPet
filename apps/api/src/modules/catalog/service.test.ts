@@ -405,7 +405,7 @@ describe('catalog service', () => {
       ok: true,
       categoryId: 'cakes',
       availability: 'available',
-      pageInfo: { hasMore: true, nextCursor: null },
+      pageInfo: { hasMore: true, nextCursor: '1' },
       snapshotKey: '',
       items: [
         {
@@ -418,6 +418,59 @@ describe('catalog service', () => {
     expect(JSON.stringify(response.items[0])).not.toContain('detailImageAssets');
     expect(JSON.stringify(response.items[0])).not.toContain('detailContent');
     expect(JSON.stringify(response.items[0])).not.toContain('priceOverrides');
+  });
+
+  it('uses offset cursors when fallback customer category summaries have more pages', async () => {
+    const createFallbackProduct = (id: string, name: string, stock = 5) => ({
+      id,
+      name,
+      description: `${name} 简介`,
+      categoryId: 'cakes',
+      imageFileId: '',
+      imageAsset: undefined,
+      imagePreviewUrl: `https://assets.example/${id}.jpg`,
+      introductionImageAssets: [],
+      detailImageAssets: [],
+      memberLevelId: null,
+      status: 'published',
+      stock,
+      trackInventory: true,
+      fulfillmentModes: ['delivery'],
+      basePrice: 68,
+      specs: [],
+      formulas: [],
+      priceOverrides: [],
+      purchaseLimit: { enabled: false, maxQuantity: null },
+      detailContent: `${name} 详情`,
+      createdAt: '2026-06-01T10:00:00.000Z',
+      updatedAt: '2026-06-01T10:00:00.000Z'
+    });
+    const service = createCatalogService(createCatalogRepositoryStub({
+      listProducts: async () => [
+        createFallbackProduct('cake-1', '南瓜蛋糕'),
+        createFallbackProduct('cake-2', '红薯蛋糕'),
+        createFallbackProduct('cake-3', '山药蛋糕')
+      ]
+    }) as never);
+
+    const firstPage = await service.queryCustomerCategoryProducts({
+      categoryId: 'cakes',
+      deliveryMode: 'delivery',
+      availability: 'available',
+      limit: 2
+    });
+    const secondPage = await service.queryCustomerCategoryProducts({
+      categoryId: 'cakes',
+      deliveryMode: 'delivery',
+      availability: 'available',
+      limit: 2,
+      cursor: firstPage.pageInfo.nextCursor ?? undefined
+    });
+
+    expect(firstPage.items.map((item) => item.id)).toEqual(['cake-1', 'cake-2']);
+    expect(firstPage.pageInfo).toEqual({ hasMore: true, nextCursor: '2' });
+    expect(secondPage.items.map((item) => item.id)).toEqual(['cake-3']);
+    expect(secondPage.pageInfo).toEqual({ hasMore: false, nextCursor: null });
   });
 
   it('normalizes protocol-less product image urls for merchant and customer responses', async () => {

@@ -363,6 +363,7 @@ function createFallbackProductSummaryPage(
     deliveryMode?: CustomerDeliveryMode;
     availability: CatalogAvailabilityFilter;
     limit?: number;
+    cursor?: string;
   }
 ): CatalogProductPage<CatalogProductSummaryRecord> {
   const filtered = products
@@ -373,11 +374,15 @@ function createFallbackProductSummaryPage(
       return input.availability === 'soldOut' ? soldOut : !soldOut;
     });
   const limit = typeof input.limit === 'number' && input.limit > 0 ? input.limit : filtered.length;
+  const offset = input.cursor && /^\d+$/.test(input.cursor) ? Number.parseInt(input.cursor, 10) : 0;
+  const pageItems = filtered.slice(offset, offset + limit);
+  const nextOffset = offset + pageItems.length;
+  const hasMore = nextOffset < filtered.length;
 
   return {
-    items: filtered.slice(0, limit),
-    hasMore: filtered.length > limit,
-    nextCursor: null
+    items: pageItems,
+    hasMore,
+    nextCursor: hasMore ? String(nextOffset) : null
   };
 }
 
