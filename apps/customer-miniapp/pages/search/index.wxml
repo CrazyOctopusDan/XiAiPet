@@ -35,12 +35,16 @@
     </view>
   </view>
 
-  <view class="empty-state" wx:elif="{{hasSearched}}">
+  <view class="search-load-more" wx:if="{{results.length && pageInfo.hasMore}}" bindtap="handleLoadMore">
+    {{isLoading ? '加载中' : '查看更多商品'}}
+  </view>
+
+  <view class="empty-state" wx:if="{{!results.length && hasSearched}}">
     <text class="empty-title">没有匹配到商品</text>
     <text class="empty-body">试试搜索蛋糕名称、零食关键词或主题词。</text>
   </view>
 
-  <view class="empty-state guide-state" wx:else>
+  <view class="empty-state guide-state" wx:if="{{!results.length && !hasSearched}}">
     <text class="empty-title">搜索商品</text>
     <text class="empty-body">输入蛋糕名、主题词或零食关键词，快速找到想要的商品。</text>
   </view>

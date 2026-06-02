@@ -36,7 +36,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16rpx;
-  padding: 0 8rpx 40rpx;
+  padding: 0 8rpx 24rpx;
 }
 
 .result-card {
@@ -119,6 +119,19 @@
 
 .result-action::after {
   border: 0;
+}
+
+.search-load-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72rpx;
+  margin: 0 24rpx 40rpx;
+  border-radius: 16rpx;
+  background: #F6E396;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #40535C;
 }
 
 .result-action-badge {

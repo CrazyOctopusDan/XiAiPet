@@ -96,14 +96,24 @@ describe('discovery cart pages', () => {
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.wxss',
       'utf8'
     );
+    const catalogSource = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.ts',
+      'utf8'
+    );
 
     expect(catalogTemplate).toContain('class="search-icon"');
     expect(catalogTemplate).toContain('class="cart-float-icon"');
     expect(catalogTemplate).toContain('商品暂未上架');
     expect(catalogTemplate).toContain('wx:if="{{!sections.length}}"');
+    expect(catalogTemplate).toContain('bindtap="handleLoadMoreAvailable"');
+    expect(catalogTemplate).toContain('bindtap="handleLoadMoreSoldOut"');
+    expect(catalogTemplate).toContain('bindtap="handleToggleSoldOut"');
+    expect(catalogSource).toContain('loadCategoryProducts');
+    expect(catalogSource).not.toContain('hydrateCatalog()');
     expect(catalogStyles).toContain('linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%)');
     expect(catalogStyles).toContain('background: #F6E396');
     expect(catalogStyles).toContain('.catalog-empty');
+    expect(catalogStyles).toContain('.catalog-load-more');
     expect(catalogStyles).toContain('border: 4rpx solid #40535C');
     expect(catalogStyles).toContain('background: #40535C');
     expect(catalogStyles).toMatch(/\.product-price \{[\s\S]*?bottom: 16rpx;[\s\S]*?height: 60rpx/);
@@ -115,50 +125,45 @@ describe('discovery cart pages', () => {
 
   it('hydrates the catalog page with merchant-configured customer categories on load', async () => {
     const apiRequest = vi.fn(async (path: string) => {
-      if (path === '/api/v1/customer/catalog/categories') {
+      if (path === '/api/v1/customer/catalog/categories?deliveryMode=delivery') {
         return {
           ok: true,
+          snapshotKey: 'merchant-seasonal-categories',
           categories: [
             {
               id: 'merchant-seasonal',
               name: '节日限定',
               iconToken: '节',
-              sortOrder: 0,
-              createdAt: '2026-05-16T00:00:00.000Z',
-              updatedAt: '2026-05-16T00:00:00.000Z'
+              availableCount: 1,
+              soldOutCount: 0
             }
           ]
         };
       }
 
-      if (path === '/api/v1/customer/catalog/products') {
+      if (path === '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=12') {
         return {
           ok: true,
-          products: [
+          categoryId: 'merchant-seasonal',
+          availability: 'available',
+          items: [
             {
               id: 'merchant-seasonal-cake',
               name: '南瓜小蛋糕',
-              description: '商户配置商品',
-              detailContent: '适合节日加餐',
+              summary: '商户配置商品',
               categoryId: 'merchant-seasonal',
-              imageFileId: '',
-              imagePreviewUrl: '',
-              memberLevelId: null,
-              status: 'published',
+              minPrice: 98,
               stock: 8,
-              trackInventory: true,
-              fulfillmentModes: ['delivery'],
-              basePrice: 98,
+              soldOut: false,
+              cartActionLabel: '直接加购',
+              memberLevelLabel: '普通会员可购',
+              thumbnail: '',
               specs: [],
-              formulas: [],
-              priceOverrides: [],
-              purchaseLimit: { enabled: false, maxQuantity: null },
-              gallery: [],
-              detailImages: [],
-              createdAt: '2026-05-16T00:00:00.000Z',
+              fulfillmentModes: ['delivery'],
               updatedAt: '2026-05-16T00:00:00.000Z'
             }
-          ]
+          ],
+          pageInfo: { hasMore: false, nextCursor: null }
         };
       }
 
@@ -174,7 +179,18 @@ describe('discovery cart pages', () => {
 
     await instance.onLoad();
 
-    expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/catalog/categories', {
+    expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/catalog/categories?deliveryMode=delivery', {
+      method: 'GET',
+      auth: 'none'
+    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=12',
+      {
+        method: 'GET',
+        auth: 'none'
+      }
+    );
+    expect(apiRequest).not.toHaveBeenCalledWith('/api/v1/customer/catalog/products', {
       method: 'GET',
       auth: 'none'
     });
@@ -192,36 +208,42 @@ describe('discovery cart pages', () => {
 
   it('rebuilds hydrated catalog sections when returning from product detail', async () => {
     const apiRequest = vi.fn(async (path: string) => {
-      if (path === '/api/v1/customer/catalog/categories') {
+      if (path === '/api/v1/customer/catalog/categories?deliveryMode=delivery') {
         return {
           ok: true,
           categories: [
             {
               id: 'merchant-seasonal',
               name: '节日限定',
-              iconToken: '节'
+              iconToken: '节',
+              availableCount: 1,
+              soldOutCount: 0
             }
           ]
         };
       }
 
-      if (path === '/api/v1/customer/catalog/products') {
+      if (path === '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=12') {
         return {
           ok: true,
-          products: [
+          items: [
             {
               id: 'merchant-seasonal-cake',
               name: '南瓜小蛋糕',
-              description: '商户配置商品',
+              summary: '商户配置商品',
               categoryId: 'merchant-seasonal',
-              imageFileId: '',
+              minPrice: 98,
               stock: 8,
-              trackInventory: true,
+              soldOut: false,
+              cartActionLabel: '直接加购',
+              memberLevelLabel: '普通会员可购',
+              thumbnail: '',
               fulfillmentModes: ['delivery'],
-              basePrice: 98,
+              updatedAt: '2026-05-16T00:00:00.000Z',
               specs: []
             }
-          ]
+          ],
+          pageInfo: { hasMore: false, nextCursor: null }
         };
       }
 

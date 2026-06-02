@@ -7,6 +7,7 @@ import {
 } from '../../src/services/cart';
 import {
   getProductById,
+  getProductDetail,
   getProductDisplayPrice,
   getProductSelectedSpecLabel
 } from '../../src/services/catalog';
@@ -27,6 +28,7 @@ interface ProductDetailPageInstance {
   data: ProductDetailPageData;
   setData(data: Record<string, unknown>, callback?: () => void): void;
   syncCartCount(): void;
+  applyProduct(product: CatalogProduct | null): void;
 }
 
 function requiresSpecSelection(product: CatalogProduct | null) {
@@ -68,8 +70,28 @@ Page({
     swiperIndex: 1,
     isAddToCartDisabled: true
   },
-  onLoad(this: ProductDetailPageInstance, query: { productId?: string }) {
-    const product = query.productId ? getProductById(query.productId) : null;
+  async onLoad(this: ProductDetailPageInstance, query: { productId?: string }) {
+    const productId = query.productId;
+    const fallbackProduct = productId ? getProductById(productId) : null;
+
+    this.applyProduct(fallbackProduct);
+
+    if (!productId) {
+      return;
+    }
+
+    try {
+      const product = await getProductDetail(productId);
+      if (product) {
+        this.applyProduct(product);
+      }
+    } catch {
+      if (!fallbackProduct) {
+        wx.showToast({ title: '商品加载失败', icon: 'none' });
+      }
+    }
+  },
+  applyProduct(this: ProductDetailPageInstance, product: CatalogProduct | null) {
     const selectedSpecId = '';
 
     this.setData({

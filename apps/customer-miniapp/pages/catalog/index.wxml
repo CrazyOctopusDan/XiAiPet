@@ -56,8 +56,12 @@
           </view>
         </view>
 
-        <view class="soldout-toggle" wx:if="{{item.soldOutProducts.length}}" data-category-id="{{item.category.id}}" bindtap="handleToggleSoldOut">
-          {{item.isSoldOutExpanded ? '收起不可售商品' : '查看不可售商品'}}（{{item.soldOutProducts.length}}件）
+        <view wx:if="{{item.availablePageInfo.hasMore || (!item.availableProducts.length && item.category.availableCount)}}" class="catalog-load-more" data-category-id="{{item.category.id}}" bindtap="handleLoadMoreAvailable">
+          {{item.isAvailableLoading ? '加载中' : (item.availableProducts.length ? '查看更多「' + item.category.name + '」商品' : '加载「' + item.category.name + '」商品')}}
+        </view>
+
+        <view class="soldout-toggle" wx:if="{{item.soldOutProducts.length || item.category.soldOutCount}}" data-category-id="{{item.category.id}}" bindtap="handleToggleSoldOut">
+          {{item.isSoldOutExpanded ? '收起不可售商品' : '查看不可售商品'}}（{{item.category.soldOutCount || item.soldOutProducts.length}}件）
         </view>
 
         <view class="product-grid soldout-grid" wx:if="{{item.isSoldOutExpanded}}">
@@ -71,6 +75,10 @@
             <text class="product-summary">{{item.summary}}</text>
             <text class="product-stock">库存 {{item.stock}}</text>
           </view>
+        </view>
+
+        <view wx:if="{{item.isSoldOutExpanded && (item.soldOutPageInfo.hasMore || (!item.soldOutProducts.length && item.category.soldOutCount))}}" class="catalog-load-more muted" data-category-id="{{item.category.id}}" bindtap="handleLoadMoreSoldOut">
+          {{item.isSoldOutLoading ? '加载中' : '查看更多售罄商品'}}
         </view>
       </view>
       <view class="catalog-tail-spacer"></view>

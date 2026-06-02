@@ -390,6 +390,31 @@
   color: #7B8B92;
 }
 
+.catalog-load-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 68rpx;
+  margin: 18rpx 4rpx 0;
+  padding: 0 20rpx;
+  border: 2rpx solid rgba(80, 104, 105, 0.06);
+  border-radius: 18rpx;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  box-shadow: 0 10rpx 22rpx rgba(80, 104, 105, 0.05);
+  font-size: 22rpx;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #40535C;
+  text-align: center;
+}
+
+.catalog-load-more.muted {
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: none;
+  color: #7B8B92;
+}
+
 .soldout-mask {
   position: absolute;
   left: 0;

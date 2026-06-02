@@ -34,8 +34,26 @@ Page({
         swiperIndex: 1,
         isAddToCartDisabled: true
     },
-    onLoad(query) {
-        const product = query.productId ? (0, catalog_1.getProductById)(query.productId) : null;
+    async onLoad(query) {
+        const productId = query.productId;
+        const fallbackProduct = productId ? (0, catalog_1.getProductById)(productId) : null;
+        this.applyProduct(fallbackProduct);
+        if (!productId) {
+            return;
+        }
+        try {
+            const product = await (0, catalog_1.getProductDetail)(productId);
+            if (product) {
+                this.applyProduct(product);
+            }
+        }
+        catch (_a) {
+            if (!fallbackProduct) {
+                wx.showToast({ title: '商品加载失败', icon: 'none' });
+            }
+        }
+    },
+    applyProduct(product) {
         const selectedSpecId = '';
         this.setData({
             product,

@@ -4,10 +4,13 @@ declare function Page(options: Record<string, unknown>): void;
 import {
   buildCatalogSections,
   getCatalogCategories,
+  getCatalogSectionState,
+  getCatalogSectionStates,
   getDeliveryModes,
   getProductById,
   getProductDisplayPrice,
-  hydrateCatalog
+  hydrateCatalogCategories,
+  loadCategoryProducts
 } from '../../src/services/catalog';
 import {
   addCartItem,
@@ -16,15 +19,25 @@ import {
   getCartProductTotalQuantity,
   updateCartProductQuantity
 } from '../../src/services/cart';
-import type { CatalogProduct, DeliveryMode } from '../../src/types/catalog';
-import type { CatalogSection } from '../../src/types/catalog';
+import type {
+  CatalogCategoryWithCounts,
+  CatalogPageInfo,
+  CatalogProduct,
+  CatalogProductSummary,
+  DeliveryMode
+} from '../../src/types/catalog';
 
-type PageProduct = CatalogProduct & { cartQuantity: number };
-type PageSection = Omit<CatalogSection, 'availableProducts' | 'soldOutProducts'> & {
+type PageProduct = CatalogProductSummary & { cartQuantity: number };
+type PageSection = {
   id: string;
+  category: CatalogCategoryWithCounts;
   isSoldOutExpanded: boolean;
   availableProducts: PageProduct[];
   soldOutProducts: PageProduct[];
+  availablePageInfo: CatalogPageInfo;
+  soldOutPageInfo: CatalogPageInfo;
+  isAvailableLoading: boolean;
+  isSoldOutLoading: boolean;
 };
 type SectionMetric = { categoryId: string; top: number };
 
@@ -51,33 +64,68 @@ interface CatalogPageInstance {
   _sectionMetrics?: SectionMetric[];
   setData(data: Record<string, unknown>, callback?: () => void): void;
   refreshSections(mode: DeliveryMode, expandedCategoryIds?: string[]): void;
+  loadInitialCategoryProducts(mode: DeliveryMode): Promise<void>;
   syncCartState(): void;
   updateSectionMetrics(): void;
   syncActiveCategory(scrollTop: number): void;
 }
 
-function withCartQuantity(product: CatalogProduct): PageProduct {
+function withCartQuantity(product: CatalogProductSummary | CatalogProduct): PageProduct {
   return {
     ...product,
+    updatedAt: 'updatedAt' in product ? product.updatedAt : '',
     cartQuantity: product.specs.length ? getCartProductTotalQuantity(product.id) : getCartProductQuantity(product.id)
   };
 }
 
 function toPageSections(mode: DeliveryMode, expandedCategoryIds: string[]) {
+  const sectionStates = getCatalogSectionStates(mode);
+
+  if (sectionStates.length) {
+    return sectionStates.map((section) => ({
+      id: section.category.id,
+      category: section.category,
+      isSoldOutExpanded: expandedCategoryIds.includes(section.category.id),
+      availableProducts: section.availableProducts.map(withCartQuantity),
+      soldOutProducts: section.soldOutProducts.map(withCartQuantity),
+      availablePageInfo: section.availablePageInfo,
+      soldOutPageInfo: section.soldOutPageInfo,
+      isAvailableLoading: section.isAvailableLoading,
+      isSoldOutLoading: section.isSoldOutLoading
+    }));
+  }
+
   return buildCatalogSections(mode).map((section) => ({
-    ...section,
     id: section.category.id,
+    category: {
+      ...section.category,
+      availableCount: section.availableProducts.length,
+      soldOutCount: section.soldOutProducts.length
+    },
     isSoldOutExpanded: expandedCategoryIds.includes(section.category.id),
     availableProducts: section.availableProducts.map(withCartQuantity),
-    soldOutProducts: section.soldOutProducts.map(withCartQuantity)
+    soldOutProducts: section.soldOutProducts.map(withCartQuantity),
+    availablePageInfo: { hasMore: false, nextCursor: null },
+    soldOutPageInfo: { hasMore: false, nextCursor: null },
+    isAvailableLoading: false,
+    isSoldOutLoading: false
   }));
+}
+
+function getVisibleCategories(mode: DeliveryMode) {
+  const modeCategories = getCatalogCategories(mode);
+  return modeCategories.length ? modeCategories : getCatalogCategories();
+}
+
+async function showCatalogLoadError() {
+  wx.showToast({ title: '加载失败', icon: 'none' });
 }
 
 Page({
   data: {
     deliveryModes: getDeliveryModes(),
     activeDeliveryMode: 'delivery',
-    categories: getCatalogCategories(),
+    categories: getVisibleCategories('delivery'),
     sections: toPageSections('delivery', []),
     activeCategoryId: buildCatalogSections('delivery')[0]?.category.id ?? '',
     activeSectionSubtitle: buildCatalogSections('delivery')[0]?.category.sectionTitle ?? '',
@@ -92,7 +140,9 @@ Page({
   },
   async onLoad(this: CatalogPageInstance) {
     try {
-      await hydrateCatalog();
+      await hydrateCatalogCategories(this.data.activeDeliveryMode);
+      this.refreshSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
+      await this.loadInitialCategoryProducts(this.data.activeDeliveryMode);
     } catch {
       // Keep the catalog empty when the customer API is unreachable.
     }
@@ -106,23 +156,46 @@ Page({
   },
   refreshSections(this: CatalogPageInstance, mode: DeliveryMode, expandedCategoryIds: string[] = []) {
     const sections = toPageSections(mode, expandedCategoryIds);
+    const activeCategoryId = sections.some((section) => section.category.id === this.data.activeCategoryId)
+      ? this.data.activeCategoryId
+      : sections[0]?.category.id ?? '';
     this.setData({
-      categories: getCatalogCategories(),
+      categories: getVisibleCategories(mode),
       sections,
       activeDeliveryMode: mode,
-      activeCategoryId: sections[0]?.category.id ?? '',
-      activeSectionSubtitle: sections[0]?.category.sectionTitle ?? '',
+      activeCategoryId,
+      activeSectionSubtitle:
+        sections.find((section) => section.category.id === activeCategoryId)?.category.sectionTitle ??
+        sections[0]?.category.sectionTitle ??
+        '',
       scrollIntoViewTarget: ''
     }, () => {
       this._currentScrollTop = 0;
       this.updateSectionMetrics();
     });
   },
+  async loadInitialCategoryProducts(this: CatalogPageInstance, mode: DeliveryMode) {
+    const firstCategoryId = getVisibleCategories(mode)[0]?.id;
+    if (!firstCategoryId) {
+      return;
+    }
+
+    const section = getCatalogSectionState(mode, firstCategoryId);
+    if (section.availableProducts.length || !section.category.availableCount) {
+      return;
+    }
+
+    await loadCategoryProducts({
+      deliveryMode: mode,
+      categoryId: firstCategoryId,
+      availability: 'available'
+    });
+  },
   syncCartState(this: CatalogPageInstance) {
     const sections = toPageSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
     this.setData({
       cartCount: getCartCount(),
-      categories: getCatalogCategories(),
+      categories: getVisibleCategories(this.data.activeDeliveryMode),
       sections,
       activeCategoryId: sections.some((section) => section.category.id === this.data.activeCategoryId)
         ? this.data.activeCategoryId
@@ -180,20 +253,41 @@ Page({
       activeSectionSubtitle: activeSection?.category.sectionTitle ?? ''
     });
   },
-  handleDeliveryModeTap(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { mode?: DeliveryMode } } }) {
+  async handleDeliveryModeTap(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { mode?: DeliveryMode } } }) {
     const nextMode = event.currentTarget?.dataset?.mode;
 
     if (!nextMode || nextMode === this.data.activeDeliveryMode) {
       return;
     }
 
-    this.refreshSections(nextMode);
+    try {
+      await hydrateCatalogCategories(nextMode);
+      this.refreshSections(nextMode);
+      await this.loadInitialCategoryProducts(nextMode);
+      this.refreshSections(nextMode);
+    } catch {
+      await showCatalogLoadError();
+    }
   },
-  handleCategoryTap(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { categoryId?: string } } }) {
+  async handleCategoryTap(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { categoryId?: string } } }) {
     const categoryId = event.currentTarget?.dataset?.categoryId;
 
     if (!categoryId) {
       return;
+    }
+
+    const section = getCatalogSectionState(this.data.activeDeliveryMode, categoryId);
+    if (!section.availableProducts.length && section.category.availableCount > 0) {
+      try {
+        await loadCategoryProducts({
+          deliveryMode: this.data.activeDeliveryMode,
+          categoryId,
+          availability: 'available'
+        });
+        this.refreshSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
+      } catch {
+        await showCatalogLoadError();
+      }
     }
 
     this.setData({
@@ -204,6 +298,52 @@ Page({
   },
   handleProductScroll(this: CatalogPageInstance, event: { detail?: { scrollTop?: number } }) {
     this.syncActiveCategory(event.detail?.scrollTop ?? 0);
+  },
+  async handleLoadMoreAvailable(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { categoryId?: string } } }) {
+    const categoryId = event.currentTarget?.dataset?.categoryId;
+    if (!categoryId) {
+      return;
+    }
+
+    const section = getCatalogSectionState(this.data.activeDeliveryMode, categoryId);
+    if (section.availableProducts.length && !section.availablePageInfo.hasMore) {
+      return;
+    }
+
+    try {
+      await loadCategoryProducts({
+        deliveryMode: this.data.activeDeliveryMode,
+        categoryId,
+        availability: 'available',
+        cursor: section.availablePageInfo.nextCursor ?? undefined
+      });
+      this.refreshSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
+    } catch {
+      await showCatalogLoadError();
+    }
+  },
+  async handleLoadMoreSoldOut(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { categoryId?: string } } }) {
+    const categoryId = event.currentTarget?.dataset?.categoryId;
+    if (!categoryId) {
+      return;
+    }
+
+    const section = getCatalogSectionState(this.data.activeDeliveryMode, categoryId);
+    if (section.soldOutProducts.length && !section.soldOutPageInfo.hasMore) {
+      return;
+    }
+
+    try {
+      await loadCategoryProducts({
+        deliveryMode: this.data.activeDeliveryMode,
+        categoryId,
+        availability: 'soldOut',
+        cursor: section.soldOutPageInfo.nextCursor ?? undefined
+      });
+      this.refreshSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
+    } catch {
+      await showCatalogLoadError();
+    }
   },
   handleSearchTap() {
     wx.navigateTo({
@@ -323,16 +463,32 @@ Page({
     });
     wx.showToast({ title: result.capped ? '库存不足' : '已加入购物车', icon: 'none' });
   },
-  handleToggleSoldOut(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { categoryId?: string } } }) {
+  async handleToggleSoldOut(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { categoryId?: string } } }) {
     const categoryId = event.currentTarget?.dataset?.categoryId;
 
     if (!categoryId) {
       return;
     }
 
-    const expanded = this.data.expandedSoldOutCategoryIds.includes(categoryId)
+    const isExpanded = this.data.expandedSoldOutCategoryIds.includes(categoryId);
+    const expanded = isExpanded
       ? this.data.expandedSoldOutCategoryIds.filter((id) => id !== categoryId)
       : [...this.data.expandedSoldOutCategoryIds, categoryId];
+
+    if (!isExpanded) {
+      const section = getCatalogSectionState(this.data.activeDeliveryMode, categoryId);
+      if (!section.soldOutProducts.length && section.category.soldOutCount > 0) {
+        try {
+          await loadCategoryProducts({
+            deliveryMode: this.data.activeDeliveryMode,
+            categoryId,
+            availability: 'soldOut'
+          });
+        } catch {
+          await showCatalogLoadError();
+        }
+      }
+    }
 
     this.setData({ expandedSoldOutCategoryIds: expanded });
     this.refreshSections(this.data.activeDeliveryMode, expanded);

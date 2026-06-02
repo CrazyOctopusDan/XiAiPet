@@ -6,23 +6,53 @@ const cart_1 = require("../../src/services/cart");
 function withCartQuantity(product) {
     return {
         ...product,
+        updatedAt: 'updatedAt' in product ? product.updatedAt : '',
         cartQuantity: product.specs.length ? (0, cart_1.getCartProductTotalQuantity)(product.id) : (0, cart_1.getCartProductQuantity)(product.id)
     };
 }
 function toPageSections(mode, expandedCategoryIds) {
+    const sectionStates = (0, catalog_1.getCatalogSectionStates)(mode);
+    if (sectionStates.length) {
+        return sectionStates.map((section) => ({
+            id: section.category.id,
+            category: section.category,
+            isSoldOutExpanded: expandedCategoryIds.includes(section.category.id),
+            availableProducts: section.availableProducts.map(withCartQuantity),
+            soldOutProducts: section.soldOutProducts.map(withCartQuantity),
+            availablePageInfo: section.availablePageInfo,
+            soldOutPageInfo: section.soldOutPageInfo,
+            isAvailableLoading: section.isAvailableLoading,
+            isSoldOutLoading: section.isSoldOutLoading
+        }));
+    }
     return (0, catalog_1.buildCatalogSections)(mode).map((section) => ({
-        ...section,
         id: section.category.id,
+        category: {
+            ...section.category,
+            availableCount: section.availableProducts.length,
+            soldOutCount: section.soldOutProducts.length
+        },
         isSoldOutExpanded: expandedCategoryIds.includes(section.category.id),
         availableProducts: section.availableProducts.map(withCartQuantity),
-        soldOutProducts: section.soldOutProducts.map(withCartQuantity)
+        soldOutProducts: section.soldOutProducts.map(withCartQuantity),
+        availablePageInfo: { hasMore: false, nextCursor: null },
+        soldOutPageInfo: { hasMore: false, nextCursor: null },
+        isAvailableLoading: false,
+        isSoldOutLoading: false
     }));
+}
+function getVisibleCategories(mode) {
+    const modeCategories = (0, catalog_1.getCatalogCategories)(mode);
+    return modeCategories.length ? modeCategories : (0, catalog_1.getCatalogCategories)();
+}
+async function showCatalogLoadError() {
+    wx.showToast({ title: '加载失败', icon: 'none' });
 }
 Page({
     data: {
         deliveryModes: (0, catalog_1.getDeliveryModes)(),
         activeDeliveryMode: 'delivery',
-        categories: (0, catalog_1.getCatalogCategories)(),
+        categories: getVisibleCategories('delivery'),
         sections: toPageSections('delivery', []),
         activeCategoryId: (_b = (_a = (0, catalog_1.buildCatalogSections)('delivery')[0]) === null || _a === void 0 ? void 0 : _a.category.id) !== null && _b !== void 0 ? _b : '',
         activeSectionSubtitle: (_d = (_c = (0, catalog_1.buildCatalogSections)('delivery')[0]) === null || _c === void 0 ? void 0 : _c.category.sectionTitle) !== null && _d !== void 0 ? _d : '',
@@ -37,7 +67,9 @@ Page({
     },
     async onLoad() {
         try {
-            await (0, catalog_1.hydrateCatalog)();
+            await (0, catalog_1.hydrateCatalogCategories)(this.data.activeDeliveryMode);
+            this.refreshSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
+            await this.loadInitialCategoryProducts(this.data.activeDeliveryMode);
         }
         catch (_a) {
             // Keep the catalog empty when the customer API is unreachable.
@@ -51,18 +83,37 @@ Page({
         this.syncCartState();
     },
     refreshSections(mode, expandedCategoryIds = []) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f;
         const sections = toPageSections(mode, expandedCategoryIds);
+        const activeCategoryId = sections.some((section) => section.category.id === this.data.activeCategoryId)
+            ? this.data.activeCategoryId
+            : (_b = (_a = sections[0]) === null || _a === void 0 ? void 0 : _a.category.id) !== null && _b !== void 0 ? _b : '';
         this.setData({
-            categories: (0, catalog_1.getCatalogCategories)(),
+            categories: getVisibleCategories(mode),
             sections,
             activeDeliveryMode: mode,
-            activeCategoryId: (_b = (_a = sections[0]) === null || _a === void 0 ? void 0 : _a.category.id) !== null && _b !== void 0 ? _b : '',
-            activeSectionSubtitle: (_d = (_c = sections[0]) === null || _c === void 0 ? void 0 : _c.category.sectionTitle) !== null && _d !== void 0 ? _d : '',
+            activeCategoryId,
+            activeSectionSubtitle: (_f = (_d = (_c = sections.find((section) => section.category.id === activeCategoryId)) === null || _c === void 0 ? void 0 : _c.category.sectionTitle) !== null && _d !== void 0 ? _d : (_e = sections[0]) === null || _e === void 0 ? void 0 : _e.category.sectionTitle) !== null && _f !== void 0 ? _f : '',
             scrollIntoViewTarget: ''
         }, () => {
             this._currentScrollTop = 0;
             this.updateSectionMetrics();
+        });
+    },
+    async loadInitialCategoryProducts(mode) {
+        var _a;
+        const firstCategoryId = (_a = getVisibleCategories(mode)[0]) === null || _a === void 0 ? void 0 : _a.id;
+        if (!firstCategoryId) {
+            return;
+        }
+        const section = (0, catalog_1.getCatalogSectionState)(mode, firstCategoryId);
+        if (section.availableProducts.length || !section.category.availableCount) {
+            return;
+        }
+        await (0, catalog_1.loadCategoryProducts)({
+            deliveryMode: mode,
+            categoryId: firstCategoryId,
+            availability: 'available'
         });
     },
     syncCartState() {
@@ -70,7 +121,7 @@ Page({
         const sections = toPageSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
         this.setData({
             cartCount: (0, cart_1.getCartCount)(),
-            categories: (0, catalog_1.getCatalogCategories)(),
+            categories: getVisibleCategories(this.data.activeDeliveryMode),
             sections,
             activeCategoryId: sections.some((section) => section.category.id === this.data.activeCategoryId)
                 ? this.data.activeCategoryId
@@ -123,19 +174,41 @@ Page({
             activeSectionSubtitle: (_d = activeSection === null || activeSection === void 0 ? void 0 : activeSection.category.sectionTitle) !== null && _d !== void 0 ? _d : ''
         });
     },
-    handleDeliveryModeTap(event) {
+    async handleDeliveryModeTap(event) {
         var _a, _b;
         const nextMode = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.mode;
         if (!nextMode || nextMode === this.data.activeDeliveryMode) {
             return;
         }
-        this.refreshSections(nextMode);
+        try {
+            await (0, catalog_1.hydrateCatalogCategories)(nextMode);
+            this.refreshSections(nextMode);
+            await this.loadInitialCategoryProducts(nextMode);
+            this.refreshSections(nextMode);
+        }
+        catch (_c) {
+            await showCatalogLoadError();
+        }
     },
-    handleCategoryTap(event) {
+    async handleCategoryTap(event) {
         var _a, _b, _c, _d;
         const categoryId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.categoryId;
         if (!categoryId) {
             return;
+        }
+        const section = (0, catalog_1.getCatalogSectionState)(this.data.activeDeliveryMode, categoryId);
+        if (!section.availableProducts.length && section.category.availableCount > 0) {
+            try {
+                await (0, catalog_1.loadCategoryProducts)({
+                    deliveryMode: this.data.activeDeliveryMode,
+                    categoryId,
+                    availability: 'available'
+                });
+                this.refreshSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
+            }
+            catch (_e) {
+                await showCatalogLoadError();
+            }
         }
         this.setData({
             activeCategoryId: categoryId,
@@ -146,6 +219,52 @@ Page({
     handleProductScroll(event) {
         var _a, _b;
         this.syncActiveCategory((_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.scrollTop) !== null && _b !== void 0 ? _b : 0);
+    },
+    async handleLoadMoreAvailable(event) {
+        var _a, _b, _c;
+        const categoryId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.categoryId;
+        if (!categoryId) {
+            return;
+        }
+        const section = (0, catalog_1.getCatalogSectionState)(this.data.activeDeliveryMode, categoryId);
+        if (section.availableProducts.length && !section.availablePageInfo.hasMore) {
+            return;
+        }
+        try {
+            await (0, catalog_1.loadCategoryProducts)({
+                deliveryMode: this.data.activeDeliveryMode,
+                categoryId,
+                availability: 'available',
+                cursor: (_c = section.availablePageInfo.nextCursor) !== null && _c !== void 0 ? _c : undefined
+            });
+            this.refreshSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
+        }
+        catch (_d) {
+            await showCatalogLoadError();
+        }
+    },
+    async handleLoadMoreSoldOut(event) {
+        var _a, _b, _c;
+        const categoryId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.categoryId;
+        if (!categoryId) {
+            return;
+        }
+        const section = (0, catalog_1.getCatalogSectionState)(this.data.activeDeliveryMode, categoryId);
+        if (section.soldOutProducts.length && !section.soldOutPageInfo.hasMore) {
+            return;
+        }
+        try {
+            await (0, catalog_1.loadCategoryProducts)({
+                deliveryMode: this.data.activeDeliveryMode,
+                categoryId,
+                availability: 'soldOut',
+                cursor: (_c = section.soldOutPageInfo.nextCursor) !== null && _c !== void 0 ? _c : undefined
+            });
+            this.refreshSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);
+        }
+        catch (_d) {
+            await showCatalogLoadError();
+        }
     },
     handleSearchTap() {
         wx.navigateTo({
@@ -255,15 +374,31 @@ Page({
         });
         wx.showToast({ title: result.capped ? '库存不足' : '已加入购物车', icon: 'none' });
     },
-    handleToggleSoldOut(event) {
+    async handleToggleSoldOut(event) {
         var _a, _b;
         const categoryId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.categoryId;
         if (!categoryId) {
             return;
         }
-        const expanded = this.data.expandedSoldOutCategoryIds.includes(categoryId)
+        const isExpanded = this.data.expandedSoldOutCategoryIds.includes(categoryId);
+        const expanded = isExpanded
             ? this.data.expandedSoldOutCategoryIds.filter((id) => id !== categoryId)
             : [...this.data.expandedSoldOutCategoryIds, categoryId];
+        if (!isExpanded) {
+            const section = (0, catalog_1.getCatalogSectionState)(this.data.activeDeliveryMode, categoryId);
+            if (!section.soldOutProducts.length && section.category.soldOutCount > 0) {
+                try {
+                    await (0, catalog_1.loadCategoryProducts)({
+                        deliveryMode: this.data.activeDeliveryMode,
+                        categoryId,
+                        availability: 'soldOut'
+                    });
+                }
+                catch (_c) {
+                    await showCatalogLoadError();
+                }
+            }
+        }
         this.setData({ expandedSoldOutCategoryIds: expanded });
         this.refreshSections(this.data.activeDeliveryMode, expanded);
     },

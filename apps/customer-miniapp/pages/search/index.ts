@@ -8,12 +8,17 @@ import {
   getCartProductTotalQuantity,
   updateCartProductQuantity
 } from '../../src/services/cart';
-import { getProductById, getProductDisplayPrice, searchProducts } from '../../src/services/catalog';
-import type { CatalogProduct } from '../../src/types/catalog';
+import {
+  getProductById,
+  getProductDetail,
+  getProductDisplayPrice,
+  searchCatalogProducts
+} from '../../src/services/catalog';
+import type { CatalogPageInfo, CatalogProduct, CatalogProductSummary } from '../../src/types/catalog';
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
-type SearchResult = CatalogProduct & { cartQuantity: number };
+type SearchResult = CatalogProductSummary & { cartQuantity: number };
 
 interface SearchPageInstance {
   data: {
@@ -26,16 +31,42 @@ interface SearchPageInstance {
     selectedSpecId: string;
     selectedSpecPrice: number;
     quantity: number;
+    pageInfo: CatalogPageInfo;
+    isLoading: boolean;
   };
   setData(data: Record<string, unknown>, callback?: () => void): void;
-  commitResults(keyword: string): void;
+  commitResults(keyword: string, cursor?: string): Promise<void>;
 }
 
-function withCartQuantity(product: CatalogProduct): SearchResult {
+function withCartQuantity(product: CatalogProductSummary): SearchResult {
   return {
     ...product,
     cartQuantity: product.specs.length ? getCartProductTotalQuantity(product.id) : getCartProductQuantity(product.id)
   };
+}
+
+function defaultPageInfo(): CatalogPageInfo {
+  return { hasMore: false, nextCursor: null };
+}
+
+function mergeResults(existingResults: SearchResult[], incomingResults: SearchResult[]) {
+  const byId = new Map<string, SearchResult>();
+  const orderedIds: string[] = [];
+
+  existingResults.forEach((result) => {
+    byId.set(result.id, result);
+    orderedIds.push(result.id);
+  });
+  incomingResults.forEach((result) => {
+    if (!byId.has(result.id)) {
+      orderedIds.push(result.id);
+    }
+    byId.set(result.id, result);
+  });
+
+  return orderedIds
+    .map((id) => byId.get(id))
+    .filter((result): result is SearchResult => Boolean(result));
 }
 
 Page({
@@ -48,7 +79,9 @@ Page({
     selectedProduct: null,
     selectedSpecId: '',
     selectedSpecPrice: 0,
-    quantity: 1
+    quantity: 1,
+    pageInfo: defaultPageInfo(),
+    isLoading: false
   },
   onShow(this: SearchPageInstance) {
     this.setData({
@@ -76,20 +109,42 @@ Page({
     if (!keyword.trim()) {
       this.setData({
         hasSearched: false,
-        results: []
+        results: [],
+        pageInfo: defaultPageInfo(),
+        isLoading: false
       });
       return;
     }
 
     searchTimer = setTimeout(() => {
-      this.commitResults(keyword);
+      void this.commitResults(keyword);
     }, 180);
   },
-  commitResults(this: SearchPageInstance, keyword: string) {
-    this.setData({
-      hasSearched: true,
-      results: searchProducts(keyword).map(withCartQuantity)
-    });
+  async commitResults(this: SearchPageInstance, keyword: string, cursor?: string) {
+    this.setData({ isLoading: true });
+    try {
+      const response = await searchCatalogProducts({ keyword, cursor });
+      const nextResults = response.items.map(withCartQuantity);
+      this.setData({
+        hasSearched: true,
+        results: cursor ? mergeResults(this.data.results, nextResults) : nextResults,
+        pageInfo: response.pageInfo,
+        isLoading: false
+      });
+    } catch {
+      this.setData({
+        hasSearched: true,
+        isLoading: false
+      });
+      wx.showToast({ title: '搜索失败', icon: 'none' });
+    }
+  },
+  async handleLoadMore(this: SearchPageInstance) {
+    if (!this.data.pageInfo.hasMore || this.data.isLoading) {
+      return;
+    }
+
+    await this.commitResults(this.data.keyword, this.data.pageInfo.nextCursor ?? undefined);
   },
   handleProductTap(event: { currentTarget?: { dataset?: { productId?: string } } }) {
     const productId = event.currentTarget?.dataset?.productId;
@@ -102,19 +157,28 @@ Page({
       url: `/pages/product-detail/index?productId=${productId}`
     });
   },
-  handleAdd(
+  async handleAdd(
     this: SearchPageInstance,
     event: { currentTarget?: { dataset?: { productId?: string; soldOut?: boolean; hasSpec?: boolean } } }
   ) {
     const productId = event.currentTarget?.dataset?.productId;
-    const product = productId ? getProductById(productId) : null;
+    let product = productId ? getProductById(productId) : null;
 
     if (event.currentTarget?.dataset?.soldOut) {
       wx.showToast({ title: '库存不足', icon: 'none' });
       return;
     }
 
+    if (!product && productId) {
+      try {
+        product = await getProductDetail(productId);
+      } catch {
+        product = null;
+      }
+    }
+
     if (!product) {
+      wx.showToast({ title: '商品加载失败', icon: 'none' });
       return;
     }
 
