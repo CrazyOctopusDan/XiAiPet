@@ -13,6 +13,12 @@ exports.getProductDisplayPrice = getProductDisplayPrice;
 exports.getProductSelectedSpecLabel = getProductSelectedSpecLabel;
 exports.resolveCatalogProductAssetUrls = resolveCatalogProductAssetUrls;
 exports.resetCatalogCache = resetCatalogCache;
+exports.hydrateCatalogCategories = hydrateCatalogCategories;
+exports.loadCategoryProducts = loadCategoryProducts;
+exports.getCatalogSectionState = getCatalogSectionState;
+exports.getCatalogSectionStates = getCatalogSectionStates;
+exports.searchCatalogProducts = searchCatalogProducts;
+exports.getProductDetail = getProductDetail;
 exports.hydrateCatalog = hydrateCatalog;
 const catalog_1 = require("../data/catalog");
 const api_client_1 = require("./api-client");
@@ -32,8 +38,11 @@ function shouldUseLocalCatalogFixtures() {
     var _a, _b;
     return ((_b = (_a = globalThis.process) === null || _a === void 0 ? void 0 : _a.env) === null || _b === void 0 ? void 0 : _b.NODE_ENV) === 'test';
 }
-let cachedCatalogCategories = shouldUseLocalCatalogFixtures() ? cloneCategories(catalog_1.catalogCategories) : [];
+let cachedCatalogCategories = shouldUseLocalCatalogFixtures() ? cloneCategories(catalog_1.catalogCategories.map(toCategoryWithCounts)) : [];
 let cachedCatalogProducts = shouldUseLocalCatalogFixtures() ? cloneProducts(catalog_1.catalogProducts) : [];
+const categoryCache = new Map();
+const sectionCache = new Map();
+const productDetailCache = new Map();
 function getHomeModules() {
     return catalog_1.homeModules;
 }
@@ -66,6 +75,14 @@ function getDeliveryModes() {
     ];
 }
 function buildCatalogSections(mode) {
+    const sectionStates = getCatalogSectionStates(mode);
+    if (sectionStates.length) {
+        return sectionStates.map((section) => ({
+            category: section.category,
+            availableProducts: section.availableProducts.map((product) => summaryToCatalogProduct(product, mode)),
+            soldOutProducts: section.soldOutProducts.map((product) => summaryToCatalogProduct(product, mode))
+        }));
+    }
     return cachedCatalogCategories
         .map((category) => {
         const products = cachedCatalogProducts.filter((product) => product.categoryId === category.id && product.deliveryModes.includes(mode));
@@ -88,8 +105,24 @@ function searchProducts(keyword) {
     });
 }
 function getProductById(productId) {
-    var _a;
-    return (_a = cachedCatalogProducts.find((product) => product.id === productId)) !== null && _a !== void 0 ? _a : null;
+    var _a, _b, _c;
+    const detailProduct = productDetailCache.get(productId);
+    if (detailProduct) {
+        return (_a = cloneProducts([detailProduct])[0]) !== null && _a !== void 0 ? _a : null;
+    }
+    const summaryProduct = findLoadedProductSummary(productId);
+    if (summaryProduct) {
+        return summaryToCatalogProduct(summaryProduct.product, summaryProduct.deliveryMode);
+    }
+    const cachedProduct = cachedCatalogProducts.find((product) => product.id === productId);
+    if (cachedProduct) {
+        return (_b = cloneProducts([cachedProduct])[0]) !== null && _b !== void 0 ? _b : null;
+    }
+    if (shouldUseLocalCatalogFixtures()) {
+        const fixtureProduct = catalog_1.catalogProducts.find((product) => product.id === productId);
+        return fixtureProduct ? (_c = cloneProducts([fixtureProduct])[0]) !== null && _c !== void 0 ? _c : null : null;
+    }
+    return null;
 }
 function resolveProductSpec(product, specId) {
     var _a, _b;
@@ -178,6 +211,31 @@ function normalizeCategory(category) {
         shortName: asString(category.shortName, name),
         iconText: asString(category.iconText, asString(category.iconToken, name.slice(0, 1))),
         sectionTitle: asString(category.sectionTitle, name)
+    };
+}
+function toCategoryWithCounts(category) {
+    return {
+        ...category,
+        availableCount: 'availableCount' in category ? asNumber(category.availableCount) : 0,
+        soldOutCount: 'soldOutCount' in category ? asNumber(category.soldOutCount) : 0,
+        previewCount: 'previewCount' in category ? asNumber(category.previewCount) : undefined,
+        firstProductUpdatedAt: 'firstProductUpdatedAt' in category ? category.firstProductUpdatedAt : undefined
+    };
+}
+function normalizeCategoryWithCounts(category) {
+    const normalized = normalizeCategory(category);
+    if (!normalized) {
+        return null;
+    }
+    const source = isObject(category) ? category : {};
+    return {
+        ...normalized,
+        availableCount: asNumber(source.availableCount),
+        soldOutCount: asNumber(source.soldOutCount),
+        previewCount: source.previewCount === undefined ? undefined : asNumber(source.previewCount),
+        firstProductUpdatedAt: typeof source.firstProductUpdatedAt === 'string' || source.firstProductUpdatedAt === null
+            ? source.firstProductUpdatedAt
+            : undefined
     };
 }
 function isAssetReference(value) {
@@ -277,6 +335,42 @@ function normalizeProduct(product) {
         specs
     };
 }
+function normalizeProductSummary(product) {
+    var _a, _b;
+    if (!isObject(product)) {
+        return null;
+    }
+    const id = asString(product.id, asString(product._id));
+    const name = asString(product.name);
+    const categoryId = asString(product.categoryId);
+    if (!id || !name || !categoryId) {
+        return null;
+    }
+    const price = asNumber(product.price, asNumber(product.minPrice, asNumber(product.basePrice)));
+    const specs = normalizeProductSpecs(product, price);
+    const imageAsset = isAssetReference(product.imageAsset) ? product.imageAsset : undefined;
+    const thumbnail = (_b = imageUrl((_a = getVariantUrl(imageAsset, 'thumbnail')) !== null && _a !== void 0 ? _a : asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId))))) !== null && _b !== void 0 ? _b : '';
+    return {
+        id,
+        name,
+        summary: asString(product.summary, asString(product.description)),
+        price,
+        stock: asNumber(product.stock),
+        soldOut: typeof product.soldOut === 'boolean'
+            ? product.soldOut
+            : Boolean(product.trackInventory) && asNumber(product.stock) <= 0,
+        cartActionLabel: product.cartActionLabel === '直接加购' || product.cartActionLabel === '选规格'
+            ? product.cartActionLabel
+            : specs.length
+                ? '选规格'
+                : '直接加购',
+        memberLevelLabel: asString(product.memberLevelLabel, product.memberLevelId ? '会员可购' : '普通会员可购'),
+        categoryId,
+        thumbnail,
+        specs,
+        updatedAt: asString(product.updatedAt)
+    };
+}
 function cloneCategories(categories) {
     return categories.map((category) => ({ ...category }));
 }
@@ -291,6 +385,106 @@ function cloneProducts(products) {
             specs: resolved.specs.map((spec) => ({ ...spec }))
         };
     });
+}
+function cloneProductSummaries(products) {
+    return products.map((product) => ({
+        ...product,
+        specs: product.specs.map((spec) => ({ ...spec }))
+    }));
+}
+function clonePageInfo(pageInfo) {
+    return { ...pageInfo };
+}
+function defaultPageInfo() {
+    return { hasMore: false, nextCursor: null };
+}
+function normalizePageInfo(pageInfo) {
+    return {
+        hasMore: Boolean(pageInfo === null || pageInfo === void 0 ? void 0 : pageInfo.hasMore),
+        nextCursor: typeof (pageInfo === null || pageInfo === void 0 ? void 0 : pageInfo.nextCursor) === 'string' && pageInfo.nextCursor ? pageInfo.nextCursor : null
+    };
+}
+function sectionKey(mode, categoryId) {
+    return `${mode}:${categoryId}`;
+}
+function createFallbackCategory(categoryId) {
+    return {
+        id: categoryId,
+        name: categoryId,
+        shortName: categoryId,
+        iconText: categoryId.slice(0, 1),
+        sectionTitle: categoryId,
+        availableCount: 0,
+        soldOutCount: 0
+    };
+}
+function createEmptySectionState(category) {
+    return {
+        category: { ...category },
+        availableProducts: [],
+        soldOutProducts: [],
+        availablePageInfo: defaultPageInfo(),
+        soldOutPageInfo: defaultPageInfo(),
+        isAvailableLoading: false,
+        isSoldOutLoading: false
+    };
+}
+function cloneSectionState(section) {
+    return {
+        category: { ...section.category },
+        availableProducts: cloneProductSummaries(section.availableProducts),
+        soldOutProducts: cloneProductSummaries(section.soldOutProducts),
+        availablePageInfo: clonePageInfo(section.availablePageInfo),
+        soldOutPageInfo: clonePageInfo(section.soldOutPageInfo),
+        isAvailableLoading: section.isAvailableLoading,
+        isSoldOutLoading: section.isSoldOutLoading
+    };
+}
+function findCachedCategory(mode, categoryId) {
+    var _a, _b, _c;
+    return ((_c = (_b = (_a = categoryCache.get(mode)) === null || _a === void 0 ? void 0 : _a.find((category) => category.id === categoryId)) !== null && _b !== void 0 ? _b : cachedCatalogCategories.find((category) => category.id === categoryId)) !== null && _c !== void 0 ? _c : null);
+}
+function ensureSectionState(mode, categoryId) {
+    var _a;
+    const key = sectionKey(mode, categoryId);
+    const cached = sectionCache.get(key);
+    if (cached) {
+        return cached;
+    }
+    const category = (_a = findCachedCategory(mode, categoryId)) !== null && _a !== void 0 ? _a : createFallbackCategory(categoryId);
+    const section = createEmptySectionState(category);
+    sectionCache.set(key, section);
+    return section;
+}
+function summaryToCatalogProduct(product, deliveryMode) {
+    return {
+        id: product.id,
+        name: product.name,
+        summary: product.summary,
+        description: product.summary,
+        price: product.price,
+        stock: product.stock,
+        soldOut: product.soldOut,
+        cartActionLabel: product.cartActionLabel,
+        memberLevelLabel: product.memberLevelLabel,
+        categoryId: product.categoryId,
+        deliveryModes: [deliveryMode],
+        thumbnail: product.thumbnail,
+        quickBuyImage: product.thumbnail,
+        gallery: product.thumbnail ? [product.thumbnail] : [],
+        detailImages: [],
+        specs: product.specs.map((spec) => ({ ...spec }))
+    };
+}
+function findLoadedProductSummary(productId) {
+    for (const [key, section] of sectionCache) {
+        const [deliveryMode] = key.split(':');
+        const product = [...section.availableProducts, ...section.soldOutProducts].find((item) => item.id === productId);
+        if (product) {
+            return { product, deliveryMode };
+        }
+    }
+    return null;
 }
 function resolveCatalogProductAssetUrls(product) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
@@ -312,9 +506,135 @@ function resolveCatalogProductAssetUrls(product) {
         detailImages
     };
 }
-function resetCatalogCache() {
-    cachedCatalogCategories = shouldUseLocalCatalogFixtures() ? cloneCategories(catalog_1.catalogCategories) : [];
-    cachedCatalogProducts = shouldUseLocalCatalogFixtures() ? cloneProducts(catalog_1.catalogProducts) : [];
+function resetCatalogCache(options = {}) {
+    var _a;
+    const useLocalFixtures = (_a = options.useLocalFixtures) !== null && _a !== void 0 ? _a : shouldUseLocalCatalogFixtures();
+    cachedCatalogCategories = useLocalFixtures ? cloneCategories(catalog_1.catalogCategories.map(toCategoryWithCounts)) : [];
+    cachedCatalogProducts = useLocalFixtures ? cloneProducts(catalog_1.catalogProducts) : [];
+    categoryCache.clear();
+    sectionCache.clear();
+    productDetailCache.clear();
+}
+async function hydrateCatalogCategories(mode, request = api_client_1.customerApiRequest) {
+    const response = await request(`/api/v1/customer/catalog/categories?deliveryMode=${mode}`, {
+        method: 'GET',
+        auth: 'none'
+    });
+    const categories = Array.isArray(response.categories)
+        ? response.categories.map(normalizeCategoryWithCounts).filter(Boolean)
+        : [];
+    categoryCache.set(mode, cloneCategories(categories));
+    cachedCatalogCategories = cloneCategories(categories);
+    categories.forEach((category) => {
+        const key = sectionKey(mode, category.id);
+        const existing = sectionCache.get(key);
+        if (existing) {
+            sectionCache.set(key, { ...existing, category: { ...category } });
+            return;
+        }
+        sectionCache.set(key, createEmptySectionState(category));
+    });
+    return getCatalogCategories();
+}
+async function loadCategoryProducts(input, request = api_client_1.customerApiRequest) {
+    const params = [
+        `deliveryMode=${input.deliveryMode}`,
+        `availability=${input.availability}`,
+        'limit=12'
+    ];
+    if (input.cursor) {
+        params.push(`cursor=${encodeURIComponent(input.cursor)}`);
+    }
+    const section = ensureSectionState(input.deliveryMode, input.categoryId);
+    if (input.availability === 'soldOut') {
+        section.isSoldOutLoading = true;
+    }
+    else {
+        section.isAvailableLoading = true;
+    }
+    try {
+        const response = await request(`/api/v1/customer/catalog/categories/${input.categoryId}/products?${params.join('&')}`, {
+            method: 'GET',
+            auth: 'none'
+        });
+        const products = Array.isArray(response.items)
+            ? response.items.map(normalizeProductSummary).filter(Boolean)
+            : [];
+        if (input.availability === 'soldOut') {
+            section.soldOutProducts = input.cursor ? [...section.soldOutProducts, ...products] : products;
+            section.soldOutPageInfo = normalizePageInfo(response.pageInfo);
+            section.isSoldOutLoading = false;
+        }
+        else {
+            section.availableProducts = input.cursor ? [...section.availableProducts, ...products] : products;
+            section.availablePageInfo = normalizePageInfo(response.pageInfo);
+            section.isAvailableLoading = false;
+        }
+    }
+    catch (error) {
+        section.isAvailableLoading = false;
+        section.isSoldOutLoading = false;
+        throw error;
+    }
+    return getCatalogSectionState(input.deliveryMode, input.categoryId);
+}
+function getCatalogSectionState(mode, categoryId) {
+    return cloneSectionState(ensureSectionState(mode, categoryId));
+}
+function getCatalogSectionStates(mode) {
+    const categories = categoryCache.get(mode);
+    if (categories === null || categories === void 0 ? void 0 : categories.length) {
+        return categories.map((category) => cloneSectionState(ensureSectionState(mode, category.id)));
+    }
+    return Array.from(sectionCache.entries())
+        .filter(([key]) => key.startsWith(`${mode}:`))
+        .map(([, section]) => cloneSectionState(section));
+}
+async function searchCatalogProducts(input, request = api_client_1.customerApiRequest) {
+    const keyword = input.keyword.trim();
+    if (!keyword) {
+        return {
+            items: [],
+            pageInfo: defaultPageInfo(),
+            snapshotKey: ''
+        };
+    }
+    const params = [`keyword=${encodeURIComponent(keyword)}`];
+    if (input.deliveryMode) {
+        params.push(`deliveryMode=${input.deliveryMode}`);
+    }
+    params.push('limit=20');
+    if (input.cursor) {
+        params.push(`cursor=${encodeURIComponent(input.cursor)}`);
+    }
+    const response = await request(`/api/v1/customer/catalog/products/search?${params.join('&')}`, {
+        method: 'GET',
+        auth: 'none'
+    });
+    return {
+        items: Array.isArray(response.items)
+            ? response.items.map(normalizeProductSummary).filter(Boolean)
+            : [],
+        pageInfo: normalizePageInfo(response.pageInfo),
+        snapshotKey: asString(response.snapshotKey)
+    };
+}
+async function getProductDetail(productId, request = api_client_1.customerApiRequest) {
+    var _a, _b;
+    const cached = productDetailCache.get(productId);
+    if (cached) {
+        return (_a = cloneProducts([cached])[0]) !== null && _a !== void 0 ? _a : null;
+    }
+    const response = await request(`/api/v1/customer/catalog/products/${productId}`, {
+        method: 'GET',
+        auth: 'none'
+    });
+    const product = normalizeProduct(response.product);
+    if (!product) {
+        return null;
+    }
+    productDetailCache.set(product.id, product);
+    return (_b = cloneProducts([product])[0]) !== null && _b !== void 0 ? _b : null;
 }
 async function hydrateCatalog(request = api_client_1.customerApiRequest) {
     const [categoriesResponse, productsResponse] = await Promise.all([
@@ -328,10 +648,13 @@ async function hydrateCatalog(request = api_client_1.customerApiRequest) {
         })
     ]);
     if (Array.isArray(categoriesResponse.categories)) {
-        cachedCatalogCategories = cloneCategories(categoriesResponse.categories.map(normalizeCategory).filter(Boolean));
+        cachedCatalogCategories = cloneCategories(categoriesResponse.categories.map(normalizeCategoryWithCounts).filter(Boolean));
+        categoryCache.clear();
+        sectionCache.clear();
     }
     if (Array.isArray(productsResponse.products)) {
         cachedCatalogProducts = cloneProducts(productsResponse.products.map(normalizeProduct).filter(Boolean));
+        productDetailCache.clear();
     }
     return {
         categories: getCatalogCategories(),

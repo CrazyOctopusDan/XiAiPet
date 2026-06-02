@@ -20,6 +20,18 @@ export interface CatalogCategory {
   sectionTitle: string;
 }
 
+export interface CatalogPageInfo {
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+export interface CatalogCategoryWithCounts extends CatalogCategory {
+  availableCount: number;
+  soldOutCount: number;
+  previewCount?: number;
+  firstProductUpdatedAt?: string | null;
+}
+
 export interface ProductSpecOption {
   id: string;
   label: string;
@@ -48,8 +60,35 @@ export interface CatalogProduct {
   specs: ProductSpecOption[];
 }
 
+export type CatalogProductSummary = Pick<
+  CatalogProduct,
+  | 'id'
+  | 'name'
+  | 'summary'
+  | 'categoryId'
+  | 'stock'
+  | 'soldOut'
+  | 'cartActionLabel'
+  | 'memberLevelLabel'
+  | 'thumbnail'
+  | 'specs'
+> & {
+  price: number;
+  updatedAt: string;
+};
+
 export interface CatalogSection {
   category: CatalogCategory;
   availableProducts: CatalogProduct[];
   soldOutProducts: CatalogProduct[];
+}
+
+export interface CatalogSectionState {
+  category: CatalogCategoryWithCounts;
+  availableProducts: CatalogProductSummary[];
+  soldOutProducts: CatalogProductSummary[];
+  availablePageInfo: CatalogPageInfo;
+  soldOutPageInfo: CatalogPageInfo;
+  isAvailableLoading: boolean;
+  isSoldOutLoading: boolean;
 }
