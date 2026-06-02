@@ -13,7 +13,12 @@ function withCartQuantity(product) {
 function toPageSections(mode, expandedCategoryIds) {
     const sectionStates = (0, catalog_1.getCatalogSectionStates)(mode);
     if (sectionStates.length) {
-        return sectionStates.map((section) => ({
+        return sectionStates
+            .filter((section) => section.category.availableCount > 0 ||
+            section.category.soldOutCount > 0 ||
+            section.availableProducts.length > 0 ||
+            section.soldOutProducts.length > 0)
+            .map((section) => ({
             id: section.category.id,
             category: section.category,
             isSoldOutExpanded: expandedCategoryIds.includes(section.category.id),

@@ -141,6 +141,13 @@ describe('discovery cart pages', () => {
               soldOutCount: 0
             },
             {
+              id: 'merchant-empty-delivery',
+              name: '当前履约无商品',
+              iconToken: '空',
+              availableCount: 0,
+              soldOutCount: 0
+            },
+            {
               id: 'merchant-cakes',
               name: '宠物蛋糕',
               iconToken: '糕',
@@ -245,6 +252,12 @@ describe('discovery cart pages', () => {
         iconText: '节'
       }),
       expect.objectContaining({
+        id: 'merchant-empty-delivery',
+        name: '当前履约无商品',
+        shortName: '当前履约无商品',
+        iconText: '空'
+      }),
+      expect.objectContaining({
         id: 'merchant-cakes',
         name: '宠物蛋糕',
         shortName: '宠物蛋糕',
@@ -253,7 +266,10 @@ describe('discovery cart pages', () => {
     ]);
     expect(instance.data.sections[0]?.category.id).toBe('merchant-seasonal');
     expect(instance.data.sections[0]?.availableProducts[0]?.name).toBe('南瓜小蛋糕');
-    expect(instance.data.sections[1]?.category.id).toBe('merchant-cakes');
+    expect(instance.data.sections.map((section: { category: { id: string } }) => section.category.id)).toEqual([
+      'merchant-seasonal',
+      'merchant-cakes'
+    ]);
     expect(instance.data.sections[1]?.availableProducts[0]?.name).toBe('生日蛋糕');
   });
 

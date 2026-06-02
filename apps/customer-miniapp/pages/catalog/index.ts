@@ -82,17 +82,25 @@ function toPageSections(mode: DeliveryMode, expandedCategoryIds: string[]) {
   const sectionStates = getCatalogSectionStates(mode);
 
   if (sectionStates.length) {
-    return sectionStates.map((section) => ({
-      id: section.category.id,
-      category: section.category,
-      isSoldOutExpanded: expandedCategoryIds.includes(section.category.id),
-      availableProducts: section.availableProducts.map(withCartQuantity),
-      soldOutProducts: section.soldOutProducts.map(withCartQuantity),
-      availablePageInfo: section.availablePageInfo,
-      soldOutPageInfo: section.soldOutPageInfo,
-      isAvailableLoading: section.isAvailableLoading,
-      isSoldOutLoading: section.isSoldOutLoading
-    }));
+    return sectionStates
+      .filter(
+        (section) =>
+          section.category.availableCount > 0 ||
+          section.category.soldOutCount > 0 ||
+          section.availableProducts.length > 0 ||
+          section.soldOutProducts.length > 0
+      )
+      .map((section) => ({
+        id: section.category.id,
+        category: section.category,
+        isSoldOutExpanded: expandedCategoryIds.includes(section.category.id),
+        availableProducts: section.availableProducts.map(withCartQuantity),
+        soldOutProducts: section.soldOutProducts.map(withCartQuantity),
+        availablePageInfo: section.availablePageInfo,
+        soldOutPageInfo: section.soldOutPageInfo,
+        isAvailableLoading: section.isAvailableLoading,
+        isSoldOutLoading: section.isSoldOutLoading
+      }));
   }
 
   return buildCatalogSections(mode).map((section) => ({
