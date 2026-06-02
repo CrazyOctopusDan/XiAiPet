@@ -2,6 +2,30 @@ import type { FastifyInstance } from 'fastify';
 
 import type { ApiRouteDependencies } from '../dependencies';
 
+type MerchantProductStatus = 'draft' | 'published' | 'archived';
+type MerchantProductSort = 'latest';
+
+function parseMerchantProductStatus(value: unknown): MerchantProductStatus | undefined {
+  return value === 'draft' || value === 'published' || value === 'archived' ? value : undefined;
+}
+
+function parseMerchantProductSort(value: unknown): MerchantProductSort | undefined {
+  return value === 'latest' ? 'latest' : undefined;
+}
+
+function parsePositiveInteger(value: unknown): number | undefined {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return parsed > 0 ? parsed : undefined;
+}
+
+function parseString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
 export async function merchantCatalogRoutes(
   app: FastifyInstance,
   options: { dependencies: ApiRouteDependencies }
@@ -24,8 +48,20 @@ export async function merchantCatalogRoutes(
   });
 
   app.get('/products', merchantGuard, async (request) => {
-    const query = request.query as { categoryId?: string };
-    return dependencies.catalogService.queryMerchantProducts({ categoryId: query.categoryId });
+    const query = request.query as Record<string, unknown>;
+    return dependencies.catalogService.queryMerchantProducts({
+      categoryId: parseString(query.categoryId),
+      status: parseMerchantProductStatus(query.status),
+      keyword: parseString(query.keyword),
+      sort: parseMerchantProductSort(query.sort),
+      limit: parsePositiveInteger(query.limit),
+      cursor: parseString(query.cursor)
+    });
+  });
+
+  app.get('/products/:productId', merchantGuard, async (request) => {
+    const params = request.params as { productId: string };
+    return dependencies.catalogService.getMerchantProductDetail(params.productId);
   });
 
   app.put('/products/:productId', merchantGuard, async (request) => {

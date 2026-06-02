@@ -92,6 +92,24 @@ export type CatalogProductSummaryRecord = Pick<
   | 'updatedAt'
 >;
 
+export type MerchantProductStatusFilter = 'draft' | 'published' | 'archived';
+export type CatalogProductSort = 'latest';
+
+export type MerchantProductSummaryRecord = CatalogProductSummaryRecord & Pick<CatalogProductRecord, 'status'>;
+
+export interface MerchantProductSummaryCounts {
+  totalProducts: number;
+  publishedProducts: number;
+  draftProducts: number;
+  archivedProducts: number;
+  stockWarnings: number;
+}
+
+export interface MerchantProductSummaryPage extends CatalogProductPage<MerchantProductSummaryRecord> {
+  summary: MerchantProductSummaryCounts;
+  snapshotKey: string;
+}
+
 interface CategoryRow {
   id: string;
   name: string;
@@ -125,6 +143,54 @@ interface ProductRow {
   createdAt: Date;
   updatedAt: Date;
 }
+
+interface ProductSummaryRow {
+  id: string;
+  name: string;
+  description: string;
+  categoryId: string;
+  imageFileId: string;
+  imageAsset: unknown | null;
+  imagePreviewUrl: string | null;
+  memberLevelId: string | null;
+  status: string;
+  stock: number;
+  trackInventory: boolean;
+  fulfillmentModes: unknown;
+  basePrice: { toNumber(): number };
+  specs: unknown;
+  formulas: unknown;
+  priceOverrides: unknown;
+  updatedAt: Date;
+}
+
+interface CatalogCursor {
+  updatedAt: string;
+  id: string;
+}
+
+const DEFAULT_PAGE_LIMIT = 20;
+const MAX_PAGE_LIMIT = 100;
+
+const productSummarySelect = {
+  id: true,
+  name: true,
+  description: true,
+  categoryId: true,
+  imageFileId: true,
+  imageAsset: true,
+  imagePreviewUrl: true,
+  memberLevelId: true,
+  status: true,
+  stock: true,
+  trackInventory: true,
+  fulfillmentModes: true,
+  basePrice: true,
+  specs: true,
+  formulas: true,
+  priceOverrides: true,
+  updatedAt: true
+} satisfies Prisma.ProductSelect;
 
 function toArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
@@ -180,6 +246,135 @@ export function mapCategory(row: CategoryRow): CatalogCategoryRecord {
   };
 }
 
+function mapProductSummary(row: ProductSummaryRow): MerchantProductSummaryRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    categoryId: row.categoryId,
+    imageFileId: row.imageFileId,
+    imageAsset: row.imageAsset ? (row.imageAsset as CatalogOssAssetReference) : undefined,
+    imagePreviewUrl: row.imagePreviewUrl ?? undefined,
+    memberLevelId: row.memberLevelId,
+    status: toSharedEnum(row.status, PRODUCT_STATUS),
+    stock: row.stock,
+    trackInventory: row.trackInventory,
+    fulfillmentModes: toArray(row.fulfillmentModes),
+    basePrice: row.basePrice.toNumber(),
+    specs: toArray(row.specs),
+    formulas: toArray(row.formulas),
+    priceOverrides: toArray(row.priceOverrides),
+    updatedAt: row.updatedAt.toISOString()
+  };
+}
+
+function clampPageLimit(limit: number | undefined) {
+  if (!Number.isInteger(limit) || !limit || limit <= 0) {
+    return DEFAULT_PAGE_LIMIT;
+  }
+
+  return Math.min(limit, MAX_PAGE_LIMIT);
+}
+
+function encodeCatalogCursor(item: Pick<CatalogProductSummaryRecord, 'updatedAt' | 'id'>): string {
+  return Buffer.from(JSON.stringify({ updatedAt: item.updatedAt, id: item.id }), 'utf8').toString('base64url');
+}
+
+function decodeCatalogCursor(cursor: string | undefined): CatalogCursor | null {
+  if (!cursor) {
+    return null;
+  }
+
+  try {
+    const decoded = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as Partial<CatalogCursor>;
+    if (typeof decoded.updatedAt === 'string' && typeof decoded.id === 'string') {
+      return { updatedAt: decoded.updatedAt, id: decoded.id };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function createCursorWhere(cursor: string | undefined): Prisma.ProductWhereInput | undefined {
+  const decoded = decodeCatalogCursor(cursor);
+  if (!decoded) {
+    return undefined;
+  }
+
+  const updatedAt = new Date(decoded.updatedAt);
+  if (Number.isNaN(updatedAt.getTime())) {
+    return undefined;
+  }
+
+  return {
+    OR: [
+      { updatedAt: { lt: updatedAt } },
+      {
+        updatedAt,
+        id: { gt: decoded.id }
+      }
+    ]
+  };
+}
+
+function createKeywordWhere(keyword: string | undefined): Prisma.ProductWhereInput | undefined {
+  const trimmed = keyword?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return {
+    OR: [
+      { name: { contains: trimmed } },
+      { description: { contains: trimmed } }
+    ]
+  };
+}
+
+function matchesDeliveryMode(product: Pick<CatalogProductSummaryRecord, 'fulfillmentModes'>, deliveryMode: CatalogDeliveryModeFilter | undefined) {
+  if (!deliveryMode) {
+    return true;
+  }
+
+  const modes = product.fulfillmentModes.filter(
+    (mode): mode is CatalogDeliveryModeFilter => mode === 'pickup' || mode === 'delivery' || mode === 'express'
+  );
+  return modes.length === 0 || modes.includes(deliveryMode);
+}
+
+function matchesAvailability(product: Pick<CatalogProductSummaryRecord, 'trackInventory' | 'stock'>, availability: CatalogAvailabilityFilter) {
+  const soldOut = product.trackInventory && product.stock <= 0;
+  return availability === 'soldOut' ? soldOut : !soldOut;
+}
+
+function createPage<T extends Pick<CatalogProductSummaryRecord, 'id' | 'updatedAt'>>(items: T[], limit: number): CatalogProductPage<T> {
+  const pageItems = items.slice(0, limit);
+  const hasMore = items.length > limit;
+  const lastItem = pageItems.at(-1);
+
+  return {
+    items: pageItems,
+    hasMore,
+    nextCursor: hasMore && lastItem ? encodeCatalogCursor(lastItem) : null
+  };
+}
+
+function createSnapshotKey(parts: unknown[]) {
+  return Buffer.from(JSON.stringify(parts), 'utf8').toString('base64url');
+}
+
+function maxUpdatedAt(products: Pick<CatalogProductSummaryRecord, 'updatedAt'>[]) {
+  return products.reduce<string | null>((latest, product) => {
+    if (!latest || product.updatedAt > latest) {
+      return product.updatedAt;
+    }
+
+    return latest;
+  }, null);
+}
+
 export function createCatalogRepository(client: DbClient = getPrismaClient()) {
   return {
     async listCategories(): Promise<CatalogCategoryRecord[]> {
@@ -206,6 +401,201 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
         orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
       });
       return products.map(mapProduct);
+    },
+
+    async listCustomerCatalogCategories(filters: { deliveryMode?: CatalogDeliveryModeFilter } = {}): Promise<CustomerCategorySummaryRecord[]> {
+      const [categories, products] = await Promise.all([
+        client.category.findMany({
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }]
+        }),
+        client.product.findMany({
+          where: { status: PRODUCT_STATUS.published },
+          select: productSummarySelect,
+          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+        })
+      ]);
+      const summaries = products.map(mapProductSummary).filter((product) => matchesDeliveryMode(product, filters.deliveryMode));
+
+      return categories.map((category) => {
+        const categoryProducts = summaries.filter((product) => product.categoryId === category.id);
+        const availableCount = categoryProducts.filter((product) => matchesAvailability(product, 'available')).length;
+        const soldOutCount = categoryProducts.filter((product) => matchesAvailability(product, 'soldOut')).length;
+
+        return {
+          ...mapCategory(category),
+          availableCount,
+          soldOutCount,
+          previewCount: availableCount,
+          firstProductUpdatedAt: maxUpdatedAt(categoryProducts)
+        };
+      });
+    },
+
+    async listCustomerCategoryProductSummaries(input: {
+      categoryId: string;
+      deliveryMode?: CatalogDeliveryModeFilter;
+      availability: CatalogAvailabilityFilter;
+      keyword?: string;
+      sort?: CatalogProductSort;
+      limit?: number;
+      cursor?: string;
+    }): Promise<CatalogProductPage<CatalogProductSummaryRecord>> {
+      const limit = clampPageLimit(input.limit);
+      const products = await client.product.findMany({
+        where: {
+          status: PRODUCT_STATUS.published,
+          categoryId: input.categoryId,
+          AND: [createKeywordWhere(input.keyword), createCursorWhere(input.cursor)].filter(Boolean) as Prisma.ProductWhereInput[]
+        },
+        select: productSummarySelect,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+      });
+      // fulfillmentModes remains JSON in this phase; at 500-product scale, filtering the indexed scope in memory is acceptable.
+      const filtered = products
+        .map(mapProductSummary)
+        .filter((product) => matchesDeliveryMode(product, input.deliveryMode))
+        .filter((product) => matchesAvailability(product, input.availability));
+
+      return createPage(filtered, limit);
+    },
+
+    async searchCustomerProductSummaries(input: {
+      deliveryMode?: CatalogDeliveryModeFilter;
+      keyword?: string;
+      limit?: number;
+      cursor?: string;
+    }): Promise<CatalogProductPage<CatalogProductSummaryRecord>> {
+      const limit = clampPageLimit(input.limit);
+      const products = await client.product.findMany({
+        where: {
+          status: PRODUCT_STATUS.published,
+          AND: [createKeywordWhere(input.keyword), createCursorWhere(input.cursor)].filter(Boolean) as Prisma.ProductWhereInput[]
+        },
+        select: productSummarySelect,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+      });
+      const filtered = products
+        .map(mapProductSummary)
+        .filter((product) => matchesDeliveryMode(product, input.deliveryMode));
+
+      return createPage(filtered, limit);
+    },
+
+    async createCustomerCategorySnapshotKey(filters: { deliveryMode?: CatalogDeliveryModeFilter } = {}): Promise<string> {
+      const categories = await this.listCustomerCatalogCategories(filters);
+      return createSnapshotKey([
+        'customer-categories',
+        filters.deliveryMode ?? 'all',
+        categories.length,
+        categories.reduce((total, category) => total + category.availableCount + category.soldOutCount, 0),
+        categories.reduce<string | null>((latest, category) => {
+          if (!category.firstProductUpdatedAt) {
+            return latest;
+          }
+
+          return !latest || category.firstProductUpdatedAt > latest ? category.firstProductUpdatedAt : latest;
+        }, null)
+      ]);
+    },
+
+    async createCustomerCategoryProductsSnapshotKey(input: {
+      categoryId: string;
+      deliveryMode?: CatalogDeliveryModeFilter;
+      availability: CatalogAvailabilityFilter;
+      keyword?: string;
+      sort?: CatalogProductSort;
+    }): Promise<string> {
+      const products = await client.product.findMany({
+        where: {
+          status: PRODUCT_STATUS.published,
+          categoryId: input.categoryId,
+          AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
+        },
+        select: productSummarySelect,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+      });
+      const filtered = products
+        .map(mapProductSummary)
+        .filter((product) => matchesDeliveryMode(product, input.deliveryMode))
+        .filter((product) => matchesAvailability(product, input.availability));
+
+      return createSnapshotKey([
+        'customer-category-products',
+        input.categoryId,
+        input.deliveryMode ?? 'all',
+        input.availability,
+        input.keyword?.trim() ?? '',
+        input.sort ?? 'latest',
+        filtered.length,
+        maxUpdatedAt(filtered)
+      ]);
+    },
+
+    async listMerchantProductSummaries(input: {
+      categoryId?: string;
+      status?: MerchantProductStatusFilter;
+      keyword?: string;
+      sort?: CatalogProductSort;
+      limit?: number;
+      cursor?: string;
+    } = {}): Promise<MerchantProductSummaryPage> {
+      const limit = clampPageLimit(input.limit);
+      const baseWhere: Prisma.ProductWhereInput = {
+        categoryId: input.categoryId,
+        AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
+      };
+      const pageWhere: Prisma.ProductWhereInput = {
+        ...baseWhere,
+        status: input.status ? PRODUCT_STATUS[input.status] : undefined,
+        AND: [
+          ...(Array.isArray(baseWhere.AND) ? baseWhere.AND : []),
+          createCursorWhere(input.cursor)
+        ].filter(Boolean) as Prisma.ProductWhereInput[]
+      };
+      const [countScopeProducts, pageProducts] = await Promise.all([
+        client.product.findMany({
+          where: baseWhere,
+          select: productSummarySelect,
+          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+        }),
+        client.product.findMany({
+          where: pageWhere,
+          select: productSummarySelect,
+          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+          take: limit + 1
+        })
+      ]);
+      const countScope = countScopeProducts.map(mapProductSummary);
+      const page = createPage(pageProducts.map(mapProductSummary), limit);
+      const summary: MerchantProductSummaryCounts = {
+        totalProducts: countScope.length,
+        publishedProducts: countScope.filter((product) => product.status === 'published').length,
+        draftProducts: countScope.filter((product) => product.status === 'draft').length,
+        archivedProducts: countScope.filter((product) => product.status === 'archived').length,
+        stockWarnings: countScope.filter((product) => product.trackInventory && product.stock <= 0).length
+      };
+
+      return {
+        ...page,
+        summary,
+        snapshotKey: createSnapshotKey([
+          'merchant-products',
+          input.categoryId ?? 'all',
+          input.status ?? 'all',
+          input.keyword?.trim() ?? '',
+          input.sort ?? 'latest',
+          countScope.length,
+          maxUpdatedAt(countScope)
+        ])
+      };
+    },
+
+    async getCustomerProductDetail(productId: string): Promise<CatalogProductRecord | null> {
+      return this.getProductById(productId);
+    },
+
+    async getMerchantProductDetail(productId: string): Promise<CatalogProductRecord | null> {
+      return this.getProductById(productId);
     },
 
     async countProductsByCategory(categoryId: string): Promise<number> {

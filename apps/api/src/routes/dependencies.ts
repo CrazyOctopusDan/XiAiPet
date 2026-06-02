@@ -39,12 +39,34 @@ export interface ApiRouteServices {
     getBalance(openid: string, pagination?: { cursor?: string | number; limit?: string | number }): AsyncResult;
   };
   catalogService: {
-    queryCustomerCategories(): AsyncResult;
+    queryCustomerCategories(filters?: { deliveryMode?: 'pickup' | 'delivery' | 'express' }): AsyncResult;
     queryCustomerProducts(filters?: { categoryId?: string }): AsyncResult;
+    queryCustomerCategoryProducts(filters: {
+      categoryId: string;
+      deliveryMode?: 'pickup' | 'delivery' | 'express';
+      availability: 'available' | 'soldOut';
+      limit?: number;
+      cursor?: string;
+    }): AsyncResult;
+    getCustomerProductDetail(productId: string): AsyncResult;
+    searchCustomerProducts(filters: {
+      deliveryMode?: 'pickup' | 'delivery' | 'express';
+      keyword?: string;
+      limit?: number;
+      cursor?: string;
+    }): AsyncResult;
     queryMerchantCategories(filters?: Record<string, unknown>): AsyncResult;
     upsertMerchantCategory(merchantContext: unknown, categoryId: string, payload: unknown): AsyncResult;
     deleteMerchantCategory(merchantContext: unknown, categoryId: string): AsyncResult;
-    queryMerchantProducts(filters?: { categoryId?: string }): AsyncResult;
+    queryMerchantProducts(filters?: {
+      categoryId?: string;
+      status?: 'draft' | 'published' | 'archived';
+      keyword?: string;
+      sort?: 'latest';
+      limit?: number;
+      cursor?: string;
+    }): AsyncResult;
+    getMerchantProductDetail(productId: string): AsyncResult;
     upsertMerchantProduct(merchantContext: unknown, productId: string, payload: unknown): AsyncResult;
     deleteMerchantProduct(merchantContext: unknown, productId: string): AsyncResult;
   };

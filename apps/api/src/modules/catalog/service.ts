@@ -7,8 +7,12 @@ import {
   type CatalogPageInfo,
   type CatalogProductPage,
   type CatalogProductRecord,
+  type CatalogProductSort,
   type CatalogProductSummaryRecord,
-  type CustomerCategorySummaryRecord
+  type CustomerCategorySummaryRecord,
+  type MerchantProductStatusFilter,
+  type MerchantProductSummaryPage,
+  type MerchantProductSummaryRecord
 } from './repository';
 import type { MerchantContext } from '../auth/types';
 import type { CatalogOssAssetReference } from './repository';
@@ -75,6 +79,21 @@ interface CustomerProductListItem {
   updatedAt: string;
 }
 
+interface MerchantProductListItem {
+  id: string;
+  name: string;
+  description: string;
+  categoryId: string;
+  status: MerchantProductStatusFilter;
+  stock: number;
+  trackInventory: boolean;
+  minPrice: number;
+  maxPrice: number;
+  fulfillmentModes: CustomerDeliveryMode[];
+  thumbnail: string;
+  updatedAt: string;
+}
+
 interface CatalogProductEditorPayload {
   basicInfo: {
     name: string;
@@ -103,8 +122,6 @@ interface CatalogProductEditorPayload {
   };
 }
 
-type CatalogRepository = ReturnType<typeof createCatalogRepository>;
-
 interface CatalogSummaryRepositoryMethods {
   listCustomerCatalogCategories(filters: { deliveryMode?: CustomerDeliveryMode }): Promise<CustomerCategorySummaryRecord[]>;
   createCustomerCategorySnapshotKey(filters: { deliveryMode?: CustomerDeliveryMode }): Promise<string>;
@@ -112,6 +129,8 @@ interface CatalogSummaryRepositoryMethods {
     categoryId: string;
     deliveryMode?: CustomerDeliveryMode;
     availability: CatalogAvailabilityFilter;
+    keyword?: string;
+    sort?: CatalogProductSort;
     limit?: number;
     cursor?: string;
   }): Promise<CatalogProductPage<CatalogProductSummaryRecord>>;
@@ -119,9 +138,28 @@ interface CatalogSummaryRepositoryMethods {
     categoryId: string;
     deliveryMode?: CustomerDeliveryMode;
     availability: CatalogAvailabilityFilter;
+    keyword?: string;
+    sort?: CatalogProductSort;
   }): Promise<string>;
+  searchCustomerProductSummaries(input: {
+    deliveryMode?: CustomerDeliveryMode;
+    keyword?: string;
+    limit?: number;
+    cursor?: string;
+  }): Promise<CatalogProductPage<CatalogProductSummaryRecord>>;
+  listMerchantProductSummaries(input?: {
+    categoryId?: string;
+    status?: MerchantProductStatusFilter;
+    keyword?: string;
+    sort?: CatalogProductSort;
+    limit?: number;
+    cursor?: string;
+  }): Promise<MerchantProductSummaryPage>;
+  getCustomerProductDetail(productId: string): Promise<CatalogProductRecord | null>;
+  getMerchantProductDetail(productId: string): Promise<CatalogProductRecord | null>;
 }
 
+type CatalogRepository = Omit<ReturnType<typeof createCatalogRepository>, keyof CatalogSummaryRepositoryMethods>;
 type CatalogRepositoryContract = CatalogRepository & Partial<CatalogSummaryRepositoryMethods>;
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -336,6 +374,11 @@ function matchesCustomerDeliveryMode(product: CatalogProductSummaryRecord, deliv
   return modes.length === 0 || modes.includes(deliveryMode);
 }
 
+function matchesKeyword(product: Pick<CatalogProductSummaryRecord, 'name' | 'description'>, keyword: string | undefined) {
+  const trimmed = keyword?.trim();
+  return !trimmed || product.name.includes(trimmed) || product.description.includes(trimmed);
+}
+
 function pickProductSummary(product: CatalogProductRecord): CatalogProductSummaryRecord {
   return {
     id: product.id,
@@ -362,6 +405,7 @@ function createFallbackProductSummaryPage(
   input: {
     deliveryMode?: CustomerDeliveryMode;
     availability: CatalogAvailabilityFilter;
+    keyword?: string;
     limit?: number;
     cursor?: string;
   }
@@ -369,10 +413,37 @@ function createFallbackProductSummaryPage(
   const filtered = products
     .map(pickProductSummary)
     .filter((product) => matchesCustomerDeliveryMode(product, input.deliveryMode))
+    .filter((product) => matchesKeyword(product, input.keyword))
     .filter((product) => {
       const soldOut = isCustomerProductSoldOut(product);
       return input.availability === 'soldOut' ? soldOut : !soldOut;
     });
+  const limit = typeof input.limit === 'number' && input.limit > 0 ? input.limit : filtered.length;
+  const offset = input.cursor && /^\d+$/.test(input.cursor) ? Number.parseInt(input.cursor, 10) : 0;
+  const pageItems = filtered.slice(offset, offset + limit);
+  const nextOffset = offset + pageItems.length;
+  const hasMore = nextOffset < filtered.length;
+
+  return {
+    items: pageItems,
+    hasMore,
+    nextCursor: hasMore ? String(nextOffset) : null
+  };
+}
+
+function createFallbackSearchProductSummaryPage(
+  products: CatalogProductRecord[],
+  input: {
+    deliveryMode?: CustomerDeliveryMode;
+    keyword?: string;
+    limit?: number;
+    cursor?: string;
+  }
+): CatalogProductPage<CatalogProductSummaryRecord> {
+  const filtered = products
+    .map(pickProductSummary)
+    .filter((product) => matchesCustomerDeliveryMode(product, input.deliveryMode))
+    .filter((product) => matchesKeyword(product, input.keyword));
   const limit = typeof input.limit === 'number' && input.limit > 0 ? input.limit : filtered.length;
   const offset = input.cursor && /^\d+$/.test(input.cursor) ? Number.parseInt(input.cursor, 10) : 0;
   const pageItems = filtered.slice(offset, offset + limit);
@@ -439,6 +510,40 @@ function mapCustomerProductSummary(product: CatalogProductSummaryRecord): Custom
     soldOut: isCustomerProductSoldOut(normalizedProduct),
     cartActionLabel: specs.length ? '选规格' : '直接加购',
     memberLevelLabel: normalizedProduct.memberLevelId ? '会员可购' : '普通会员可购',
+    thumbnail,
+    updatedAt: normalizedProduct.updatedAt
+  };
+}
+
+function mapMerchantProductSummary(product: MerchantProductSummaryRecord): MerchantProductListItem {
+  const normalizedProduct = normalizeProductSummaryImageUrls(product);
+  const specs = getCustomerSpecs(normalizedProduct);
+  const prices = specs.map((spec) => spec.price);
+  const thumbnail =
+    getAssetUrl(normalizedProduct.imageAsset, 'thumbnail') ??
+    normalizedProduct.imagePreviewUrl ??
+    normalizedProduct.imageAsset?.url ??
+    normalizedProduct.imageFileId;
+
+  return {
+    id: normalizedProduct.id,
+    name: normalizedProduct.name,
+    description: normalizedProduct.description,
+    categoryId: normalizedProduct.categoryId,
+    status: product.status,
+    stock: normalizedProduct.stock,
+    trackInventory: normalizedProduct.trackInventory,
+    minPrice: roundCurrency(prices.length ? Math.min(...prices) : normalizedProduct.basePrice),
+    maxPrice: roundCurrency(prices.length ? Math.max(...prices) : normalizedProduct.basePrice),
+    fulfillmentModes: getCustomerDeliveryModes({
+      ...normalizedProduct,
+      status: product.status,
+      introductionImageAssets: undefined,
+      detailImageAssets: undefined,
+      purchaseLimit: null,
+      detailContent: '',
+      createdAt: normalizedProduct.updatedAt
+    }),
     thumbnail,
     updatedAt: normalizedProduct.updatedAt
   };
@@ -533,6 +638,8 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
       categoryId: string;
       deliveryMode?: CustomerDeliveryMode;
       availability: CatalogAvailabilityFilter;
+      keyword?: string;
+      sort?: CatalogProductSort;
       limit?: number;
       cursor?: string;
     }) {
@@ -553,7 +660,9 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
         ? await catalogRepository.createCustomerCategoryProductsSnapshotKey({
             categoryId: input.categoryId,
             deliveryMode: input.deliveryMode,
-            availability: input.availability
+            availability: input.availability,
+            keyword: input.keyword,
+            sort: input.sort
           })
         : '';
 
@@ -564,6 +673,51 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
         items: page.items.map(mapCustomerProductSummary),
         pageInfo,
         snapshotKey
+      };
+    },
+
+    async getCustomerProductDetail(productId: string) {
+      const product = catalogRepository.getCustomerProductDetail
+        ? await catalogRepository.getCustomerProductDetail(productId)
+        : await catalogRepository.getProductById(productId);
+      if (!product || product.status !== 'published') {
+        throw new ApiError('PRODUCT_NOT_FOUND', 'Product not found', 404);
+      }
+
+      return {
+        ok: true as const,
+        product: mapCustomerProduct(product)
+      };
+    },
+
+    async searchCustomerProducts(input: {
+      deliveryMode?: CustomerDeliveryMode;
+      keyword?: string;
+      limit?: number;
+      cursor?: string;
+    } = {}) {
+      const page = catalogRepository.searchCustomerProductSummaries
+        ? await catalogRepository.searchCustomerProductSummaries(input)
+        : createFallbackSearchProductSummaryPage(
+            await catalogRepository.listProducts({ status: 'published' }),
+            input
+          );
+      const pageInfo: CatalogPageInfo = {
+        hasMore: page.hasMore,
+        nextCursor: page.nextCursor
+      };
+
+      return {
+        ok: true as const,
+        items: page.items.map(mapCustomerProductSummary),
+        pageInfo,
+        snapshotKey: [
+          'customer-search',
+          input.deliveryMode ?? 'all',
+          input.keyword?.trim() ?? '',
+          page.items.length,
+          page.items[0]?.updatedAt ?? ''
+        ].join(':')
       };
     },
 
@@ -610,9 +764,44 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
       return { ok: true as const, deletedCategoryId: categoryId };
     },
 
-    async queryMerchantProducts(filters: { categoryId?: string } = {}) {
+    async queryMerchantProducts(filters: {
+      categoryId?: string;
+      status?: MerchantProductStatusFilter;
+      keyword?: string;
+      sort?: CatalogProductSort;
+      limit?: number;
+      cursor?: string;
+    } = {}) {
+      if (catalogRepository.listMerchantProductSummaries) {
+        const page = await catalogRepository.listMerchantProductSummaries(filters);
+        return {
+          ok: true as const,
+          items: page.items.map(mapMerchantProductSummary),
+          summary: page.summary,
+          pageInfo: {
+            hasMore: page.hasMore,
+            nextCursor: page.nextCursor
+          },
+          snapshotKey: page.snapshotKey
+        };
+      }
+
       const products = await catalogRepository.listProducts({ categoryId: filters.categoryId });
       return { ok: true as const, products: products.map(normalizeProductImageUrls) };
+    },
+
+    async getMerchantProductDetail(productId: string) {
+      const product = catalogRepository.getMerchantProductDetail
+        ? await catalogRepository.getMerchantProductDetail(productId)
+        : await catalogRepository.getProductById(productId);
+      if (!product) {
+        throw new ApiError('PRODUCT_NOT_FOUND', 'Product not found', 404);
+      }
+
+      return {
+        ok: true as const,
+        product: normalizeProductImageUrls(product)
+      };
     },
 
     async deleteMerchantProduct(

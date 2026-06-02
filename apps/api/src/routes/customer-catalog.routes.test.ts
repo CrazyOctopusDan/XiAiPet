@@ -18,7 +18,12 @@ describe('customer catalog and runtime config routes', () => {
           upsertMerchantCategory: async () => ({ ok: true }),
           deleteMerchantCategory: async () => ({ ok: true }),
           queryMerchantProducts: async () => ({ ok: true }),
-          upsertMerchantProduct: async () => ({ ok: true })
+          upsertMerchantProduct: async () => ({ ok: true }),
+          deleteMerchantProduct: async () => ({ ok: true }),
+          queryCustomerCategoryProducts: async () => ({ ok: true }),
+          getCustomerProductDetail: async () => ({ ok: true }),
+          searchCustomerProducts: async () => ({ ok: true }),
+          getMerchantProductDetail: async () => ({ ok: true })
         },
         runtimeConfigService: {
           parseSectionKeys: (input?: string | string[]) => (Array.isArray(input) ? input : input?.split(',')),
@@ -36,5 +41,109 @@ describe('customer catalog and runtime config routes', () => {
     expect(queryCustomerCategories).toHaveBeenCalled();
     expect(queryCustomerProducts).toHaveBeenCalledWith({ categoryId: 'cat-1' });
     expect(readCustomerRuntimeConfig).toHaveBeenCalledWith({ sectionKeys: ['banner', 'store-profile'] });
+  });
+
+  it('routes customer category product paging with parsed filters', async () => {
+    const queryCustomerCategoryProducts = vi.fn(async () => ({ ok: true, items: [] }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        catalogService: {
+          queryCustomerCategories: async () => ({ ok: true }),
+          queryCustomerProducts: async () => ({ ok: true }),
+          queryCustomerCategoryProducts,
+          getCustomerProductDetail: async () => ({ ok: true }),
+          searchCustomerProducts: async () => ({ ok: true }),
+          queryMerchantCategories: async () => ({ ok: true }),
+          upsertMerchantCategory: async () => ({ ok: true }),
+          deleteMerchantCategory: async () => ({ ok: true }),
+          queryMerchantProducts: async () => ({ ok: true }),
+          getMerchantProductDetail: async () => ({ ok: true }),
+          upsertMerchantProduct: async () => ({ ok: true }),
+          deleteMerchantProduct: async () => ({ ok: true })
+        }
+      }
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=soldOut&limit=6'
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(queryCustomerCategoryProducts).toHaveBeenCalledWith({
+      categoryId: 'cakes',
+      deliveryMode: 'delivery',
+      availability: 'soldOut',
+      limit: 6,
+      cursor: undefined
+    });
+  });
+
+  it('routes customer product detail by product id', async () => {
+    const getCustomerProductDetail = vi.fn(async () => ({ ok: true, product: { id: 'pumpkin-cake' } }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        catalogService: {
+          queryCustomerCategories: async () => ({ ok: true }),
+          queryCustomerProducts: async () => ({ ok: true }),
+          queryCustomerCategoryProducts: async () => ({ ok: true }),
+          getCustomerProductDetail,
+          searchCustomerProducts: async () => ({ ok: true }),
+          queryMerchantCategories: async () => ({ ok: true }),
+          upsertMerchantCategory: async () => ({ ok: true }),
+          deleteMerchantCategory: async () => ({ ok: true }),
+          queryMerchantProducts: async () => ({ ok: true }),
+          getMerchantProductDetail: async () => ({ ok: true }),
+          upsertMerchantProduct: async () => ({ ok: true }),
+          deleteMerchantProduct: async () => ({ ok: true })
+        }
+      }
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/customer/catalog/products/pumpkin-cake'
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(getCustomerProductDetail).toHaveBeenCalledWith('pumpkin-cake');
+  });
+
+  it('routes customer catalog search with parsed params', async () => {
+    const searchCustomerProducts = vi.fn(async () => ({ ok: true, items: [] }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        catalogService: {
+          queryCustomerCategories: async () => ({ ok: true }),
+          queryCustomerProducts: async () => ({ ok: true }),
+          queryCustomerCategoryProducts: async () => ({ ok: true }),
+          getCustomerProductDetail: async () => ({ ok: true }),
+          searchCustomerProducts,
+          queryMerchantCategories: async () => ({ ok: true }),
+          upsertMerchantCategory: async () => ({ ok: true }),
+          deleteMerchantCategory: async () => ({ ok: true }),
+          queryMerchantProducts: async () => ({ ok: true }),
+          getMerchantProductDetail: async () => ({ ok: true }),
+          upsertMerchantProduct: async () => ({ ok: true }),
+          deleteMerchantProduct: async () => ({ ok: true })
+        }
+      }
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/customer/catalog/products/search?keyword=%E5%8D%97%E7%93%9C&limit=20'
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(searchCustomerProducts).toHaveBeenCalledWith({
+      keyword: '南瓜',
+      deliveryMode: undefined,
+      limit: 20,
+      cursor: undefined
+    });
   });
 });

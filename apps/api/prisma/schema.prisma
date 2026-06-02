@@ -256,6 +256,7 @@ model Product {
 
   @@index([categoryId, status])
   @@index([status, updatedAt])
+  @@index([status, categoryId, updatedAt, id])
   @@map("products")
 }
 
