@@ -316,6 +316,110 @@ describe('catalog service', () => {
     expect(JSON.stringify(response.items[0])).not.toContain('priceOverrides');
   });
 
+  it('falls back to published category products for customer category summaries', async () => {
+    const listProducts = vi.fn(async () => [
+      {
+        id: 'available-cake',
+        name: '南瓜蛋糕',
+        description: '低糖',
+        categoryId: 'cakes',
+        imageFileId: '',
+        imageAsset: undefined,
+        imagePreviewUrl: 'https://assets.example/available-cake.jpg',
+        introductionImageAssets: [createAsset('products/available-cake/intro.jpg')],
+        detailImageAssets: [createAsset('products/available-cake/detail.jpg')],
+        memberLevelId: null,
+        status: 'published',
+        stock: 8,
+        trackInventory: true,
+        fulfillmentModes: ['delivery'],
+        basePrice: 88,
+        specs: [],
+        formulas: [],
+        priceOverrides: [{ specId: 'small', formulaId: 'plain', price: 88 }],
+        purchaseLimit: { enabled: false, maxQuantity: null },
+        detailContent: '详情长文',
+        createdAt: '2026-06-01T10:00:00.000Z',
+        updatedAt: '2026-06-01T10:00:00.000Z'
+      },
+      {
+        id: 'second-cake',
+        name: '红薯蛋糕',
+        description: '软糯',
+        categoryId: 'cakes',
+        imageFileId: '',
+        imageAsset: undefined,
+        imagePreviewUrl: 'https://assets.example/second-cake.jpg',
+        introductionImageAssets: [],
+        detailImageAssets: [],
+        memberLevelId: null,
+        status: 'published',
+        stock: 5,
+        trackInventory: true,
+        fulfillmentModes: ['delivery'],
+        basePrice: 68,
+        specs: [],
+        formulas: [],
+        priceOverrides: [],
+        purchaseLimit: { enabled: false, maxQuantity: null },
+        detailContent: '另一个详情长文',
+        createdAt: '2026-06-01T11:00:00.000Z',
+        updatedAt: '2026-06-01T11:00:00.000Z'
+      },
+      {
+        id: 'sold-out-cake',
+        name: '售罄蛋糕',
+        description: '已售罄',
+        categoryId: 'cakes',
+        imageFileId: '',
+        imageAsset: undefined,
+        imagePreviewUrl: 'https://assets.example/sold-out-cake.jpg',
+        introductionImageAssets: [],
+        detailImageAssets: [],
+        memberLevelId: null,
+        status: 'published',
+        stock: 0,
+        trackInventory: true,
+        fulfillmentModes: ['delivery'],
+        basePrice: 58,
+        specs: [],
+        formulas: [],
+        priceOverrides: [],
+        purchaseLimit: { enabled: false, maxQuantity: null },
+        detailContent: '售罄详情长文',
+        createdAt: '2026-06-01T12:00:00.000Z',
+        updatedAt: '2026-06-01T12:00:00.000Z'
+      }
+    ]);
+    const service = createCatalogService(createCatalogRepositoryStub({ listProducts }) as never);
+
+    const response = await service.queryCustomerCategoryProducts({
+      categoryId: 'cakes',
+      deliveryMode: 'delivery',
+      availability: 'available',
+      limit: 1
+    });
+
+    expect(listProducts).toHaveBeenCalledWith({ categoryId: 'cakes', status: 'published' });
+    expect(response).toMatchObject({
+      ok: true,
+      categoryId: 'cakes',
+      availability: 'available',
+      pageInfo: { hasMore: true, nextCursor: null },
+      snapshotKey: '',
+      items: [
+        {
+          id: 'available-cake',
+          thumbnail: 'https://assets.example/available-cake.jpg',
+          soldOut: false
+        }
+      ]
+    });
+    expect(JSON.stringify(response.items[0])).not.toContain('detailImageAssets');
+    expect(JSON.stringify(response.items[0])).not.toContain('detailContent');
+    expect(JSON.stringify(response.items[0])).not.toContain('priceOverrides');
+  });
+
   it('normalizes protocol-less product image urls for merchant and customer responses', async () => {
     const service = createCatalogService(createCatalogRepositoryStub({
       listProducts: async () => [

@@ -144,6 +144,8 @@ interface PriceOverride {
   price: number;
 }
 
+type CustomerProductPricingSource = Pick<CatalogProductRecord, 'basePrice' | 'specs' | 'formulas' | 'priceOverrides'>;
+
 function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -289,14 +291,14 @@ function getCustomerDeliveryModes(product: CatalogProductRecord): CustomerDelive
   return modes.length ? modes : ['pickup', 'delivery', 'express'];
 }
 
-function getPriceOverride(product: CatalogProductRecord, specId: string, formulaId: string) {
+function getPriceOverride(product: CustomerProductPricingSource, specId: string, formulaId: string) {
   return product.priceOverrides.find(
     (override): override is PriceOverride =>
       isPriceOverride(override) && override.specId === specId && override.formulaId === formulaId
   )?.price;
 }
 
-function getCustomerSpecs(product: CatalogProductRecord): CustomerProductSpecOption[] {
+function getCustomerSpecs(product: CustomerProductPricingSource): CustomerProductSpecOption[] {
   const specs = product.specs.filter(isPricingOption);
   const formulas = product.formulas.filter(isPricingOption);
 
@@ -319,6 +321,64 @@ function getCustomerSpecs(product: CatalogProductRecord): CustomerProductSpecOpt
     label: option.label,
     price: roundCurrency(product.basePrice + (option.surcharge ?? 0))
   }));
+}
+
+function isCustomerProductSoldOut(product: Pick<CatalogProductSummaryRecord, 'trackInventory' | 'stock'>) {
+  return product.trackInventory && product.stock <= 0;
+}
+
+function matchesCustomerDeliveryMode(product: CatalogProductSummaryRecord, deliveryMode: CustomerDeliveryMode | undefined) {
+  if (!deliveryMode) {
+    return true;
+  }
+
+  const modes = product.fulfillmentModes.filter(isCustomerDeliveryMode);
+  return modes.length === 0 || modes.includes(deliveryMode);
+}
+
+function pickProductSummary(product: CatalogProductRecord): CatalogProductSummaryRecord {
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    categoryId: product.categoryId,
+    imageFileId: product.imageFileId,
+    imageAsset: product.imageAsset,
+    imagePreviewUrl: product.imagePreviewUrl,
+    memberLevelId: product.memberLevelId,
+    stock: product.stock,
+    trackInventory: product.trackInventory,
+    fulfillmentModes: product.fulfillmentModes,
+    basePrice: product.basePrice,
+    specs: product.specs,
+    formulas: product.formulas,
+    priceOverrides: product.priceOverrides,
+    updatedAt: product.updatedAt
+  };
+}
+
+function createFallbackProductSummaryPage(
+  products: CatalogProductRecord[],
+  input: {
+    deliveryMode?: CustomerDeliveryMode;
+    availability: CatalogAvailabilityFilter;
+    limit?: number;
+  }
+): CatalogProductPage<CatalogProductSummaryRecord> {
+  const filtered = products
+    .map(pickProductSummary)
+    .filter((product) => matchesCustomerDeliveryMode(product, input.deliveryMode))
+    .filter((product) => {
+      const soldOut = isCustomerProductSoldOut(product);
+      return input.availability === 'soldOut' ? soldOut : !soldOut;
+    });
+  const limit = typeof input.limit === 'number' && input.limit > 0 ? input.limit : filtered.length;
+
+  return {
+    items: filtered.slice(0, limit),
+    hasMore: filtered.length > limit,
+    nextCursor: null
+  };
 }
 
 function mapCustomerProduct(product: CatalogProductRecord): CustomerCatalogProduct {
@@ -356,8 +416,7 @@ function mapCustomerProduct(product: CatalogProductRecord): CustomerCatalogProdu
 
 function mapCustomerProductSummary(product: CatalogProductSummaryRecord): CustomerProductListItem {
   const normalizedProduct = normalizeProductSummaryImageUrls(product);
-  const productForPricing = normalizedProduct as CatalogProductRecord;
-  const specs = getCustomerSpecs(productForPricing);
+  const specs = getCustomerSpecs(normalizedProduct);
   const thumbnail =
     getAssetUrl(normalizedProduct.imageAsset, 'thumbnail') ??
     normalizedProduct.imagePreviewUrl ??
@@ -372,7 +431,7 @@ function mapCustomerProductSummary(product: CatalogProductSummaryRecord): Custom
     categoryId: normalizedProduct.categoryId,
     minPrice: roundCurrency(specPrices.length ? Math.min(...specPrices) : normalizedProduct.basePrice),
     stock: normalizedProduct.stock,
-    soldOut: normalizedProduct.trackInventory && normalizedProduct.stock <= 0,
+    soldOut: isCustomerProductSoldOut(normalizedProduct),
     cartActionLabel: specs.length ? '选规格' : '直接加购',
     memberLevelLabel: normalizedProduct.memberLevelId ? '会员可购' : '普通会员可购',
     thumbnail,
@@ -474,11 +533,13 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
     }) {
       const page = catalogRepository.listCustomerCategoryProductSummaries
         ? await catalogRepository.listCustomerCategoryProductSummaries(input)
-        : ({
-            items: [],
-            hasMore: false,
-            nextCursor: null
-          } satisfies CatalogProductPage<CatalogProductSummaryRecord>);
+        : createFallbackProductSummaryPage(
+            await catalogRepository.listProducts({
+              categoryId: input.categoryId,
+              status: 'published'
+            }),
+            input
+          );
       const pageInfo: CatalogPageInfo = {
         hasMore: page.hasMore,
         nextCursor: page.nextCursor
