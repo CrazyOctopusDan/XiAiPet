@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildCatalogSections,
   getCatalogSectionState,
+  getCatalogSectionStates,
   getCatalogCategories,
   getProductDisplayPrice,
   getHomeModules,
@@ -126,7 +127,10 @@ describe('catalog service', () => {
       throw new Error(`Unexpected path: ${path}`);
     });
 
-    await hydrateCatalogCategories('delivery', apiRequest as Parameters<typeof hydrateCatalogCategories>[1]);
+    const categories = await hydrateCatalogCategories(
+      'delivery',
+      apiRequest as Parameters<typeof hydrateCatalogCategories>[1]
+    );
 
     expect(apiRequest).toHaveBeenCalledTimes(1);
     expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/catalog/categories?deliveryMode=delivery', {
@@ -134,7 +138,12 @@ describe('catalog service', () => {
       auth: 'none'
     });
     expect(apiRequest).not.toHaveBeenCalledWith('/api/v1/customer/catalog/products', expect.anything());
-    expect(getCatalogCategories()[0]).toMatchObject({
+    expect(categories[0]).toMatchObject({
+      id: 'cakes',
+      availableCount: 12,
+      soldOutCount: 2
+    });
+    expect(getCatalogCategories('delivery')[0]).toMatchObject({
       id: 'cakes',
       availableCount: 12,
       soldOutCount: 2
@@ -145,6 +154,44 @@ describe('catalog service', () => {
       availablePageInfo: { hasMore: false, nextCursor: null },
       soldOutPageInfo: { hasMore: false, nextCursor: null }
     });
+  });
+
+  it('keeps category cache scoped by delivery mode when hydrating customer summaries', async () => {
+    const apiRequest = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/catalog/categories?deliveryMode=delivery') {
+        return {
+          ok: true,
+          categories: [{ id: 'delivery-cakes', name: '配送蛋糕', availableCount: 3 }]
+        };
+      }
+      if (path === '/api/v1/customer/catalog/categories?deliveryMode=pickup') {
+        return {
+          ok: true,
+          categories: [{ id: 'pickup-snacks', name: '自取零食', availableCount: 2 }]
+        };
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    await hydrateCatalogCategories('delivery', apiRequest as Parameters<typeof hydrateCatalogCategories>[1]);
+    await hydrateCatalogCategories('pickup', apiRequest as Parameters<typeof hydrateCatalogCategories>[1]);
+
+    expect(getCatalogCategories('delivery').map((category) => category.id)).toEqual(['delivery-cakes']);
+    expect(getCatalogCategories('pickup').map((category) => category.id)).toEqual(['pickup-snacks']);
+    expect(getCatalogCategories().map((category) => category.id)).not.toEqual(['pickup-snacks']);
+    expect(getCatalogSectionStates('delivery').map((section) => section.category.id)).toEqual(['delivery-cakes']);
+  });
+
+  it('removes stale section states when a delivery mode category snapshot changes', async () => {
+    const apiRequest = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, categories: [{ id: 'old-cakes', name: '旧蛋糕' }] })
+      .mockResolvedValueOnce({ ok: true, categories: [{ id: 'new-cakes', name: '新蛋糕' }] });
+
+    await hydrateCatalogCategories('delivery', apiRequest as Parameters<typeof hydrateCatalogCategories>[1]);
+    await hydrateCatalogCategories('delivery', apiRequest as Parameters<typeof hydrateCatalogCategories>[1]);
+
+    expect(getCatalogSectionStates('delivery').map((section) => section.category.id)).toEqual(['new-cakes']);
   });
 
   it('loads available and sold-out category pages separately into section state', async () => {
@@ -249,6 +296,123 @@ describe('catalog service', () => {
       '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=available&limit=12&cursor=page-2',
       { method: 'GET', auth: 'none' }
     );
+  });
+
+  it('deduplicates overlapping category product pages by product id', async () => {
+    const apiRequest = vi.fn(async (path: string) => ({
+      ok: true,
+      categoryId: 'cakes',
+      availability: 'available',
+      items: path.includes('cursor=page-2')
+        ? [
+            {
+              id: 'first-cake',
+              name: '第一页蛋糕更新',
+              summary: '低糖',
+              categoryId: 'cakes',
+              minPrice: 98,
+              stock: 2,
+              soldOut: false,
+              cartActionLabel: '直接加购',
+              memberLevelLabel: '普通会员可购',
+              thumbnail: '',
+              updatedAt: '2026-06-01T00:00:01.000Z'
+            },
+            {
+              id: 'second-cake',
+              name: '第二页蛋糕',
+              summary: '低糖',
+              categoryId: 'cakes',
+              minPrice: 88,
+              stock: 1,
+              soldOut: false,
+              cartActionLabel: '直接加购',
+              memberLevelLabel: '普通会员可购',
+              thumbnail: '',
+              updatedAt: '2026-06-01T00:00:02.000Z'
+            }
+          ]
+        : [
+            {
+              id: 'first-cake',
+              name: '第一页蛋糕',
+              summary: '低糖',
+              categoryId: 'cakes',
+              minPrice: 88,
+              stock: 1,
+              soldOut: false,
+              cartActionLabel: '直接加购',
+              memberLevelLabel: '普通会员可购',
+              thumbnail: '',
+              updatedAt: '2026-06-01T00:00:00.000Z'
+            }
+          ],
+      pageInfo: path.includes('cursor=page-2')
+        ? { hasMore: false, nextCursor: null }
+        : { hasMore: true, nextCursor: 'page-2' },
+      snapshotKey: 'cakes-page'
+    }));
+
+    await hydrateCatalogCategories(
+      'delivery',
+      vi.fn().mockResolvedValue({ ok: true, categories: [{ id: 'cakes', name: '蛋糕' }] }) as Parameters<
+        typeof hydrateCatalogCategories
+      >[1]
+    );
+    await loadCategoryProducts(
+      { deliveryMode: 'delivery', categoryId: 'cakes', availability: 'available' },
+      apiRequest as Parameters<typeof loadCategoryProducts>[1]
+    );
+    await loadCategoryProducts(
+      { deliveryMode: 'delivery', categoryId: 'cakes', availability: 'available', cursor: 'page-2' },
+      apiRequest as Parameters<typeof loadCategoryProducts>[1]
+    );
+
+    expect(getCatalogSectionState('delivery', 'cakes').availableProducts).toEqual([
+      expect.objectContaining({ id: 'first-cake', name: '第一页蛋糕更新', price: 98 }),
+      expect.objectContaining({ id: 'second-cake' })
+    ]);
+  });
+
+  it('prefers complete product records over loaded list summaries for product lookup', async () => {
+    await hydrateCatalogCategories(
+      'delivery',
+      vi.fn().mockResolvedValue({ ok: true, categories: [{ id: 'cakes', name: '蛋糕' }] }) as Parameters<
+        typeof hydrateCatalogCategories
+      >[1]
+    );
+    await loadCategoryProducts(
+      { deliveryMode: 'delivery', categoryId: 'cakes', availability: 'available' },
+      vi.fn().mockResolvedValue({
+        ok: true,
+        items: [
+          {
+            id: 'ocean-party',
+            name: '海洋奇遇',
+            summary: '列表短描述',
+            categoryId: 'cakes',
+            minPrice: 168,
+            stock: 1,
+            soldOut: false,
+            fulfillmentModes: ['delivery', 'pickup'],
+            cartActionLabel: '选规格',
+            memberLevelLabel: '普通会员可购',
+            thumbnail: '',
+            updatedAt: '2026-06-01T00:00:00.000Z'
+          }
+        ],
+        pageInfo: { hasMore: false, nextCursor: null }
+      }) as Parameters<typeof loadCategoryProducts>[1]
+    );
+
+    const product = getProductById('ocean-party');
+
+    expect(product).toMatchObject({
+      id: 'ocean-party',
+      description: expect.not.stringMatching('列表短描述'),
+      deliveryModes: expect.arrayContaining(['delivery', 'pickup'])
+    });
+    expect(product?.specs.length).toBeGreaterThan(0);
   });
 
   it('searches catalog products through the service-side search route without local full-product cache', async () => {

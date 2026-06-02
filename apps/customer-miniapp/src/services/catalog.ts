@@ -99,12 +99,17 @@ export async function resolveHomeModuleImageSources(
   }));
 }
 
-export function getCatalogCategories(): CatalogCategoryWithCounts[] {
+export function getCatalogCategories(mode?: DeliveryMode): CatalogCategoryWithCounts[] {
+  if (mode) {
+    return cloneCategories(categoryCache.get(mode) ?? []);
+  }
+
   return cloneCategories(cachedCatalogCategories);
 }
 
-export function getCategoryById(categoryId: string) {
-  return cachedCatalogCategories.find((category) => category.id === categoryId) ?? null;
+export function getCategoryById(categoryId: string, mode?: DeliveryMode) {
+  const categories = mode ? categoryCache.get(mode) ?? [] : cachedCatalogCategories;
+  return categories.find((category) => category.id === categoryId) ?? null;
 }
 
 export function getDeliveryModes(): Array<{ id: DeliveryMode; label: string }> {
@@ -160,11 +165,6 @@ export function getProductById(productId: string): CatalogProduct | null {
     return cloneProducts([detailProduct])[0] ?? null;
   }
 
-  const summaryProduct = findLoadedProductSummary(productId);
-  if (summaryProduct) {
-    return summaryToCatalogProduct(summaryProduct.product, summaryProduct.deliveryMode);
-  }
-
   const cachedProduct = cachedCatalogProducts.find((product) => product.id === productId);
   if (cachedProduct) {
     return cloneProducts([cachedProduct])[0] ?? null;
@@ -172,7 +172,14 @@ export function getProductById(productId: string): CatalogProduct | null {
 
   if (shouldUseLocalCatalogFixtures()) {
     const fixtureProduct = catalogProducts.find((product) => product.id === productId);
-    return fixtureProduct ? cloneProducts([fixtureProduct])[0] ?? null : null;
+    if (fixtureProduct) {
+      return cloneProducts([fixtureProduct])[0] ?? null;
+    }
+  }
+
+  const summaryProduct = findLoadedProductSummary(productId);
+  if (summaryProduct) {
+    return summaryToCatalogProduct(summaryProduct.product, summaryProduct.deliveryMode);
   }
 
   return null;
@@ -474,6 +481,7 @@ function normalizeProductSummary(product: unknown): CatalogProductSummary | null
           : '直接加购',
     memberLevelLabel: asString(product.memberLevelLabel, product.memberLevelId ? '会员可购' : '普通会员可购'),
     categoryId,
+    deliveryModes: normalizeDeliveryModes(product),
     thumbnail,
     specs,
     updatedAt: asString(product.updatedAt)
@@ -500,6 +508,7 @@ function cloneProducts(products: CatalogProduct[]): CatalogProduct[] {
 function cloneProductSummaries(products: CatalogProductSummary[]): CatalogProductSummary[] {
   return products.map((product) => ({
     ...product,
+    deliveryModes: [...product.deliveryModes],
     specs: product.specs.map((spec) => ({ ...spec }))
   }));
 }
@@ -521,6 +530,15 @@ function normalizePageInfo(pageInfo: Partial<CatalogPageInfo> | undefined): Cata
 
 function sectionKey(mode: DeliveryMode, categoryId: string) {
   return `${mode}:${categoryId}`;
+}
+
+function parseSectionKey(key: string): { mode: DeliveryMode; categoryId: string } | null {
+  const [mode, ...categoryIdParts] = key.split(':');
+  if (!isDeliveryMode(mode)) {
+    return null;
+  }
+
+  return { mode, categoryId: categoryIdParts.join(':') };
 }
 
 function createFallbackCategory(categoryId: string): CatalogCategoryWithCounts {
@@ -592,7 +610,7 @@ function summaryToCatalogProduct(product: CatalogProductSummary, deliveryMode: D
     cartActionLabel: product.cartActionLabel,
     memberLevelLabel: product.memberLevelLabel,
     categoryId: product.categoryId,
-    deliveryModes: [deliveryMode],
+    deliveryModes: product.deliveryModes.length ? [...product.deliveryModes] : [deliveryMode],
     thumbnail: product.thumbnail,
     quickBuyImage: product.thumbnail,
     gallery: product.thumbnail ? [product.thumbnail] : [],
@@ -603,14 +621,50 @@ function summaryToCatalogProduct(product: CatalogProductSummary, deliveryMode: D
 
 function findLoadedProductSummary(productId: string): { product: CatalogProductSummary; deliveryMode: DeliveryMode } | null {
   for (const [key, section] of sectionCache) {
-    const [deliveryMode] = key.split(':') as [DeliveryMode, string];
+    const parsedKey = parseSectionKey(key);
+    if (!parsedKey) {
+      continue;
+    }
+
     const product = [...section.availableProducts, ...section.soldOutProducts].find((item) => item.id === productId);
     if (product) {
-      return { product, deliveryMode };
+      return { product, deliveryMode: parsedKey.mode };
     }
   }
 
   return null;
+}
+
+function mergeProductSummaries(
+  existingProducts: CatalogProductSummary[],
+  incomingProducts: CatalogProductSummary[]
+): CatalogProductSummary[] {
+  const productsById = new Map<string, CatalogProductSummary>();
+  const orderedIds: string[] = [];
+
+  existingProducts.forEach((product) => {
+    productsById.set(product.id, product);
+    orderedIds.push(product.id);
+  });
+  incomingProducts.forEach((product) => {
+    if (!productsById.has(product.id)) {
+      orderedIds.push(product.id);
+    }
+    productsById.set(product.id, product);
+  });
+
+  return orderedIds
+    .map((productId) => productsById.get(productId))
+    .filter((product): product is CatalogProductSummary => Boolean(product));
+}
+
+function pruneSectionCacheForMode(mode: DeliveryMode, categoryIds: Set<string>) {
+  Array.from(sectionCache.keys()).forEach((key) => {
+    const parsedKey = parseSectionKey(key);
+    if (parsedKey?.mode === mode && !categoryIds.has(parsedKey.categoryId)) {
+      sectionCache.delete(key);
+    }
+  });
 }
 
 export function resolveCatalogProductAssetUrls(product: CatalogProduct): CatalogProduct {
@@ -659,7 +713,7 @@ export async function hydrateCatalogCategories(
     : [];
 
   categoryCache.set(mode, cloneCategories(categories));
-  cachedCatalogCategories = cloneCategories(categories);
+  pruneSectionCacheForMode(mode, new Set(categories.map((category) => category.id)));
   categories.forEach((category) => {
     const key = sectionKey(mode, category.id);
     const existing = sectionCache.get(key);
@@ -670,7 +724,7 @@ export async function hydrateCatalogCategories(
     sectionCache.set(key, createEmptySectionState(category));
   });
 
-  return getCatalogCategories();
+  return getCatalogCategories(mode);
 }
 
 export async function loadCategoryProducts(
@@ -711,11 +765,11 @@ export async function loadCategoryProducts(
       : [];
 
     if (input.availability === 'soldOut') {
-      section.soldOutProducts = input.cursor ? [...section.soldOutProducts, ...products] : products;
+      section.soldOutProducts = input.cursor ? mergeProductSummaries(section.soldOutProducts, products) : products;
       section.soldOutPageInfo = normalizePageInfo(response.pageInfo);
       section.isSoldOutLoading = false;
     } else {
-      section.availableProducts = input.cursor ? [...section.availableProducts, ...products] : products;
+      section.availableProducts = input.cursor ? mergeProductSummaries(section.availableProducts, products) : products;
       section.availablePageInfo = normalizePageInfo(response.pageInfo);
       section.isAvailableLoading = false;
     }

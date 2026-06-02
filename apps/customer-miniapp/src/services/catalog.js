@@ -60,12 +60,17 @@ async function resolveHomeModuleImageSources(resolveImages = defaultResolveHomeM
         });
     });
 }
-function getCatalogCategories() {
+function getCatalogCategories(mode) {
+    var _a;
+    if (mode) {
+        return cloneCategories((_a = categoryCache.get(mode)) !== null && _a !== void 0 ? _a : []);
+    }
     return cloneCategories(cachedCatalogCategories);
 }
-function getCategoryById(categoryId) {
-    var _a;
-    return (_a = cachedCatalogCategories.find((category) => category.id === categoryId)) !== null && _a !== void 0 ? _a : null;
+function getCategoryById(categoryId, mode) {
+    var _a, _b;
+    const categories = mode ? (_a = categoryCache.get(mode)) !== null && _a !== void 0 ? _a : [] : cachedCatalogCategories;
+    return (_b = categories.find((category) => category.id === categoryId)) !== null && _b !== void 0 ? _b : null;
 }
 function getDeliveryModes() {
     return [
@@ -110,17 +115,19 @@ function getProductById(productId) {
     if (detailProduct) {
         return (_a = cloneProducts([detailProduct])[0]) !== null && _a !== void 0 ? _a : null;
     }
-    const summaryProduct = findLoadedProductSummary(productId);
-    if (summaryProduct) {
-        return summaryToCatalogProduct(summaryProduct.product, summaryProduct.deliveryMode);
-    }
     const cachedProduct = cachedCatalogProducts.find((product) => product.id === productId);
     if (cachedProduct) {
         return (_b = cloneProducts([cachedProduct])[0]) !== null && _b !== void 0 ? _b : null;
     }
     if (shouldUseLocalCatalogFixtures()) {
         const fixtureProduct = catalog_1.catalogProducts.find((product) => product.id === productId);
-        return fixtureProduct ? (_c = cloneProducts([fixtureProduct])[0]) !== null && _c !== void 0 ? _c : null : null;
+        if (fixtureProduct) {
+            return (_c = cloneProducts([fixtureProduct])[0]) !== null && _c !== void 0 ? _c : null;
+        }
+    }
+    const summaryProduct = findLoadedProductSummary(productId);
+    if (summaryProduct) {
+        return summaryToCatalogProduct(summaryProduct.product, summaryProduct.deliveryMode);
     }
     return null;
 }
@@ -366,6 +373,7 @@ function normalizeProductSummary(product) {
                 : '直接加购',
         memberLevelLabel: asString(product.memberLevelLabel, product.memberLevelId ? '会员可购' : '普通会员可购'),
         categoryId,
+        deliveryModes: normalizeDeliveryModes(product),
         thumbnail,
         specs,
         updatedAt: asString(product.updatedAt)
@@ -389,6 +397,7 @@ function cloneProducts(products) {
 function cloneProductSummaries(products) {
     return products.map((product) => ({
         ...product,
+        deliveryModes: [...product.deliveryModes],
         specs: product.specs.map((spec) => ({ ...spec }))
     }));
 }
@@ -406,6 +415,13 @@ function normalizePageInfo(pageInfo) {
 }
 function sectionKey(mode, categoryId) {
     return `${mode}:${categoryId}`;
+}
+function parseSectionKey(key) {
+    const [mode, ...categoryIdParts] = key.split(':');
+    if (!isDeliveryMode(mode)) {
+        return null;
+    }
+    return { mode, categoryId: categoryIdParts.join(':') };
 }
 function createFallbackCategory(categoryId) {
     return {
@@ -468,7 +484,7 @@ function summaryToCatalogProduct(product, deliveryMode) {
         cartActionLabel: product.cartActionLabel,
         memberLevelLabel: product.memberLevelLabel,
         categoryId: product.categoryId,
-        deliveryModes: [deliveryMode],
+        deliveryModes: product.deliveryModes.length ? [...product.deliveryModes] : [deliveryMode],
         thumbnail: product.thumbnail,
         quickBuyImage: product.thumbnail,
         gallery: product.thumbnail ? [product.thumbnail] : [],
@@ -478,13 +494,41 @@ function summaryToCatalogProduct(product, deliveryMode) {
 }
 function findLoadedProductSummary(productId) {
     for (const [key, section] of sectionCache) {
-        const [deliveryMode] = key.split(':');
+        const parsedKey = parseSectionKey(key);
+        if (!parsedKey) {
+            continue;
+        }
         const product = [...section.availableProducts, ...section.soldOutProducts].find((item) => item.id === productId);
         if (product) {
-            return { product, deliveryMode };
+            return { product, deliveryMode: parsedKey.mode };
         }
     }
     return null;
+}
+function mergeProductSummaries(existingProducts, incomingProducts) {
+    const productsById = new Map();
+    const orderedIds = [];
+    existingProducts.forEach((product) => {
+        productsById.set(product.id, product);
+        orderedIds.push(product.id);
+    });
+    incomingProducts.forEach((product) => {
+        if (!productsById.has(product.id)) {
+            orderedIds.push(product.id);
+        }
+        productsById.set(product.id, product);
+    });
+    return orderedIds
+        .map((productId) => productsById.get(productId))
+        .filter((product) => Boolean(product));
+}
+function pruneSectionCacheForMode(mode, categoryIds) {
+    Array.from(sectionCache.keys()).forEach((key) => {
+        const parsedKey = parseSectionKey(key);
+        if ((parsedKey === null || parsedKey === void 0 ? void 0 : parsedKey.mode) === mode && !categoryIds.has(parsedKey.categoryId)) {
+            sectionCache.delete(key);
+        }
+    });
 }
 function resolveCatalogProductAssetUrls(product) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
@@ -524,7 +568,7 @@ async function hydrateCatalogCategories(mode, request = api_client_1.customerApi
         ? response.categories.map(normalizeCategoryWithCounts).filter(Boolean)
         : [];
     categoryCache.set(mode, cloneCategories(categories));
-    cachedCatalogCategories = cloneCategories(categories);
+    pruneSectionCacheForMode(mode, new Set(categories.map((category) => category.id)));
     categories.forEach((category) => {
         const key = sectionKey(mode, category.id);
         const existing = sectionCache.get(key);
@@ -534,7 +578,7 @@ async function hydrateCatalogCategories(mode, request = api_client_1.customerApi
         }
         sectionCache.set(key, createEmptySectionState(category));
     });
-    return getCatalogCategories();
+    return getCatalogCategories(mode);
 }
 async function loadCategoryProducts(input, request = api_client_1.customerApiRequest) {
     const params = [
@@ -561,12 +605,12 @@ async function loadCategoryProducts(input, request = api_client_1.customerApiReq
             ? response.items.map(normalizeProductSummary).filter(Boolean)
             : [];
         if (input.availability === 'soldOut') {
-            section.soldOutProducts = input.cursor ? [...section.soldOutProducts, ...products] : products;
+            section.soldOutProducts = input.cursor ? mergeProductSummaries(section.soldOutProducts, products) : products;
             section.soldOutPageInfo = normalizePageInfo(response.pageInfo);
             section.isSoldOutLoading = false;
         }
         else {
-            section.availableProducts = input.cursor ? [...section.availableProducts, ...products] : products;
+            section.availableProducts = input.cursor ? mergeProductSummaries(section.availableProducts, products) : products;
             section.availablePageInfo = normalizePageInfo(response.pageInfo);
             section.isAvailableLoading = false;
         }

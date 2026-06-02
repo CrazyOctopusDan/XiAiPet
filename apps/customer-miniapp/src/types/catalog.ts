@@ -70,6 +70,7 @@ export type CatalogProductSummary = Pick<
   | 'soldOut'
   | 'cartActionLabel'
   | 'memberLevelLabel'
+  | 'deliveryModes'
   | 'thumbnail'
   | 'specs'
 > & {
