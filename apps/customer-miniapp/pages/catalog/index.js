@@ -101,20 +101,14 @@ Page({
         });
     },
     async loadInitialCategoryProducts(mode) {
-        var _a;
-        const firstCategoryId = (_a = getVisibleCategories(mode)[0]) === null || _a === void 0 ? void 0 : _a.id;
-        if (!firstCategoryId) {
-            return;
-        }
-        const section = (0, catalog_1.getCatalogSectionState)(mode, firstCategoryId);
-        if (section.availableProducts.length || !section.category.availableCount) {
-            return;
-        }
-        await (0, catalog_1.loadCategoryProducts)({
+        const sectionsToLoad = getVisibleCategories(mode)
+            .map((category) => (0, catalog_1.getCatalogSectionState)(mode, category.id))
+            .filter((section) => section.category.availableCount > 0 && !section.availableProducts.length);
+        await Promise.all(sectionsToLoad.map((section) => (0, catalog_1.loadCategoryProducts)({
             deliveryMode: mode,
-            categoryId: firstCategoryId,
+            categoryId: section.category.id,
             availability: 'available'
-        });
+        })));
     },
     syncCartState() {
         var _a, _b, _c, _d, _e, _f;

@@ -175,21 +175,19 @@ Page({
     });
   },
   async loadInitialCategoryProducts(this: CatalogPageInstance, mode: DeliveryMode) {
-    const firstCategoryId = getVisibleCategories(mode)[0]?.id;
-    if (!firstCategoryId) {
-      return;
-    }
+    const sectionsToLoad = getVisibleCategories(mode)
+      .map((category) => getCatalogSectionState(mode, category.id))
+      .filter((section) => section.category.availableCount > 0 && !section.availableProducts.length);
 
-    const section = getCatalogSectionState(mode, firstCategoryId);
-    if (section.availableProducts.length || !section.category.availableCount) {
-      return;
-    }
-
-    await loadCategoryProducts({
-      deliveryMode: mode,
-      categoryId: firstCategoryId,
-      availability: 'available'
-    });
+    await Promise.all(
+      sectionsToLoad.map((section) =>
+        loadCategoryProducts({
+          deliveryMode: mode,
+          categoryId: section.category.id,
+          availability: 'available'
+        })
+      )
+    );
   },
   syncCartState(this: CatalogPageInstance) {
     const sections = toPageSections(this.data.activeDeliveryMode, this.data.expandedSoldOutCategoryIds);

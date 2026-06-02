@@ -23,6 +23,7 @@ exports.hydrateCatalog = hydrateCatalog;
 const catalog_1 = require("../data/catalog");
 const api_client_1 = require("./api-client");
 const DEFAULT_PRODUCT_DETAIL_IMAGES = [];
+const CATEGORY_PRODUCTS_PAGE_SIZE = 20;
 const OSS_DISPLAY_RULES = {
     thumbnail: 'image/resize,m_fill,w_360,h_360/format,webp/quality,q_76',
     display: 'image/resize,m_fill,w_720,h_720/format,webp/quality,q_80',
@@ -584,7 +585,7 @@ async function loadCategoryProducts(input, request = api_client_1.customerApiReq
     const params = [
         `deliveryMode=${input.deliveryMode}`,
         `availability=${input.availability}`,
-        'limit=12'
+        `limit=${CATEGORY_PRODUCTS_PAGE_SIZE}`
     ];
     if (input.cursor) {
         params.push(`cursor=${encodeURIComponent(input.cursor)}`);

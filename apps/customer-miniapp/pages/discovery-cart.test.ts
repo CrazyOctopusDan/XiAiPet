@@ -126,7 +126,7 @@ describe('discovery cart pages', () => {
     expect(catalogStyles).toContain('.quick-buy-submit::after');
   });
 
-  it('hydrates the catalog page with merchant-configured customer categories on load', async () => {
+  it('hydrates the catalog page with the first available page for every customer category on load', async () => {
     const apiRequest = vi.fn(async (path: string) => {
       if (path === '/api/v1/customer/catalog/categories?deliveryMode=delivery') {
         return {
@@ -139,12 +139,19 @@ describe('discovery cart pages', () => {
               iconToken: '节',
               availableCount: 1,
               soldOutCount: 0
+            },
+            {
+              id: 'merchant-cakes',
+              name: '宠物蛋糕',
+              iconToken: '糕',
+              availableCount: 1,
+              soldOutCount: 0
             }
           ]
         };
       }
 
-      if (path === '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=12') {
+      if (path === '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=20') {
         return {
           ok: true,
           categoryId: 'merchant-seasonal',
@@ -170,6 +177,32 @@ describe('discovery cart pages', () => {
         };
       }
 
+      if (path === '/api/v1/customer/catalog/categories/merchant-cakes/products?deliveryMode=delivery&availability=available&limit=20') {
+        return {
+          ok: true,
+          categoryId: 'merchant-cakes',
+          availability: 'available',
+          items: [
+            {
+              id: 'merchant-birthday-cake',
+              name: '生日蛋糕',
+              summary: '默认加载的第二个品类商品',
+              categoryId: 'merchant-cakes',
+              minPrice: 168,
+              stock: 5,
+              soldOut: false,
+              cartActionLabel: '选规格',
+              memberLevelLabel: '普通会员可购',
+              thumbnail: '',
+              specs: [{ id: 'small', label: '小号', price: 168, stock: 5 }],
+              fulfillmentModes: ['delivery'],
+              updatedAt: '2026-05-16T00:00:00.000Z'
+            }
+          ],
+          pageInfo: { hasMore: false, nextCursor: null }
+        };
+      }
+
       throw new Error(`Unexpected path: ${path}`);
     });
 
@@ -187,7 +220,14 @@ describe('discovery cart pages', () => {
       auth: 'none'
     });
     expect(apiRequest).toHaveBeenCalledWith(
-      '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=12',
+      '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=20',
+      {
+        method: 'GET',
+        auth: 'none'
+      }
+    );
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/api/v1/customer/catalog/categories/merchant-cakes/products?deliveryMode=delivery&availability=available&limit=20',
       {
         method: 'GET',
         auth: 'none'
@@ -203,10 +243,18 @@ describe('discovery cart pages', () => {
         name: '节日限定',
         shortName: '节日限定',
         iconText: '节'
+      }),
+      expect.objectContaining({
+        id: 'merchant-cakes',
+        name: '宠物蛋糕',
+        shortName: '宠物蛋糕',
+        iconText: '糕'
       })
     ]);
     expect(instance.data.sections[0]?.category.id).toBe('merchant-seasonal');
     expect(instance.data.sections[0]?.availableProducts[0]?.name).toBe('南瓜小蛋糕');
+    expect(instance.data.sections[1]?.category.id).toBe('merchant-cakes');
+    expect(instance.data.sections[1]?.availableProducts[0]?.name).toBe('生日蛋糕');
   });
 
   it('rebuilds hydrated catalog sections when returning from product detail', async () => {
@@ -226,7 +274,7 @@ describe('discovery cart pages', () => {
         };
       }
 
-      if (path === '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=12') {
+      if (path === '/api/v1/customer/catalog/categories/merchant-seasonal/products?deliveryMode=delivery&availability=available&limit=20') {
         return {
           ok: true,
           items: [

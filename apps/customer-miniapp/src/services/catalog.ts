@@ -57,6 +57,7 @@ interface CustomerProductDetailResponse {
 }
 
 const DEFAULT_PRODUCT_DETAIL_IMAGES: string[] = [];
+const CATEGORY_PRODUCTS_PAGE_SIZE = 20;
 const OSS_DISPLAY_RULES: Partial<Record<OssAssetVariantName, string>> = {
   thumbnail: 'image/resize,m_fill,w_360,h_360/format,webp/quality,q_76',
   display: 'image/resize,m_fill,w_720,h_720/format,webp/quality,q_80',
@@ -739,7 +740,7 @@ export async function loadCategoryProducts(
   const params = [
     `deliveryMode=${input.deliveryMode}`,
     `availability=${input.availability}`,
-    'limit=12'
+    `limit=${CATEGORY_PRODUCTS_PAGE_SIZE}`
   ];
   if (input.cursor) {
     params.push(`cursor=${encodeURIComponent(input.cursor)}`);

@@ -238,11 +238,11 @@ describe('catalog service', () => {
     expect(section.availableProducts.map((item) => item.id)).toEqual(['fresh-cake']);
     expect(section.soldOutProducts.map((item) => item.id)).toEqual(['sold-out-cake']);
     expect(apiRequest).toHaveBeenCalledWith(
-      '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=available&limit=12',
+      '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=available&limit=20',
       { method: 'GET', auth: 'none' }
     );
     expect(apiRequest).toHaveBeenCalledWith(
-      '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=soldOut&limit=12',
+      '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=soldOut&limit=20',
       { method: 'GET', auth: 'none' }
     );
   });
@@ -293,7 +293,7 @@ describe('catalog service', () => {
     expect(section.availableProducts.map((item) => item.id)).toEqual(['first-cake', 'second-cake']);
     expect(section.availablePageInfo).toEqual({ hasMore: false, nextCursor: null });
     expect(apiRequest).toHaveBeenLastCalledWith(
-      '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=available&limit=12&cursor=page-2',
+      '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=available&limit=20&cursor=page-2',
       { method: 'GET', auth: 'none' }
     );
   });
