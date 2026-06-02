@@ -45,6 +45,8 @@ export interface ApiRouteServices {
       categoryId: string;
       deliveryMode?: 'pickup' | 'delivery' | 'express';
       availability: 'available' | 'soldOut';
+      keyword?: string;
+      sort?: 'latest';
       limit?: number;
       cursor?: string;
     }): AsyncResult;

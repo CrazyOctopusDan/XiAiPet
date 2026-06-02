@@ -361,6 +361,50 @@ function createPage<T extends Pick<CatalogProductSummaryRecord, 'id' | 'updatedA
   };
 }
 
+async function createBoundedFilteredSummaryPage(
+  client: DbClient,
+  input: {
+    where: Prisma.ProductWhereInput;
+    limit: number;
+    cursor?: string;
+    filter(product: MerchantProductSummaryRecord): boolean;
+  }
+): Promise<CatalogProductPage<CatalogProductSummaryRecord>> {
+  const collected: MerchantProductSummaryRecord[] = [];
+  const chunkSize = Math.min(MAX_PAGE_LIMIT, Math.max(input.limit + 1, input.limit * 3));
+  let currentCursor = input.cursor;
+
+  while (collected.length <= input.limit) {
+    const products = await client.product.findMany({
+      where: {
+        ...input.where,
+        AND: [
+          ...(Array.isArray(input.where.AND) ? input.where.AND : []),
+          createCursorWhere(currentCursor)
+        ].filter(Boolean) as Prisma.ProductWhereInput[]
+      },
+      select: productSummarySelect,
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+      take: chunkSize
+    });
+
+    if (products.length === 0) {
+      break;
+    }
+
+    const summaries = products.map(mapProductSummary);
+    collected.push(...summaries.filter(input.filter));
+
+    if (products.length < chunkSize) {
+      break;
+    }
+
+    currentCursor = encodeCatalogCursor(summaries[summaries.length - 1]);
+  }
+
+  return createPage(collected, input.limit);
+}
+
 function createSnapshotKey(parts: unknown[]) {
   return Buffer.from(JSON.stringify(parts), 'utf8').toString('base64url');
 }
@@ -441,22 +485,18 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       cursor?: string;
     }): Promise<CatalogProductPage<CatalogProductSummaryRecord>> {
       const limit = clampPageLimit(input.limit);
-      const products = await client.product.findMany({
+      return createBoundedFilteredSummaryPage(client, {
         where: {
           status: PRODUCT_STATUS.published,
           categoryId: input.categoryId,
-          AND: [createKeywordWhere(input.keyword), createCursorWhere(input.cursor)].filter(Boolean) as Prisma.ProductWhereInput[]
+          AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
         },
-        select: productSummarySelect,
-        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+        limit,
+        cursor: input.cursor,
+        filter: (product) =>
+          matchesDeliveryMode(product, input.deliveryMode) &&
+          matchesAvailability(product, input.availability)
       });
-      // fulfillmentModes remains JSON in this phase; at 500-product scale, filtering the indexed scope in memory is acceptable.
-      const filtered = products
-        .map(mapProductSummary)
-        .filter((product) => matchesDeliveryMode(product, input.deliveryMode))
-        .filter((product) => matchesAvailability(product, input.availability));
-
-      return createPage(filtered, limit);
     },
 
     async searchCustomerProductSummaries(input: {
@@ -466,19 +506,15 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       cursor?: string;
     }): Promise<CatalogProductPage<CatalogProductSummaryRecord>> {
       const limit = clampPageLimit(input.limit);
-      const products = await client.product.findMany({
+      return createBoundedFilteredSummaryPage(client, {
         where: {
           status: PRODUCT_STATUS.published,
-          AND: [createKeywordWhere(input.keyword), createCursorWhere(input.cursor)].filter(Boolean) as Prisma.ProductWhereInput[]
+          AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
         },
-        select: productSummarySelect,
-        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+        limit,
+        cursor: input.cursor,
+        filter: (product) => matchesDeliveryMode(product, input.deliveryMode)
       });
-      const filtered = products
-        .map(mapProductSummary)
-        .filter((product) => matchesDeliveryMode(product, input.deliveryMode));
-
-      return createPage(filtered, limit);
     },
 
     async createCustomerCategorySnapshotKey(filters: { deliveryMode?: CatalogDeliveryModeFilter } = {}): Promise<string> {

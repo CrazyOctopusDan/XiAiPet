@@ -67,7 +67,7 @@ describe('customer catalog and runtime config routes', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=soldOut&limit=6'
+      url: '/api/v1/customer/catalog/categories/cakes/products?deliveryMode=delivery&availability=soldOut&keyword=%E5%8D%97%E7%93%9C&sort=latest&limit=6'
     });
 
     expect(response.statusCode).toBe(200);
@@ -75,6 +75,8 @@ describe('customer catalog and runtime config routes', () => {
       categoryId: 'cakes',
       deliveryMode: 'delivery',
       availability: 'soldOut',
+      keyword: '南瓜',
+      sort: 'latest',
       limit: 6,
       cursor: undefined
     });

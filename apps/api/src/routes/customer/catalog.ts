@@ -4,6 +4,7 @@ import type { ApiRouteDependencies } from '../dependencies';
 
 type CustomerDeliveryMode = 'pickup' | 'delivery' | 'express';
 type CatalogAvailability = 'available' | 'soldOut';
+type CatalogSort = 'latest';
 
 function parseDeliveryMode(value: unknown): CustomerDeliveryMode | undefined {
   return value === 'pickup' || value === 'delivery' || value === 'express' ? value : undefined;
@@ -11,6 +12,10 @@ function parseDeliveryMode(value: unknown): CustomerDeliveryMode | undefined {
 
 function parseAvailability(value: unknown): CatalogAvailability {
   return value === 'soldOut' ? 'soldOut' : 'available';
+}
+
+function parseSort(value: unknown): CatalogSort | undefined {
+  return value === 'latest' ? 'latest' : undefined;
 }
 
 function parsePositiveInteger(value: unknown): number | undefined {
@@ -46,6 +51,8 @@ export async function customerCatalogRoutes(
       categoryId: params.categoryId,
       deliveryMode: parseDeliveryMode(query.deliveryMode),
       availability: parseAvailability(query.availability),
+      keyword: parseString(query.keyword),
+      sort: parseSort(query.sort),
       limit: parsePositiveInteger(query.limit),
       cursor: parseString(query.cursor)
     });
