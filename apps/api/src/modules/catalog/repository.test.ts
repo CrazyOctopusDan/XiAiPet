@@ -34,6 +34,11 @@ function createProductRows(prefix: string, count: number, fulfillmentModes: stri
   );
 }
 
+function queryText(query: unknown) {
+  const candidate = query as { strings?: string[] };
+  return Array.isArray(candidate.strings) ? candidate.strings.join(' ') : String(query);
+}
+
 describe('catalog repository', () => {
   it('uses aggregate count metadata for customer category navigation', async () => {
     const categoryFindMany = vi.fn(async () => [
@@ -49,13 +54,15 @@ describe('catalog repository', () => {
     const productFindMany = vi.fn(async () => {
       throw new Error('category navigation must not fetch product rows');
     });
-    const count = vi.fn(async ({ where }: { where: Record<string, unknown> }) => (
-      where.trackInventory === true ? 2 : 8
-    ));
-    const aggregate = vi.fn(async () => ({ _max: { updatedAt: new Date('2026-06-01T12:00:00.000Z') } }));
+    const queryRaw = vi
+      .fn()
+      .mockResolvedValueOnce([{ count: 8n }])
+      .mockResolvedValueOnce([{ count: 2n }])
+      .mockResolvedValueOnce([{ maxUpdatedAt: new Date('2026-06-01T12:00:00.000Z') }]);
     const repository = createCatalogRepository({
       category: { findMany: categoryFindMany },
-      product: { findMany: productFindMany, count, aggregate }
+      product: { findMany: productFindMany },
+      $queryRaw: queryRaw
     } as never);
 
     const categories = await repository.listCustomerCatalogCategories({ deliveryMode: 'delivery' });
@@ -70,23 +77,8 @@ describe('catalog repository', () => {
       })
     ]);
     expect(productFindMany).not.toHaveBeenCalled();
-    expect(count).toHaveBeenCalledTimes(2);
-    expect(aggregate).toHaveBeenCalledTimes(1);
-    expect(count).toHaveBeenCalledWith({
-      where: expect.objectContaining({
-        categoryId: 'cakes',
-        status: 'PUBLISHED',
-        OR: [{ trackInventory: false }, { stock: { gt: 0 } }]
-      })
-    });
-    expect(count).toHaveBeenCalledWith({
-      where: expect.objectContaining({
-        categoryId: 'cakes',
-        status: 'PUBLISHED',
-        trackInventory: true,
-        stock: { lte: 0 }
-      })
-    });
+    expect(queryRaw).toHaveBeenCalledTimes(3);
+    expect(queryRaw.mock.calls.map((call) => queryText(call[0])).join('\n')).toContain('JSON_CONTAINS');
   });
 
   it('fetches bounded chunks while paging customer summaries with delivery-mode filtering', async () => {
@@ -186,5 +178,69 @@ describe('catalog repository', () => {
       }),
       _max: { updatedAt: true }
     });
+  });
+
+  it('uses aggregate metadata for merchant product summary counts and snapshots', async () => {
+    const findMany = vi.fn(async () => [
+      createProductRow('delivery-1', ['delivery'], '2026-06-01T10:00:00.000Z')
+    ]);
+    const count = vi.fn(async ({ where }: { where: Record<string, unknown> }) => {
+      if (where.trackInventory === true) {
+        return 3;
+      }
+      if (where.status === 'PUBLISHED') {
+        return 8;
+      }
+      if (where.status === 'DRAFT') {
+        return 4;
+      }
+      if (where.status === 'ARCHIVED') {
+        return 2;
+      }
+      return 14;
+    });
+    const aggregate = vi.fn(async () => ({ _max: { updatedAt: new Date('2026-06-01T12:00:00.000Z') } }));
+    const repository = createCatalogRepository({
+      product: { findMany, count, aggregate }
+    } as never);
+
+    const page = await repository.listMerchantProductSummaries({
+      categoryId: 'cakes',
+      keyword: '南瓜',
+      limit: 2
+    });
+
+    expect(page.summary).toEqual({
+      totalProducts: 14,
+      publishedProducts: 8,
+      draftProducts: 4,
+      archivedProducts: 2,
+      stockWarnings: 3
+    });
+    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 3 }));
+    expect(count).toHaveBeenCalledTimes(5);
+    expect(aggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses aggregate metadata for customer search snapshots with delivery-mode filtering', async () => {
+    const queryRaw = vi
+      .fn()
+      .mockResolvedValueOnce([{ count: 5n }])
+      .mockResolvedValueOnce([{ maxUpdatedAt: new Date('2026-06-01T12:00:00.000Z') }]);
+    const repository = createCatalogRepository({
+      $queryRaw: queryRaw
+    } as never);
+
+    const snapshotKey = await (repository as never as {
+      createCustomerSearchSnapshotKey(input: { deliveryMode?: 'delivery'; keyword?: string }): Promise<string>;
+    }).createCustomerSearchSnapshotKey({
+      deliveryMode: 'delivery',
+      keyword: '南瓜'
+    });
+
+    expect(snapshotKey).toEqual(expect.any(String));
+    expect(queryRaw).toHaveBeenCalledTimes(2);
+    expect(queryRaw.mock.calls.map((call) => queryText(call[0])).join('\n')).toContain('JSON_CONTAINS');
   });
 });

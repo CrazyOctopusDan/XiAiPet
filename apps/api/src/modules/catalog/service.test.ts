@@ -316,6 +316,49 @@ describe('catalog service', () => {
     expect(JSON.stringify(response.items[0])).not.toContain('priceOverrides');
   });
 
+  it('uses repository customer search snapshot keys when available', async () => {
+    const createCustomerSearchSnapshotKey = vi.fn(async () => 'customer-search-delivery-5-20260601');
+    const service = createCatalogService(createCatalogRepositoryStub({
+      searchCustomerProductSummaries: async () => ({
+        items: [
+          {
+            id: 'cake-1',
+            name: '南瓜蛋糕',
+            description: '低糖',
+            categoryId: 'cakes',
+            imageFileId: '',
+            imageAsset: undefined,
+            imagePreviewUrl: 'https://assets.example/cake-thumb.jpg',
+            memberLevelId: null,
+            stock: 8,
+            trackInventory: true,
+            fulfillmentModes: ['delivery'],
+            basePrice: 88,
+            specs: [],
+            formulas: [],
+            priceOverrides: [],
+            updatedAt: '2026-06-01T10:00:00.000Z'
+          }
+        ],
+        nextCursor: null,
+        hasMore: false
+      }),
+      createCustomerSearchSnapshotKey
+    }) as never);
+
+    const response = await service.searchCustomerProducts({
+      deliveryMode: 'delivery',
+      keyword: '南瓜',
+      limit: 20
+    });
+
+    expect(response.snapshotKey).toBe('customer-search-delivery-5-20260601');
+    expect(createCustomerSearchSnapshotKey).toHaveBeenCalledWith({
+      deliveryMode: 'delivery',
+      keyword: '南瓜'
+    });
+  });
+
   it('falls back to published category products for customer category summaries', async () => {
     const listProducts = vi.fn(async () => [
       {

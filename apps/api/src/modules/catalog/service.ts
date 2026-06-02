@@ -147,6 +147,10 @@ interface CatalogSummaryRepositoryMethods {
     limit?: number;
     cursor?: string;
   }): Promise<CatalogProductPage<CatalogProductSummaryRecord>>;
+  createCustomerSearchSnapshotKey(input: {
+    deliveryMode?: CustomerDeliveryMode;
+    keyword?: string;
+  }): Promise<string>;
   listMerchantProductSummaries(input?: {
     categoryId?: string;
     status?: MerchantProductStatusFilter;
@@ -706,18 +710,23 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
         hasMore: page.hasMore,
         nextCursor: page.nextCursor
       };
+      const snapshotKey = catalogRepository.createCustomerSearchSnapshotKey
+        ? await catalogRepository.createCustomerSearchSnapshotKey({
+            deliveryMode: input.deliveryMode,
+            keyword: input.keyword
+          })
+        : [
+            'customer-search',
+            input.deliveryMode ?? 'all',
+            input.keyword?.trim() ?? '',
+            page.items.map((item) => `${item.id}:${item.updatedAt}`).join(',')
+          ].join(':');
 
       return {
         ok: true as const,
         items: page.items.map(mapCustomerProductSummary),
         pageInfo,
-        snapshotKey: [
-          'customer-search',
-          input.deliveryMode ?? 'all',
-          input.keyword?.trim() ?? '',
-          page.items.length,
-          page.items[0]?.updatedAt ?? ''
-        ].join(':')
+        snapshotKey
       };
     },
 

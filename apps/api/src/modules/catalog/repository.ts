@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 import type { DbClient } from '../../db/types';
 import { PRODUCT_STATUS, toSharedEnum } from '../../db/enums';
@@ -172,6 +172,11 @@ interface CatalogCursor {
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 100;
 const MAX_FILTER_SCAN_ROWS = 180;
+const PRODUCT_STATUS_DB_VALUE = {
+  draft: 'draft',
+  published: 'published',
+  archived: 'archived'
+} as const;
 
 const productSummarySelect = {
   id: true,
@@ -350,6 +355,31 @@ function createAvailabilityWhere(availability: CatalogAvailabilityFilter): Prism
   };
 }
 
+function createAvailabilitySql(availability: CatalogAvailabilityFilter) {
+  if (availability === 'soldOut') {
+    return Prisma.sql`AND trackInventory = true AND stock <= 0`;
+  }
+
+  return Prisma.sql`AND (trackInventory = false OR stock > 0)`;
+}
+
+function createDeliveryModeSql(deliveryMode: CatalogDeliveryModeFilter | undefined) {
+  if (!deliveryMode) {
+    return Prisma.empty;
+  }
+
+  return Prisma.sql`AND (JSON_LENGTH(fulfillmentModes) = 0 OR JSON_CONTAINS(fulfillmentModes, JSON_QUOTE(${deliveryMode})))`;
+}
+
+function createKeywordSql(keyword: string | undefined) {
+  const trimmed = keyword?.trim();
+  if (!trimmed) {
+    return Prisma.empty;
+  }
+
+  return Prisma.sql`AND (name LIKE ${`%${trimmed}%`} OR description LIKE ${`%${trimmed}%`})`;
+}
+
 function matchesDeliveryMode(product: Pick<CatalogProductSummaryRecord, 'fulfillmentModes'>, deliveryMode: CatalogDeliveryModeFilter | undefined) {
   if (!deliveryMode) {
     return true;
@@ -455,6 +485,85 @@ function maxUpdatedAt(products: Pick<CatalogProductSummaryRecord, 'updatedAt'>[]
   }, null);
 }
 
+function toCount(value: unknown) {
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return Number.parseInt(value, 10);
+  }
+  return 0;
+}
+
+async function countCustomerCategoryProducts(
+  client: DbClient,
+  input: {
+    categoryId: string;
+    availability: CatalogAvailabilityFilter;
+    deliveryMode?: CatalogDeliveryModeFilter;
+  }
+) {
+  const rows = await client.$queryRaw<Array<{ count: bigint | number | string }>>(Prisma.sql`
+    SELECT COUNT(*) AS count
+    FROM products
+    WHERE status = ${PRODUCT_STATUS_DB_VALUE.published}
+      AND categoryId = ${input.categoryId}
+      ${createAvailabilitySql(input.availability)}
+      ${createDeliveryModeSql(input.deliveryMode)}
+  `);
+  return toCount(rows[0]?.count);
+}
+
+async function getCustomerCategoryLatestUpdatedAt(
+  client: DbClient,
+  input: {
+    categoryId: string;
+    deliveryMode?: CatalogDeliveryModeFilter;
+  }
+) {
+  const rows = await client.$queryRaw<Array<{ maxUpdatedAt: Date | null }>>(Prisma.sql`
+    SELECT MAX(updatedAt) AS maxUpdatedAt
+    FROM products
+    WHERE status = ${PRODUCT_STATUS_DB_VALUE.published}
+      AND categoryId = ${input.categoryId}
+      ${createDeliveryModeSql(input.deliveryMode)}
+  `);
+  return rows[0]?.maxUpdatedAt?.toISOString() ?? null;
+}
+
+async function getCustomerSearchSnapshotMetadata(
+  client: DbClient,
+  input: {
+    deliveryMode?: CatalogDeliveryModeFilter;
+    keyword?: string;
+  }
+) {
+  const [countRows, maxRows] = await Promise.all([
+    client.$queryRaw<Array<{ count: bigint | number | string }>>(Prisma.sql`
+      SELECT COUNT(*) AS count
+      FROM products
+      WHERE status = ${PRODUCT_STATUS_DB_VALUE.published}
+        ${createKeywordSql(input.keyword)}
+        ${createDeliveryModeSql(input.deliveryMode)}
+    `),
+    client.$queryRaw<Array<{ maxUpdatedAt: Date | null }>>(Prisma.sql`
+      SELECT MAX(updatedAt) AS maxUpdatedAt
+      FROM products
+      WHERE status = ${PRODUCT_STATUS_DB_VALUE.published}
+        ${createKeywordSql(input.keyword)}
+        ${createDeliveryModeSql(input.deliveryMode)}
+    `)
+  ]);
+
+  return {
+    count: toCount(countRows[0]?.count),
+    maxUpdatedAt: maxRows[0]?.maxUpdatedAt?.toISOString() ?? null
+  };
+}
+
 function createCategoryAvailabilityWhere(categoryId: string, availability: CatalogAvailabilityFilter): Prisma.ProductWhereInput {
   return {
     status: PRODUCT_STATUS.published,
@@ -497,18 +606,20 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       });
 
       return Promise.all(categories.map(async (category) => {
-        const availableWhere = createCategoryAvailabilityWhere(category.id, 'available');
-        const soldOutWhere = createCategoryAvailabilityWhere(category.id, 'soldOut');
-        // fulfillmentModes is JSON for this phase, so counts are DB-bounded and may overinclude until modes are normalized.
         const [availableCount, soldOutCount, latestProduct] = await Promise.all([
-          client.product.count({ where: availableWhere }),
-          client.product.count({ where: soldOutWhere }),
-          client.product.aggregate({
-            where: {
-              status: PRODUCT_STATUS.published,
-              categoryId: category.id
-            },
-            _max: { updatedAt: true }
+          countCustomerCategoryProducts(client, {
+            categoryId: category.id,
+            availability: 'available',
+            deliveryMode: filters.deliveryMode
+          }),
+          countCustomerCategoryProducts(client, {
+            categoryId: category.id,
+            availability: 'soldOut',
+            deliveryMode: filters.deliveryMode
+          }),
+          getCustomerCategoryLatestUpdatedAt(client, {
+            categoryId: category.id,
+            deliveryMode: filters.deliveryMode
           })
         ]);
         return {
@@ -516,7 +627,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           availableCount,
           soldOutCount,
           previewCount: availableCount,
-          firstProductUpdatedAt: latestProduct._max.updatedAt?.toISOString() ?? null
+          firstProductUpdatedAt: latestProduct
         };
       }));
     },
@@ -612,6 +723,20 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       ]);
     },
 
+    async createCustomerSearchSnapshotKey(input: {
+      deliveryMode?: CatalogDeliveryModeFilter;
+      keyword?: string;
+    }): Promise<string> {
+      const metadata = await getCustomerSearchSnapshotMetadata(client, input);
+      return createSnapshotKey([
+        'customer-search',
+        input.deliveryMode ?? 'all',
+        input.keyword?.trim() ?? '',
+        metadata.count,
+        metadata.maxUpdatedAt
+      ]);
+    },
+
     async listMerchantProductSummaries(input: {
       categoryId?: string;
       status?: MerchantProductStatusFilter;
@@ -633,11 +758,29 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           createCursorWhere(input.cursor)
         ].filter(Boolean) as Prisma.ProductWhereInput[]
       };
-      const [countScopeProducts, pageProducts] = await Promise.all([
-        client.product.findMany({
+      const [
+        totalProducts,
+        publishedProducts,
+        draftProducts,
+        archivedProducts,
+        stockWarnings,
+        latestProduct,
+        pageProducts
+      ] = await Promise.all([
+        client.product.count({ where: baseWhere }),
+        client.product.count({ where: { ...baseWhere, status: PRODUCT_STATUS.published } }),
+        client.product.count({ where: { ...baseWhere, status: PRODUCT_STATUS.draft } }),
+        client.product.count({ where: { ...baseWhere, status: PRODUCT_STATUS.archived } }),
+        client.product.count({
+          where: {
+            ...baseWhere,
+            trackInventory: true,
+            stock: { lte: 0 }
+          }
+        }),
+        client.product.aggregate({
           where: baseWhere,
-          select: productSummarySelect,
-          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+          _max: { updatedAt: true }
         }),
         client.product.findMany({
           where: pageWhere,
@@ -646,14 +789,13 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           take: limit + 1
         })
       ]);
-      const countScope = countScopeProducts.map(mapProductSummary);
       const page = createPage(pageProducts.map(mapProductSummary), limit);
       const summary: MerchantProductSummaryCounts = {
-        totalProducts: countScope.length,
-        publishedProducts: countScope.filter((product) => product.status === 'published').length,
-        draftProducts: countScope.filter((product) => product.status === 'draft').length,
-        archivedProducts: countScope.filter((product) => product.status === 'archived').length,
-        stockWarnings: countScope.filter((product) => product.trackInventory && product.stock <= 0).length
+        totalProducts,
+        publishedProducts,
+        draftProducts,
+        archivedProducts,
+        stockWarnings
       };
 
       return {
@@ -665,8 +807,8 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           input.status ?? 'all',
           input.keyword?.trim() ?? '',
           input.sort ?? 'latest',
-          countScope.length,
-          maxUpdatedAt(countScope)
+          totalProducts,
+          latestProduct._max.updatedAt?.toISOString() ?? null
         ])
       };
     },
