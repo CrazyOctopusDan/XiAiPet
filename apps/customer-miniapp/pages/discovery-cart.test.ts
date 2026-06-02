@@ -108,12 +108,15 @@ describe('discovery cart pages', () => {
     expect(catalogTemplate).toContain('bindtap="handleLoadMoreAvailable"');
     expect(catalogTemplate).toContain('bindtap="handleLoadMoreSoldOut"');
     expect(catalogTemplate).toContain('bindtap="handleToggleSoldOut"');
+    expect(catalogTemplate).toMatch(/class="product-card soldout"[\s\S]*?class="product-price"/);
     expect(catalogSource).toContain('loadCategoryProducts');
     expect(catalogSource).not.toContain('hydrateCatalog()');
     expect(catalogStyles).toContain('linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%)');
     expect(catalogStyles).toContain('background: #F6E396');
     expect(catalogStyles).toContain('.catalog-empty');
     expect(catalogStyles).toContain('.catalog-load-more');
+    expect(catalogStyles).toMatch(/\.soldout-grid \{[\s\S]*?margin-top: 18rpx/);
+    expect(catalogStyles).toMatch(/\.soldout-stamp \{[\s\S]*?color: #FFFFFF/);
     expect(catalogStyles).toContain('border: 4rpx solid #40535C');
     expect(catalogStyles).toContain('background: #40535C');
     expect(catalogStyles).toMatch(/\.product-price \{[\s\S]*?bottom: 16rpx;[\s\S]*?height: 60rpx/);

@@ -74,6 +74,7 @@
             <text class="product-name">{{item.name}}</text>
             <text class="product-summary">{{item.summary}}</text>
             <text class="product-stock">库存 {{item.stock}}</text>
+            <text class="product-price">￥{{item.price}}</text>
           </view>
         </view>
 

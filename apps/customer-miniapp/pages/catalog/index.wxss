@@ -248,6 +248,10 @@
   gap: 16rpx;
 }
 
+.soldout-grid {
+  margin-top: 18rpx;
+}
+
 .product-card {
   position: relative;
   min-height: 480rpx;
@@ -438,7 +442,8 @@
   font-size: 36rpx;
   font-weight: 900;
   letter-spacing: 4rpx;
-  color: #40535C;
+  color: #FFFFFF;
+  text-shadow: 0 3rpx 8rpx rgba(47, 47, 47, 0.28);
   transform: rotate(-30deg);
 }
 
