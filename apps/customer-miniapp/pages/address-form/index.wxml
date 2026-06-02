@@ -24,7 +24,7 @@
       <view class="field-block">
         <view class="field-label-row">
           <text class="field-label">地图位置</text>
-          <button class="location-button" bindtap="handleChooseLocation">
+          <button class="location-button" bindtap="handleLocationButtonTap">
             {{form.latitude !== undefined && form.longitude !== undefined ? '重新选择' : '选择位置'}}
           </button>
         </view>
@@ -36,6 +36,15 @@
             {{form.type === 'city' ? '同城配送需要用地图位置计算配送费，请一定选择一个地址。' : '快递地址也可以选择位置来快速填写地址。'}}
           </text>
         </view>
+        <view class="location-privacy-card" wx:if="{{locationPrivacyAuthorizationRequired}}">
+          <view class="location-privacy-copy">
+            <text class="location-privacy-title">需要先同意{{privacyContractName}}</text>
+            <text class="location-privacy-desc">地图位置属于敏感信息，同意后才能选择地址并计算同城配送费。</text>
+          </view>
+          <button id="location-privacy-agree" class="location-privacy-button" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="handleAgreeLocationPrivacyAuthorization">
+            同意并选择
+          </button>
+        </view>
       </view>
       <view class="field-block">
         <text class="field-label">详细地址</text>
@@ -44,6 +53,13 @@
       <view class="field-block">
         <text class="field-label">地址标签</text>
         <input class="text-input" value="{{form.tag}}" bindinput="handleTagInput" placeholder="例如：家 / 公司 / 工作室" cursor-spacing="120" />
+      </view>
+      <view class="sync-express-card {{syncExpressAddress ? 'is-checked' : ''}}" wx:if="{{showSyncExpressAddress}}" bindtap="handleSyncExpressTap">
+        <view class="sync-express-check"></view>
+        <view class="sync-express-copy">
+          <text class="sync-express-title">同时创建快递地址</text>
+          <text class="sync-express-desc">复制收货人、电话、地区、详细地址、标签和地图位置，创建后两条地址互不关联。</text>
+        </view>
       </view>
     </view>
   </view>

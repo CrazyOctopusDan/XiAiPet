@@ -5,6 +5,7 @@ import {
   clearAddressSelectionRequest,
   createAddress,
   createAddressRemote,
+  createExpressAddressInputFromCity,
   getAddressSelectionRequest,
   getAddresses,
   getCheckoutAddressType,
@@ -227,5 +228,23 @@ describe('address service', () => {
     expect(calls[0]?.options?.body).toMatchObject({ latitude: 30.2767, longitude: 120.1258 });
     expect(calls[1]?.options?.body).toMatchObject({ latitude: 30.277, longitude: 120.126 });
     expect(getSelectedAddress('express')).toMatchObject({ id: 'addr-created' });
+  });
+
+  it('copies city address input into an independent express address input with coordinates', () => {
+    const cityInput = {
+      type: 'city' as const,
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '浙江省 杭州市',
+      detailAddress: '文三路 90 号',
+      tag: '家',
+      latitude: 30.2767,
+      longitude: 120.1258
+    };
+
+    expect(createExpressAddressInputFromCity(cityInput)).toEqual({
+      ...cityInput,
+      type: 'express'
+    });
   });
 });

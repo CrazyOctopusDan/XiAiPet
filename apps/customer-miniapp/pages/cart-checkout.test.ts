@@ -9,6 +9,8 @@ type TestPageInstance = {
   setData: (updates: Record<string, unknown>, callback?: () => void) => void;
 };
 
+type PrivacyResolve = (result: { event: string; buttonId?: string }) => void;
+
 function cloneData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
@@ -133,6 +135,7 @@ function createDefaultRequestMock() {
 async function loadPageModule(modulePath: string) {
   const storage = new Map<string, unknown>();
   let capturedPage: PageOptions | null = null;
+  let privacyAuthorizationListener: ((resolve: PrivacyResolve, eventInfo?: { referrer?: string }) => void) | null = null;
   const wxMock = {
     login: vi.fn().mockResolvedValue({ code: 'wx-login-code' }),
     request: createDefaultRequestMock(),
@@ -149,6 +152,12 @@ async function loadPageModule(modulePath: string) {
     getMenuButtonBoundingClientRect: () => null,
     getPrivacySetting: vi.fn(),
     requirePrivacyAuthorize: vi.fn(),
+    onNeedPrivacyAuthorization: vi.fn((listener: (resolve: PrivacyResolve, eventInfo?: { referrer?: string }) => void) => {
+      privacyAuthorizationListener = listener;
+    }),
+    triggerNeedPrivacyAuthorization(resolve: PrivacyResolve, eventInfo?: { referrer?: string }) {
+      privacyAuthorizationListener?.(resolve, eventInfo);
+    },
     showToast: vi.fn(),
     showModal: vi.fn(),
     chooseLocation: vi.fn(),
@@ -830,10 +839,16 @@ describe('cart checkout flow', () => {
     expect(formTemplate).not.toContain('class="address-form-subtitle"');
     expect(formTemplate).toContain('class="address-form-context"');
     expect(formTemplate).toContain('class="address-form-fixed-action"');
-    expect(formTemplate).toContain('bindtap="handleChooseLocation"');
+    expect(formTemplate).toContain('class="location-button" bindtap="handleLocationButtonTap"');
+    expect(formTemplate).toContain('location-privacy-card');
+    expect(formTemplate).toContain('id="location-privacy-agree"');
+    expect(formTemplate).toContain('open-type="agreePrivacyAuthorization"');
+    expect(formTemplate).toContain('bindagreeprivacyauthorization="handleAgreeLocationPrivacyAuthorization"');
+    expect(formTemplate).not.toContain('bindtap="handleAgreeLocationPrivacyAuthorization"');
     expect(formTemplate).toContain('同城配送需要用地图位置计算配送费，请一定选择一个地址。');
     expect(formTemplate).toContain('cursor-spacing="120"');
     expect(formStyles).toContain('.location-button::after');
+    expect(formStyles).toMatch(/\.location-button \{[\s\S]*?margin-left: auto/);
     expect(formStyles).toContain('padding: 32rpx 24rpx 0');
     expect(formStyles).toContain('.address-form-fixed-action');
     expect(formStyles).toContain('position: fixed');
@@ -841,6 +856,7 @@ describe('cart checkout flow', () => {
     expect(formStyles).toContain('padding-bottom: calc(180rpx + env(safe-area-inset-bottom))');
     expect(appConfig.requiredPrivateInfos).toContain('chooseLocation');
     expect(appConfig.permission['scope.userLocation'].desc).toContain('计算配送费');
+    expect(appConfig.pages).not.toContain('pages/location-picker/index');
 
     instance.onLoad({ type: 'city' });
     instance.handleRecipientInput({ detail: { value: '奶油' } });
@@ -860,14 +876,370 @@ describe('cart checkout flow', () => {
         longitude: 120.1258
       });
     });
+    wx.requirePrivacyAuthorize.mockImplementationOnce((options?: { success?: () => void }) => {
+      options?.success?.();
+    });
 
-    instance.handleChooseLocation();
+    instance.handleLocationButtonTap();
+    expect(wx.chooseLocation).toHaveBeenCalled();
     expect(instance.data.form).toMatchObject({
       regionLabel: '浙江省杭州市西湖区文三路',
       detailAddress: '银泰百货',
       latitude: 30.2767,
       longitude: 120.1258
     });
+  });
+
+  it('keeps the address form on native chooseLocation errors instead of opening the in-app map picker', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.onLoad({ type: 'city' });
+    wx.requirePrivacyAuthorize.mockImplementationOnce((options?: { success?: () => void }) => {
+      options?.success?.();
+    });
+    wx.chooseLocation.mockImplementationOnce((options: { fail: (error: { errMsg: string; errno: number }) => void }) => {
+      options.fail({
+        errMsg: 'chooseLocation:fail api scope is not declared in the privacy agreement',
+        errno: 112
+      });
+    });
+    instance.handleRegionInput({ detail: { value: '浙江省嘉兴市南湖区香樟国际' } });
+    instance.handleDetailInput({ detail: { value: '17 幢 805' } });
+
+    instance.handleLocationButtonTap();
+
+    expect(wx.setStorageSync).not.toHaveBeenCalledWith(
+      'xiaipet.locationPickerDraft',
+      expect.anything()
+    );
+    expect(wx.navigateTo).not.toHaveBeenCalledWith({
+      url: '/pages/location-picker/index'
+    });
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '位置选择失败，请重试',
+      icon: 'none'
+    });
+    expect(wx.showToast).not.toHaveBeenCalledWith({
+      title: '请先同意隐私保护指引，再选择位置',
+      icon: 'none'
+    });
+  });
+
+  it('reopens native chooseLocation with existing coordinates when reselecting a mapped address', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.onLoad({ type: 'city' });
+    instance.applyLocationSelection({
+      name: '17 幢 805',
+      address: '浙江省嘉兴市南湖区香樟国际',
+      latitude: 30.753924,
+      longitude: 120.778561
+    });
+    wx.requirePrivacyAuthorize.mockImplementationOnce((options?: { success?: () => void }) => {
+      options?.success?.();
+    });
+    wx.chooseLocation.mockImplementationOnce((options: {
+      success: (result: { name: string; address: string; latitude: number; longitude: number }) => void;
+    }) => {
+      options.success({
+        name: '顺义区医院',
+        address: '北京市顺义区光明南街',
+        latitude: 40.1265,
+        longitude: 116.6552
+      });
+    });
+
+    instance.handleLocationButtonTap();
+
+    expect(wx.chooseLocation).toHaveBeenCalled();
+    expect(wx.chooseLocation.mock.calls[0]?.[0]).toMatchObject({
+      latitude: 30.753924,
+      longitude: 120.778561
+    });
+    expect(wx.setStorageSync).not.toHaveBeenCalledWith(
+      'xiaipet.locationPickerDraft',
+      expect.anything()
+    );
+    expect(wx.navigateTo).not.toHaveBeenCalledWith({
+      url: '/pages/location-picker/index'
+    });
+    expect(instance.data.form).toMatchObject({
+      regionLabel: '北京市顺义区光明南街',
+      detailAddress: '顺义区医院',
+      latitude: 40.1265,
+      longitude: 116.6552
+    });
+  });
+
+  it('registers a privacy listener and reveals the location privacy card while chooseLocation is pending', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    const resolvePrivacy = vi.fn();
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'city' });
+
+    expect(wx.onNeedPrivacyAuthorization).toHaveBeenCalled();
+    wx.requirePrivacyAuthorize.mockImplementationOnce(() => {
+      wx.triggerNeedPrivacyAuthorization(resolvePrivacy, { referrer: 'chooseLocation' });
+    });
+    instance.handleLocationButtonTap();
+
+    expect(wx.requirePrivacyAuthorize).toHaveBeenCalled();
+    expect(wx.chooseLocation).not.toHaveBeenCalled();
+    expect(instance.data.locationPrivacyAuthorizationRequired).toBe(true);
+    expect(resolvePrivacy).not.toHaveBeenCalled();
+  });
+
+  it('opens the location picker after the proactive privacy authorization succeeds', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    const resolvePrivacy = vi.fn();
+    let requirePrivacySuccess: (() => void) | undefined;
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'city' });
+    wx.requirePrivacyAuthorize.mockImplementationOnce((options?: { success?: () => void }) => {
+      requirePrivacySuccess = options?.success;
+      wx.triggerNeedPrivacyAuthorization(resolvePrivacy, { referrer: 'chooseLocation' });
+    });
+    wx.chooseLocation.mockImplementationOnce((options: {
+      success: (result: { name: string; address: string; latitude: number; longitude: number }) => void;
+    }) => {
+      options.success({
+        name: '银泰百货',
+        address: '浙江省杭州市西湖区文三路',
+        latitude: 30.2767,
+        longitude: 120.1258
+      });
+    });
+
+    instance.handleLocationButtonTap();
+    instance.handleAgreeLocationPrivacyAuthorization();
+    requirePrivacySuccess?.();
+
+    expect(resolvePrivacy).toHaveBeenCalledWith({
+      event: 'agree',
+      buttonId: 'location-privacy-agree'
+    });
+    expect(wx.chooseLocation).toHaveBeenCalled();
+    expect(instance.data.locationPrivacyAuthorizationRequired).toBe(false);
+    expect(instance.data.form).toMatchObject({
+      regionLabel: '浙江省杭州市西湖区文三路',
+      detailAddress: '银泰百货',
+      latitude: 30.2767,
+      longitude: 120.1258
+    });
+  });
+
+  it('does not open the location picker twice when the privacy button emits duplicate events', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    const resolvePrivacy = vi.fn();
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'city' });
+    wx.triggerNeedPrivacyAuthorization(resolvePrivacy, { referrer: 'chooseLocation' });
+    instance.handleAgreeLocationPrivacyAuthorization();
+    instance.handleAgreeLocationPrivacyAuthorization();
+
+    expect(resolvePrivacy).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to starting location picking when the agreement event fires without a pending privacy resolver', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    wx.chooseLocation.mockImplementationOnce(() => {});
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'city' });
+    instance.setData({ locationPrivacyAuthorizationRequired: true });
+    instance.handleAgreeLocationPrivacyAuthorization();
+
+    expect(wx.requirePrivacyAuthorize).not.toHaveBeenCalled();
+    expect(wx.chooseLocation).toHaveBeenCalled();
+    expect(instance.data.locationPrivacyAuthorizationRequired).toBe(false);
+  });
+
+  it('lets the privacy card recover from a direct chooseLocation privacy failure by retrying the picker', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    wx.requirePrivacyAuthorize.mockImplementationOnce((options?: { fail?: () => void }) => {
+      options?.fail?.();
+    });
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'city' });
+    instance.handleLocationButtonTap();
+
+    expect(instance.data.locationPrivacyAuthorizationRequired).toBe(true);
+    expect(wx.chooseLocation).not.toHaveBeenCalled();
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '请先同意隐私保护指引，再选择位置',
+      icon: 'none'
+    });
+  });
+
+  it('lets city address creation optionally copy an independent express address', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    const { resetAddresses } = await import('../src/services/address');
+
+    resetAddresses();
+
+    const createdAddresses: Array<Record<string, unknown>> = [];
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+
+      if (path === '/api/v1/customer/addresses' && options.method === 'POST') {
+        const index = createdAddresses.length + 1;
+        const address = {
+          id: `addr-${options.data.type}-${index}`,
+          ...(options.data as Record<string, unknown>),
+          isDefault: false
+        };
+        createdAddresses.push(address);
+        respondApi(options, { ok: true, address });
+        return;
+      }
+
+      if (path === '/api/v1/customer/addresses/addr-express-2/default') {
+        respondApi(options, {
+          ok: true,
+          address: {
+            ...createdAddresses[1],
+            isDefault: true
+          }
+        });
+        return;
+      }
+
+      respondApi(options, { ok: false, code: 'NOT_FOUND' }, 404);
+    });
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'city' });
+
+    expect(instance.data).toMatchObject({
+      showSyncExpressAddress: true,
+      syncExpressAddress: false
+    });
+
+    instance.handleSyncExpressTap();
+    instance.handleRecipientInput({ detail: { value: '奶油' } });
+    instance.handlePhoneInput({ detail: { value: '13900001111' } });
+    instance.handleRegionInput({ detail: { value: '浙江省 杭州市' } });
+    instance.handleDetailInput({ detail: { value: '文三路 90 号' } });
+    instance.handleTagInput({ detail: { value: '家' } });
+    instance.setData({
+      form: {
+        ...instance.data.form,
+        latitude: 30.2767,
+        longitude: 120.1258
+      }
+    });
+
+    await instance.handleSubmit();
+
+    const addressRequests = wx.request.mock.calls
+      .map(([options]) => options)
+      .filter((options) => getRequestPath(options) === '/api/v1/customer/addresses' || getRequestPath(options).endsWith('/default'));
+
+    expect(addressRequests.map((options) => [getRequestPath(options), options.method])).toEqual([
+      ['/api/v1/customer/addresses', 'POST'],
+      ['/api/v1/customer/addresses', 'POST'],
+      ['/api/v1/customer/addresses/addr-express-2/default', 'PUT']
+    ]);
+    expect(addressRequests[0]?.data).toMatchObject({
+      type: 'city',
+      latitude: 30.2767,
+      longitude: 120.1258
+    });
+    expect(addressRequests[1]?.data).toEqual({
+      ...addressRequests[0]?.data,
+      type: 'express'
+    });
+    expect(wx.showToast).toHaveBeenCalledWith({ title: '地址已新增，已同步快递地址', icon: 'none' });
+    expect(wx.navigateBack).toHaveBeenCalled();
+  });
+
+  it('keeps the saved city address when express address copying fails', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+    const { getAddresses, resetAddresses } = await import('../src/services/address');
+
+    resetAddresses();
+
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+
+      if (path === '/api/v1/customer/addresses' && options.method === 'POST' && options.data.type === 'city') {
+        respondApi(options, {
+          ok: true,
+          address: {
+            id: 'addr-city-1',
+            ...(options.data as Record<string, unknown>)
+          }
+        });
+        return;
+      }
+
+      if (path === '/api/v1/customer/addresses' && options.method === 'POST' && options.data.type === 'express') {
+        respondApi(options, {
+          ok: false,
+          code: 'EXPRESS_CREATE_FAILED',
+          message: 'Express create failed'
+        });
+        return;
+      }
+
+      respondApi(options, { ok: false, code: 'NOT_FOUND' }, 404);
+    });
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'city' });
+    instance.handleSyncExpressTap();
+    instance.handleRecipientInput({ detail: { value: '奶油' } });
+    instance.handlePhoneInput({ detail: { value: '13900001111' } });
+    instance.handleRegionInput({ detail: { value: '浙江省 杭州市' } });
+    instance.handleDetailInput({ detail: { value: '文三路 90 号' } });
+    instance.setData({
+      form: {
+        ...instance.data.form,
+        latitude: 30.2767,
+        longitude: 120.1258
+      }
+    });
+
+    await instance.handleSubmit();
+
+    expect(getAddresses('city')).toEqual([
+      expect.objectContaining({
+        id: 'addr-city-1',
+        type: 'city'
+      })
+    ]);
+    expect(getAddresses('express')).toEqual([]);
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '同城地址已保存，快递地址同步失败，可稍后手动新增',
+      icon: 'none'
+    });
+    expect(wx.navigateBack).toHaveBeenCalled();
   });
 
   it('exposes delivery, pickup, and express fulfillment modes on the checkout page', async () => {

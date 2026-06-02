@@ -6,6 +6,7 @@ exports.getAddressById = getAddressById;
 exports.createAddress = createAddress;
 exports.hydrateAddresses = hydrateAddresses;
 exports.createAddressRemote = createAddressRemote;
+exports.createExpressAddressInputFromCity = createExpressAddressInputFromCity;
 exports.updateAddress = updateAddress;
 exports.updateAddressRemote = updateAddressRemote;
 exports.selectAddress = selectAddress;
@@ -107,6 +108,12 @@ async function createAddressRemote(input, request = api_client_1.customerApiRequ
         body: input
     });
     return replaceAddress((_a = response.address) !== null && _a !== void 0 ? _a : createAddress(input));
+}
+function createExpressAddressInputFromCity(input) {
+    return {
+        ...input,
+        type: 'express'
+    };
 }
 function updateAddress(addressId, updates) {
     const index = getAddressIndexById(addressId);

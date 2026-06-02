@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-05-13 -- Quick task 260513-m4b completed: merchant workspace card navigation
+last_activity: 2026-06-02 -- Quick task 260602-frw completed: native wx.chooseLocation address reselection
 progress:
   total_phases: 8
   completed_phases: 5
@@ -75,4 +75,5 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-02 | 260602-frw wx.chooseLocation location picker | Removed custom location-picker fallback and kept address selection/reselection on native `wx.chooseLocation`. |
 | 2026-05-13 | 260513-m4b merchant workspace card navigation | Made merchant workspace cards tappable and fixed action button URL binding. |

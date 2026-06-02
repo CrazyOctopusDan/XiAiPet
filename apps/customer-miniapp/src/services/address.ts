@@ -169,6 +169,13 @@ export async function createAddressRemote(
   return replaceAddress(response.address ?? createAddress(input));
 }
 
+export function createExpressAddressInputFromCity(input: CreateAddressInput): CreateAddressInput {
+  return {
+    ...input,
+    type: 'express'
+  };
+}
+
 export function updateAddress(addressId: string, updates: UpdateAddressInput) {
   const index = getAddressIndexById(addressId);
 
