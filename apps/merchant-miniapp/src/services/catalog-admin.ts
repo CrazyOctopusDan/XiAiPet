@@ -466,6 +466,18 @@ export async function queryProducts(
   };
 }
 
+export async function getProductDetail(productId: string, request: MerchantApiRequester = merchantApiRequest) {
+  const response = await request<{
+    ok?: boolean;
+    product: CatalogProductAdminRecord;
+  }>(`/api/v1/merchant/products/${productId}`, {
+    method: 'GET',
+    auth: 'merchant'
+  });
+
+  return response.product;
+}
+
 export function applyProductCountsToCategories(
   categories: MerchantCategoryListItem[],
   products: Pick<CatalogProductAdminRecord, 'categoryId'>[]

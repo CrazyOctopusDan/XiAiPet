@@ -13,6 +13,7 @@ import {
   deleteCategory,
   deleteProduct,
   getCategoryPageViewModel,
+  getProductDetail,
   getProductPageViewModel,
   getProductEditorViewModel,
   queryCategories,
@@ -454,6 +455,17 @@ describe('catalog admin service', () => {
     expect(result.summary.totalProducts).toBe(30);
     expect(result.pageInfo.hasMore).toBe(true);
     expect(result.items[0]?.id).toBe('cake-1');
+  });
+
+  it('fetches a complete merchant product before editing', async () => {
+    const product = createProductRecord({ id: 'cake-1', detailContent: '完整详情' });
+    const request = vi.fn().mockResolvedValue({ ok: true, product });
+
+    await expect(getProductDetail('cake-1', request)).resolves.toEqual(product);
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/products/cake-1', {
+      method: 'GET',
+      auth: 'merchant'
+    });
   });
 
   it('summarizes filtered products for the merchant product list header', () => {

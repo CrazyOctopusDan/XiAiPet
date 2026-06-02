@@ -5,6 +5,7 @@ exports.saveCategory = saveCategory;
 exports.deleteCategory = deleteCategory;
 exports.getCategoryPageViewModel = getCategoryPageViewModel;
 exports.queryProducts = queryProducts;
+exports.getProductDetail = getProductDetail;
 exports.applyProductCountsToCategories = applyProductCountsToCategories;
 exports.getProductPageViewModel = getProductPageViewModel;
 exports.createEmptyProductEditorPayload = createEmptyProductEditorPayload;
@@ -270,6 +271,13 @@ async function queryProducts(filters = {}, request = api_client_1.merchantApiReq
         pageInfo: (_d = response.pageInfo) !== null && _d !== void 0 ? _d : defaultPageInfo(),
         snapshotKey: (_e = response.snapshotKey) !== null && _e !== void 0 ? _e : ''
     };
+}
+async function getProductDetail(productId, request = api_client_1.merchantApiRequest) {
+    const response = await request(`/api/v1/merchant/products/${productId}`, {
+        method: 'GET',
+        auth: 'merchant'
+    });
+    return response.product;
 }
 function applyProductCountsToCategories(categories, products) {
     const productCounts = products.reduce((counts, product) => {

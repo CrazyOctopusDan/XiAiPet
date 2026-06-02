@@ -161,11 +161,8 @@ Page({
             const categories = await (0, catalog_admin_1.queryCategories)();
             let draft = createDraft(categoryId);
             if (productId) {
-                const productsResponse = await (0, catalog_admin_1.queryProducts)();
-                const product = productsResponse.items.find((item) => item.id === productId);
-                if (product) {
-                    draft = (0, catalog_admin_1.splitProductEditorPayload)(product);
-                }
+                const product = await (0, catalog_admin_1.getProductDetail)(productId);
+                draft = (0, catalog_admin_1.splitProductEditorPayload)(product);
             }
             this.setData({
                 loading: false,

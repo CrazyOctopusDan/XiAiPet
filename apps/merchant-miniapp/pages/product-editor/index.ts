@@ -12,9 +12,9 @@ import type { MerchantAssetUploadFile } from '../../src/services/assets';
 
 import {
   createEmptyProductEditorPayload,
+  getProductDetail,
   getProductEditorViewModel,
   queryCategories,
-  queryProducts,
   saveProduct,
   splitProductEditorPayload,
   uploadProductCoverAsset,
@@ -235,12 +235,8 @@ Page({
       let draft = createDraft(categoryId);
 
       if (productId) {
-        const productsResponse = await queryProducts();
-        const product = productsResponse.items.find((item) => item.id === productId) as CatalogProductAdminRecord | undefined;
-
-        if (product) {
-          draft = splitProductEditorPayload(product);
-        }
+        const product = await getProductDetail(productId);
+        draft = splitProductEditorPayload(product);
       }
 
       this.setData({
