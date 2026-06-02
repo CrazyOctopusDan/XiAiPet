@@ -24,6 +24,16 @@ function createProductRow(id: string, fulfillmentModes: string[], updatedAt: str
   };
 }
 
+function createProductRows(prefix: string, count: number, fulfillmentModes: string[], startHour: number) {
+  return Array.from({ length: count }, (_, index) =>
+    createProductRow(
+      `${prefix}-${index + 1}`,
+      fulfillmentModes,
+      `2026-06-01T${String(startHour - index).padStart(2, '0')}:00:00.000Z`
+    )
+  );
+}
+
 describe('catalog repository', () => {
   it('fetches bounded chunks while paging customer summaries with delivery-mode filtering', async () => {
     const findMany = vi
@@ -63,5 +73,64 @@ describe('catalog repository', () => {
         })
       ])
     );
+  });
+
+  it('stops sparse delivery-mode scans at a bounded cap', async () => {
+    const findMany = vi.fn(async () => createProductRows(`pickup-page-${findMany.mock.calls.length}`, 6, ['pickup'], 23));
+    const repository = createCatalogRepository({
+      product: { findMany }
+    } as never);
+
+    const page = await repository.listCustomerCategoryProductSummaries({
+      categoryId: 'cakes',
+      deliveryMode: 'delivery',
+      availability: 'available',
+      limit: 2
+    });
+
+    expect(page.items).toEqual([]);
+    expect(page.hasMore).toBe(true);
+    expect(page.nextCursor).toEqual(expect.any(String));
+    expect(findMany).toHaveBeenCalledTimes(30);
+    expect(findMany.mock.calls.map((call) => call[0].take)).toEqual(Array.from({ length: 30 }, () => 6));
+  });
+
+  it('uses aggregate count metadata for customer category product snapshots', async () => {
+    const findMany = vi.fn(async () => {
+      throw new Error('snapshot must not fetch product rows');
+    });
+    const count = vi.fn(async () => 12);
+    const aggregate = vi.fn(async () => ({ _max: { updatedAt: new Date('2026-06-01T12:00:00.000Z') } }));
+    const repository = createCatalogRepository({
+      product: { findMany, count, aggregate }
+    } as never);
+
+    const snapshotKey = await repository.createCustomerCategoryProductsSnapshotKey({
+      categoryId: 'cakes',
+      deliveryMode: 'delivery',
+      availability: 'soldOut',
+      keyword: '南瓜',
+      sort: 'latest'
+    });
+
+    expect(snapshotKey).toEqual(expect.any(String));
+    expect(findMany).not.toHaveBeenCalled();
+    expect(count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        categoryId: 'cakes',
+        status: 'PUBLISHED',
+        trackInventory: true,
+        stock: { lte: 0 }
+      })
+    });
+    expect(aggregate).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        categoryId: 'cakes',
+        status: 'PUBLISHED',
+        trackInventory: true,
+        stock: { lte: 0 }
+      }),
+      _max: { updatedAt: true }
+    });
   });
 });

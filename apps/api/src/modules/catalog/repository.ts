@@ -171,6 +171,7 @@ interface CatalogCursor {
 
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 100;
+const MAX_FILTER_SCAN_ROWS = 180;
 
 const productSummarySelect = {
   id: true,
@@ -333,6 +334,22 @@ function createKeywordWhere(keyword: string | undefined): Prisma.ProductWhereInp
   };
 }
 
+function createAvailabilityWhere(availability: CatalogAvailabilityFilter): Prisma.ProductWhereInput {
+  if (availability === 'soldOut') {
+    return {
+      trackInventory: true,
+      stock: { lte: 0 }
+    };
+  }
+
+  return {
+    OR: [
+      { trackInventory: false },
+      { stock: { gt: 0 } }
+    ]
+  };
+}
+
 function matchesDeliveryMode(product: Pick<CatalogProductSummaryRecord, 'fulfillmentModes'>, deliveryMode: CatalogDeliveryModeFilter | undefined) {
   if (!deliveryMode) {
     return true;
@@ -373,8 +390,12 @@ async function createBoundedFilteredSummaryPage(
   const collected: MerchantProductSummaryRecord[] = [];
   const chunkSize = Math.min(MAX_PAGE_LIMIT, Math.max(input.limit + 1, input.limit * 3));
   let currentCursor = input.cursor;
+  let scannedCount = 0;
+  let lastScannedProduct: MerchantProductSummaryRecord | undefined;
+  let stoppedAtScanCap = false;
 
-  while (collected.length <= input.limit) {
+  while (collected.length <= input.limit && scannedCount < MAX_FILTER_SCAN_ROWS) {
+    const take = Math.min(chunkSize, MAX_FILTER_SCAN_ROWS - scannedCount);
     const products = await client.product.findMany({
       where: {
         ...input.where,
@@ -385,7 +406,7 @@ async function createBoundedFilteredSummaryPage(
       },
       select: productSummarySelect,
       orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
-      take: chunkSize
+      take
     });
 
     if (products.length === 0) {
@@ -393,13 +414,28 @@ async function createBoundedFilteredSummaryPage(
     }
 
     const summaries = products.map(mapProductSummary);
+    scannedCount += summaries.length;
+    const scannedLastProduct = summaries[summaries.length - 1];
+    if (!scannedLastProduct) {
+      break;
+    }
+    lastScannedProduct = scannedLastProduct;
     collected.push(...summaries.filter(input.filter));
 
-    if (products.length < chunkSize) {
+    if (products.length < take) {
       break;
     }
 
-    currentCursor = encodeCatalogCursor(summaries[summaries.length - 1]);
+    currentCursor = encodeCatalogCursor(scannedLastProduct);
+    stoppedAtScanCap = scannedCount >= MAX_FILTER_SCAN_ROWS;
+  }
+
+  if (stoppedAtScanCap && collected.length <= input.limit && lastScannedProduct) {
+    return {
+      items: collected,
+      hasMore: true,
+      nextCursor: encodeCatalogCursor(lastScannedProduct)
+    };
   }
 
   return createPage(collected, input.limit);
@@ -489,13 +525,12 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
         where: {
           status: PRODUCT_STATUS.published,
           categoryId: input.categoryId,
+          ...createAvailabilityWhere(input.availability),
           AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
         },
         limit,
         cursor: input.cursor,
-        filter: (product) =>
-          matchesDeliveryMode(product, input.deliveryMode) &&
-          matchesAvailability(product, input.availability)
+        filter: (product) => matchesDeliveryMode(product, input.deliveryMode)
       });
     },
 
@@ -541,19 +576,19 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       keyword?: string;
       sort?: CatalogProductSort;
     }): Promise<string> {
-      const products = await client.product.findMany({
-        where: {
-          status: PRODUCT_STATUS.published,
-          categoryId: input.categoryId,
-          AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
-        },
-        select: productSummarySelect,
-        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
-      });
-      const filtered = products
-        .map(mapProductSummary)
-        .filter((product) => matchesDeliveryMode(product, input.deliveryMode))
-        .filter((product) => matchesAvailability(product, input.availability));
+      const where: Prisma.ProductWhereInput = {
+        status: PRODUCT_STATUS.published,
+        categoryId: input.categoryId,
+        ...createAvailabilityWhere(input.availability),
+        AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
+      };
+      const [count, aggregate] = await Promise.all([
+        client.product.count({ where }),
+        client.product.aggregate({
+          where,
+          _max: { updatedAt: true }
+        })
+      ]);
 
       return createSnapshotKey([
         'customer-category-products',
@@ -562,8 +597,8 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
         input.availability,
         input.keyword?.trim() ?? '',
         input.sort ?? 'latest',
-        filtered.length,
-        maxUpdatedAt(filtered)
+        count,
+        aggregate._max.updatedAt?.toISOString() ?? null
       ]);
     },
 
