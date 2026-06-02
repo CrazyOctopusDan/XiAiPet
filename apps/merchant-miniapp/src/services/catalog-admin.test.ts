@@ -375,7 +375,16 @@ describe('catalog admin service', () => {
       .fn()
       .mockResolvedValueOnce({
         ok: true,
-        products: [product]
+        items: [product],
+        summary: {
+          totalProducts: 1,
+          publishedProducts: 1,
+          draftProducts: 0,
+          archivedProducts: 0,
+          stockWarnings: 0
+        },
+        pageInfo: { hasMore: false, nextCursor: null },
+        snapshotKey: 'merchant-products-1'
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -389,7 +398,12 @@ describe('catalog admin service', () => {
       }
     });
 
-    await expect(queryProducts('cakes', request)).resolves.toEqual([product]);
+    await expect(queryProducts({ categoryId: 'cakes' }, request)).resolves.toMatchObject({
+      items: [product],
+      summary: { totalProducts: 1 },
+      pageInfo: { hasMore: false, nextCursor: null },
+      snapshotKey: 'merchant-products-1'
+    });
     await saveProduct(payload, request);
     await expect(deleteProduct(product.id, request)).resolves.toBe(product.id);
 
@@ -409,6 +423,37 @@ describe('catalog admin service', () => {
       method: 'DELETE',
       auth: 'merchant'
     });
+  });
+
+  it('queries merchant product summaries with filters and backend summary', async () => {
+    const product = createProductRecord({ id: 'cake-1' });
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      items: [product],
+      summary: {
+        totalProducts: 30,
+        publishedProducts: 20,
+        draftProducts: 8,
+        archivedProducts: 2,
+        stockWarnings: 3
+      },
+      pageInfo: { hasMore: true, nextCursor: 'cursor-2' },
+      snapshotKey: 'merchant-products-30'
+    });
+
+    const result = await queryProducts(
+      { categoryId: 'cakes', status: 'published', keyword: '南瓜', sort: 'latest', limit: 20 },
+      request
+    );
+
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/products', {
+      method: 'GET',
+      query: { categoryId: 'cakes', status: 'published', keyword: '南瓜', sort: 'latest', limit: 20 },
+      auth: 'merchant'
+    });
+    expect(result.summary.totalProducts).toBe(30);
+    expect(result.pageInfo.hasMore).toBe(true);
+    expect(result.items[0]?.id).toBe('cake-1');
   });
 
   it('summarizes filtered products for the merchant product list header', () => {

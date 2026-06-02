@@ -101,3 +101,38 @@ export interface CatalogProductAdminRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CatalogPageInfo {
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+export interface CatalogProductAdminListItem {
+  id: string;
+  name: string;
+  description: string;
+  categoryId: string;
+  status: CatalogProductStatus;
+  stock: number;
+  trackInventory: boolean;
+  minPrice: number;
+  maxPrice: number;
+  fulfillmentModes: OrderFulfillmentMode[];
+  thumbnail: string;
+  updatedAt: string;
+}
+
+export interface CatalogProductAdminListSummary {
+  totalProducts: number;
+  publishedProducts: number;
+  draftProducts: number;
+  archivedProducts: number;
+  stockWarnings: number;
+}
+
+export interface CatalogProductAdminListResponse {
+  items: Array<CatalogProductAdminListItem | CatalogProductAdminRecord>;
+  summary: CatalogProductAdminListSummary;
+  pageInfo: CatalogPageInfo;
+  snapshotKey: string;
+}

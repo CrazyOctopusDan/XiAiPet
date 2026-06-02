@@ -17,14 +17,18 @@ describe('product management page layout', () => {
     expect(template).toContain('bindtouchend="handleProductTouchEnd"');
     expect(template).toContain('class="product-delete-action"');
     expect(template).toContain('catchtap="handleDeleteTap"');
+    expect(template).toContain('class="product-load-more"');
+    expect(template).toContain('bindtap="handleLoadMoreProducts"');
 
     expect(styles).toContain('.product-swipe-row');
     expect(styles).toContain('.product-delete-action');
+    expect(styles).toContain('.product-load-more');
     expect(styles).toContain('transform: translateX(-');
 
     expect(pageSource).toContain('swipedProductId');
     expect(pageSource).toContain('handleProductTouchStart');
     expect(pageSource).toContain('handleProductTouchEnd');
     expect(pageSource).toContain('handleDeleteTap');
+    expect(pageSource).toContain('handleLoadMoreProducts');
   });
 });

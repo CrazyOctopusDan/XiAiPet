@@ -240,6 +240,22 @@
   margin-top: 16rpx;
 }
 
+.product-load-more {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 76rpx;
+  margin-top: 18rpx;
+  border: 2rpx solid #F0E2D0;
+  border-radius: 22rpx;
+  background: #FFFDF8;
+  box-shadow: 0 12rpx 26rpx rgba(46, 91, 115, 0.06);
+  color: #2E5B73;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
 .product-card {
   position: relative;
   z-index: 2;

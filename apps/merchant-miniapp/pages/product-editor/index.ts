@@ -235,8 +235,8 @@ Page({
       let draft = createDraft(categoryId);
 
       if (productId) {
-        const products = await queryProducts();
-        const product = products.find((item) => item.id === productId) as CatalogProductAdminRecord | undefined;
+        const productsResponse = await queryProducts();
+        const product = productsResponse.items.find((item) => item.id === productId) as CatalogProductAdminRecord | undefined;
 
         if (product) {
           draft = splitProductEditorPayload(product);

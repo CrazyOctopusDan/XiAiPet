@@ -1,14 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const catalog_admin_1 = require("../../src/services/catalog-admin");
+function defaultPageInfo() {
+    return { hasMore: false, nextCursor: null };
+}
 Page({
     data: {
         loading: true,
         isEmpty: true,
         activeCategoryId: '',
+        statusFilter: '',
+        sort: 'latest',
         draftKeyword: '',
         keyword: '',
         swipedProductId: '',
+        pageInfo: defaultPageInfo(),
+        snapshotKey: '',
+        isLoadingMore: false,
         categoryFilters: [],
         cards: [],
         summary: {
@@ -29,15 +37,26 @@ Page({
     async refreshProducts() {
         this.setData({ loading: true });
         try {
-            const categories = await (0, catalog_admin_1.queryCategories)();
-            const products = await (0, catalog_admin_1.queryProducts)(this.data.activeCategoryId);
-            const view = (0, catalog_admin_1.getProductPageViewModel)(products, categories, this.data.activeCategoryId, this.data.keyword);
+            const [categories, productsResponse] = await Promise.all([
+                (0, catalog_admin_1.queryCategories)(),
+                (0, catalog_admin_1.queryProducts)({
+                    categoryId: this.data.activeCategoryId,
+                    status: this.data.statusFilter,
+                    keyword: this.data.keyword,
+                    sort: this.data.sort,
+                    limit: 20
+                })
+            ]);
+            const view = (0, catalog_admin_1.getProductPageViewModel)(productsResponse.items, categories, this.data.activeCategoryId, '', productsResponse.summary);
             this.setData({
                 loading: false,
                 isEmpty: view.isEmpty,
                 summary: view.summary,
                 categoryFilters: view.categoryFilters,
-                cards: view.cards
+                cards: view.cards,
+                pageInfo: productsResponse.pageInfo,
+                snapshotKey: productsResponse.snapshotKey,
+                swipedProductId: ''
             });
         }
         catch (_a) {
@@ -52,6 +71,20 @@ Page({
         var _a, _b, _c;
         this.setData({
             activeCategoryId: (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.id) !== null && _c !== void 0 ? _c : ''
+        });
+        void this.refreshProducts();
+    },
+    handleStatusFilterTap(event) {
+        var _a, _b, _c;
+        this.setData({
+            statusFilter: (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.status) !== null && _c !== void 0 ? _c : ''
+        });
+        void this.refreshProducts();
+    },
+    handleSortTap(event) {
+        var _a, _b, _c;
+        this.setData({
+            sort: (_c = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.sort) !== null && _c !== void 0 ? _c : 'latest'
         });
         void this.refreshProducts();
     },
@@ -73,6 +106,40 @@ Page({
             keyword: ''
         });
         void this.refreshProducts();
+    },
+    async handleLoadMoreProducts() {
+        var _a;
+        if (!this.data.pageInfo.hasMore || this.data.isLoadingMore) {
+            return;
+        }
+        this.setData({ isLoadingMore: true });
+        try {
+            const productsResponse = await (0, catalog_admin_1.queryProducts)({
+                categoryId: this.data.activeCategoryId,
+                status: this.data.statusFilter,
+                keyword: this.data.keyword,
+                sort: this.data.sort,
+                limit: 20,
+                cursor: (_a = this.data.pageInfo.nextCursor) !== null && _a !== void 0 ? _a : undefined
+            });
+            const view = (0, catalog_admin_1.getProductPageViewModel)(productsResponse.items, [], this.data.activeCategoryId, '', productsResponse.summary);
+            this.setData({
+                isLoadingMore: false,
+                isEmpty: false,
+                summary: view.summary,
+                cards: [...this.data.cards, ...view.cards],
+                pageInfo: productsResponse.pageInfo,
+                snapshotKey: productsResponse.snapshotKey,
+                swipedProductId: ''
+            });
+        }
+        catch (_b) {
+            this.setData({ isLoadingMore: false });
+            wx.showToast({
+                title: '商品加载失败',
+                icon: 'none'
+            });
+        }
     },
     handleCreateTap() {
         wx.navigateTo({

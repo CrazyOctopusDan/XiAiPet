@@ -47,7 +47,16 @@ function getFulfillmentModeOptions(activeModes) {
         isActive: activeModes.includes(mode)
     }));
 }
+function hasListPriceRange(product) {
+    return 'minPrice' in product && 'maxPrice' in product;
+}
 function getPriceRangeLabel(product) {
+    if (hasListPriceRange(product)) {
+        if (product.minPrice === product.maxPrice) {
+            return formatMoney(product.minPrice);
+        }
+        return `${formatMoney(product.minPrice)} 起`;
+    }
     const resolvedPrices = [product.basePrice];
     product.specs.forEach((spec) => {
         product.formulas.forEach((formula) => {
@@ -63,6 +72,14 @@ function getPriceRangeLabel(product) {
         return formatMoney(min);
     }
     return `${formatMoney(min)} 起`;
+}
+function getProductImagePreviewUrl(product) {
+    var _a, _b, _c;
+    if ('thumbnail' in product && product.thumbnail) {
+        return normalizeImageUrlForDisplay(product.thumbnail);
+    }
+    const fullProduct = product;
+    return normalizeImageUrlForDisplay((_c = (_b = (_a = fullProduct.imageAsset) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : fullProduct.imagePreviewUrl) !== null && _c !== void 0 ? _c : fullProduct.imageFileId);
 }
 function getStepLabel(step) {
     if (step === 'basicInfo') {
@@ -223,14 +240,36 @@ function getCategoryPageViewModel(categories) {
         }))
     };
 }
-async function queryProducts(categoryId = '', request = api_client_1.merchantApiRequest) {
-    var _a;
+function defaultProductListSummary() {
+    return {
+        totalProducts: 0,
+        publishedProducts: 0,
+        draftProducts: 0,
+        archivedProducts: 0,
+        stockWarnings: 0
+    };
+}
+function defaultPageInfo() {
+    return { hasMore: false, nextCursor: null };
+}
+function cleanProductQuery(filters) {
+    return Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== undefined && value !== ''));
+}
+async function queryProducts(filters = {}, request = api_client_1.merchantApiRequest) {
+    var _a, _b, _c, _d, _e;
+    const query = cleanProductQuery(filters);
     const response = await request('/api/v1/merchant/products', {
         method: 'GET',
-        query: categoryId ? { categoryId } : undefined,
+        query,
         auth: 'merchant'
     });
-    return (_a = response.products) !== null && _a !== void 0 ? _a : [];
+    const items = (_b = (_a = response.items) !== null && _a !== void 0 ? _a : response.products) !== null && _b !== void 0 ? _b : [];
+    return {
+        items,
+        summary: (_c = response.summary) !== null && _c !== void 0 ? _c : defaultProductListSummary(),
+        pageInfo: (_d = response.pageInfo) !== null && _d !== void 0 ? _d : defaultPageInfo(),
+        snapshotKey: (_e = response.snapshotKey) !== null && _e !== void 0 ? _e : ''
+    };
 }
 function applyProductCountsToCategories(categories, products) {
     const productCounts = products.reduce((counts, product) => {
@@ -248,7 +287,7 @@ function applyProductCountsToCategories(categories, products) {
         };
     });
 }
-function getProductPageViewModel(products, categories, activeCategoryId, keyword) {
+function getProductPageViewModel(products, categories, activeCategoryId, keyword, backendSummary) {
     const normalizedKeyword = keyword.trim();
     const filteredProducts = products.filter((product) => {
         if (activeCategoryId && product.categoryId !== activeCategoryId) {
@@ -257,32 +296,36 @@ function getProductPageViewModel(products, categories, activeCategoryId, keyword
         if (!normalizedKeyword) {
             return true;
         }
-        return `${product.name} ${product.description} ${product.detailContent}`.includes(normalizedKeyword);
+        const detailContent = 'detailContent' in product ? product.detailContent : '';
+        return `${product.name} ${product.description} ${detailContent}`.includes(normalizedKeyword);
     });
     return {
         isEmpty: filteredProducts.length === 0,
-        summary: {
-            totalProducts: filteredProducts.length,
-            publishedProducts: filteredProducts.filter((product) => product.status === 'published').length,
-            stockWarnings: filteredProducts.filter((product) => product.trackInventory && product.stock <= 0).length
-        },
+        summary: backendSummary
+            ? {
+                totalProducts: backendSummary.totalProducts,
+                publishedProducts: backendSummary.publishedProducts,
+                stockWarnings: backendSummary.stockWarnings
+            }
+            : {
+                totalProducts: filteredProducts.length,
+                publishedProducts: filteredProducts.filter((product) => product.status === 'published').length,
+                stockWarnings: filteredProducts.filter((product) => product.trackInventory && product.stock <= 0).length
+            },
         categoryFilters: categories.map((category) => ({
             id: category.id,
             label: category.name,
             isActive: category.id === activeCategoryId
         })),
-        cards: filteredProducts.map((product) => {
-            var _a, _b, _c;
-            return ({
-                id: product.id,
-                name: product.name,
-                statusLabel: getStatusLabel(product.status),
-                stockLabel: product.trackInventory ? `库存 ${product.stock}` : '库存不跟踪',
-                priceRangeLabel: getPriceRangeLabel(product),
-                fulfillmentModesLabel: product.fulfillmentModes.map(getFulfillmentModeLabel).join(' / '),
-                imagePreviewUrl: normalizeImageUrlForDisplay((_c = (_b = (_a = product.imageAsset) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : product.imagePreviewUrl) !== null && _c !== void 0 ? _c : product.imageFileId)
-            });
-        })
+        cards: filteredProducts.map((product) => ({
+            id: product.id,
+            name: product.name,
+            statusLabel: getStatusLabel(product.status),
+            stockLabel: product.trackInventory ? `库存 ${product.stock}` : '库存不跟踪',
+            priceRangeLabel: getPriceRangeLabel(product),
+            fulfillmentModesLabel: product.fulfillmentModes.map(getFulfillmentModeLabel).join(' / '),
+            imagePreviewUrl: getProductImagePreviewUrl(product)
+        }))
     };
 }
 function createEmptyProductEditorPayload(categoryId = '') {

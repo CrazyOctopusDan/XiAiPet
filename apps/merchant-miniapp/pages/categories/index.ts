@@ -60,11 +60,11 @@ Page({
   async refreshCategories(this: CategoryPageInstance) {
     this.setData({ loading: true });
     try {
-      const [categories, products] = await Promise.all([
+      const [categories, productsResponse] = await Promise.all([
         queryCategories(),
         queryProducts()
       ]);
-      const view = getCategoryPageViewModel(applyProductCountsToCategories(categories, products));
+      const view = getCategoryPageViewModel(applyProductCountsToCategories(categories, productsResponse.items));
       this.setData({
         loading: false,
         isEmpty: view.isEmpty,

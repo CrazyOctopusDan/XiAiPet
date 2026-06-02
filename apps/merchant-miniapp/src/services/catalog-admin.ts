@@ -1,7 +1,11 @@
 import type { OrderFulfillmentMode } from '@xiaipet/shared';
 import type {
   CatalogCategoryRecord,
+  CatalogPageInfo,
   CatalogProductAdminRecord,
+  CatalogProductAdminListItem,
+  CatalogProductAdminListResponse,
+  CatalogProductAdminListSummary,
   CatalogProductEditorPayload,
   CatalogProductEditorStep,
   CatalogProductFormulaOption,
@@ -68,6 +72,15 @@ export interface ProductPageViewModel {
   cards: ProductCardViewModel[];
 }
 
+export interface MerchantProductQueryFilters {
+  categoryId?: string;
+  status?: string;
+  keyword?: string;
+  sort?: string;
+  limit?: number;
+  cursor?: string;
+}
+
 export interface ProductEditorStepViewModel {
   value: CatalogProductEditorStep;
   label: string;
@@ -121,7 +134,9 @@ function formatMoney(value: number) {
   return `￥${value.toFixed(2)}`;
 }
 
-function getStatusLabel(status: CatalogProductAdminRecord['status']) {
+type ProductListSource = CatalogProductAdminRecord | CatalogProductAdminListItem;
+
+function getStatusLabel(status: ProductListSource['status']) {
   if (status === 'published') {
     return '已上架';
   }
@@ -155,7 +170,19 @@ function getFulfillmentModeOptions(activeModes: OrderFulfillmentMode[]): Product
   }));
 }
 
-function getPriceRangeLabel(product: CatalogProductAdminRecord) {
+function hasListPriceRange(product: ProductListSource): product is CatalogProductAdminListItem {
+  return 'minPrice' in product && 'maxPrice' in product;
+}
+
+function getPriceRangeLabel(product: ProductListSource) {
+  if (hasListPriceRange(product)) {
+    if (product.minPrice === product.maxPrice) {
+      return formatMoney(product.minPrice);
+    }
+
+    return `${formatMoney(product.minPrice)} 起`;
+  }
+
   const resolvedPrices: number[] = [product.basePrice];
 
   product.specs.forEach((spec) => {
@@ -177,6 +204,15 @@ function getPriceRangeLabel(product: CatalogProductAdminRecord) {
   }
 
   return `${formatMoney(min)} 起`;
+}
+
+function getProductImagePreviewUrl(product: ProductListSource) {
+  if ('thumbnail' in product && product.thumbnail) {
+    return normalizeImageUrlForDisplay(product.thumbnail);
+  }
+
+  const fullProduct = product as CatalogProductAdminRecord;
+  return normalizeImageUrlForDisplay(fullProduct.imageAsset?.url ?? fullProduct.imagePreviewUrl ?? fullProduct.imageFileId);
 }
 
 function getStepLabel(step: CatalogProductEditorStep) {
@@ -387,17 +423,47 @@ export function getCategoryPageViewModel(categories: MerchantCategoryListItem[])
   };
 }
 
-export async function queryProducts(categoryId = '', request: MerchantApiRequester = merchantApiRequest) {
-  const response = await request<{
-    ok?: boolean;
-    products?: CatalogProductAdminRecord[];
-  }>('/api/v1/merchant/products', {
+function defaultProductListSummary(): CatalogProductAdminListSummary {
+  return {
+    totalProducts: 0,
+    publishedProducts: 0,
+    draftProducts: 0,
+    archivedProducts: 0,
+    stockWarnings: 0
+  };
+}
+
+function defaultPageInfo(): CatalogPageInfo {
+  return { hasMore: false, nextCursor: null };
+}
+
+function cleanProductQuery(filters: MerchantProductQueryFilters) {
+  return Object.fromEntries(
+    Object.entries(filters).filter(([, value]) => value !== undefined && value !== '')
+  );
+}
+
+export async function queryProducts(
+  filters: MerchantProductQueryFilters = {},
+  request: MerchantApiRequester = merchantApiRequest
+) {
+  const query = cleanProductQuery(filters);
+  const response = await request<
+    { ok?: boolean; products?: CatalogProductAdminRecord[] } & Partial<CatalogProductAdminListResponse>
+  >('/api/v1/merchant/products', {
     method: 'GET',
-    query: categoryId ? { categoryId } : undefined,
+    query,
     auth: 'merchant'
   });
 
-  return response.products ?? [];
+  const items = response.items ?? response.products ?? [];
+
+  return {
+    items,
+    summary: response.summary ?? defaultProductListSummary(),
+    pageInfo: response.pageInfo ?? defaultPageInfo(),
+    snapshotKey: response.snapshotKey ?? ''
+  };
 }
 
 export function applyProductCountsToCategories(
@@ -421,10 +487,11 @@ export function applyProductCountsToCategories(
 }
 
 export function getProductPageViewModel(
-  products: CatalogProductAdminRecord[],
+  products: ProductListSource[],
   categories: MerchantCategoryListItem[],
   activeCategoryId: string,
-  keyword: string
+  keyword: string,
+  backendSummary?: CatalogProductAdminListSummary
 ): ProductPageViewModel {
   const normalizedKeyword = keyword.trim();
   const filteredProducts = products.filter((product) => {
@@ -436,16 +503,23 @@ export function getProductPageViewModel(
       return true;
     }
 
-    return `${product.name} ${product.description} ${product.detailContent}`.includes(normalizedKeyword);
+    const detailContent = 'detailContent' in product ? product.detailContent : '';
+    return `${product.name} ${product.description} ${detailContent}`.includes(normalizedKeyword);
   });
 
   return {
     isEmpty: filteredProducts.length === 0,
-    summary: {
-      totalProducts: filteredProducts.length,
-      publishedProducts: filteredProducts.filter((product) => product.status === 'published').length,
-      stockWarnings: filteredProducts.filter((product) => product.trackInventory && product.stock <= 0).length
-    },
+    summary: backendSummary
+      ? {
+          totalProducts: backendSummary.totalProducts,
+          publishedProducts: backendSummary.publishedProducts,
+          stockWarnings: backendSummary.stockWarnings
+        }
+      : {
+          totalProducts: filteredProducts.length,
+          publishedProducts: filteredProducts.filter((product) => product.status === 'published').length,
+          stockWarnings: filteredProducts.filter((product) => product.trackInventory && product.stock <= 0).length
+        },
     categoryFilters: categories.map((category) => ({
       id: category.id,
       label: category.name,
@@ -458,7 +532,7 @@ export function getProductPageViewModel(
       stockLabel: product.trackInventory ? `库存 ${product.stock}` : '库存不跟踪',
       priceRangeLabel: getPriceRangeLabel(product),
       fulfillmentModesLabel: product.fulfillmentModes.map(getFulfillmentModeLabel).join(' / '),
-      imagePreviewUrl: normalizeImageUrlForDisplay(product.imageAsset?.url ?? product.imagePreviewUrl ?? product.imageFileId)
+      imagePreviewUrl: getProductImagePreviewUrl(product)
     }))
   };
 }

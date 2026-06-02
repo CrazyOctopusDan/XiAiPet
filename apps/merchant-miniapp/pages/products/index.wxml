@@ -84,5 +84,9 @@
         </view>
       </view>
     </view>
+
+    <view wx:if="{{pageInfo.hasMore}}" class="product-load-more" bindtap="handleLoadMoreProducts">
+      {{isLoadingMore ? '加载中' : '加载更多商品'}}
+    </view>
   </view>
 </view>
