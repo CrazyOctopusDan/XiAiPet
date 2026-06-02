@@ -455,6 +455,14 @@ function maxUpdatedAt(products: Pick<CatalogProductSummaryRecord, 'updatedAt'>[]
   }, null);
 }
 
+function createCategoryAvailabilityWhere(categoryId: string, availability: CatalogAvailabilityFilter): Prisma.ProductWhereInput {
+  return {
+    status: PRODUCT_STATUS.published,
+    categoryId,
+    ...createAvailabilityWhere(availability)
+  };
+}
+
 export function createCatalogRepository(client: DbClient = getPrismaClient()) {
   return {
     async listCategories(): Promise<CatalogCategoryRecord[]> {
@@ -484,31 +492,33 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
     },
 
     async listCustomerCatalogCategories(filters: { deliveryMode?: CatalogDeliveryModeFilter } = {}): Promise<CustomerCategorySummaryRecord[]> {
-      const [categories, products] = await Promise.all([
-        client.category.findMany({
-          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }]
-        }),
-        client.product.findMany({
-          where: { status: PRODUCT_STATUS.published },
-          select: productSummarySelect,
-          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
-        })
-      ]);
-      const summaries = products.map(mapProductSummary).filter((product) => matchesDeliveryMode(product, filters.deliveryMode));
+      const categories = await client.category.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }]
+      });
 
-      return categories.map((category) => {
-        const categoryProducts = summaries.filter((product) => product.categoryId === category.id);
-        const availableCount = categoryProducts.filter((product) => matchesAvailability(product, 'available')).length;
-        const soldOutCount = categoryProducts.filter((product) => matchesAvailability(product, 'soldOut')).length;
-
+      return Promise.all(categories.map(async (category) => {
+        const availableWhere = createCategoryAvailabilityWhere(category.id, 'available');
+        const soldOutWhere = createCategoryAvailabilityWhere(category.id, 'soldOut');
+        // fulfillmentModes is JSON for this phase, so counts are DB-bounded and may overinclude until modes are normalized.
+        const [availableCount, soldOutCount, latestProduct] = await Promise.all([
+          client.product.count({ where: availableWhere }),
+          client.product.count({ where: soldOutWhere }),
+          client.product.aggregate({
+            where: {
+              status: PRODUCT_STATUS.published,
+              categoryId: category.id
+            },
+            _max: { updatedAt: true }
+          })
+        ]);
         return {
           ...mapCategory(category),
           availableCount,
           soldOutCount,
           previewCount: availableCount,
-          firstProductUpdatedAt: maxUpdatedAt(categoryProducts)
+          firstProductUpdatedAt: latestProduct._max.updatedAt?.toISOString() ?? null
         };
-      });
+      }));
     },
 
     async listCustomerCategoryProductSummaries(input: {

@@ -35,6 +35,60 @@ function createProductRows(prefix: string, count: number, fulfillmentModes: stri
 }
 
 describe('catalog repository', () => {
+  it('uses aggregate count metadata for customer category navigation', async () => {
+    const categoryFindMany = vi.fn(async () => [
+      {
+        id: 'cakes',
+        name: '蛋糕',
+        iconToken: '糕',
+        sortOrder: 1,
+        createdAt: new Date('2026-06-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-06-01T00:00:00.000Z')
+      }
+    ]);
+    const productFindMany = vi.fn(async () => {
+      throw new Error('category navigation must not fetch product rows');
+    });
+    const count = vi.fn(async ({ where }: { where: Record<string, unknown> }) => (
+      where.trackInventory === true ? 2 : 8
+    ));
+    const aggregate = vi.fn(async () => ({ _max: { updatedAt: new Date('2026-06-01T12:00:00.000Z') } }));
+    const repository = createCatalogRepository({
+      category: { findMany: categoryFindMany },
+      product: { findMany: productFindMany, count, aggregate }
+    } as never);
+
+    const categories = await repository.listCustomerCatalogCategories({ deliveryMode: 'delivery' });
+
+    expect(categories).toEqual([
+      expect.objectContaining({
+        id: 'cakes',
+        availableCount: 8,
+        soldOutCount: 2,
+        previewCount: 8,
+        firstProductUpdatedAt: '2026-06-01T12:00:00.000Z'
+      })
+    ]);
+    expect(productFindMany).not.toHaveBeenCalled();
+    expect(count).toHaveBeenCalledTimes(2);
+    expect(aggregate).toHaveBeenCalledTimes(1);
+    expect(count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        categoryId: 'cakes',
+        status: 'PUBLISHED',
+        OR: [{ trackInventory: false }, { stock: { gt: 0 } }]
+      })
+    });
+    expect(count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        categoryId: 'cakes',
+        status: 'PUBLISHED',
+        trackInventory: true,
+        stock: { lte: 0 }
+      })
+    });
+  });
+
   it('fetches bounded chunks while paging customer summaries with delivery-mode filtering', async () => {
     const findMany = vi
       .fn()
