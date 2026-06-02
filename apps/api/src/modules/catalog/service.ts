@@ -1,9 +1,19 @@
 import { ApiError } from '../../lib/errors';
-import { createCatalogRepository, type CatalogCategoryRecord, type CatalogProductRecord } from './repository';
+import {
+  createCatalogRepository,
+  type CatalogAvailabilityFilter,
+  type CatalogCategoryRecord,
+  type CatalogDeliveryModeFilter,
+  type CatalogPageInfo,
+  type CatalogProductPage,
+  type CatalogProductRecord,
+  type CatalogProductSummaryRecord,
+  type CustomerCategorySummaryRecord
+} from './repository';
 import type { MerchantContext } from '../auth/types';
 import type { CatalogOssAssetReference } from './repository';
 
-type CustomerDeliveryMode = 'pickup' | 'delivery' | 'express';
+type CustomerDeliveryMode = CatalogDeliveryModeFilter;
 
 const DEFAULT_PRODUCT_DETAIL_IMAGES: string[] = [];
 
@@ -13,6 +23,10 @@ interface CustomerCatalogCategory {
   shortName: string;
   iconText: string;
   sectionTitle: string;
+  availableCount?: number;
+  soldOutCount?: number;
+  previewCount?: number;
+  firstProductUpdatedAt?: string | null;
 }
 
 interface MerchantCatalogCategory extends CatalogCategoryRecord {
@@ -47,6 +61,20 @@ interface CustomerCatalogProduct {
   specs: CustomerProductSpecOption[];
 }
 
+interface CustomerProductListItem {
+  id: string;
+  name: string;
+  summary: string;
+  categoryId: string;
+  minPrice: number;
+  stock: number;
+  soldOut: boolean;
+  cartActionLabel: '选规格' | '直接加购';
+  memberLevelLabel: string;
+  thumbnail: string;
+  updatedAt: string;
+}
+
 interface CatalogProductEditorPayload {
   basicInfo: {
     name: string;
@@ -74,6 +102,27 @@ interface CatalogProductEditorPayload {
     fulfillmentModes: unknown[];
   };
 }
+
+type CatalogRepository = ReturnType<typeof createCatalogRepository>;
+
+interface CatalogSummaryRepositoryMethods {
+  listCustomerCatalogCategories(filters: { deliveryMode?: CustomerDeliveryMode }): Promise<CustomerCategorySummaryRecord[]>;
+  createCustomerCategorySnapshotKey(filters: { deliveryMode?: CustomerDeliveryMode }): Promise<string>;
+  listCustomerCategoryProductSummaries(input: {
+    categoryId: string;
+    deliveryMode?: CustomerDeliveryMode;
+    availability: CatalogAvailabilityFilter;
+    limit?: number;
+    cursor?: string;
+  }): Promise<CatalogProductPage<CatalogProductSummaryRecord>>;
+  createCustomerCategoryProductsSnapshotKey(input: {
+    categoryId: string;
+    deliveryMode?: CustomerDeliveryMode;
+    availability: CatalogAvailabilityFilter;
+  }): Promise<string>;
+}
+
+type CatalogRepositoryContract = CatalogRepository & Partial<CatalogSummaryRepositoryMethods>;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -195,14 +244,31 @@ function normalizeProductImageUrls(product: CatalogProductRecord): CatalogProduc
   };
 }
 
-function mapCustomerCategory(category: CatalogCategoryRecord): CustomerCatalogCategory {
+function normalizeProductSummaryImageUrls(product: CatalogProductSummaryRecord): CatalogProductSummaryRecord {
   return {
+    ...product,
+    imageAsset: normalizeAssetReference(product.imageAsset),
+    imagePreviewUrl: normalizeImageUrlForDisplay(product.imagePreviewUrl)
+  };
+}
+
+function mapCustomerCategory(category: CatalogCategoryRecord | CustomerCategorySummaryRecord): CustomerCatalogCategory {
+  const mapped: CustomerCatalogCategory = {
     id: category.id,
     name: category.name,
     shortName: category.name,
     iconText: category.iconToken,
     sectionTitle: category.name
   };
+
+  if ('availableCount' in category) {
+    mapped.availableCount = category.availableCount;
+    mapped.soldOutCount = category.soldOutCount;
+    mapped.previewCount = category.previewCount;
+    mapped.firstProductUpdatedAt = category.firstProductUpdatedAt;
+  }
+
+  return mapped;
 }
 
 async function mapMerchantCategory(
@@ -288,6 +354,32 @@ function mapCustomerProduct(product: CatalogProductRecord): CustomerCatalogProdu
   };
 }
 
+function mapCustomerProductSummary(product: CatalogProductSummaryRecord): CustomerProductListItem {
+  const normalizedProduct = normalizeProductSummaryImageUrls(product);
+  const productForPricing = normalizedProduct as CatalogProductRecord;
+  const specs = getCustomerSpecs(productForPricing);
+  const thumbnail =
+    getAssetUrl(normalizedProduct.imageAsset, 'thumbnail') ??
+    normalizedProduct.imagePreviewUrl ??
+    normalizedProduct.imageAsset?.url ??
+    normalizedProduct.imageFileId;
+  const specPrices = specs.map((spec) => spec.price);
+
+  return {
+    id: normalizedProduct.id,
+    name: normalizedProduct.name,
+    summary: normalizedProduct.description,
+    categoryId: normalizedProduct.categoryId,
+    minPrice: roundCurrency(specPrices.length ? Math.min(...specPrices) : normalizedProduct.basePrice),
+    stock: normalizedProduct.stock,
+    soldOut: normalizedProduct.trackInventory && normalizedProduct.stock <= 0,
+    cartActionLabel: specs.length ? '选规格' : '直接加购',
+    memberLevelLabel: normalizedProduct.memberLevelId ? '会员可购' : '普通会员可购',
+    thumbnail,
+    updatedAt: normalizedProduct.updatedAt
+  };
+}
+
 function isOssAssetReference(value: unknown): value is CatalogOssAssetReference {
   return (
     isObject(value) &&
@@ -345,11 +437,24 @@ function isCatalogProductEditorPayload(value: unknown): value is CatalogProductE
   );
 }
 
-export function createCatalogService(catalogRepository = createCatalogRepository()) {
+export function createCatalogService(catalogRepository: CatalogRepositoryContract = createCatalogRepository()) {
   return {
-    async queryCustomerCategories() {
+    async queryCustomerCategories(filters: { deliveryMode?: CustomerDeliveryMode } = {}) {
+      if (catalogRepository.listCustomerCatalogCategories) {
+        const categories = await catalogRepository.listCustomerCatalogCategories(filters);
+        const snapshotKey = catalogRepository.createCustomerCategorySnapshotKey
+          ? await catalogRepository.createCustomerCategorySnapshotKey(filters)
+          : '';
+
+        return {
+          ok: true as const,
+          categories: categories.map(mapCustomerCategory),
+          snapshotKey
+        };
+      }
+
       const categories = await catalogRepository.listCategories();
-      return { ok: true as const, categories: categories.map(mapCustomerCategory) };
+      return { ok: true as const, categories: categories.map(mapCustomerCategory), snapshotKey: '' };
     },
 
     async queryCustomerProducts(filters: { categoryId?: string } = {}) {
@@ -358,6 +463,42 @@ export function createCatalogService(catalogRepository = createCatalogRepository
         status: 'published'
       });
       return { ok: true as const, products: products.map(mapCustomerProduct) };
+    },
+
+    async queryCustomerCategoryProducts(input: {
+      categoryId: string;
+      deliveryMode?: CustomerDeliveryMode;
+      availability: CatalogAvailabilityFilter;
+      limit?: number;
+      cursor?: string;
+    }) {
+      const page = catalogRepository.listCustomerCategoryProductSummaries
+        ? await catalogRepository.listCustomerCategoryProductSummaries(input)
+        : ({
+            items: [],
+            hasMore: false,
+            nextCursor: null
+          } satisfies CatalogProductPage<CatalogProductSummaryRecord>);
+      const pageInfo: CatalogPageInfo = {
+        hasMore: page.hasMore,
+        nextCursor: page.nextCursor
+      };
+      const snapshotKey = catalogRepository.createCustomerCategoryProductsSnapshotKey
+        ? await catalogRepository.createCustomerCategoryProductsSnapshotKey({
+            categoryId: input.categoryId,
+            deliveryMode: input.deliveryMode,
+            availability: input.availability
+          })
+        : '';
+
+      return {
+        ok: true as const,
+        categoryId: input.categoryId,
+        availability: input.availability,
+        items: page.items.map(mapCustomerProductSummary),
+        pageInfo,
+        snapshotKey
+      };
     },
 
     async queryMerchantCategories(_filters: Record<string, unknown> = {}) {

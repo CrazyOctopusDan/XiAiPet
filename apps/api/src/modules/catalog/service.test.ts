@@ -227,6 +227,95 @@ describe('catalog service', () => {
     });
   });
 
+  it('returns customer category metadata with availability counts and snapshot keys', async () => {
+    const service = createCatalogService(createCatalogRepositoryStub({
+      listCustomerCatalogCategories: async () => [
+        {
+          id: 'cakes',
+          name: '蛋糕',
+          iconToken: '糕',
+          sortOrder: 1,
+          createdAt: '2026-05-16T00:00:00.000Z',
+          updatedAt: '2026-05-16T00:00:00.000Z',
+          availableCount: 12,
+          soldOutCount: 3,
+          previewCount: 12,
+          firstProductUpdatedAt: '2026-06-01T10:00:00.000Z'
+        }
+      ],
+      createCustomerCategorySnapshotKey: async () => 'customer-categories-delivery-15-20260601'
+    }) as never);
+
+    await expect(service.queryCustomerCategories({ deliveryMode: 'delivery' })).resolves.toMatchObject({
+      ok: true,
+      snapshotKey: 'customer-categories-delivery-15-20260601',
+      categories: [
+        {
+          id: 'cakes',
+          name: '蛋糕',
+          availableCount: 12,
+          soldOutCount: 3,
+          previewCount: 12,
+          firstProductUpdatedAt: '2026-06-01T10:00:00.000Z'
+        }
+      ]
+    });
+  });
+
+  it('returns customer category product summaries without heavy detail fields', async () => {
+    const service = createCatalogService(createCatalogRepositoryStub({
+      listCustomerCategoryProductSummaries: async () => ({
+        items: [
+          {
+            id: 'cake-1',
+            name: '南瓜蛋糕',
+            description: '低糖',
+            categoryId: 'cakes',
+            imageFileId: '',
+            imageAsset: undefined,
+            imagePreviewUrl: 'https://assets.example/cake-thumb.jpg',
+            memberLevelId: null,
+            stock: 8,
+            trackInventory: true,
+            fulfillmentModes: ['delivery'],
+            basePrice: 88,
+            specs: [],
+            formulas: [],
+            priceOverrides: [],
+            updatedAt: '2026-06-01T10:00:00.000Z'
+          }
+        ],
+        nextCursor: null,
+        hasMore: false
+      }),
+      createCustomerCategoryProductsSnapshotKey: async () => 'cakes-delivery-available-1'
+    }) as never);
+
+    const response = await service.queryCustomerCategoryProducts({
+      categoryId: 'cakes',
+      deliveryMode: 'delivery',
+      availability: 'available',
+      limit: 12
+    });
+
+    expect(response).toMatchObject({
+      ok: true,
+      categoryId: 'cakes',
+      availability: 'available',
+      pageInfo: { hasMore: false, nextCursor: null },
+      snapshotKey: 'cakes-delivery-available-1',
+      items: [
+        expect.objectContaining({
+          id: 'cake-1',
+          thumbnail: 'https://assets.example/cake-thumb.jpg'
+        })
+      ]
+    });
+    expect(JSON.stringify(response.items[0])).not.toContain('detailImageAssets');
+    expect(JSON.stringify(response.items[0])).not.toContain('detailContent');
+    expect(JSON.stringify(response.items[0])).not.toContain('priceOverrides');
+  });
+
   it('normalizes protocol-less product image urls for merchant and customer responses', async () => {
     const service = createCatalogService(createCatalogRepositoryStub({
       listProducts: async () => [

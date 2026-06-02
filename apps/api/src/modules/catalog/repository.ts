@@ -28,6 +28,25 @@ export interface CatalogCategoryRecord {
   updatedAt: string;
 }
 
+export type CatalogDeliveryModeFilter = 'pickup' | 'delivery' | 'express';
+export type CatalogAvailabilityFilter = 'available' | 'soldOut';
+
+export interface CatalogPageInfo {
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+export interface CatalogProductPage<T> extends CatalogPageInfo {
+  items: T[];
+}
+
+export interface CustomerCategorySummaryRecord extends CatalogCategoryRecord {
+  availableCount: number;
+  soldOutCount: number;
+  previewCount: number;
+  firstProductUpdatedAt: string | null;
+}
+
 export interface CatalogProductRecord {
   id: string;
   name: string;
@@ -52,6 +71,26 @@ export interface CatalogProductRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export type CatalogProductSummaryRecord = Pick<
+  CatalogProductRecord,
+  | 'id'
+  | 'name'
+  | 'description'
+  | 'categoryId'
+  | 'imageFileId'
+  | 'imageAsset'
+  | 'imagePreviewUrl'
+  | 'memberLevelId'
+  | 'stock'
+  | 'trackInventory'
+  | 'fulfillmentModes'
+  | 'basePrice'
+  | 'specs'
+  | 'formulas'
+  | 'priceOverrides'
+  | 'updatedAt'
+>;
 
 interface CategoryRow {
   id: string;
