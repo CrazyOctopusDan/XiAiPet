@@ -186,7 +186,7 @@ describe('catalog repository', () => {
     ]);
     const count = vi.fn(async ({ where }: { where: Record<string, unknown> }) => {
       if (where.trackInventory === true) {
-        return 3;
+        return (where.status as { not?: string } | undefined)?.not === 'ARCHIVED' ? 1 : 3;
       }
       if (where.status === 'PUBLISHED') {
         return 8;
@@ -196,6 +196,9 @@ describe('catalog repository', () => {
       }
       if (where.status === 'ARCHIVED') {
         return 2;
+      }
+      if ((where.status as { not?: string } | undefined)?.not === 'ARCHIVED') {
+        return 12;
       }
       return 14;
     });
@@ -211,16 +214,32 @@ describe('catalog repository', () => {
     });
 
     expect(page.summary).toEqual({
-      totalProducts: 14,
+      totalProducts: 12,
       publishedProducts: 8,
       draftProducts: 4,
       archivedProducts: 2,
-      stockWarnings: 3
+      stockWarnings: 1
     });
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 3 }));
     expect(count).toHaveBeenCalledTimes(5);
     expect(aggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts only non-archived products as category-linked products', async () => {
+    const count = vi.fn(async () => 0);
+    const repository = createCatalogRepository({
+      product: { count }
+    } as never);
+
+    await repository.countProductsByCategory('cakes');
+
+    expect(count).toHaveBeenCalledWith({
+      where: {
+        categoryId: 'cakes',
+        status: { not: 'ARCHIVED' }
+      }
+    });
   });
 
   it('excludes archived merchant products from the default list', async () => {

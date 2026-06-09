@@ -182,6 +182,13 @@ function isPrismaErrorCode(error: unknown, code: string) {
   return Boolean(error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === code);
 }
 
+function createVisibleMerchantProductWhere(baseWhere: Prisma.ProductWhereInput): Prisma.ProductWhereInput {
+  return {
+    ...baseWhere,
+    status: { not: PRODUCT_STATUS.archived }
+  };
+}
+
 const productSummarySelect = {
   id: true,
   name: true,
@@ -754,6 +761,9 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
         categoryId: input.categoryId,
         AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
       };
+      const currentWhere: Prisma.ProductWhereInput = input.status
+        ? { ...baseWhere, status: PRODUCT_STATUS[input.status] }
+        : createVisibleMerchantProductWhere(baseWhere);
       const pageWhere: Prisma.ProductWhereInput = {
         ...baseWhere,
         status: input.status ? PRODUCT_STATUS[input.status] : { not: PRODUCT_STATUS.archived },
@@ -771,19 +781,19 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
         latestProduct,
         pageProducts
       ] = await Promise.all([
-        client.product.count({ where: baseWhere }),
+        client.product.count({ where: currentWhere }),
         client.product.count({ where: { ...baseWhere, status: PRODUCT_STATUS.published } }),
         client.product.count({ where: { ...baseWhere, status: PRODUCT_STATUS.draft } }),
         client.product.count({ where: { ...baseWhere, status: PRODUCT_STATUS.archived } }),
         client.product.count({
           where: {
-            ...baseWhere,
+            ...currentWhere,
             trackInventory: true,
             stock: { lte: 0 }
           }
         }),
         client.product.aggregate({
-          where: baseWhere,
+          where: currentWhere,
           _max: { updatedAt: true }
         }),
         client.product.findMany({
@@ -828,7 +838,8 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
     async countProductsByCategory(categoryId: string): Promise<number> {
       return client.product.count({
         where: {
-          categoryId
+          categoryId,
+          status: { not: PRODUCT_STATUS.archived }
         }
       });
     },
