@@ -223,6 +223,51 @@ describe('catalog repository', () => {
     expect(aggregate).toHaveBeenCalledTimes(1);
   });
 
+  it('excludes archived merchant products from the default list', async () => {
+    const findMany = vi.fn(async () => [
+      createProductRow('delivery-1', ['delivery'], '2026-06-01T10:00:00.000Z')
+    ]);
+    const count = vi.fn(async () => 0);
+    const aggregate = vi.fn(async () => ({ _max: { updatedAt: new Date('2026-06-01T12:00:00.000Z') } }));
+    const repository = createCatalogRepository({
+      product: { findMany, count, aggregate }
+    } as never);
+
+    await repository.listMerchantProductSummaries({ limit: 2 });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: { not: 'ARCHIVED' }
+        })
+      })
+    );
+  });
+
+  it('archives products when physical delete is blocked by order history', async () => {
+    const deleteError = Object.assign(new Error('Foreign key constraint failed'), { code: 'P2003' });
+    const deleteProduct = vi.fn(async () => {
+      throw deleteError;
+    });
+    const updateProduct = vi.fn(async () => undefined);
+    const repository = createCatalogRepository({
+      product: {
+        delete: deleteProduct,
+        update: updateProduct
+      }
+    } as never);
+
+    await expect(repository.deleteProduct('product-001')).resolves.toBeUndefined();
+
+    expect(deleteProduct).toHaveBeenCalledWith({
+      where: { id: 'product-001' }
+    });
+    expect(updateProduct).toHaveBeenCalledWith({
+      where: { id: 'product-001' },
+      data: { status: 'ARCHIVED' }
+    });
+  });
+
   it('uses aggregate metadata for customer search snapshots with delivery-mode filtering', async () => {
     const queryRaw = vi
       .fn()

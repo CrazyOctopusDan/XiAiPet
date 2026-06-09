@@ -178,6 +178,10 @@ const PRODUCT_STATUS_DB_VALUE = {
   archived: 'archived'
 } as const;
 
+function isPrismaErrorCode(error: unknown, code: string) {
+  return Boolean(error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === code);
+}
+
 const productSummarySelect = {
   id: true,
   name: true,
@@ -593,7 +597,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       const products = await client.product.findMany({
         where: {
           categoryId: filters.categoryId,
-          status: filters.status ? PRODUCT_STATUS[filters.status] : undefined
+          status: filters.status ? PRODUCT_STATUS[filters.status] : { not: PRODUCT_STATUS.archived }
         },
         orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
       });
@@ -752,7 +756,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       };
       const pageWhere: Prisma.ProductWhereInput = {
         ...baseWhere,
-        status: input.status ? PRODUCT_STATUS[input.status] : undefined,
+        status: input.status ? PRODUCT_STATUS[input.status] : { not: PRODUCT_STATUS.archived },
         AND: [
           ...(Array.isArray(baseWhere.AND) ? baseWhere.AND : []),
           createCursorWhere(input.cursor)
@@ -874,11 +878,26 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
     },
 
     async deleteProduct(productId: string): Promise<void> {
-      await client.product.delete({
-        where: {
-          id: productId
+      try {
+        await client.product.delete({
+          where: {
+            id: productId
+          }
+        });
+      } catch (error) {
+        if (!isPrismaErrorCode(error, 'P2003')) {
+          throw error;
         }
-      });
+
+        await client.product.update({
+          where: {
+            id: productId
+          },
+          data: {
+            status: PRODUCT_STATUS.archived
+          }
+        });
+      }
     },
 
     async upsertProduct(input: CatalogProductRecord): Promise<CatalogProductRecord> {
