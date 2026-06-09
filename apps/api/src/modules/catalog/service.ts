@@ -76,6 +76,7 @@ interface CustomerProductListItem {
   cartActionLabel: '选规格' | '直接加购';
   memberLevelLabel: string;
   thumbnail: string;
+  specs: CustomerProductSpecOption[];
   updatedAt: string;
 }
 
@@ -515,6 +516,7 @@ function mapCustomerProductSummary(product: CatalogProductSummaryRecord): Custom
     cartActionLabel: specs.length ? '选规格' : '直接加购',
     memberLevelLabel: normalizedProduct.memberLevelId ? '会员可购' : '普通会员可购',
     thumbnail,
+    specs,
     updatedAt: normalizedProduct.updatedAt
   };
 }

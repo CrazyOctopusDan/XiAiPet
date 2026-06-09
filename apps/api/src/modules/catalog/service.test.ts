@@ -279,7 +279,7 @@ describe('catalog service', () => {
             trackInventory: true,
             fulfillmentModes: ['delivery'],
             basePrice: 88,
-            specs: [],
+            specs: [{ id: 'one', label: '1根', surcharge: 0 }, { id: 'two', label: '2根', surcharge: 20 }],
             formulas: [],
             priceOverrides: [],
             updatedAt: '2026-06-01T10:00:00.000Z'
@@ -307,7 +307,11 @@ describe('catalog service', () => {
       items: [
         expect.objectContaining({
           id: 'cake-1',
-          thumbnail: 'https://assets.example/cake-thumb.jpg'
+          thumbnail: 'https://assets.example/cake-thumb.jpg',
+          specs: [
+            { id: 'one', label: '1根', price: 88 },
+            { id: 'two', label: '2根', price: 108 }
+          ]
         })
       ]
     });

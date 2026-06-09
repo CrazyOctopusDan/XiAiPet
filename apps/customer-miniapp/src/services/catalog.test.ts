@@ -415,6 +415,51 @@ describe('catalog service', () => {
     expect(product?.specs.length).toBeGreaterThan(0);
   });
 
+  it('uses loaded list summary specs for first-open quick-buy panels without detail hydration', async () => {
+    resetCatalogCache({ useLocalFixtures: false });
+    await hydrateCatalogCategories(
+      'delivery',
+      vi.fn().mockResolvedValue({ ok: true, categories: [{ id: 'cakes', name: '蛋糕', availableCount: 1 }] }) as Parameters<
+        typeof hydrateCatalogCategories
+      >[1]
+    );
+    await loadCategoryProducts(
+      { deliveryMode: 'delivery', categoryId: 'cakes', availability: 'available' },
+      vi.fn().mockResolvedValue({
+        ok: true,
+        items: [
+          {
+            id: 'pork-roll',
+            name: '肉肉夹心猪皮卷',
+            summary: '普通会员可购',
+            categoryId: 'cakes',
+            minPrice: 26.8,
+            stock: 8,
+            soldOut: false,
+            deliveryModes: ['delivery'],
+            cartActionLabel: '选规格',
+            memberLevelLabel: '普通会员可购',
+            thumbnail: '',
+            specs: [
+              { id: 'one', label: '1根', price: 26.8 },
+              { id: 'two', label: '2根', price: 45.8 }
+            ],
+            updatedAt: '2026-06-09T00:00:00.000Z'
+          }
+        ],
+        pageInfo: { hasMore: false, nextCursor: null }
+      }) as Parameters<typeof loadCategoryProducts>[1]
+    );
+
+    const product = getProductById('pork-roll');
+
+    expect(product?.specs).toEqual([
+      { id: 'one', label: '1根', price: 26.8 },
+      { id: 'two', label: '2根', price: 45.8 }
+    ]);
+    expect(product?.cartActionLabel).toBe('选规格');
+  });
+
   it('searches catalog products through the service-side search route without local full-product cache', async () => {
     const apiRequest = vi.fn(async (path: string) => {
       if (path === '/api/v1/customer/catalog/products/search?keyword=%E5%8D%97%E7%93%9C&deliveryMode=delivery&limit=20') {
