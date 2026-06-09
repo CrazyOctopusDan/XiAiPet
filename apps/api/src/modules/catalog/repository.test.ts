@@ -287,6 +287,76 @@ describe('catalog repository', () => {
     });
   });
 
+  it('moves archived products to an internal category before deleting their old category', async () => {
+    const categoryUpsert = vi.fn(async () => undefined);
+    const productUpdateMany = vi.fn(async () => ({ count: 2 }));
+    const categoryDelete = vi.fn(async () => undefined);
+    const repository = createCatalogRepository({
+      category: {
+        upsert: categoryUpsert,
+        delete: categoryDelete
+      },
+      product: {
+        updateMany: productUpdateMany
+      }
+    } as never);
+
+    await repository.deleteCategory('cakes');
+
+    expect(categoryUpsert).toHaveBeenCalledWith({
+      where: { id: '__archived_products__' },
+      update: expect.objectContaining({
+        name: '归档商品'
+      }),
+      create: expect.objectContaining({
+        id: '__archived_products__',
+        name: '归档商品'
+      })
+    });
+    expect(productUpdateMany).toHaveBeenCalledWith({
+      where: {
+        categoryId: 'cakes',
+        status: 'ARCHIVED'
+      },
+      data: {
+        categoryId: '__archived_products__'
+      }
+    });
+    expect(categoryDelete).toHaveBeenCalledWith({
+      where: { id: 'cakes' }
+    });
+  });
+
+  it('hides the internal archived-products category from merchant category lists', async () => {
+    const categoryFindMany = vi.fn(async () => [
+      {
+        id: 'cakes',
+        name: '蛋糕',
+        iconToken: '糕',
+        sortOrder: 1,
+        createdAt: new Date('2026-06-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-06-01T00:00:00.000Z')
+      },
+      {
+        id: '__archived_products__',
+        name: '归档商品',
+        iconToken: '归',
+        sortOrder: 9999,
+        createdAt: new Date('2026-06-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-06-01T00:00:00.000Z')
+      }
+    ]);
+    const repository = createCatalogRepository({
+      category: { findMany: categoryFindMany }
+    } as never);
+
+    await expect(repository.listCategories()).resolves.toEqual([
+      expect.objectContaining({
+        id: 'cakes'
+      })
+    ]);
+  });
+
   it('uses aggregate metadata for customer search snapshots with delivery-mode filtering', async () => {
     const queryRaw = vi
       .fn()

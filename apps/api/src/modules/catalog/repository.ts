@@ -178,6 +178,14 @@ const PRODUCT_STATUS_DB_VALUE = {
   archived: 'archived'
 } as const;
 
+const INTERNAL_ARCHIVED_PRODUCTS_CATEGORY_ID = '__archived_products__';
+const INTERNAL_ARCHIVED_PRODUCTS_CATEGORY = {
+  id: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY_ID,
+  name: '归档商品',
+  iconToken: '归',
+  sortOrder: 9999
+} as const;
+
 function isPrismaErrorCode(error: unknown, code: string) {
   return Boolean(error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === code);
 }
@@ -587,9 +595,14 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
   return {
     async listCategories(): Promise<CatalogCategoryRecord[]> {
       const categories = await client.category.findMany({
+        where: {
+          id: { not: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY_ID }
+        },
         orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }]
       });
-      return categories.map(mapCategory);
+      return categories
+        .filter((category) => category.id !== INTERNAL_ARCHIVED_PRODUCTS_CATEGORY_ID)
+        .map(mapCategory);
     },
 
     async listPublishedProducts(): Promise<CatalogProductRecord[]> {
@@ -613,34 +626,41 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
 
     async listCustomerCatalogCategories(filters: { deliveryMode?: CatalogDeliveryModeFilter } = {}): Promise<CustomerCategorySummaryRecord[]> {
       const categories = await client.category.findMany({
+        where: {
+          id: { not: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY_ID }
+        },
         orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }]
       });
 
-      return Promise.all(categories.map(async (category) => {
-        const [availableCount, soldOutCount, latestProduct] = await Promise.all([
-          countCustomerCategoryProducts(client, {
-            categoryId: category.id,
-            availability: 'available',
-            deliveryMode: filters.deliveryMode
-          }),
-          countCustomerCategoryProducts(client, {
-            categoryId: category.id,
-            availability: 'soldOut',
-            deliveryMode: filters.deliveryMode
-          }),
-          getCustomerCategoryLatestUpdatedAt(client, {
-            categoryId: category.id,
-            deliveryMode: filters.deliveryMode
+      return Promise.all(
+        categories
+          .filter((category) => category.id !== INTERNAL_ARCHIVED_PRODUCTS_CATEGORY_ID)
+          .map(async (category) => {
+            const [availableCount, soldOutCount, latestProduct] = await Promise.all([
+              countCustomerCategoryProducts(client, {
+                categoryId: category.id,
+                availability: 'available',
+                deliveryMode: filters.deliveryMode
+              }),
+              countCustomerCategoryProducts(client, {
+                categoryId: category.id,
+                availability: 'soldOut',
+                deliveryMode: filters.deliveryMode
+              }),
+              getCustomerCategoryLatestUpdatedAt(client, {
+                categoryId: category.id,
+                deliveryMode: filters.deliveryMode
+              })
+            ]);
+            return {
+              ...mapCategory(category),
+              availableCount,
+              soldOutCount,
+              previewCount: availableCount,
+              firstProductUpdatedAt: latestProduct
+            };
           })
-        ]);
-        return {
-          ...mapCategory(category),
-          availableCount,
-          soldOutCount,
-          previewCount: availableCount,
-          firstProductUpdatedAt: latestProduct
-        };
-      }));
+      );
     },
 
     async listCustomerCategoryProductSummaries(input: {
@@ -881,6 +901,26 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
     },
 
     async deleteCategory(categoryId: string): Promise<void> {
+      await client.category.upsert({
+        where: {
+          id: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY.id
+        },
+        update: {
+          name: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY.name,
+          iconToken: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY.iconToken,
+          sortOrder: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY.sortOrder
+        },
+        create: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY
+      });
+      await client.product.updateMany({
+        where: {
+          categoryId,
+          status: PRODUCT_STATUS.archived
+        },
+        data: {
+          categoryId: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY.id
+        }
+      });
       await client.category.delete({
         where: {
           id: categoryId
