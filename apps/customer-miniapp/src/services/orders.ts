@@ -86,6 +86,10 @@ export interface OrderDetailViewModel {
   deliveryFeeLabel: string;
   payableTotalLabel: string;
   items: OrderDetailItemViewModel[];
+  canComplete: boolean;
+  completionActionLabel: string;
+  completionConfirmTitle: string;
+  completionConfirmBody: string;
 }
 
 type BackendOrderRecord = OrderRecord & {
@@ -202,6 +206,49 @@ function getPetRows(order: OrderRecord): OrderDetailPetViewModel[] {
   return order.snapshot.pets.map((item) => ({
     name: item.name
   }));
+}
+
+function getCustomerCompletionAction(order: OrderRecord) {
+  if (order.status !== 'paid') {
+    return null;
+  }
+
+  const status = order.fulfillmentState?.status;
+  const mode = order.fulfillmentState?.mode ?? order.snapshot.fulfillment.mode;
+  const isActive = status === 'in_production' ||
+    status === 'out_for_delivery' ||
+    status === 'ready_for_pickup' ||
+    status === 'ready_to_ship';
+
+  if (!isActive) {
+    return null;
+  }
+
+  if (mode === 'pickup') {
+    return {
+      label: '已取',
+      confirmTitle: '确认已取？',
+      confirmBody: '确认后订单会变为已完成，商户端也会同步看到。'
+    };
+  }
+
+  if (mode === 'delivery') {
+    return {
+      label: '已收到',
+      confirmTitle: '确认已收到？',
+      confirmBody: '确认后订单会变为已完成，商户端也会同步看到。'
+    };
+  }
+
+  if (mode === 'express') {
+    return {
+      label: '已收到',
+      confirmTitle: '确认已收到？',
+      confirmBody: '确认后订单会变为已完成，商户端也会同步看到。'
+    };
+  }
+
+  return null;
 }
 
 function toOrderCard(order: OrderRecord): OrderCardViewModel {
@@ -357,6 +404,18 @@ export async function getMyOrderDetail(orderId: string, request: CustomerApiRequ
   return response.order ? normalizeOrder(response.order) : response.order;
 }
 
+export async function completeMyOrder(orderId: string, request: CustomerApiRequester = customerApiRequest) {
+  const response = await request<GetMyOrderDetailResult & { ok?: boolean }>(
+    `/api/v1/customer/orders/${orderId}/complete`,
+    {
+      method: 'POST',
+      auth: 'customer'
+    }
+  );
+
+  return response.order ? normalizeOrder(response.order) : response.order;
+}
+
 export function getOrdersPageViewModel(
   orders: OrderRecord[],
   highlightOrderId?: string | null,
@@ -384,6 +443,7 @@ export function getOrderDetailViewModel(order: OrderRecord | null) {
   }
 
   const pets = getPetRows(order);
+  const completionAction = getCustomerCompletionAction(order);
 
   return {
     id: order.id,
@@ -406,6 +466,10 @@ export function getOrderDetailViewModel(order: OrderRecord | null) {
       specLabel: item.specLabel || '默认规格',
       quantityLabel: `x${item.quantity}`,
       lineTotalLabel: formatMoney(item.lineTotal)
-    }))
+    })),
+    canComplete: Boolean(completionAction),
+    completionActionLabel: completionAction?.label ?? '',
+    completionConfirmTitle: completionAction?.confirmTitle ?? '',
+    completionConfirmBody: completionAction?.confirmBody ?? ''
   };
 }

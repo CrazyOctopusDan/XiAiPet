@@ -323,6 +323,109 @@ describe('order service', () => {
     );
   });
 
+  it('lets the customer complete a ready pickup order', async () => {
+    const client = {
+      order: {
+        findUnique: vi.fn(async () =>
+          createOrderRow({
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            fulfillmentMode: 'PICKUP',
+            fulfillmentStatus: 'READY_FOR_PICKUP'
+          })
+        ),
+        update: vi.fn(async ({ data }) =>
+          createOrderRow({
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            fulfillmentMode: 'PICKUP',
+            fulfillmentStatus: data.fulfillmentStatus
+          })
+        ),
+        updateMany: vi.fn()
+      }
+    };
+    const service = createOrderService(client as any);
+
+    const result = await service.completeCustomerOrder('openid-1', 'order-1');
+
+    expect(client.order.update).toHaveBeenCalledWith({
+      where: { id: 'order-1' },
+      data: expect.objectContaining({
+        fulfillmentStatus: 'COMPLETED',
+        merchantOverride: expect.objectContaining({
+          actorType: 'customer',
+          actorOpenid: 'openid-1',
+          action: 'customer_confirm_completed'
+        })
+      })
+    });
+    expect(result.order).toMatchObject({
+      id: 'order-1',
+      fulfillmentStatus: 'completed'
+    });
+  });
+
+  it('blocks customer completion before the order becomes active', async () => {
+    const client = {
+      order: {
+        findUnique: vi.fn(async () =>
+          createOrderRow({
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            fulfillmentMode: 'DELIVERY',
+            fulfillmentStatus: 'PENDING'
+          })
+        ),
+        updateMany: vi.fn()
+      }
+    };
+    const service = createOrderService(client as any);
+
+    await expect(service.completeCustomerOrder('openid-1', 'order-1')).rejects.toMatchObject({
+      code: 'ORDER_NOT_READY_TO_COMPLETE',
+      statusCode: 409
+    });
+  });
+
+  it('auto-completes active paid orders that have not moved for 15 days before customer queries', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-20T00:00:00.000Z'));
+    const client = {
+      order: {
+        updateMany: vi.fn(async () => ({ count: 2 })),
+        findMany: vi.fn(async () => [])
+      }
+    };
+    const service = createOrderService(client as any);
+
+    try {
+      await service.queryCustomerOrders('openid-1');
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(client.order.updateMany).toHaveBeenCalledWith({
+      where: {
+        status: 'PAID',
+        fulfillmentStatus: {
+          in: ['IN_PRODUCTION', 'OUT_FOR_DELIVERY', 'READY_FOR_PICKUP', 'READY_TO_SHIP']
+        },
+        updatedAt: {
+          lte: new Date('2026-06-05T00:00:00.000Z')
+        }
+      },
+      data: expect.objectContaining({
+        fulfillmentStatus: 'COMPLETED',
+        merchantOverride: expect.objectContaining({
+          actorType: 'system',
+          action: 'auto_complete_active_order',
+          thresholdDays: 15
+        })
+      })
+    });
+  });
+
   it('filters merchant orders by active/history scope and fulfillment mode', async () => {
     const client = {
       order: {

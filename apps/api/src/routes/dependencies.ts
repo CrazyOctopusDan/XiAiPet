@@ -104,6 +104,7 @@ export interface ApiRouteServices {
     syncCustomerPayment(openid: string, orderId: string): AsyncResult;
     queryCustomerOrders(openid: string, filters?: Record<string, unknown>): AsyncResult;
     getCustomerOrderDetail(openid: string, orderId: string): AsyncResult;
+    completeCustomerOrder(openid: string, orderId: string): AsyncResult;
     queryMerchantOrders(merchantContext: unknown, filters?: Record<string, unknown>): AsyncResult;
     getMerchantOrderDetail(merchantContext: unknown, orderId: string): AsyncResult;
     updateMerchantOrderStatus(merchantContext: unknown, orderId: string, payload: unknown): AsyncResult;

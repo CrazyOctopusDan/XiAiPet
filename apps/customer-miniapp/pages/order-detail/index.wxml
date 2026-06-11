@@ -33,6 +33,20 @@
         <text class="detail-meta-label">支付方式</text>
         <text class="detail-meta-value">{{detail.paymentMethodLabel}}</text>
       </view>
+      <view class="detail-completion-panel" wx:if="{{detail.canComplete}}">
+        <view class="completion-copy">
+          <text class="completion-title">确认履约状态</text>
+          <text class="completion-subtitle">确认后订单会同步变为已完成。</text>
+        </view>
+        <button
+          class="completion-button"
+          loading="{{isCompleting}}"
+          disabled="{{isCompleting}}"
+          bindtap="handleCompleteOrderTap"
+        >
+          {{detail.completionActionLabel}}
+        </button>
+      </view>
     </view>
 
     <view class="detail-card">

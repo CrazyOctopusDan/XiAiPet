@@ -75,6 +75,9 @@ async function loadPageModule(modulePath: string) {
     redirectTo: vi.fn(),
     navigateTo: vi.fn(),
     navigateBack: vi.fn(),
+    switchTab: vi.fn(),
+    showModal: vi.fn().mockResolvedValue({ confirm: true, cancel: false }),
+    showToast: vi.fn(),
     stopPullDownRefresh: vi.fn(),
     cloud: {
       callFunction: vi.fn()
@@ -527,6 +530,88 @@ describe('orders pages', () => {
     expect(detailTemplate).toContain('navigate-on-back="{{false}}"');
     expect(detailTemplate).toContain('宠物信息');
     expect(detailTemplate).toContain('wx:for="{{detail.pets}}"');
+    expect(detailTemplate).toContain('bindtap="handleCompleteOrderTap"');
+  });
+
+  it('lets the customer confirm completion from the order detail page', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/order-detail/index.ts');
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders/order-001/complete') {
+        respondApi(options, {
+          ok: true,
+          order: createOrder({
+            fulfillmentState: {
+              mode: 'pickup',
+              status: 'completed'
+            },
+            snapshot: {
+              ...createOrder().snapshot,
+              fulfillment: {
+                mode: 'pickup',
+                pickupPhone: '18811736099',
+                reservation: createOrder().snapshot.fulfillment.reservation,
+                store: createOrder().snapshot.fulfillment.store
+              }
+            }
+          })
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders/order-001') {
+        respondApi(options, {
+          ok: true,
+          order: createOrder({
+            fulfillmentState: {
+              mode: 'pickup',
+              status: 'ready_for_pickup'
+            },
+            snapshot: {
+              ...createOrder().snapshot,
+              fulfillment: {
+                mode: 'pickup',
+                pickupPhone: '18811736099',
+                reservation: createOrder().snapshot.fulfillment.reservation,
+                store: createOrder().snapshot.fulfillment.store
+              }
+            }
+          })
+        });
+      }
+    });
+    const instance = createPageInstance(page);
+
+    instance.onLoad({
+      orderId: 'order-001'
+    });
+    await instance.onShow();
+    await instance.handleCompleteOrderTap();
+
+    expect(wx.showModal).toHaveBeenCalledWith(expect.objectContaining({
+      title: '确认已取？',
+      confirmText: '已取'
+    }));
+    expect(
+      wx.request.mock.calls.some(([options]) => getRequestPath(options) === '/api/v1/customer/orders/order-001/complete')
+    ).toBe(true);
+    expect(instance.data.detail).toMatchObject({
+      statusLabel: '已完成',
+      canComplete: false
+    });
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '订单已完成',
+      icon: 'success'
+    });
   });
 
   it('refreshes the order detail page from the latest API data on pull down', async () => {

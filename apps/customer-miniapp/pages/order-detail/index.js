@@ -5,7 +5,8 @@ Page({
     data: {
         orderId: '',
         detail: null,
-        isEmpty: true
+        isEmpty: true,
+        isCompleting: false
     },
     onLoad(options) {
         var _a;
@@ -42,5 +43,37 @@ Page({
         wx.switchTab({
             url: '/pages/orders/index'
         });
+    },
+    async handleCompleteOrderTap() {
+        var _a;
+        const detail = this.data.detail;
+        if (!(detail === null || detail === void 0 ? void 0 : detail.canComplete) || this.data.isCompleting) {
+            return;
+        }
+        const result = await wx.showModal({
+            title: detail.completionConfirmTitle,
+            content: detail.completionConfirmBody,
+            confirmText: detail.completionActionLabel,
+            confirmColor: '#2F6478',
+            cancelText: '再等等'
+        });
+        if (!result.confirm) {
+            return;
+        }
+        this.setData({ isCompleting: true });
+        try {
+            const order = await (0, orders_1.completeMyOrder)(detail.id);
+            this.setData({
+                detail: (0, orders_1.getOrderDetailViewModel)(order),
+                isEmpty: !order
+            });
+            (_a = wx.showToast) === null || _a === void 0 ? void 0 : _a.call(wx, {
+                title: '订单已完成',
+                icon: 'success'
+            });
+        }
+        finally {
+            this.setData({ isCompleting: false });
+        }
     }
 });

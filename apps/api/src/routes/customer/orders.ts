@@ -28,6 +28,11 @@ export async function customerOrderRoutes(
     return dependencies.orderService.confirmCustomerPayment(request.auth?.openid ?? '', params.orderId, request.body);
   });
 
+  app.post('/orders/:orderId/complete', customerGuard, async (request) => {
+    const params = request.params as { orderId: string };
+    return dependencies.orderService.completeCustomerOrder(request.auth?.openid ?? '', params.orderId);
+  });
+
   app.get('/orders', customerGuard, async (request) => {
     return dependencies.orderService.queryCustomerOrders(request.auth?.openid ?? '', request.query as Record<string, unknown>);
   });

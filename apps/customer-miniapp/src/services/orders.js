@@ -5,6 +5,7 @@ exports.getOrderStatusTone = getOrderStatusTone;
 exports.getOrderStatusTabs = getOrderStatusTabs;
 exports.queryMyOrders = queryMyOrders;
 exports.getMyOrderDetail = getMyOrderDetail;
+exports.completeMyOrder = completeMyOrder;
 exports.getOrdersPageViewModel = getOrdersPageViewModel;
 exports.getOrderDetailViewModel = getOrderDetailViewModel;
 const order_runtime_1 = require("../shared/order-runtime");
@@ -90,6 +91,43 @@ function getPetRows(order) {
     return order.snapshot.pets.map((item) => ({
         name: item.name
     }));
+}
+function getCustomerCompletionAction(order) {
+    var _a, _b, _c;
+    if (order.status !== 'paid') {
+        return null;
+    }
+    const status = (_a = order.fulfillmentState) === null || _a === void 0 ? void 0 : _a.status;
+    const mode = (_c = (_b = order.fulfillmentState) === null || _b === void 0 ? void 0 : _b.mode) !== null && _c !== void 0 ? _c : order.snapshot.fulfillment.mode;
+    const isActive = status === 'in_production' ||
+        status === 'out_for_delivery' ||
+        status === 'ready_for_pickup' ||
+        status === 'ready_to_ship';
+    if (!isActive) {
+        return null;
+    }
+    if (mode === 'pickup') {
+        return {
+            label: '已取',
+            confirmTitle: '确认已取？',
+            confirmBody: '确认后订单会变为已完成，商户端也会同步看到。'
+        };
+    }
+    if (mode === 'delivery') {
+        return {
+            label: '已收到',
+            confirmTitle: '确认已收到？',
+            confirmBody: '确认后订单会变为已完成，商户端也会同步看到。'
+        };
+    }
+    if (mode === 'express') {
+        return {
+            label: '已收到',
+            confirmTitle: '确认已收到？',
+            confirmBody: '确认后订单会变为已完成，商户端也会同步看到。'
+        };
+    }
+    return null;
 }
 function toOrderCard(order) {
     return {
@@ -214,6 +252,13 @@ async function getMyOrderDetail(orderId, request = api_client_1.customerApiReque
     });
     return response.order ? normalizeOrder(response.order) : response.order;
 }
+async function completeMyOrder(orderId, request = api_client_1.customerApiRequest) {
+    const response = await request(`/api/v1/customer/orders/${orderId}/complete`, {
+        method: 'POST',
+        auth: 'customer'
+    });
+    return response.order ? normalizeOrder(response.order) : response.order;
+}
 function getOrdersPageViewModel(orders, highlightOrderId, activeStatusGroup = 'all') {
     var _a, _b, _c, _d;
     const filteredOrders = activeStatusGroup === 'all'
@@ -230,10 +275,12 @@ function getOrdersPageViewModel(orders, highlightOrderId, activeStatusGroup = 'a
     };
 }
 function getOrderDetailViewModel(order) {
+    var _a, _b, _c;
     if (!order) {
         return null;
     }
     const pets = getPetRows(order);
+    const completionAction = getCustomerCompletionAction(order);
     return {
         id: order.id,
         statusLabel: (0, order_runtime_1.getOrderStatusLabel)(order),
@@ -255,6 +302,10 @@ function getOrderDetailViewModel(order) {
             specLabel: item.specLabel || '默认规格',
             quantityLabel: `x${item.quantity}`,
             lineTotalLabel: formatMoney(item.lineTotal)
-        }))
+        })),
+        canComplete: Boolean(completionAction),
+        completionActionLabel: (_a = completionAction === null || completionAction === void 0 ? void 0 : completionAction.label) !== null && _a !== void 0 ? _a : '',
+        completionConfirmTitle: (_b = completionAction === null || completionAction === void 0 ? void 0 : completionAction.confirmTitle) !== null && _b !== void 0 ? _b : '',
+        completionConfirmBody: (_c = completionAction === null || completionAction === void 0 ? void 0 : completionAction.confirmBody) !== null && _c !== void 0 ? _c : ''
     };
 }

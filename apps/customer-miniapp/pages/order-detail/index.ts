@@ -3,12 +3,13 @@ declare function Page(options: Record<string, unknown>): void;
 
 import type { OrderDetailViewModel } from '../../src/services/orders';
 
-import { getMyOrderDetail, getOrderDetailViewModel } from '../../src/services/orders';
+import { completeMyOrder, getMyOrderDetail, getOrderDetailViewModel } from '../../src/services/orders';
 
 interface OrderDetailPageData {
   orderId: string;
   detail: OrderDetailViewModel | null;
   isEmpty: boolean;
+  isCompleting: boolean;
 }
 
 interface OrderDetailPageInstance {
@@ -21,7 +22,8 @@ Page({
   data: {
     orderId: '',
     detail: null,
-    isEmpty: true
+    isEmpty: true,
+    isCompleting: false
   },
   onLoad(this: OrderDetailPageInstance, options?: { orderId?: string }) {
     this.setData({
@@ -56,5 +58,40 @@ Page({
     wx.switchTab({
       url: '/pages/orders/index'
     });
+  },
+  async handleCompleteOrderTap(this: OrderDetailPageInstance) {
+    const detail = this.data.detail;
+
+    if (!detail?.canComplete || this.data.isCompleting) {
+      return;
+    }
+
+    const result = await wx.showModal({
+      title: detail.completionConfirmTitle,
+      content: detail.completionConfirmBody,
+      confirmText: detail.completionActionLabel,
+      confirmColor: '#2F6478',
+      cancelText: '再等等'
+    });
+
+    if (!result.confirm) {
+      return;
+    }
+
+    this.setData({ isCompleting: true });
+
+    try {
+      const order = await completeMyOrder(detail.id);
+      this.setData({
+        detail: getOrderDetailViewModel(order),
+        isEmpty: !order
+      });
+      wx.showToast?.({
+        title: '订单已完成',
+        icon: 'success'
+      });
+    } finally {
+      this.setData({ isCompleting: false });
+    }
   }
 });

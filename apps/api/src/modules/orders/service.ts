@@ -70,6 +70,14 @@ const DEFAULT_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
   { distanceKm: 45, minimumOrderAmount: null, deliveryFee: 75, explainer: '45.0 公里内，配送费 75 元' },
   { distanceKm: 50, minimumOrderAmount: null, deliveryFee: 80, explainer: '50.0 公里内，配送费 80 元' }
 ];
+const ACTIVE_ORDER_AUTO_COMPLETE_DAYS = 15;
+
+const CUSTOMER_COMPLETABLE_FULFILLMENT_STATUSES: Array<NonNullable<OrderRecord['fulfillmentStatus']>> = [
+  'in_production',
+  'out_for_delivery',
+  'ready_for_pickup',
+  'ready_to_ship'
+];
 
 interface CustomerOrderItemPayload {
   productId?: unknown;
@@ -296,6 +304,32 @@ function normalizeCustomerOrderFilters(filters: Record<string, unknown> = {}): C
   };
 }
 
+function getAutoCompleteCutoff(now = new Date()) {
+  return new Date(now.getTime() - ACTIVE_ORDER_AUTO_COMPLETE_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function createAutoCompleteMetadata(now = new Date()) {
+  return {
+    actorType: 'system',
+    action: 'auto_complete_active_order',
+    operatedAt: now.toISOString(),
+    thresholdDays: ACTIVE_ORDER_AUTO_COMPLETE_DAYS
+  };
+}
+
+async function completeStaleActiveOrders(client: PrismaClient) {
+  const now = new Date();
+  await createOrderRepository(client).completeStaleActiveOrders(getAutoCompleteCutoff(now), createAutoCompleteMetadata(now));
+}
+
+function canCustomerCompleteOrder(order: OrderRecord) {
+  if (order.status !== 'paid' || order.paymentStatus !== 'paid') {
+    return false;
+  }
+
+  return order.fulfillmentStatus ? CUSTOMER_COMPLETABLE_FULFILLMENT_STATUSES.includes(order.fulfillmentStatus) : false;
+}
+
 export function createOrderService(
   client: PrismaClient = getPrismaClient(),
   paymentProvider: PaymentProvider = createMockPaymentProvider()
@@ -438,11 +472,13 @@ export function createOrderService(
     },
 
     async queryCustomerOrders(openid: string, filters: Record<string, unknown> = {}) {
+      await completeStaleActiveOrders(client);
       const page = await createOrderRepository(client).listByOpenid(openid, normalizeCustomerOrderFilters(filters));
       return { ok: true as const, ...page };
     },
 
     async getCustomerOrderDetail(openid: string, orderId: string) {
+      await completeStaleActiveOrders(client);
       const order = await createOrderRepository(client).getById(orderId);
       if (!order || order.openid !== openid) {
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
@@ -450,12 +486,48 @@ export function createOrderService(
       return { ok: true as const, order };
     },
 
+    async completeCustomerOrder(openid: string, orderId: string) {
+      await completeStaleActiveOrders(client);
+      const orderRepository = createOrderRepository(client);
+      const current = await orderRepository.getById(orderId);
+
+      if (!current || current.openid !== openid) {
+        throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
+      }
+
+      if (current.fulfillmentStatus === 'completed') {
+        return { ok: true as const, order: current };
+      }
+
+      if (current.status === 'cancelled' || current.fulfillmentStatus === 'cancelled') {
+        throw new ApiError('ORDER_TERMINAL', 'Terminal order cannot be updated', 409);
+      }
+
+      if (!canCustomerCompleteOrder(current)) {
+        throw new ApiError('ORDER_NOT_READY_TO_COMPLETE', 'Order is not ready for customer completion', 409);
+      }
+
+      const order = await orderRepository.updateStatus(orderId, {
+        fulfillmentStatus: 'completed',
+        merchantOverride: {
+          actorType: 'customer',
+          actorOpenid: openid,
+          action: 'customer_confirm_completed',
+          operatedAt: new Date().toISOString()
+        }
+      });
+
+      return { ok: true as const, order };
+    },
+
     async queryMerchantOrders(_merchantContext: MerchantContext, filters: Record<string, unknown> = {}) {
+      await completeStaleActiveOrders(client);
       const orders = await createOrderRepository(client).listForMerchant(normalizeMerchantOrderFilters(filters));
       return { ok: true as const, orders };
     },
 
     async getMerchantOrderDetail(_merchantContext: MerchantContext, orderId: string) {
+      await completeStaleActiveOrders(client);
       const order = await createOrderRepository(client).getById(orderId);
       if (!order) {
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
@@ -467,6 +539,7 @@ export function createOrderService(
       if (!payload || typeof payload !== 'object') {
         throw new ApiError('INVALID_ORDER_STATUS', 'Invalid order status payload', 400);
       }
+      await completeStaleActiveOrders(client);
       const current = await createOrderRepository(client).getById(orderId);
       if (!current) {
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);

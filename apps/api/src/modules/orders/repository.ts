@@ -50,6 +50,13 @@ export interface CustomerOrderPage {
   };
 }
 
+const ACTIVE_FULFILLMENT_STATUSES = [
+  FULFILLMENT_STATUS.in_production,
+  FULFILLMENT_STATUS.out_for_delivery,
+  FULFILLMENT_STATUS.ready_for_pickup,
+  FULFILLMENT_STATUS.ready_to_ship
+];
+
 export interface OrderRecord {
   id: string;
   openid: string;
@@ -269,6 +276,34 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
         orderBy: { createdAt: 'desc' }
       });
       return orders.map(mapOrder);
+    },
+
+    async completeStaleActiveOrders(cutoff: Date, metadata: unknown): Promise<number> {
+      const orderModel = client.order as typeof client.order & {
+        updateMany?: unknown;
+      };
+
+      if (typeof orderModel.updateMany !== 'function') {
+        return 0;
+      }
+
+      const result = await orderModel.updateMany({
+        where: {
+          status: ORDER_STATUS.paid,
+          fulfillmentStatus: {
+            in: ACTIVE_FULFILLMENT_STATUSES
+          },
+          updatedAt: {
+            lte: cutoff
+          }
+        },
+        data: {
+          fulfillmentStatus: FULFILLMENT_STATUS.completed,
+          merchantOverride: metadata as Prisma.InputJsonValue
+        }
+      });
+
+      return result && typeof result.count === 'number' ? result.count : 0;
     },
 
     async createPending(input: CreateOrderInput): Promise<OrderRecord> {

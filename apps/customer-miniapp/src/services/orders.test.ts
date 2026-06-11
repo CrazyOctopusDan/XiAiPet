@@ -4,6 +4,7 @@ import type { OrderFulfillmentMode, OrderFulfillmentStatus, OrderRecord } from '
 
 import type { CustomerApiRequester } from './api-client';
 import {
+  completeMyOrder,
   getOrderStatusGroup,
   getMyOrderDetail,
   getOrderDetailViewModel,
@@ -336,6 +337,87 @@ describe('orders service', () => {
           lineTotalLabel: '￥98.00'
         })
       ]
+    });
+  });
+
+  it('exposes the right customer completion action for ready fulfillment modes', () => {
+    expect(getOrderDetailViewModel(createOrder({
+      fulfillmentState: {
+        mode: 'pickup',
+        status: 'ready_for_pickup'
+      },
+      snapshot: {
+        ...createOrder().snapshot,
+        fulfillment: {
+          mode: 'pickup',
+          pickupPhone: '18811736099',
+          reservation: createOrder().snapshot.fulfillment.reservation,
+          store: createOrder().snapshot.fulfillment.store
+        }
+      }
+    }))).toMatchObject({
+      canComplete: true,
+      completionActionLabel: '已取'
+    });
+
+    expect(getOrderDetailViewModel(createOrder({
+      fulfillmentState: {
+        mode: 'express',
+        status: 'ready_to_ship'
+      },
+      snapshot: {
+        ...createOrder().snapshot,
+        fulfillment: {
+          mode: 'express',
+          address: createOrder().snapshot.fulfillment.address,
+          reservation: createOrder().snapshot.fulfillment.reservation,
+          store: createOrder().snapshot.fulfillment.store
+        }
+      }
+    }))).toMatchObject({
+      canComplete: true,
+      completionActionLabel: '已收到'
+    });
+
+    expect(getOrderDetailViewModel(createOrder({
+      fulfillmentState: {
+        mode: 'delivery',
+        status: 'in_production'
+      }
+    }))).toMatchObject({
+      canComplete: true,
+      completionActionLabel: '已收到'
+    });
+
+    expect(getOrderDetailViewModel(createOrder({
+      fulfillmentState: {
+        mode: 'delivery',
+        status: 'pending'
+      }
+    }))).toMatchObject({
+      canComplete: false
+    });
+  });
+
+  it('posts customer completion and normalizes the returned order', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      order: {
+        ...createLegacyPickupOrder(),
+        fulfillmentStatus: 'completed'
+      }
+    });
+
+    const order = await completeMyOrder('order-001', request as CustomerApiRequester);
+
+    expect(request).toHaveBeenCalledWith('/api/v1/customer/orders/order-001/complete', {
+      method: 'POST',
+      auth: 'customer'
+    });
+    expect(order).toMatchObject({
+      fulfillmentState: {
+        status: 'completed'
+      }
     });
   });
 

@@ -122,6 +122,60 @@
   margin-top: 18rpx;
 }
 
+.detail-completion-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 28rpx;
+  padding: 22rpx;
+  border: 2rpx solid rgba(47, 100, 120, 0.18);
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.completion-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.completion-title,
+.completion-subtitle {
+  display: block;
+}
+
+.completion-title {
+  color: #40535C;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.completion-subtitle {
+  margin-top: 6rpx;
+  color: #7B8B92;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.completion-button {
+  flex-shrink: 0;
+  min-width: 168rpx;
+  margin: 0;
+  padding: 0 28rpx;
+  border: none;
+  border-radius: 999rpx;
+  background: #2F6478;
+  color: #FFFFFF;
+  font-size: 26rpx;
+  font-weight: 700;
+  line-height: 72rpx;
+}
+
+.completion-button[disabled] {
+  background: rgba(47, 100, 120, 0.42);
+  color: rgba(255, 255, 255, 0.86);
+}
+
 .detail-meta-label {
   font-size: 24rpx;
   color: #7B8B92;
