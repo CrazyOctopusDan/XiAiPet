@@ -74,14 +74,15 @@ function createAuthorizationHeader(
   const message = `${method}\n${urlPathWithQuery}\n${timestamp}\n${nonceStr}\n${body}\n`;
   const signature = sign(options.privateKey, message);
 
-  return [
-    'WECHATPAY2-SHA256-RSA2048',
+  const authorizationParameters = [
     `mchid="${options.mchId}"`,
     `nonce_str="${nonceStr}"`,
     `timestamp="${timestamp}"`,
     `serial_no="${options.mchSerialNo}"`,
     `signature="${signature}"`
-  ].join(' ');
+  ].join(',');
+
+  return `WECHATPAY2-SHA256-RSA2048 ${authorizationParameters}`;
 }
 
 function requestWechatPay<T>(
