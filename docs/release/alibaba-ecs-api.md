@@ -137,12 +137,13 @@ Create the WeChat Pay secret directory on ECS before enabling WeChat Pay:
 mkdir -p /opt/xiaipet/secrets/wechatpay
 cp /path/to/apiclient_key.pem /opt/xiaipet/secrets/wechatpay/apiclient_key.pem
 cp /path/to/wechatpay_public_key.pem /opt/xiaipet/secrets/wechatpay/wechatpay_public_key.pem
-chown -R root:root /opt/xiaipet/secrets/wechatpay
-chmod 755 /opt/xiaipet/secrets /opt/xiaipet/secrets/wechatpay
-chmod 644 /opt/xiaipet/secrets/wechatpay/apiclient_key.pem /opt/xiaipet/secrets/wechatpay/wechatpay_public_key.pem
+chown -R 1000:1000 /opt/xiaipet/secrets/wechatpay
+chmod 755 /opt/xiaipet/secrets
+chmod 700 /opt/xiaipet/secrets/wechatpay
+chmod 600 /opt/xiaipet/secrets/wechatpay/apiclient_key.pem /opt/xiaipet/secrets/wechatpay/wechatpay_public_key.pem
 ```
 
-The production compose file mounts `/opt/xiaipet/secrets/wechatpay` into the API container read-only. The container runs as the image `node` user, so the directory and files must be world-readable or otherwise readable by that container user. Do not store these files inside the Git checkout, a mini program bundle, or a public web directory.
+The production compose file mounts `/opt/xiaipet/secrets/wechatpay` into the API container read-only. The container runs as the image `node` user, which uses UID `1000`, so the secret files are owned by `1000:1000` and do not need to be world-readable. Do not store these files inside the Git checkout, a mini program bundle, or a public web directory.
 
 ## Production Environment File
 
@@ -182,8 +183,34 @@ From the project root on ECS:
 
 ```bash
 cd /opt/xiaipet/repo
+sh scripts/ecs-api-preflight.sh
 docker compose up -d --build api
 ```
+
+If the API container is already in a restart loop, stop it before rebuilding so logs do not keep growing while you investigate:
+
+```bash
+cd /opt/xiaipet/repo
+docker compose stop api
+```
+
+If startup fails with `ENOSPC: no space left on device`, free Docker build/runtime space before rebuilding. These commands do not remove Docker volumes:
+
+```bash
+df -h
+docker system df
+docker compose down --remove-orphans
+docker container prune -f
+docker image prune -af
+docker builder prune -af
+journalctl --vacuum-time=7d
+df -h
+docker system df
+sh scripts/ecs-api-preflight.sh
+docker compose up -d --build --force-recreate api
+```
+
+Do not run `docker volume prune` unless you have confirmed there are no production data volumes on the same ECS instance. XiAiPet production MySQL is on RDS, but the server may still have unrelated Docker volumes.
 
 If startup fails with `Invalid WECHAT_PAY_PRIVATE_KEY_PATH: expected a readable secret file`, verify the mount and file permissions from ECS:
 

@@ -2,6 +2,9 @@ node_modules
 **/node_modules
 **/dist
 **/.env*
+.pnpm-store
+outputs
+req
 *.log
 coverage
 .DS_Store
@@ -10,11 +13,13 @@ coverage
 .planning
 .codex
 .cursor
+.superpowers
 cloudbase-local
 .cloudbase
 apps/cloud-functions/.build
 apps/cloud-functions/dist
 apps/cloud-functions/upload-packages
+cert
 req/*.key
 *.key
 *.pem
