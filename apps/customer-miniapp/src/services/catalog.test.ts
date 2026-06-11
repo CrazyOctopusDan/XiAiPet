@@ -56,10 +56,10 @@ describe('catalog service', () => {
       '会员权益'
     ]);
     expect(getHomeModules().map((item) => item.imageFileId)).toEqual([
-      '/assets/catalog/浏览商品_v3.png',
-      '/assets/catalog/购前须知_3.png',
-      '/assets/catalog/售前咨询_v3.png',
-      '/assets/catalog/会员权益_v3.png'
+      '/assets/catalog/浏览商品.png',
+      '/assets/catalog/购前须知.png',
+      '/assets/catalog/售前咨询.png',
+      '/assets/catalog/会员权益.png'
     ]);
   });
 

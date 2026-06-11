@@ -14,6 +14,7 @@ import type { PaymentProvider } from '../payments/provider';
 import { createMockPaymentProvider } from '../payments/provider';
 import { createBalanceService } from '../users/balance-service';
 import { createPaymentRepository } from '../payments/repository';
+import { createRuntimeConfigRepository, type RuntimeConfigSectionRecord } from '../runtime-config/repository';
 
 interface CustomerOrderPayload {
   id?: string;
@@ -25,6 +26,10 @@ interface CustomerOrderPayload {
   payableTotal?: number;
   fulfillment?: {
     mode?: 'delivery' | 'pickup' | 'express';
+    address?: {
+      latitude?: unknown;
+      longitude?: unknown;
+    };
   };
   pricing?: {
     itemsSubtotal?: number;
@@ -33,6 +38,37 @@ interface CustomerOrderPayload {
   };
   items?: unknown[];
 }
+
+interface StoreCoordinateSnapshot {
+  latitude: number;
+  longitude: number;
+}
+
+interface DeliveryRuleTierRow {
+  distanceKm: number;
+  minimumOrderAmount: number | null;
+  deliveryFee: number;
+  explainer: string;
+}
+
+const DEFAULT_STORE_COORDINATES: StoreCoordinateSnapshot = {
+  latitude: 31.22911,
+  longitude: 121.44853
+};
+
+const EARTH_RADIUS_KM = 6371;
+const DEFAULT_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
+  { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
+  { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
+  { distanceKm: 15, minimumOrderAmount: null, deliveryFee: 25, explainer: '15.0 公里内，配送费 25 元' },
+  { distanceKm: 20, minimumOrderAmount: null, deliveryFee: 40, explainer: '20.0 公里内，配送费 40 元' },
+  { distanceKm: 25, minimumOrderAmount: null, deliveryFee: 50, explainer: '25.0 公里内，配送费 50 元' },
+  { distanceKm: 30, minimumOrderAmount: null, deliveryFee: 60, explainer: '30.0 公里内，配送费 60 元' },
+  { distanceKm: 35, minimumOrderAmount: null, deliveryFee: 65, explainer: '35.0 公里内，配送费 65 元' },
+  { distanceKm: 40, minimumOrderAmount: null, deliveryFee: 70, explainer: '40.0 公里内，配送费 70 元' },
+  { distanceKm: 45, minimumOrderAmount: null, deliveryFee: 75, explainer: '45.0 公里内，配送费 75 元' },
+  { distanceKm: 50, minimumOrderAmount: null, deliveryFee: 80, explainer: '50.0 公里内，配送费 80 元' }
+];
 
 interface CustomerOrderItemPayload {
   productId?: unknown;
@@ -50,6 +86,126 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function toNumber(value: unknown, fallback = 0) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function toOptionalNumber(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function calculateDistanceKm(from: StoreCoordinateSnapshot, to: { latitude?: number; longitude?: number }) {
+  if (to.latitude === undefined || to.longitude === undefined) {
+    return null;
+  }
+
+  const latDelta = toRadians(to.latitude - from.latitude);
+  const lonDelta = toRadians(to.longitude - from.longitude);
+  const fromLat = toRadians(from.latitude);
+  const toLat = toRadians(to.latitude);
+  const haversine =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(fromLat) * Math.cos(toLat) * Math.sin(lonDelta / 2) ** 2;
+
+  return Number((EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))).toFixed(1));
+}
+
+function isDeliveryRuleTier(value: unknown): value is DeliveryRuleTierRow {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.distanceKm === 'number' &&
+    Number.isFinite(value.distanceKm) &&
+    typeof value.deliveryFee === 'number' &&
+    Number.isFinite(value.deliveryFee) &&
+    (value.minimumOrderAmount === null ||
+      (typeof value.minimumOrderAmount === 'number' && Number.isFinite(value.minimumOrderAmount))) &&
+    typeof value.explainer === 'string'
+  );
+}
+
+function normalizeDeliveryRules(value: unknown): DeliveryRuleTierRow[] {
+  if (!isObject(value) || !Array.isArray(value.tiers)) {
+    return DEFAULT_DELIVERY_RULE_ROWS.map((row) => ({ ...row }));
+  }
+
+  const tiers = value.tiers.filter(isDeliveryRuleTier);
+  return tiers.length ? tiers.map((row) => ({ ...row })) : DEFAULT_DELIVERY_RULE_ROWS.map((row) => ({ ...row }));
+}
+
+function normalizeStoreCoordinates(value: unknown): StoreCoordinateSnapshot {
+  if (!isObject(value)) {
+    return DEFAULT_STORE_COORDINATES;
+  }
+
+  const latitude = toOptionalNumber(value.latitude);
+  const longitude = toOptionalNumber(value.longitude);
+
+  return latitude !== undefined && longitude !== undefined
+    ? { latitude, longitude }
+    : DEFAULT_STORE_COORDINATES;
+}
+
+function getRuntimeConfigValue(sections: RuntimeConfigSectionRecord[], sectionId: string) {
+  return sections.find((section) => section.sectionId === sectionId)?.value;
+}
+
+async function readRuntimeSections(client: PrismaClient, sectionIds: string[]) {
+  const runtimeConfigSection = (client as unknown as {
+    runtimeConfigSection?: {
+      findMany?: unknown;
+    };
+  }).runtimeConfigSection;
+
+  if (typeof runtimeConfigSection?.findMany !== 'function') {
+    return [];
+  }
+
+  return createRuntimeConfigRepository(client as never).listSections(sectionIds);
+}
+
+function getDeliveryAddress(payload: unknown) {
+  const candidate = payload as CustomerOrderPayload;
+  const fulfillment = isObject(candidate.fulfillment) ? candidate.fulfillment : null;
+  const address = isObject(fulfillment?.address) ? fulfillment.address : null;
+
+  if (!address) {
+    return null;
+  }
+
+  return {
+    latitude: toOptionalNumber(address.latitude),
+    longitude: toOptionalNumber(address.longitude)
+  };
+}
+
+async function assertDeliveryRulesAllowOrder(client: PrismaClient, input: CreateOrderInput, payload: unknown) {
+  if (input.fulfillmentMode !== 'delivery') {
+    return;
+  }
+
+  const sections = await readRuntimeSections(client, ['delivery-rules', 'store-profile']);
+  const deliveryRules = normalizeDeliveryRules(getRuntimeConfigValue(sections, 'delivery-rules'));
+  const store = normalizeStoreCoordinates(getRuntimeConfigValue(sections, 'store-profile'));
+  const sortedTiers = [...deliveryRules].sort((left, right) => left.distanceKm - right.distanceKm);
+  const deliveryAddress = getDeliveryAddress(payload);
+  const distanceKm = deliveryAddress ? calculateDistanceKm(store, deliveryAddress) : null;
+  const matchedTier = distanceKm === null
+    ? sortedTiers[0]
+    : sortedTiers.find((tier) => distanceKm <= tier.distanceKm);
+  const maxTier = sortedTiers[sortedTiers.length - 1];
+
+  if (!matchedTier && maxTier) {
+    throw new ApiError('DELIVERY_OUT_OF_RANGE', 'Delivery address is outside configured delivery range', 409);
+  }
+
+  if (matchedTier?.minimumOrderAmount !== null && matchedTier?.minimumOrderAmount !== undefined && input.itemsSubtotal < matchedTier.minimumOrderAmount) {
+    throw new ApiError('DELIVERY_MINIMUM_NOT_MET', 'Order subtotal is below delivery minimum amount', 409);
+  }
 }
 
 function normalizeOrderItems(items: unknown): CreateOrderInput['items'] {
@@ -158,7 +314,9 @@ export function createOrderService(
       if (!user || user.phoneBindingState !== 'BOUND') {
         throw new ApiError('CUSTOMER_NOT_REGISTERED', 'Customer must bind phone before ordering', 403);
       }
-      const order = await this.createPendingOrder(normalizeCreateOrderPayload(openid, payload));
+      const input = normalizeCreateOrderPayload(openid, payload);
+      await assertDeliveryRulesAllowOrder(client, input, payload);
+      const order = await this.createPendingOrder(input);
       return { ok: true, order };
     },
 

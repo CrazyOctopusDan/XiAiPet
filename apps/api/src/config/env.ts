@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 export interface ApiConfig {
   nodeEnv: string;
   host: string;
@@ -23,6 +25,8 @@ export interface ApiConfig {
     mchSerialNo: string;
     privateKey: string;
     notifyUrl: string;
+    apiV3Key: string;
+    platformPublicKey: string;
     apiBaseUrl?: string;
   } | null;
 }
@@ -120,19 +124,40 @@ function parseOssPublicBaseUrl(rawValue: string | undefined, nodeEnv: string): s
   return value;
 }
 
+function readSecretFile(rawPath: string | undefined, name: string): string | undefined {
+  const filePath = rawPath?.trim();
+  if (!filePath) {
+    return undefined;
+  }
+
+  try {
+    return readFileSync(filePath, 'utf8').trim();
+  } catch {
+    throw new Error(`Invalid ${name}: expected a readable secret file`);
+  }
+}
+
 function parseOptionalWechatPayConfig(raw: NodeJS.ProcessEnv, nodeEnv: string): ApiConfig['wechatPay'] {
   const mchId = raw.WECHAT_PAY_MCH_ID?.trim();
   const mchSerialNo = raw.WECHAT_PAY_MCH_SERIAL_NO?.trim();
-  const privateKey = raw.WECHAT_PAY_PRIVATE_KEY?.trim();
+  const privateKey = raw.WECHAT_PAY_PRIVATE_KEY?.trim() || readSecretFile(raw.WECHAT_PAY_PRIVATE_KEY_PATH, 'WECHAT_PAY_PRIVATE_KEY_PATH');
   const notifyUrl = raw.WECHAT_PAY_NOTIFY_URL?.trim();
-  const provided = [mchId, mchSerialNo, privateKey, notifyUrl].filter(Boolean).length;
+  const apiV3Key = raw.WECHAT_PAY_API_V3_KEY?.trim();
+  const platformPublicKey =
+    raw.WECHAT_PAY_PLATFORM_PUBLIC_KEY?.trim() ||
+    readSecretFile(raw.WECHAT_PAY_PLATFORM_PUBLIC_KEY_PATH, 'WECHAT_PAY_PLATFORM_PUBLIC_KEY_PATH');
+  const provided = [mchId, mchSerialNo, privateKey, notifyUrl, apiV3Key, platformPublicKey].filter(Boolean).length;
 
   if (provided === 0) {
     return null;
   }
 
-  if (provided < 4) {
-    throw new Error('Invalid WECHAT_PAY_*: expected merchant id, serial number, private key and notify url together');
+  if (provided < 6) {
+    throw new Error('Invalid WECHAT_PAY_*: expected merchant id, serial number, private key, notify url, APIv3 key and platform public key together');
+  }
+
+  if (apiV3Key && Buffer.byteLength(apiV3Key, 'utf8') !== 32) {
+    throw new Error('Invalid WECHAT_PAY_API_V3_KEY: expected 32 bytes');
   }
 
   if (nodeEnv === 'production' && !notifyUrl?.startsWith('https://')) {
@@ -144,6 +169,8 @@ function parseOptionalWechatPayConfig(raw: NodeJS.ProcessEnv, nodeEnv: string): 
     mchSerialNo: mchSerialNo as string,
     privateKey: privateKey as string,
     notifyUrl: notifyUrl as string,
+    apiV3Key: apiV3Key as string,
+    platformPublicKey: platformPublicKey as string,
     apiBaseUrl: raw.WECHAT_PAY_API_BASE_URL?.trim() || undefined
   };
 }

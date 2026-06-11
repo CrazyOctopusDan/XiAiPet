@@ -118,6 +118,135 @@ describe('order service', () => {
     });
   });
 
+  it('rejects delivery customer orders below the configured minimum order amount', async () => {
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      runtimeConfigSection: {
+        findMany: vi.fn(async () => [
+          {
+            id: 'delivery-rules',
+            value: {
+              tiers: [
+                {
+                  distanceKm: 5,
+                  minimumOrderAmount: 98,
+                  deliveryFee: 0,
+                  explainer: '5.0 公里内 98 元起送，配送费 0 元'
+                }
+              ]
+            },
+            version: 1,
+            updatedBy: null,
+            createdAt: new Date('2026-05-21T00:00:00.000Z'),
+            updatedAt: new Date('2026-05-21T00:00:00.000Z')
+          }
+        ])
+      },
+      $transaction: vi.fn()
+    };
+    const service = createOrderService(client as any);
+
+    await expect(service.createCustomerOrder('openid-1', {
+      idempotencyKey: 'checkout-below-minimum',
+      paymentMethod: 'balance',
+      fulfillment: {
+        mode: 'delivery',
+        address: {
+          id: 'addr-1',
+          recipientName: '奶油',
+          phoneNumber: '13900001111',
+          regionLabel: '上海市 黄浦区',
+          detailAddress: '外滩 18 号 201',
+          tag: '公司'
+        }
+      },
+      pricing: {
+        itemsSubtotal: 22.8,
+        deliveryFee: 0,
+        payableTotal: 22.8
+      },
+      items: []
+    })).rejects.toMatchObject({
+      code: 'DELIVERY_MINIMUM_NOT_MET',
+      statusCode: 409
+    });
+    expect(client.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects delivery customer orders outside the configured delivery distance tiers', async () => {
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      runtimeConfigSection: {
+        findMany: vi.fn(async () => [
+          {
+            id: 'delivery-rules',
+            value: {
+              tiers: [
+                {
+                  distanceKm: 50,
+                  minimumOrderAmount: null,
+                  deliveryFee: 80,
+                  explainer: '50.0 公里内，配送费 80 元'
+                }
+              ]
+            },
+            version: 1,
+            updatedBy: null,
+            createdAt: new Date('2026-05-21T00:00:00.000Z'),
+            updatedAt: new Date('2026-05-21T00:00:00.000Z')
+          },
+          {
+            id: 'store-profile',
+            value: {
+              storeName: '喜爱宠物烘焙',
+              address: '上海市静安区南京西路 1266 号',
+              latitude: 31.22911,
+              longitude: 121.44853
+            },
+            version: 1,
+            updatedBy: null,
+            createdAt: new Date('2026-05-21T00:00:00.000Z'),
+            updatedAt: new Date('2026-05-21T00:00:00.000Z')
+          }
+        ])
+      },
+      $transaction: vi.fn()
+    };
+    const service = createOrderService(client as any);
+
+    await expect(service.createCustomerOrder('openid-1', {
+      idempotencyKey: 'checkout-out-of-range',
+      paymentMethod: 'balance',
+      fulfillment: {
+        mode: 'delivery',
+        address: {
+          id: 'addr-1',
+          recipientName: '奶油',
+          phoneNumber: '13900001111',
+          regionLabel: '浙江省 杭州市',
+          detailAddress: '文三路 90 号',
+          tag: '家',
+          latitude: 30.2767,
+          longitude: 120.1258
+        }
+      },
+      pricing: {
+        itemsSubtotal: 168,
+        deliveryFee: 80,
+        payableTotal: 248
+      },
+      items: []
+    })).rejects.toMatchObject({
+      code: 'DELIVERY_OUT_OF_RANGE',
+      statusCode: 409
+    });
+    expect(client.$transaction).not.toHaveBeenCalled();
+  });
+
   it('records WeChat prepay metadata and marks the order paid after provider sync succeeds', async () => {
     const order = createOrderRow({
       paymentMethod: 'WECHAT',

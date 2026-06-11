@@ -7,7 +7,8 @@ import {
 import { getPets, type PetProfile } from './pets';
 import { getProfile, hasBoundPhone } from './profile';
 import { getCachedCustomerRuntimeConfig } from './runtime-config';
-import { getSelectedCartFulfillmentModes } from './cart';
+import { getCartItems, getSelectedCartFulfillmentModes } from './cart';
+import { getDeliveryRuleViolation } from './delivery-rules';
 
 export type FulfillmentMode = 'delivery' | 'pickup' | 'express';
 
@@ -220,6 +221,15 @@ function getSelectedPets() {
   return getPets().filter((pet) => selectedIds.has(pet.id));
 }
 
+function getSelectedItemsSubtotal() {
+  return Number(
+    getCartItems()
+      .filter((item) => item.selected)
+      .reduce((total, item) => total + item.price * item.quantity, 0)
+      .toFixed(2)
+  );
+}
+
 function isMaskedContactPhone(value: string) {
   return value.includes('*');
 }
@@ -254,6 +264,7 @@ function getSubmitDisabledReasons(mode: FulfillmentMode) {
   const addressType = resolveAddressType(mode);
   const selectedAddress = addressType ? getSelectedAddress(addressType) : null;
   const customNotice = getActiveCustomNotice();
+  const runtimeConfig = getCachedCustomerRuntimeConfig();
 
   if (!getSelectedCartFulfillmentModes().length) {
     reasons.push('incompatible_fulfillment');
@@ -269,6 +280,18 @@ function getSubmitDisabledReasons(mode: FulfillmentMode) {
 
   if ((mode === 'delivery' || mode === 'pickup') && !checkoutDraft.reservationSelection) {
     reasons.push('missing_reservation');
+  }
+
+  if (mode === 'delivery' && selectedAddress) {
+    const violation = getDeliveryRuleViolation({
+      runtimeConfig,
+      address: selectedAddress,
+      itemsSubtotal: getSelectedItemsSubtotal()
+    });
+
+    if (violation) {
+      reasons.push(violation.reason);
+    }
   }
 
   if (mode === 'pickup' && !checkoutDraft.contactPhone.trim()) {

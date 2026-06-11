@@ -19,6 +19,8 @@ export interface OrderAddressSnapshot {
   regionLabel: string;
   detailAddress: string;
   tag: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface OrderReservationSnapshot {

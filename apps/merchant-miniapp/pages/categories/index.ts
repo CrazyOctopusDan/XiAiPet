@@ -4,11 +4,9 @@ declare function Page(options: Record<string, unknown>): void;
 import type { CatalogCategoryRecord } from '@xiaipet/shared/types/catalog-admin';
 
 import {
-  applyProductCountsToCategories,
   deleteCategory,
   getCategoryPageViewModel,
   queryCategories,
-  queryProducts,
   saveCategory
 } from '../../src/services/catalog-admin';
 
@@ -60,11 +58,8 @@ Page({
   async refreshCategories(this: CategoryPageInstance) {
     this.setData({ loading: true });
     try {
-      const [categories, productsResponse] = await Promise.all([
-        queryCategories(),
-        queryProducts()
-      ]);
-      const view = getCategoryPageViewModel(applyProductCountsToCategories(categories, productsResponse.items));
+      const categories = await queryCategories();
+      const view = getCategoryPageViewModel(categories);
       this.setData({
         loading: false,
         isEmpty: view.isEmpty,

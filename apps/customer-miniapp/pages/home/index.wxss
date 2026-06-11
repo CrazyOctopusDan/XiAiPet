@@ -1,7 +1,7 @@
 .home-page {
   min-height: 100vh;
   /* padding-bottom: calc(242rpx + env(safe-area-inset-bottom)); */
-  background: #FFFFFF;
+  background: linear-gradient(180deg, #FBF1B6 0%, #FFFFFF 72%);
   color: #40535C;
 }
 
@@ -12,6 +12,7 @@
 
 .home-content {
   padding: 0 24rpx 0;
+  background: linear-gradient(180deg, #FBF1B6 0%, #FFFFFF 78%);
 }
 
 .secondary-module-grid {
@@ -24,7 +25,6 @@
 .primary-module-card {
   box-sizing: border-box;
   border: 4rpx solid #1D1A17;
-  background: #FFF8E9;
   overflow: hidden;
 }
 
@@ -34,8 +34,17 @@
   padding: 14rpx 10rpx 18rpx;
   border-radius: 32rpx;
   text-align: center;
-  border-color: #ead098;
-  box-shadow: 0 8rpx 0 #ead098;
+  border-color: #B8E0F0;
+  background: #C0E8F0;
+  box-shadow: 0 8rpx 0 #B8E0F0;
+}
+
+.secondary-module-card--notice,
+.secondary-module-card--member,
+.secondary-module-card--consult {
+  border-color: #B8E0F0;
+  background: #C0E8F0;
+  box-shadow: 0 8rpx 0 #B8E0F0;
 }
 
 .secondary-module-art {
@@ -67,7 +76,9 @@
   margin-top: 36rpx;
   padding: 26rpx 26rpx 26rpx 34rpx;
   border-radius: 38rpx;
-  background: #4F8BC3;
+  background: #FBF1B6;
+  border-color: #D9C675;
+  box-shadow: 0 8rpx 0 #D9C675;
 }
 
 .primary-module-copy {
@@ -78,7 +89,7 @@
 .primary-module-title,
 .primary-module-subtitle {
   display: block;
-  color: #FFFFFF;
+  color: #6F542A;
 }
 
 .primary-module-title {
@@ -100,7 +111,7 @@
   width: 330rpx;
   height: 230rpx;
   display: block;
-  transform: scale(2.5) translate(0,20rpx) translateZ(10rpx);
+  transform: scale(2.5) translate(0,13rpx) translateZ(10rpx);
 }
 
 .home-modal-mask {

@@ -441,6 +441,10 @@ Page({
             ? '微信支付暂未配置'
             : error instanceof Error && error.message === 'INSUFFICIENT_BALANCE'
               ? '余额不足'
+            : error instanceof Error && error.message === 'DELIVERY_MINIMUM_NOT_MET'
+              ? '未达到配送起送金额'
+            : error instanceof Error && error.message === 'DELIVERY_OUT_OF_RANGE'
+              ? '超出配送范围'
             : error instanceof Error
               ? error.message
               : '下单失败',

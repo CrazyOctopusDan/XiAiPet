@@ -27,11 +27,8 @@ Page({
     async refreshCategories() {
         this.setData({ loading: true });
         try {
-            const [categories, productsResponse] = await Promise.all([
-                (0, catalog_admin_1.queryCategories)(),
-                (0, catalog_admin_1.queryProducts)()
-            ]);
-            const view = (0, catalog_admin_1.getCategoryPageViewModel)((0, catalog_admin_1.applyProductCountsToCategories)(categories, productsResponse.items));
+            const categories = await (0, catalog_admin_1.queryCategories)();
+            const view = (0, catalog_admin_1.getCategoryPageViewModel)(categories);
             this.setData({
                 loading: false,
                 isEmpty: view.isEmpty,

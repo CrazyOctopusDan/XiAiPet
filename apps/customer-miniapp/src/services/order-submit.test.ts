@@ -20,6 +20,7 @@ import {
   getCheckoutPricingPreview,
   submitOrder
 } from './order-submit';
+import { resetCustomerRuntimeConfigCache } from './runtime-config';
 
 function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
   return {
@@ -81,6 +82,7 @@ describe('order submit service', () => {
     resetCheckoutDraft();
     resetPets();
     resetProfile();
+    resetCustomerRuntimeConfigCache();
     updateProfile({ contactPhoneMasked: '138****1234' });
   });
 
@@ -140,7 +142,7 @@ describe('order submit service', () => {
   });
 
   it('rejects order payload creation when selected cart items have no shared fulfillment mode', () => {
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
 
     if (!product) {
       throw new Error('missing incompatible fulfillment fixture');
@@ -152,8 +154,59 @@ describe('order submit service', () => {
     expect(() => buildCreateOrderPayload('wechat', 'checkout-incompatible')).toThrow('INCOMPATIBLE_FULFILLMENT');
   });
 
+  it('rejects delivery order payload creation when selected goods are below the matched minimum amount', () => {
+    const product = getProductById('ocean-party');
+    const address = createCityAddressFixture();
+
+    if (!product || !address) {
+      throw new Error('missing minimum delivery fixtures');
+    }
+
+    addCartItem({ ...product, price: 22.8, specs: [] }, '', 1);
+    selectAddress(address.id);
+    setCustomNoticeAcknowledged(true);
+    setReservationSelection({
+      dateValue: '2026-04-17',
+      dateLabel: '今天 04-17',
+      timeValue: '11:00',
+      timeLabel: '11:00'
+    });
+
+    expect(() => buildCreateOrderPayload('wechat', 'checkout-below-minimum')).toThrow('DELIVERY_MINIMUM_NOT_MET');
+  });
+
+  it('rejects delivery order payload creation when the selected city address is outside configured tiers', () => {
+    const product = getProductById('ocean-party');
+    const address = createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '浙江省 杭州市',
+      detailAddress: '文三路 90 号',
+      tag: '家',
+      latitude: 30.2767,
+      longitude: 120.1258
+    });
+
+    if (!product || !address) {
+      throw new Error('missing out-of-range delivery fixtures');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+    selectAddress(address.id);
+    setCustomNoticeAcknowledged(true);
+    setReservationSelection({
+      dateValue: '2026-04-17',
+      dateLabel: '今天 04-17',
+      timeValue: '11:00',
+      timeLabel: '11:00'
+    });
+
+    expect(() => buildCreateOrderPayload('wechat', 'checkout-out-of-range')).toThrow('DELIVERY_OUT_OF_RANGE');
+  });
+
   it('includes the bound profile contact phone in delivery order fulfillment snapshots', () => {
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
     const address = createCityAddressFixture();
 
     if (!product || !address) {
@@ -161,7 +214,7 @@ describe('order submit service', () => {
     }
 
     updateProfile({ contactPhoneMasked: '138****1234' });
-    addCartItem(product, '', 1);
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
     selectAddress(address.id);
     setReservationSelection({
       dateValue: '2026-04-17',
@@ -180,14 +233,14 @@ describe('order submit service', () => {
   });
 
   it('creates a balance order and returns the paid order from the HTTP payment route', async () => {
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
     const address = createCityAddressFixture();
 
     if (!product || !address) {
       throw new Error('missing submit fixtures');
     }
 
-    addCartItem(product, '', 1);
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
     selectAddress(address.id);
     setCustomNoticeAcknowledged(true);
     setReservationSelection({
@@ -259,14 +312,14 @@ describe('order submit service', () => {
   });
 
   it('opens WeChat payment before syncing a pending WeChat payment', async () => {
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
     const address = createCityAddressFixture();
 
     if (!product || !address) {
       throw new Error('missing submit fixtures');
     }
 
-    addCartItem(product, '', 1);
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
     selectAddress(address.id);
     setCustomNoticeAcknowledged(true);
     setReservationSelection({
@@ -349,14 +402,14 @@ describe('order submit service', () => {
   });
 
   it('surfaces insufficient balance as a stable service error code', async () => {
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
     const address = createCityAddressFixture();
 
     if (!product || !address) {
       throw new Error('missing submit fixtures');
     }
 
-    addCartItem(product, '', 1);
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
     selectAddress(address.id);
     setCustomNoticeAcknowledged(true);
     setReservationSelection({

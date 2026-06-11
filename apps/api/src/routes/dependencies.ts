@@ -14,6 +14,7 @@ import {
   createUnconfiguredWechatPaymentProvider,
   type PaymentProvider
 } from '../modules/payments/provider';
+import { createPaymentNotifyService } from '../modules/payments/notification-service';
 import { createRuntimeConfigService } from '../modules/runtime-config/service';
 import { createPrintingService } from '../modules/printing/service';
 import { createAssetService } from '../modules/assets/service';
@@ -107,6 +108,9 @@ export interface ApiRouteServices {
     getMerchantOrderDetail(merchantContext: unknown, orderId: string): AsyncResult;
     updateMerchantOrderStatus(merchantContext: unknown, orderId: string, payload: unknown): AsyncResult;
   };
+  paymentNotifyService: {
+    handleWechatPayNotification(payload: unknown): AsyncResult;
+  };
   printingService: {
     prepareOrderReceiptPrint(merchantContext: unknown, orderId: string, payload?: unknown): AsyncResult;
     recordOrderReceiptPrintResult(merchantContext: unknown, orderId: string, payload: unknown): AsyncResult;
@@ -166,6 +170,7 @@ export function createApiRouteDependencies(
     merchantUserService: overrides.merchantUserService ?? createMerchantUserService(),
     merchantAccountService,
     orderService: overrides.orderService ?? createOrderService(undefined, paymentProvider),
+    paymentNotifyService: overrides.paymentNotifyService ?? createPaymentNotifyService(config.wechatPay),
     printingService: overrides.printingService ?? createPrintingService(),
     assetService: overrides.assetService ?? createAssetService(config),
     guards: createAuthGuards({

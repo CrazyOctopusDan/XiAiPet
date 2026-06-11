@@ -1,3 +1,7 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { loadApiConfig } from './env';
@@ -64,7 +68,9 @@ describe('loadApiConfig', () => {
         WECHAT_PAY_MCH_ID: '1900000001',
         WECHAT_PAY_MCH_SERIAL_NO: 'pay-serial-no',
         WECHAT_PAY_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\\ntest\\n-----END PRIVATE KEY-----',
-        WECHAT_PAY_NOTIFY_URL: 'https://api.xiaipet.vip/api/v1/customer/orders/payment-notify'
+        WECHAT_PAY_NOTIFY_URL: 'https://api.xiaipet.vip/api/v1/customer/orders/payment-notify',
+        WECHAT_PAY_API_V3_KEY: '12345678901234567890123456789012',
+        WECHAT_PAY_PLATFORM_PUBLIC_KEY: '-----BEGIN PUBLIC KEY-----\\ntest\\n-----END PUBLIC KEY-----'
       })
     ).toEqual({
       nodeEnv: 'production',
@@ -91,9 +97,54 @@ describe('loadApiConfig', () => {
         mchSerialNo: 'pay-serial-no',
         privateKey: '-----BEGIN PRIVATE KEY-----\\ntest\\n-----END PRIVATE KEY-----',
         notifyUrl: 'https://api.xiaipet.vip/api/v1/customer/orders/payment-notify',
+        apiV3Key: '12345678901234567890123456789012',
+        platformPublicKey: '-----BEGIN PUBLIC KEY-----\\ntest\\n-----END PUBLIC KEY-----',
         apiBaseUrl: undefined
       }
     });
+  });
+
+  it('loads WeChat Pay secrets from configured file paths', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'xiaipet-pay-'));
+    const privateKeyPath = join(dir, 'apiclient_key.pem');
+    const publicKeyPath = join(dir, 'wechatpay_public.pem');
+    writeFileSync(privateKeyPath, '-----BEGIN PRIVATE KEY-----\nfrom-file\n-----END PRIVATE KEY-----\n');
+    writeFileSync(publicKeyPath, '-----BEGIN PUBLIC KEY-----\nfrom-file\n-----END PUBLIC KEY-----\n');
+
+    try {
+      const config = loadApiConfig({
+        NODE_ENV: 'production',
+        API_HOST: '127.0.0.1',
+        API_PORT: '8080',
+        API_PUBLIC_BASE_URL: 'https://api.xiaipet.vip',
+        DATABASE_URL: 'mysql://api_user:secret@rm-test.mysql.rds.aliyuncs.com:3306/xiaipet',
+        API_SESSION_SECRET: PROD_SESSION_SECRET,
+        OSS_REGION: 'oss-cn-hangzhou',
+        OSS_BUCKET: 'xiaipet-assets',
+        OSS_ENDPOINT: 'oss-cn-hangzhou.aliyuncs.com',
+        OSS_PUBLIC_BASE_URL: 'https://xiaipet-assets.oss-cn-hangzhou.aliyuncs.com',
+        OSS_ACCESS_KEY_ID: 'prod-oss-key-id',
+        OSS_ACCESS_KEY_SECRET: 'prod-oss-key-secret',
+        CUSTOMER_WECHAT_APP_ID: 'prod-customer-app-id',
+        CUSTOMER_WECHAT_APP_SECRET: 'prod-customer-app-secret',
+        MERCHANT_WECHAT_APP_ID: 'prod-merchant-app-id',
+        MERCHANT_WECHAT_APP_SECRET: 'prod-merchant-app-secret',
+        WECHAT_PAY_MCH_ID: '1900000001',
+        WECHAT_PAY_MCH_SERIAL_NO: 'pay-serial-no',
+        WECHAT_PAY_PRIVATE_KEY_PATH: privateKeyPath,
+        WECHAT_PAY_NOTIFY_URL: 'https://api.xiaipet.vip/api/v1/payments/wechat/notify',
+        WECHAT_PAY_API_V3_KEY: '12345678901234567890123456789012',
+        WECHAT_PAY_PLATFORM_PUBLIC_KEY_PATH: publicKeyPath
+      });
+
+      expect(config.wechatPay).toMatchObject({
+        privateKey: '-----BEGIN PRIVATE KEY-----\nfrom-file\n-----END PRIVATE KEY-----',
+        apiV3Key: '12345678901234567890123456789012',
+        platformPublicKey: '-----BEGIN PUBLIC KEY-----\nfrom-file\n-----END PUBLIC KEY-----'
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('defaults DATABASE_URL only during tests', () => {

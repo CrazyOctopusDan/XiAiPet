@@ -1267,7 +1267,7 @@ describe('cart checkout flow', () => {
 
     clearCart();
 
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
 
     if (!product) {
       throw new Error('missing checkout fulfillment fixture');
@@ -1957,7 +1957,7 @@ describe('cart checkout flow', () => {
     resetAddresses();
     resetCheckoutDraft();
 
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
     updateProfile({ contactPhoneMasked: '138****1234' });
     const address = createAddress({
       type: 'city',
@@ -1972,7 +1972,7 @@ describe('cart checkout flow', () => {
       throw new Error('missing checkout submit fixtures');
     }
 
-    addCartItem(product, '', 1);
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
     selectAddress(address.id);
     setCustomNoticeAcknowledged(true);
     setReservationSelection({
@@ -2013,7 +2013,7 @@ describe('cart checkout flow', () => {
     resetAddresses();
     resetCheckoutDraft();
 
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
     updateProfile({ contactPhoneMasked: '138****1234' });
     const address = createAddress({
       type: 'city',
@@ -2028,7 +2028,7 @@ describe('cart checkout flow', () => {
       throw new Error('missing checkout failure fixtures');
     }
 
-    addCartItem(product, '', 1);
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
     selectAddress(address.id);
     setCustomNoticeAcknowledged(true);
     setReservationSelection({
@@ -2086,7 +2086,7 @@ describe('cart checkout flow', () => {
     resetAddresses();
     resetCheckoutDraft();
 
-    const product = getProductById('sea-sponge');
+    const product = getProductById('ocean-party');
     updateProfile({ contactPhoneMasked: '138****1234' });
     const address = createAddress({
       type: 'city',
@@ -2101,7 +2101,7 @@ describe('cart checkout flow', () => {
       throw new Error('missing checkout submit fixtures');
     }
 
-    addCartItem(product, '', 1);
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
     selectAddress(address.id);
     setCustomNoticeAcknowledged(true);
     setReservationSelection({

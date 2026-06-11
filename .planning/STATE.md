@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-02 -- Quick task 260602-lxb completed: scalable catalog loading implementation plan
+last_activity: 2026-06-11 -- Quick task 260611-d0w completed: WeChat Pay private key path and notify callback
 progress:
   total_phases: 8
   completed_phases: 5
@@ -75,6 +75,8 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-11 | 260611-d0w WeChat Pay notify callback | Added private key file-path config, required APIv3/platform public key settings, and verified WeChat Pay notification callback handling in apps/api. |
+| 2026-06-10 | 260610-cxd excel | Generated client-facing development fee timesheet workbook from current Codex xiaipet thread tree with 80.0 hours and editable hourly rate. |
 | 2026-06-02 | 260602-lxb scalable catalog loading implementation plan | Wrote the implementation plan for backend catalog contracts, customer category-aware loading, merchant pagination, and verification. |
 | 2026-06-02 | 260602-lqs scalable catalog loading design | Designed category-aware customer catalog loading, merchant paginated product management, lightweight list DTOs, cache snapshots, and search/image constraints for 500+ products. |
 | 2026-06-02 | 260602-frw wx.chooseLocation location picker | Removed custom location-picker fallback and kept address selection/reselection on native `wx.chooseLocation`. |

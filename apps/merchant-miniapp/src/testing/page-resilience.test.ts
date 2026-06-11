@@ -7,6 +7,12 @@ type PageOptions = Record<string, any> & {
   data: Record<string, unknown>;
 };
 
+interface WxRequestOptions {
+  url?: string;
+  success?: (response: unknown) => void;
+  fail?: (error: unknown) => void;
+}
+
 function cloneData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
@@ -15,7 +21,7 @@ async function loadPageModule(modulePath: string) {
   const storage = new Map<string, unknown>();
   let capturedPage: PageOptions | null = null;
   const wxMock = {
-    request: vi.fn((options: { fail?: (error: unknown) => void }) => {
+    request: vi.fn((options: WxRequestOptions) => {
       options.fail?.({ errMsg: 'request:fail network down' });
     }),
     getStorageSync: vi.fn((key: string) =>
@@ -98,6 +104,57 @@ describe('merchant page API resilience', () => {
       title: '商品加载失败',
       icon: 'none'
     });
+  });
+
+  it('uses backend category product counts instead of first-page product counts', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/categories/index.ts');
+    wx.request.mockImplementation((options: WxRequestOptions) => {
+      if (options.url?.includes('/api/v1/merchant/categories')) {
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            categories: [
+              {
+                id: 'category-001',
+                name: '新',
+                iconToken: '新',
+                createdAt: '2026-06-09T00:00:00.000Z',
+                updatedAt: '2026-06-09T00:00:00.000Z',
+                linkedProductCount: 28,
+                canDelete: false
+              }
+            ]
+          }
+        });
+        return;
+      }
+
+      options.success?.({
+        statusCode: 200,
+        data: {
+          ok: true,
+          items: Array.from({ length: 20 }, (_, index) => ({
+            id: `product-${index}`,
+            categoryId: 'category-001'
+          }))
+        }
+      });
+    });
+    const instance = createPageInstance(page);
+
+    await expect(instance.refreshCategories()).resolves.toBeUndefined();
+
+    expect(instance.data.summary).toMatchObject({
+      linkedProducts: 28,
+      lockedCategories: 1
+    });
+    expect(instance.data.cards[0]).toMatchObject({
+      linkedProductCountLabel: '28 个商品',
+      deleteActionLabel: '先迁移商品'
+    });
+    expect(wx.request).toHaveBeenCalledTimes(1);
+    expect(wx.request.mock.calls[0]?.[0].url).toContain('/api/v1/merchant/categories');
   });
 
   it('skips the login form when a fresh merchant session already exists', async () => {

@@ -17,6 +17,7 @@ const pets_1 = require("./pets");
 const profile_1 = require("./profile");
 const runtime_config_1 = require("./runtime-config");
 const cart_1 = require("./cart");
+const delivery_rules_1 = require("./delivery-rules");
 const FULFILLMENT_MODES = [
     {
         value: 'delivery',
@@ -140,6 +141,12 @@ function getSelectedPets() {
     const selectedIds = new Set(checkoutDraft.selectedPetIds);
     return (0, pets_1.getPets)().filter((pet) => selectedIds.has(pet.id));
 }
+function getSelectedItemsSubtotal() {
+    return Number((0, cart_1.getCartItems)()
+        .filter((item) => item.selected)
+        .reduce((total, item) => total + item.price * item.quantity, 0)
+        .toFixed(2));
+}
 function isMaskedContactPhone(value) {
     return value.includes('*');
 }
@@ -168,6 +175,7 @@ function getSubmitDisabledReasons(mode) {
     const addressType = resolveAddressType(mode);
     const selectedAddress = addressType ? (0, address_1.getSelectedAddress)(addressType) : null;
     const customNotice = getActiveCustomNotice();
+    const runtimeConfig = (0, runtime_config_1.getCachedCustomerRuntimeConfig)();
     if (!(0, cart_1.getSelectedCartFulfillmentModes)().length) {
         reasons.push('incompatible_fulfillment');
     }
@@ -179,6 +187,16 @@ function getSubmitDisabledReasons(mode) {
     }
     if ((mode === 'delivery' || mode === 'pickup') && !checkoutDraft.reservationSelection) {
         reasons.push('missing_reservation');
+    }
+    if (mode === 'delivery' && selectedAddress) {
+        const violation = (0, delivery_rules_1.getDeliveryRuleViolation)({
+            runtimeConfig,
+            address: selectedAddress,
+            itemsSubtotal: getSelectedItemsSubtotal()
+        });
+        if (violation) {
+            reasons.push(violation.reason);
+        }
     }
     if (mode === 'pickup' && !checkoutDraft.contactPhone.trim()) {
         reasons.push('missing_pickup_phone');
