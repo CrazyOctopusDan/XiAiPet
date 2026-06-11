@@ -121,11 +121,28 @@ Recommended server layout:
 │   ├── package.json
 │   ├── pnpm-workspace.yaml
 │   └── tsconfig.base.json
+├── secrets
+│   └── wechatpay
+│       ├── apiclient_key.pem
+│       └── wechatpay_public_key.pem
 ├── releases
 └── backups
 ```
 
-Use `/opt/xiaipet/repo` for the full Git monorepo, `/opt/xiaipet/releases` for optional future release snapshots, and `/opt/xiaipet/backups` for deployment or configuration backups. The server clones the whole repository because `apps/api/Dockerfile` builds from root workspace files and `packages/shared`. Mini program and historical CloudBase source files may exist in the checkout as inert source files, but only the `api` Docker Compose service runs on ECS.
+Use `/opt/xiaipet/repo` for the full Git monorepo, `/opt/xiaipet/secrets/wechatpay` for WeChat Pay certificate material, `/opt/xiaipet/releases` for optional future release snapshots, and `/opt/xiaipet/backups` for deployment or configuration backups. The server clones the whole repository because `apps/api/Dockerfile` builds from root workspace files and `packages/shared`. Mini program and historical CloudBase source files may exist in the checkout as inert source files, but only the `api` Docker Compose service runs on ECS.
+
+Create the WeChat Pay secret directory on ECS before enabling WeChat Pay:
+
+```bash
+mkdir -p /opt/xiaipet/secrets/wechatpay
+cp /path/to/apiclient_key.pem /opt/xiaipet/secrets/wechatpay/apiclient_key.pem
+cp /path/to/wechatpay_public_key.pem /opt/xiaipet/secrets/wechatpay/wechatpay_public_key.pem
+chown -R root:root /opt/xiaipet/secrets/wechatpay
+chmod 755 /opt/xiaipet/secrets /opt/xiaipet/secrets/wechatpay
+chmod 644 /opt/xiaipet/secrets/wechatpay/apiclient_key.pem /opt/xiaipet/secrets/wechatpay/wechatpay_public_key.pem
+```
+
+The production compose file mounts `/opt/xiaipet/secrets/wechatpay` into the API container read-only. The container runs as the image `node` user, so the directory and files must be world-readable or otherwise readable by that container user. Do not store these files inside the Git checkout, a mini program bundle, or a public web directory.
 
 ## Production Environment File
 
@@ -149,6 +166,12 @@ CUSTOMER_WECHAT_APP_ID=<customer mini program AppID>
 CUSTOMER_WECHAT_APP_SECRET=<customer mini program AppSecret>
 MERCHANT_WECHAT_APP_ID=<merchant mini program AppID>
 MERCHANT_WECHAT_APP_SECRET=<merchant mini program AppSecret>
+WECHAT_PAY_MCH_ID=<merchant id>
+WECHAT_PAY_MCH_SERIAL_NO=<merchant API certificate serial number>
+WECHAT_PAY_PRIVATE_KEY_PATH=/opt/xiaipet/secrets/wechatpay/apiclient_key.pem
+WECHAT_PAY_NOTIFY_URL=https://api.xiaipet.vip/api/v1/payments/wechat/notify
+WECHAT_PAY_API_V3_KEY=<32-character APIv3 key>
+WECHAT_PAY_PLATFORM_PUBLIC_KEY_PATH=/opt/xiaipet/secrets/wechatpay/wechatpay_public_key.pem
 ```
 
 Keep real RDS passwords, RAM AccessKey secrets, WeChat AppSecrets, payment keys and certificates out of git. `apps/api/.env.example` is placeholder-only; `apps/api/.env.production` exists only on ECS. RDS setup and migration commands live in `docs/release/alibaba-rds.md`.
@@ -160,6 +183,14 @@ From the project root on ECS:
 ```bash
 cd /opt/xiaipet/repo
 docker compose up -d --build api
+```
+
+If startup fails with `Invalid WECHAT_PAY_PRIVATE_KEY_PATH: expected a readable secret file`, verify the mount and file permissions from ECS:
+
+```bash
+docker compose run --rm api sh -lc 'ls -l /opt/xiaipet/secrets/wechatpay && test -r /opt/xiaipet/secrets/wechatpay/apiclient_key.pem && test -r /opt/xiaipet/secrets/wechatpay/wechatpay_public_key.pem'
+docker compose up -d --build api
+docker compose logs api --tail=100
 ```
 
 ## Local Smoke Checklist
