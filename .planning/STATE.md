@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-11 -- Quick task 260611-api-docker-startup-hardening completed: hardened API Docker startup and ECS preflight
+last_activity: 2026-06-11 -- Quick task 260611-docker-daemon-eof-recovery completed: documented Docker daemon EOF recovery
 progress:
   total_phases: 8
   completed_phases: 5
@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-11 | 260611-docker-daemon-eof-recovery Docker daemon EOF recovery | Added ECS recovery steps for Docker daemon EOF before `docker system df`, including non-Docker cleanup and a last-resort data-root reset path. |
 | 2026-06-11 | 260611-api-docker-startup-hardening API Docker startup hardening | Started the runtime container directly with Node, added ECS preflight checks, reduced Docker build context, and documented ENOSPC recovery. |
 | 2026-06-11 | 260611-wechatpay-secret-mount WeChat Pay secret mount | Mounted `/opt/xiaipet/secrets/wechatpay` read-only into the API container and documented ECS secret permissions plus startup verification. |
 | 2026-06-11 | 260611-d0w WeChat Pay notify callback | Added private key file-path config, required APIv3/platform public key settings, and verified WeChat Pay notification callback handling in apps/api. |

@@ -212,6 +212,53 @@ docker compose up -d --build --force-recreate api
 
 Do not run `docker volume prune` unless you have confirmed there are no production data volumes on the same ECS instance. XiAiPet production MySQL is on RDS, but the server may still have unrelated Docker volumes.
 
+If `docker system df` fails with an EOF from `/var/run/docker.sock`, dockerd is not healthy enough to answer Docker API requests. Use system-level recovery first:
+
+```bash
+df -h
+df -i
+systemctl status docker containerd --no-pager -l
+journalctl -u docker -u containerd --since "30 min ago" --no-pager -n 200
+du -xhd1 /var /var/lib /var/lib/docker /opt 2>/dev/null | sort -h
+
+docker compose stop api || true
+systemctl stop docker || true
+systemctl stop containerd || true
+
+journalctl --vacuum-time=1d
+find /var/lib/docker/containers -name '*-json.log' -type f -exec sh -c ': > "$1"' _ {} \;
+
+systemctl start containerd
+systemctl start docker
+docker version
+docker system df
+```
+
+After Docker responds again, run the normal non-volume cleanup and rebuild:
+
+```bash
+docker compose down --remove-orphans
+docker container prune -f
+docker image prune -af
+docker builder prune -af
+sh scripts/ecs-api-preflight.sh
+docker compose up -d --build --force-recreate api
+docker compose logs api --tail=100
+```
+
+Last resort, only if this ECS host runs XiAiPet API only and all durable data is outside Docker, such as RDS and OSS: stop Docker, move the Docker data root aside, restart Docker, and rebuild from source. This removes local containers, images, build cache and Docker volumes on the host.
+
+```bash
+systemctl stop docker containerd
+mv /var/lib/docker "/var/lib/docker.bak.$(date +%Y%m%d%H%M%S)"
+mkdir -p /var/lib/docker
+systemctl start containerd
+systemctl start docker
+cd /opt/xiaipet/repo
+sh scripts/ecs-api-preflight.sh
+docker compose up -d --build --force-recreate api
+```
+
 If startup fails with `Invalid WECHAT_PAY_PRIVATE_KEY_PATH: expected a readable secret file`, verify the mount and file permissions from ECS:
 
 ```bash
