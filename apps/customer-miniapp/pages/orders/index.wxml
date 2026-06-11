@@ -7,6 +7,14 @@
     <text class="orders-subtitle">履约状态和下单快照</text>
   </view>
 
+  <scroll-view class="orders-tabs" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="orders-tab-row">
+      <view class="orders-tab {{item.active ? 'active' : ''}}" wx:for="{{statusTabs}}" wx:key="value" data-status-group="{{item.value}}" bindtap="handleStatusTabTap">
+        <text class="orders-tab-label">{{item.label}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
   <view class="orders-card empty-card" wx:if="{{isEmpty}}">
     <view class="empty-mark">
       <view class="empty-mark-line short"></view>
@@ -19,13 +27,13 @@
   </view>
 
   <view class="orders-list" wx:else>
-    <view class="order-card {{highlightedOrderId === item.id ? 'highlighted' : ''}}" wx:for="{{orderCards}}" wx:key="id" data-order-id="{{item.id}}" bindtap="handleOrderTap">
+    <view class="order-card status-{{item.statusTone}} {{highlightedOrderId === item.id ? 'highlighted' : ''}}" wx:for="{{orderCards}}" wx:key="id" data-order-id="{{item.id}}" bindtap="handleOrderTap">
       <view class="order-card-head">
         <view>
           <text class="order-id">{{item.id}}</text>
           <text class="order-created">{{item.createdAtLabel}}</text>
         </view>
-        <text class="order-status">{{item.statusLabel}}</text>
+        <text class="order-status status-{{item.statusTone}}">{{item.statusLabel}}</text>
       </view>
       <text class="order-summary">{{item.itemSummary}}</text>
       <view class="order-meta-panel">
@@ -46,6 +54,12 @@
         <text class="order-total">{{item.payableTotalLabel}}</text>
         <text class="order-link">查看详情</text>
       </view>
+    </view>
+    <view class="orders-loading" wx:if="{{loadingMore}}">
+      <text class="orders-loading-text">正在加载更多订单</text>
+    </view>
+    <view class="orders-end" wx:elif="{{!activePageInfo.hasMore}}">
+      <text class="orders-end-text">当前分类已全部显示</text>
     </view>
   </view>
 </view>

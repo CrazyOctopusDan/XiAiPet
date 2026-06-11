@@ -14,7 +14,7 @@ interface OrderDetailPageData {
 interface OrderDetailPageInstance {
   data: OrderDetailPageData;
   setData(updates: Record<string, unknown>): void;
-  refreshDetail(): void;
+  refreshDetail(): Promise<void>;
 }
 
 Page({
@@ -30,6 +30,13 @@ Page({
   },
   async onShow(this: OrderDetailPageInstance) {
     await this.refreshDetail();
+  },
+  async onPullDownRefresh(this: OrderDetailPageInstance) {
+    try {
+      await this.refreshDetail();
+    } finally {
+      wx.stopPullDownRefresh?.();
+    }
   },
   async refreshDetail(this: OrderDetailPageInstance) {
     const order = this.data.orderId ? await getMyOrderDetail(this.data.orderId) : null;

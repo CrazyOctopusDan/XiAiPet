@@ -3,6 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 import { createCatalogRepository } from '../catalog/repository';
 import {
   createOrderRepository,
+  type CustomerOrderListFilters,
   type CreateOrderInput,
   type MerchantOrderListFilters,
   type OrderRecord
@@ -278,6 +279,23 @@ function normalizeMerchantOrderFilters(filters: Record<string, unknown> = {}): M
   return result;
 }
 
+function normalizeCustomerOrderFilters(filters: Record<string, unknown> = {}): CustomerOrderListFilters {
+  const rawStatusGroup = getFirstString(filters.statusGroup);
+  const rawLimit = getFirstString(filters.limit);
+  const cursor = getFirstString(filters.cursor);
+  const statusGroup =
+    rawStatusGroup === 'pending' || rawStatusGroup === 'active' || rawStatusGroup === 'completed' || rawStatusGroup === 'all'
+      ? rawStatusGroup
+      : 'all';
+  const parsedLimit = rawLimit ? Number(rawLimit) : undefined;
+
+  return {
+    statusGroup,
+    limit: parsedLimit,
+    cursor
+  };
+}
+
 export function createOrderService(
   client: PrismaClient = getPrismaClient(),
   paymentProvider: PaymentProvider = createMockPaymentProvider()
@@ -419,9 +437,9 @@ export function createOrderService(
       return { ok: true as const, order };
     },
 
-    async queryCustomerOrders(openid: string, _filters: Record<string, unknown> = {}) {
-      const orders = await createOrderRepository(client).listByOpenid(openid);
-      return { ok: true as const, orders };
+    async queryCustomerOrders(openid: string, filters: Record<string, unknown> = {}) {
+      const page = await createOrderRepository(client).listByOpenid(openid, normalizeCustomerOrderFilters(filters));
+      return { ok: true as const, ...page };
     },
 
     async getCustomerOrderDetail(openid: string, orderId: string) {

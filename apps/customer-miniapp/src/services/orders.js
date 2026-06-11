@@ -1,5 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getOrderStatusGroup = getOrderStatusGroup;
+exports.getOrderStatusTone = getOrderStatusTone;
+exports.getOrderStatusTabs = getOrderStatusTabs;
 exports.queryMyOrders = queryMyOrders;
 exports.getMyOrderDetail = getMyOrderDetail;
 exports.getOrdersPageViewModel = getOrdersPageViewModel;
@@ -91,6 +94,8 @@ function getPetRows(order) {
 function toOrderCard(order) {
     return {
         id: order.id,
+        statusGroup: getOrderStatusGroup(order),
+        statusTone: getOrderStatusTone(order),
         statusLabel: (0, order_runtime_1.getOrderStatusLabel)(order),
         createdAtLabel: formatDateTime(order.createdAt),
         fulfillmentLabel: getFulfillmentLabel(order.snapshot.fulfillment.mode),
@@ -100,28 +105,127 @@ function toOrderCard(order) {
         payableTotalLabel: formatMoney(order.pricing.payableTotal)
     };
 }
-async function queryMyOrders(request = api_client_1.customerApiRequest) {
+function getOrderStatusGroup(order) {
     var _a;
+    if (order.status !== 'paid') {
+        return 'pending';
+    }
+    const status = (_a = order.fulfillmentState) === null || _a === void 0 ? void 0 : _a.status;
+    if (status === 'completed') {
+        return 'completed';
+    }
+    if (status === 'in_production' || status === 'out_for_delivery' || status === 'ready_for_pickup' || status === 'ready_to_ship') {
+        return 'active';
+    }
+    return 'pending';
+}
+function getOrderStatusTone(order) {
+    var _a, _b;
+    if (order.status === 'cancelled' || ((_a = order.fulfillmentState) === null || _a === void 0 ? void 0 : _a.status) === 'cancelled') {
+        return 'cancelled';
+    }
+    if (order.status !== 'paid') {
+        return 'payment';
+    }
+    const status = (_b = order.fulfillmentState) === null || _b === void 0 ? void 0 : _b.status;
+    if (status === 'completed') {
+        return 'completed';
+    }
+    if (status === 'ready_for_pickup' || status === 'ready_to_ship') {
+        return 'ready';
+    }
+    if (status === 'out_for_delivery') {
+        return 'delivery';
+    }
+    if (status === 'in_production') {
+        return 'work';
+    }
+    return 'pending';
+}
+function getOrderStatusTabDefinitions() {
+    return [
+        { value: 'all', label: '全部' },
+        { value: 'pending', label: '待处理' },
+        { value: 'active', label: '进行中' },
+        { value: 'completed', label: '已完成' }
+    ];
+}
+function getOrderStatusTabs(orders, activeStatusGroup = 'all') {
+    return getOrderStatusTabDefinitions().map((tab) => ({
+        ...tab,
+        count: tab.value === 'all' ? orders.length : orders.filter((order) => getOrderStatusGroup(order) === tab.value).length,
+        active: tab.value === activeStatusGroup
+    }));
+}
+function normalizeOrder(order) {
+    var _a;
+    const backendOrder = order;
+    if (order.fulfillmentState || !backendOrder.fulfillmentStatus) {
+        return order;
+    }
+    return {
+        ...order,
+        fulfillmentState: {
+            mode: (_a = backendOrder.fulfillmentMode) !== null && _a !== void 0 ? _a : order.snapshot.fulfillment.mode,
+            status: backendOrder.fulfillmentStatus,
+            updatedAt: order.updatedAt
+        }
+    };
+}
+function resolveQueryMyOrdersArgs(optionsOrRequest, maybeRequest) {
+    if (typeof optionsOrRequest === 'function') {
+        return {
+            options: {},
+            request: optionsOrRequest
+        };
+    }
+    return {
+        options: optionsOrRequest !== null && optionsOrRequest !== void 0 ? optionsOrRequest : {},
+        request: maybeRequest !== null && maybeRequest !== void 0 ? maybeRequest : api_client_1.customerApiRequest
+    };
+}
+async function queryMyOrders(optionsOrRequest, maybeRequest) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const { options, request } = resolveQueryMyOrdersArgs(optionsOrRequest, maybeRequest);
     const response = await request('/api/v1/customer/orders', {
         method: 'GET',
-        auth: 'customer'
+        auth: 'customer',
+        query: {
+            statusGroup: (_a = options.statusGroup) !== null && _a !== void 0 ? _a : 'all',
+            limit: (_b = options.limit) !== null && _b !== void 0 ? _b : 20,
+            cursor: (_c = options.cursor) !== null && _c !== void 0 ? _c : undefined
+        }
     });
-    return (_a = response.orders) !== null && _a !== void 0 ? _a : [];
+    return {
+        orders: ((_d = response.orders) !== null && _d !== void 0 ? _d : []).map(normalizeOrder),
+        pageInfo: {
+            hasMore: Boolean((_e = response.pageInfo) === null || _e === void 0 ? void 0 : _e.hasMore),
+            nextCursor: typeof ((_f = response.pageInfo) === null || _f === void 0 ? void 0 : _f.nextCursor) === 'string' && response.pageInfo.nextCursor
+                ? response.pageInfo.nextCursor
+                : null,
+            limit: typeof ((_g = response.pageInfo) === null || _g === void 0 ? void 0 : _g.limit) === 'number' ? response.pageInfo.limit : (_h = options.limit) !== null && _h !== void 0 ? _h : 20
+        }
+    };
 }
 async function getMyOrderDetail(orderId, request = api_client_1.customerApiRequest) {
     const response = await request(`/api/v1/customer/orders/${orderId}`, {
         method: 'GET',
         auth: 'customer'
     });
-    return response.order;
+    return response.order ? normalizeOrder(response.order) : response.order;
 }
-function getOrdersPageViewModel(orders, highlightOrderId) {
+function getOrdersPageViewModel(orders, highlightOrderId, activeStatusGroup = 'all') {
     var _a, _b, _c, _d;
-    const cards = sortOrders(orders).map(toOrderCard);
+    const filteredOrders = activeStatusGroup === 'all'
+        ? orders
+        : orders.filter((order) => getOrderStatusGroup(order) === activeStatusGroup);
+    const cards = sortOrders(filteredOrders).map(toOrderCard);
     const highlightedOrderId = (_d = (_b = (_a = cards.find((item) => item.id === highlightOrderId)) === null || _a === void 0 ? void 0 : _a.id) !== null && _b !== void 0 ? _b : (_c = cards[0]) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : null;
     return {
         isEmpty: cards.length === 0,
         highlightedOrderId,
+        activeStatusGroup,
+        tabs: getOrderStatusTabs(orders, activeStatusGroup),
         cards
     };
 }

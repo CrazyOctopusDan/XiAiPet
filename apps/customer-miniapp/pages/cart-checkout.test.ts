@@ -693,6 +693,114 @@ describe('cart checkout flow', () => {
     expect(instance.data.selectedTotalPrice).toBe(specProduct.specs[0]?.price * 2);
   });
 
+  it('starts each checkout page entry with a fresh draft while keeping selected cart rows', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { createPet, getPets, resetPets } = await import('../src/services/pets');
+    const {
+      getCheckoutDraft,
+      resetCheckoutDraft,
+      setCheckoutRemark,
+      setCustomNoticeAcknowledged,
+      setReservationSelection,
+      toggleSelectedPet
+    } = await import('../src/services/checkout');
+
+    clearCart();
+    resetPets();
+    resetCheckoutDraft();
+
+    const product = getProductById('sea-sponge');
+
+    if (!product) {
+      throw new Error('missing checkout reset fixture');
+    }
+
+    addCartItem(product, '', 1);
+    createPet({
+      name: '奶油',
+      gender: 'female',
+      birthday: '2023-04-12',
+      allergyNotes: ''
+    });
+    toggleSelectedPet(getPets()[0]!.id);
+    setReservationSelection({
+      dateLabel: '今天 04-17',
+      dateValue: '2026-04-17',
+      timeLabel: '10:30',
+      timeValue: '10:30'
+    });
+    setCheckoutRemark('少放糖');
+    setCustomNoticeAcknowledged(true);
+
+    expect(getCheckoutDraft()).toMatchObject({
+      remark: '少放糖',
+      hasReadCustomNotice: true,
+      selectedPetIds: [getPets()[0]!.id]
+    });
+
+    const instance = createPageInstance(page);
+
+    expect(instance.onLoad).toEqual(expect.any(Function));
+    instance.onLoad({ source: 'cart' });
+    instance.onShow();
+
+    expect(getCheckoutDraft()).toMatchObject({
+      reservationSelection: null,
+      remark: '',
+      hasReadCustomNotice: false,
+      selectedPetIds: []
+    });
+    expect(instance.data.items).toHaveLength(1);
+    expect(instance.data.selectedReservationValue).toBe('');
+    expect(instance.data.remarkSummary).toBe('还没有填写备注');
+    expect(instance.data.selectedPetIds).toEqual([]);
+  });
+
+  it('keeps checkout submission locked while redirecting after a paid order', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { resetCheckoutDraft, setFulfillmentMode, setReservationSelection } = await import('../src/services/checkout');
+    const { resetProfile, updateProfile } = await import('../src/services/profile');
+
+    clearCart();
+    resetCheckoutDraft();
+    resetProfile();
+    updateProfile({
+      contactPhone: '13800001234'
+    });
+
+    const product = getProductById('sea-sponge');
+
+    if (!product) {
+      throw new Error('missing paid redirect fixture');
+    }
+
+    const instance = createPageInstance(page);
+
+    instance.onLoad({ source: 'cart' });
+    addCartItem(product, '', 1);
+    setFulfillmentMode('pickup');
+    setReservationSelection({
+      dateLabel: '今天 04-17',
+      dateValue: '2026-04-17',
+      timeLabel: '10:30',
+      timeValue: '10:30'
+    });
+    instance.refreshCheckout();
+
+    expect(instance.data.canSubmit).toBe(true);
+
+    await instance.handleSubmit();
+
+    expect(wx.redirectTo).toHaveBeenCalledWith(expect.objectContaining({
+      url: '/pages/order-detail/index?orderId=order-001'
+    }));
+    expect(instance.data.submitting).toBe(true);
+  });
+
   it('hydrates checkout runtime config from readRuntimeConfig and hides disabled notices', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
 
@@ -1994,11 +2102,11 @@ describe('cart checkout flow', () => {
 
     await instance.handleSubmit();
 
-    expect(wx.redirectTo).toHaveBeenCalledWith({
+    expect(wx.redirectTo).toHaveBeenCalledWith(expect.objectContaining({
       url: '/pages/order-detail/index?orderId=order-001'
-    });
+    }));
     expect(getCartItems()).toHaveLength(0);
-    expect(instance.data.submitting).toBe(false);
+    expect(instance.data.submitting).toBe(true);
   });
 
   it('unlocks checkout and keeps selected cart items when balance payment fails', async () => {

@@ -2,6 +2,42 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const orders_1 = require("../../src/services/orders");
 const tab_navigation_1 = require("../../src/services/tab-navigation");
+const ORDER_PAGE_LIMIT = 20;
+const ORDER_STATUS_GROUPS = ['all', 'pending', 'active', 'completed'];
+function createEmptyPageInfo() {
+    return {
+        hasMore: false,
+        nextCursor: null,
+        limit: ORDER_PAGE_LIMIT
+    };
+}
+function createOrdersByStatusGroup() {
+    return {
+        all: [],
+        pending: [],
+        active: [],
+        completed: []
+    };
+}
+function createPageInfoByStatusGroup() {
+    return {
+        all: createEmptyPageInfo(),
+        pending: createEmptyPageInfo(),
+        active: createEmptyPageInfo(),
+        completed: createEmptyPageInfo()
+    };
+}
+function createLoadedStatusGroups() {
+    return {
+        all: false,
+        pending: false,
+        active: false,
+        completed: false
+    };
+}
+function isOrderStatusGroup(value) {
+    return typeof value === 'string' && ORDER_STATUS_GROUPS.includes(value);
+}
 function pxToRpx(value, windowWidth) {
     return Math.ceil((value * 750) / windowWidth);
 }
@@ -33,6 +69,13 @@ Page({
         emptyStateTitle: '还没有订单',
         emptyStateBody: '支付完成后的订单会出现在这里，先去挑些毛孩子的蛋糕吧。',
         highlightedOrderId: null,
+        activeStatusGroup: 'all',
+        statusTabs: (0, orders_1.getOrderStatusTabs)([], 'all'),
+        ordersByStatusGroup: createOrdersByStatusGroup(),
+        pageInfoByStatusGroup: createPageInfoByStatusGroup(),
+        activePageInfo: createEmptyPageInfo(),
+        loadedStatusGroups: createLoadedStatusGroups(),
+        loadingMore: false,
         ordersHeaderTop: 96,
         ordersHeaderHeight: 64,
         ordersHeaderRightPadding: 212,
@@ -53,6 +96,18 @@ Page({
         });
         await this.refreshOrders();
     },
+    async onPullDownRefresh() {
+        var _a;
+        try {
+            await this.refreshOrders();
+        }
+        finally {
+            (_a = wx.stopPullDownRefresh) === null || _a === void 0 ? void 0 : _a.call(wx);
+        }
+    },
+    async onReachBottom() {
+        await this.loadMoreOrders();
+    },
     refreshLayoutMetrics() {
         const headerMetrics = resolveOrdersHeaderMetrics();
         this.setData({
@@ -62,13 +117,96 @@ Page({
         });
     },
     async refreshOrders() {
-        const orders = await (0, orders_1.queryMyOrders)();
-        const view = (0, orders_1.getOrdersPageViewModel)(orders, this.data.highlightedOrderId);
+        const activeStatusGroup = this.data.activeStatusGroup;
+        const page = await (0, orders_1.queryMyOrders)({
+            statusGroup: activeStatusGroup,
+            limit: ORDER_PAGE_LIMIT
+        });
+        const ordersByStatusGroup = {
+            ...this.data.ordersByStatusGroup,
+            [activeStatusGroup]: page.orders
+        };
+        const pageInfoByStatusGroup = {
+            ...this.data.pageInfoByStatusGroup,
+            [activeStatusGroup]: page.pageInfo
+        };
+        const loadedStatusGroups = {
+            ...this.data.loadedStatusGroups,
+            [activeStatusGroup]: true
+        };
+        const view = (0, orders_1.getOrdersPageViewModel)(page.orders, this.data.highlightedOrderId, activeStatusGroup);
         this.setData({
             isEmpty: view.isEmpty,
             highlightedOrderId: view.highlightedOrderId,
+            statusTabs: (0, orders_1.getOrderStatusTabs)([], activeStatusGroup),
+            ordersByStatusGroup,
+            pageInfoByStatusGroup,
+            activePageInfo: page.pageInfo,
+            loadedStatusGroups,
             orderCards: view.cards
         });
+    },
+    async loadMoreOrders() {
+        const activeStatusGroup = this.data.activeStatusGroup;
+        const pageInfo = this.data.pageInfoByStatusGroup[activeStatusGroup];
+        if (this.data.loadingMore || !pageInfo.hasMore || !pageInfo.nextCursor) {
+            return;
+        }
+        this.setData({ loadingMore: true });
+        try {
+            const page = await (0, orders_1.queryMyOrders)({
+                statusGroup: activeStatusGroup,
+                limit: ORDER_PAGE_LIMIT,
+                cursor: pageInfo.nextCursor
+            });
+            const ordersByStatusGroup = {
+                ...this.data.ordersByStatusGroup,
+                [activeStatusGroup]: [
+                    ...this.data.ordersByStatusGroup[activeStatusGroup],
+                    ...page.orders
+                ]
+            };
+            const pageInfoByStatusGroup = {
+                ...this.data.pageInfoByStatusGroup,
+                [activeStatusGroup]: page.pageInfo
+            };
+            this.setData({
+                ordersByStatusGroup,
+                pageInfoByStatusGroup
+            });
+            this.renderActiveOrders();
+        }
+        finally {
+            this.setData({ loadingMore: false });
+        }
+    },
+    renderActiveOrders() {
+        const activeStatusGroup = this.data.activeStatusGroup;
+        const view = (0, orders_1.getOrdersPageViewModel)(this.data.ordersByStatusGroup[activeStatusGroup], this.data.highlightedOrderId, activeStatusGroup);
+        this.setData({
+            isEmpty: view.isEmpty,
+            highlightedOrderId: view.highlightedOrderId,
+            statusTabs: (0, orders_1.getOrderStatusTabs)([], activeStatusGroup),
+            activePageInfo: this.data.pageInfoByStatusGroup[activeStatusGroup],
+            orderCards: view.cards
+        });
+    },
+    async handleStatusTabTap(event) {
+        var _a, _b;
+        const statusGroup = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.statusGroup;
+        if (!isOrderStatusGroup(statusGroup) || statusGroup === this.data.activeStatusGroup) {
+            return;
+        }
+        this.setData({
+            activeStatusGroup: statusGroup,
+            highlightedOrderId: null,
+            statusTabs: (0, orders_1.getOrderStatusTabs)([], statusGroup)
+        });
+        if (this.data.loadedStatusGroups[statusGroup]) {
+            this.renderActiveOrders();
+            return;
+        }
+        await this.refreshOrders();
     },
     handleHomeTap() {
         wx.redirectTo({

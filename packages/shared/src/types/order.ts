@@ -181,6 +181,11 @@ export interface OrderRecord {
 
 export interface QueryMyOrdersResult {
   orders: OrderRecord[];
+  pageInfo?: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    limit: number;
+  };
 }
 
 export interface GetMyOrderDetailResult {

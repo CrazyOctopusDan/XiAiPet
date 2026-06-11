@@ -8,6 +8,7 @@ import {
   getCheckoutViewModel,
   getFulfillmentModes,
   hydratePickupPhoneFromProfile,
+  resetCheckoutDraft,
   setCustomNoticeAcknowledged,
   setFulfillmentMode,
   setPickupPhone,
@@ -72,6 +73,7 @@ interface CheckoutPageData {
 interface CheckoutPageInstance {
   data: CheckoutPageData;
   setData(data: Record<string, unknown>): void;
+  onLoad(options?: { source?: string }): void;
   refreshCheckout(): void;
   refreshCustomerContext(): Promise<void>;
   refreshRuntimeConfig(): Promise<void>;
@@ -168,6 +170,17 @@ Page({
     deliveryFeeLabel: '待确认',
     showDeliveryFeeModal: false,
     submitting: false
+  },
+  onLoad(this: CheckoutPageInstance) {
+    checkoutSubmissionLocked = false;
+    resetCheckoutDraft();
+    this.setData({
+      activePaymentMethod: 'balance',
+      showReservationModal: false,
+      showDeliveryFeeModal: false,
+      submitting: false
+    });
+    this.refreshCheckout();
   },
   onShow(this: CheckoutPageInstance) {
     if (!this.data.submitting) {
@@ -419,9 +432,12 @@ Page({
       if (result.order.status === 'paid') {
         removeSelectedCartItems();
         setPendingOrdersHighlight(result.order.id);
-        this.setData({ submitting: false });
         wx.redirectTo({
-          url: `/pages/order-detail/index?orderId=${result.order.id}`
+          url: `/pages/order-detail/index?orderId=${result.order.id}`,
+          fail: () => {
+            checkoutSubmissionLocked = false;
+            this.setData({ submitting: false });
+          }
         });
         return;
       }

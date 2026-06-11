@@ -33,6 +33,23 @@ export interface MerchantOrderListFilters {
   keyword?: string;
 }
 
+export type CustomerOrderStatusGroup = 'all' | 'pending' | 'active' | 'completed';
+
+export interface CustomerOrderListFilters {
+  statusGroup?: CustomerOrderStatusGroup;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface CustomerOrderPage {
+  orders: OrderRecord[];
+  pageInfo: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    limit: number;
+  };
+}
+
 export interface OrderRecord {
   id: string;
   openid: string;
@@ -42,6 +59,11 @@ export interface OrderRecord {
   paymentStatus: 'pending' | 'processing' | 'paid' | 'failed';
   fulfillmentMode: 'delivery' | 'pickup' | 'express';
   fulfillmentStatus?: 'pending' | 'in_production' | 'out_for_delivery' | 'ready_for_pickup' | 'ready_to_ship' | 'completed' | 'cancelled';
+  fulfillmentState?: {
+    mode: OrderRecord['fulfillmentMode'];
+    status: NonNullable<OrderRecord['fulfillmentStatus']>;
+    updatedAt: string;
+  };
   pricing: {
     itemsSubtotal: number;
     deliveryFee: number;
@@ -74,6 +96,10 @@ interface OrderRow {
 }
 
 export function mapOrder(row: OrderRow): OrderRecord {
+  const fulfillmentMode = toSharedEnum(row.fulfillmentMode, FULFILLMENT_MODE);
+  const fulfillmentStatus = row.fulfillmentStatus ? toSharedEnum(row.fulfillmentStatus, FULFILLMENT_STATUS) : undefined;
+  const updatedAt = row.updatedAt.toISOString();
+
   return {
     id: row.id,
     openid: row.openid,
@@ -81,8 +107,15 @@ export function mapOrder(row: OrderRow): OrderRecord {
     idempotencyKey: row.idempotencyKey ?? undefined,
     paymentMethod: toSharedEnum(row.paymentMethod, PAYMENT_METHOD),
     paymentStatus: toSharedEnum(row.paymentStatus, PAYMENT_STATUS),
-    fulfillmentMode: toSharedEnum(row.fulfillmentMode, FULFILLMENT_MODE),
-    fulfillmentStatus: row.fulfillmentStatus ? toSharedEnum(row.fulfillmentStatus, FULFILLMENT_STATUS) : undefined,
+    fulfillmentMode,
+    fulfillmentStatus,
+    fulfillmentState: fulfillmentStatus
+      ? {
+          mode: fulfillmentMode,
+          status: fulfillmentStatus,
+          updatedAt
+        }
+      : undefined,
     pricing: {
       itemsSubtotal: row.itemsSubtotal.toNumber(),
       deliveryFee: row.deliveryFee.toNumber(),
@@ -90,7 +123,7 @@ export function mapOrder(row: OrderRow): OrderRecord {
     },
     snapshot: row.snapshot,
     createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
+    updatedAt,
     paidAt: row.paidAt?.toISOString(),
     cancelledAt: row.cancelledAt?.toISOString()
   };
@@ -98,6 +131,65 @@ export function mapOrder(row: OrderRow): OrderRecord {
 
 function asJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
+}
+
+function clampCustomerOrderLimit(value: number | undefined) {
+  if (!value || !Number.isFinite(value)) {
+    return 20;
+  }
+
+  return Math.min(50, Math.max(1, Math.trunc(value)));
+}
+
+function parseCustomerOrderCursor(value: string | undefined) {
+  if (!value) {
+    return 0;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 0;
+  }
+
+  return Math.trunc(parsed);
+}
+
+function applyCustomerStatusGroup(where: Prisma.OrderWhereInput, statusGroup: CustomerOrderStatusGroup | undefined) {
+  if (!statusGroup || statusGroup === 'all') {
+    return where;
+  }
+
+  if (statusGroup === 'pending') {
+    return {
+      ...where,
+      OR: [
+        { status: { in: [ORDER_STATUS.pending_payment, ORDER_STATUS.payment_processing, ORDER_STATUS.payment_failed] } },
+        { status: ORDER_STATUS.paid, fulfillmentStatus: FULFILLMENT_STATUS.pending }
+      ]
+    };
+  }
+
+  if (statusGroup === 'completed') {
+    return {
+      ...where,
+      status: ORDER_STATUS.paid,
+      fulfillmentStatus: FULFILLMENT_STATUS.completed
+    };
+  }
+
+  return {
+    ...where,
+    status: ORDER_STATUS.paid,
+    fulfillmentStatus: {
+      in: [
+        FULFILLMENT_STATUS.in_production,
+        FULFILLMENT_STATUS.out_for_delivery,
+        FULFILLMENT_STATUS.ready_for_pickup,
+        FULFILLMENT_STATUS.ready_to_ship
+      ]
+    }
+  };
 }
 
 export function createOrderRepository(client: DbClient = getPrismaClient()) {
@@ -116,12 +208,26 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
       return order ? mapOrder(order) : null;
     },
 
-    async listByOpenid(openid: string): Promise<OrderRecord[]> {
+    async listByOpenid(openid: string, filters: CustomerOrderListFilters = {}): Promise<CustomerOrderPage> {
+      const limit = clampCustomerOrderLimit(filters.limit);
+      const offset = parseCustomerOrderCursor(filters.cursor);
       const orders = await client.order.findMany({
-        where: { openid },
-        orderBy: { createdAt: 'desc' }
+        where: applyCustomerStatusGroup({ openid }, filters.statusGroup),
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit + 1
       });
-      return orders.map(mapOrder);
+      const hasMore = orders.length > limit;
+      const visibleOrders = hasMore ? orders.slice(0, limit) : orders;
+
+      return {
+        orders: visibleOrders.map(mapOrder),
+        pageInfo: {
+          hasMore,
+          nextCursor: hasMore ? String(offset + limit) : null,
+          limit
+        }
+      };
     },
 
     async listAll(): Promise<OrderRecord[]> {

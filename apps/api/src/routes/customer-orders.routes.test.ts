@@ -58,4 +58,35 @@ describe('customer order routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ ok: false, code: 'INSUFFICIENT_BALANCE', paymentStatus: 'blocked' });
   });
+
+  it('passes customer order tab pagination query into the order service', async () => {
+    const orderService = createOrderService({
+      queryCustomerOrders: vi.fn(async () => ({
+        ok: true,
+        orders: [],
+        pageInfo: {
+          hasMore: false,
+          nextCursor: null,
+          limit: 20
+        }
+      }))
+    });
+    const app = buildApp({ config: testConfig, dependencies: { orderService } });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/customer/orders?statusGroup=active&limit=20&cursor=20',
+      headers: authHeader('openid-1')
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(orderService.queryCustomerOrders).toHaveBeenCalledWith(
+      'openid-1',
+      expect.objectContaining({
+        statusGroup: 'active',
+        limit: '20',
+        cursor: '20'
+      })
+    );
+  });
 });

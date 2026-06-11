@@ -90,6 +90,17 @@ Page({
         showDeliveryFeeModal: false,
         submitting: false
     },
+    onLoad() {
+        checkoutSubmissionLocked = false;
+        (0, checkout_1.resetCheckoutDraft)();
+        this.setData({
+            activePaymentMethod: 'balance',
+            showReservationModal: false,
+            showDeliveryFeeModal: false,
+            submitting: false
+        });
+        this.refreshCheckout();
+    },
     onShow() {
         if (!this.data.submitting) {
             checkoutSubmissionLocked = false;
@@ -318,9 +329,12 @@ Page({
             if (result.order.status === 'paid') {
                 (0, cart_1.removeSelectedCartItems)();
                 (0, tab_navigation_1.setPendingOrdersHighlight)(result.order.id);
-                this.setData({ submitting: false });
                 wx.redirectTo({
-                    url: `/pages/order-detail/index?orderId=${result.order.id}`
+                    url: `/pages/order-detail/index?orderId=${result.order.id}`,
+                    fail: () => {
+                        checkoutSubmissionLocked = false;
+                        this.setData({ submitting: false });
+                    }
                 });
                 return;
             }

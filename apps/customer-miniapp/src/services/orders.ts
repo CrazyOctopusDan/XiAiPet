@@ -1,10 +1,19 @@
-import type { GetMyOrderDetailResult, OrderFulfillmentMode, OrderRecord, PaymentMethod, QueryMyOrdersResult } from '@xiaipet/shared';
+import type {
+  GetMyOrderDetailResult,
+  OrderFulfillmentMode,
+  OrderFulfillmentStatus,
+  OrderRecord,
+  PaymentMethod,
+  QueryMyOrdersResult
+} from '@xiaipet/shared';
 import { getOrderStatusLabel } from '../shared/order-runtime';
 
 import { customerApiRequest, type CustomerApiRequester } from './api-client';
 
 export interface OrderCardViewModel {
   id: string;
+  statusGroup: OrderStatusGroup;
+  statusTone: OrderStatusTone;
   statusLabel: string;
   createdAtLabel: string;
   fulfillmentLabel: string;
@@ -17,7 +26,36 @@ export interface OrderCardViewModel {
 export interface OrdersPageViewModel {
   isEmpty: boolean;
   highlightedOrderId: string | null;
+  activeStatusGroup: OrderStatusGroup;
+  tabs: OrderStatusTabViewModel[];
   cards: OrderCardViewModel[];
+}
+
+export type OrderStatusGroup = 'all' | 'pending' | 'active' | 'completed';
+export type OrderStatusTone = 'payment' | 'pending' | 'work' | 'ready' | 'delivery' | 'completed' | 'cancelled';
+
+export interface OrderStatusTabViewModel {
+  value: OrderStatusGroup;
+  label: string;
+  count: number;
+  active: boolean;
+}
+
+export interface QueryMyOrdersOptions {
+  statusGroup?: OrderStatusGroup;
+  limit?: number;
+  cursor?: string | null;
+}
+
+export interface OrderPageInfo {
+  hasMore: boolean;
+  nextCursor: string | null;
+  limit: number;
+}
+
+export interface QueryMyOrdersPage {
+  orders: OrderRecord[];
+  pageInfo: OrderPageInfo;
 }
 
 export interface OrderDetailItemViewModel {
@@ -49,6 +87,11 @@ export interface OrderDetailViewModel {
   payableTotalLabel: string;
   items: OrderDetailItemViewModel[];
 }
+
+type BackendOrderRecord = OrderRecord & {
+  fulfillmentMode?: OrderFulfillmentMode;
+  fulfillmentStatus?: OrderFulfillmentStatus;
+};
 
 function sortOrders(list: OrderRecord[]) {
   return [...list].sort((left, right) => {
@@ -164,6 +207,8 @@ function getPetRows(order: OrderRecord): OrderDetailPetViewModel[] {
 function toOrderCard(order: OrderRecord): OrderCardViewModel {
   return {
     id: order.id,
+    statusGroup: getOrderStatusGroup(order),
+    statusTone: getOrderStatusTone(order),
     statusLabel: getOrderStatusLabel(order),
     createdAtLabel: formatDateTime(order.createdAt),
     fulfillmentLabel: getFulfillmentLabel(order.snapshot.fulfillment.mode),
@@ -174,13 +219,130 @@ function toOrderCard(order: OrderRecord): OrderCardViewModel {
   };
 }
 
-export async function queryMyOrders(request: CustomerApiRequester = customerApiRequest) {
+export function getOrderStatusGroup(order: OrderRecord): OrderStatusGroup {
+  if (order.status !== 'paid') {
+    return 'pending';
+  }
+
+  const status = order.fulfillmentState?.status;
+
+  if (status === 'completed') {
+    return 'completed';
+  }
+
+  if (status === 'in_production' || status === 'out_for_delivery' || status === 'ready_for_pickup' || status === 'ready_to_ship') {
+    return 'active';
+  }
+
+  return 'pending';
+}
+
+export function getOrderStatusTone(order: OrderRecord): OrderStatusTone {
+  if (order.status === 'cancelled' || order.fulfillmentState?.status === 'cancelled') {
+    return 'cancelled';
+  }
+
+  if (order.status !== 'paid') {
+    return 'payment';
+  }
+
+  const status = order.fulfillmentState?.status;
+
+  if (status === 'completed') {
+    return 'completed';
+  }
+
+  if (status === 'ready_for_pickup' || status === 'ready_to_ship') {
+    return 'ready';
+  }
+
+  if (status === 'out_for_delivery') {
+    return 'delivery';
+  }
+
+  if (status === 'in_production') {
+    return 'work';
+  }
+
+  return 'pending';
+}
+
+function getOrderStatusTabDefinitions() {
+  return [
+    { value: 'all', label: '全部' },
+    { value: 'pending', label: '待处理' },
+    { value: 'active', label: '进行中' },
+    { value: 'completed', label: '已完成' }
+  ] satisfies Array<{ value: OrderStatusGroup; label: string }>;
+}
+
+export function getOrderStatusTabs(orders: OrderRecord[], activeStatusGroup: OrderStatusGroup = 'all'): OrderStatusTabViewModel[] {
+  return getOrderStatusTabDefinitions().map((tab) => ({
+    ...tab,
+    count: tab.value === 'all' ? orders.length : orders.filter((order) => getOrderStatusGroup(order) === tab.value).length,
+    active: tab.value === activeStatusGroup
+  }));
+}
+
+function normalizeOrder(order: OrderRecord): OrderRecord {
+  const backendOrder = order as BackendOrderRecord;
+
+  if (order.fulfillmentState || !backendOrder.fulfillmentStatus) {
+    return order;
+  }
+
+  return {
+    ...order,
+    fulfillmentState: {
+      mode: backendOrder.fulfillmentMode ?? order.snapshot.fulfillment.mode,
+      status: backendOrder.fulfillmentStatus,
+      updatedAt: order.updatedAt
+    }
+  };
+}
+
+function resolveQueryMyOrdersArgs(
+  optionsOrRequest?: QueryMyOrdersOptions | CustomerApiRequester,
+  maybeRequest?: CustomerApiRequester
+) {
+  if (typeof optionsOrRequest === 'function') {
+    return {
+      options: {},
+      request: optionsOrRequest
+    };
+  }
+
+  return {
+    options: optionsOrRequest ?? {},
+    request: maybeRequest ?? customerApiRequest
+  };
+}
+
+export async function queryMyOrders(
+  optionsOrRequest?: QueryMyOrdersOptions | CustomerApiRequester,
+  maybeRequest?: CustomerApiRequester
+) {
+  const { options, request } = resolveQueryMyOrdersArgs(optionsOrRequest, maybeRequest);
   const response = await request<QueryMyOrdersResult & { ok?: boolean }>('/api/v1/customer/orders', {
     method: 'GET',
-    auth: 'customer'
+    auth: 'customer',
+    query: {
+      statusGroup: options.statusGroup ?? 'all',
+      limit: options.limit ?? 20,
+      cursor: options.cursor ?? undefined
+    }
   });
 
-  return response.orders ?? [];
+  return {
+    orders: (response.orders ?? []).map(normalizeOrder),
+    pageInfo: {
+      hasMore: Boolean(response.pageInfo?.hasMore),
+      nextCursor: typeof response.pageInfo?.nextCursor === 'string' && response.pageInfo.nextCursor
+        ? response.pageInfo.nextCursor
+        : null,
+      limit: typeof response.pageInfo?.limit === 'number' ? response.pageInfo.limit : options.limit ?? 20
+    }
+  };
 }
 
 export async function getMyOrderDetail(orderId: string, request: CustomerApiRequester = customerApiRequest) {
@@ -192,17 +354,26 @@ export async function getMyOrderDetail(orderId: string, request: CustomerApiRequ
     }
   );
 
-  return response.order;
+  return response.order ? normalizeOrder(response.order) : response.order;
 }
 
-export function getOrdersPageViewModel(orders: OrderRecord[], highlightOrderId?: string | null): OrdersPageViewModel {
-  const cards = sortOrders(orders).map(toOrderCard);
+export function getOrdersPageViewModel(
+  orders: OrderRecord[],
+  highlightOrderId?: string | null,
+  activeStatusGroup: OrderStatusGroup = 'all'
+): OrdersPageViewModel {
+  const filteredOrders = activeStatusGroup === 'all'
+    ? orders
+    : orders.filter((order) => getOrderStatusGroup(order) === activeStatusGroup);
+  const cards = sortOrders(filteredOrders).map(toOrderCard);
   const highlightedOrderId =
     cards.find((item) => item.id === highlightOrderId)?.id ?? cards[0]?.id ?? null;
 
   return {
     isEmpty: cards.length === 0,
     highlightedOrderId,
+    activeStatusGroup,
+    tabs: getOrderStatusTabs(orders, activeStatusGroup),
     cards
   };
 }

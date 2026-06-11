@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { OrderRecord } from '@xiaipet/shared';
+import type { OrderFulfillmentMode, OrderFulfillmentStatus, OrderRecord } from '@xiaipet/shared';
 
 import type { CustomerApiRequester } from './api-client';
 import {
+  getOrderStatusGroup,
   getMyOrderDetail,
   getOrderDetailViewModel,
   getOrdersPageViewModel,
+  getOrderStatusTabs,
   queryMyOrders
 } from './orders';
 
@@ -80,6 +82,51 @@ function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
   };
 }
 
+type LegacyBackendOrderRecord = OrderRecord & {
+  fulfillmentMode?: OrderFulfillmentMode;
+  fulfillmentStatus?: OrderFulfillmentStatus;
+};
+
+function createLegacyPickupOrder(overrides: Partial<LegacyBackendOrderRecord> = {}): LegacyBackendOrderRecord {
+  return {
+    ...createOrder({
+      fulfillmentState: undefined,
+      snapshot: {
+        fulfillment: {
+          mode: 'pickup',
+          pickupPhone: '13900002222',
+          reservation: {
+            dateValue: '2026-04-18',
+            dateLabel: '明天 04-18',
+            timeValue: '16:00',
+            timeLabel: '16:00'
+          },
+          store: {
+            name: '虾衣宠物烘焙工作室',
+            address: '上海市静安区南京西路 1266 号 8 楼'
+          }
+        },
+        items: [
+          {
+            productId: 'ocean-party',
+            name: '海洋派对蛋糕',
+            quantity: 2,
+            unitPrice: 49,
+            specId: 'party-4inch',
+            specLabel: '4 寸',
+            lineTotal: 98
+          }
+        ],
+        pets: [],
+        remark: ''
+      }
+    }),
+    fulfillmentMode: 'pickup',
+    fulfillmentStatus: 'ready_for_pickup',
+    ...overrides
+  };
+}
+
 describe('orders service', () => {
   it('queries my orders from the HTTP order list API', async () => {
     const request = vi.fn().mockResolvedValue({
@@ -87,13 +134,91 @@ describe('orders service', () => {
       orders: [createOrder()]
     });
 
-    const orders = await queryMyOrders(request as CustomerApiRequester);
+    const page = await queryMyOrders({ statusGroup: 'active', limit: 12, cursor: '20' }, request as CustomerApiRequester);
 
     expect(request).toHaveBeenCalledWith('/api/v1/customer/orders', {
       method: 'GET',
-      auth: 'customer'
+      auth: 'customer',
+      query: {
+        statusGroup: 'active',
+        limit: 12,
+        cursor: '20'
+      }
     });
-    expect(orders).toHaveLength(1);
+    expect(page.orders).toHaveLength(1);
+    expect(page.pageInfo).toEqual({
+      hasMore: false,
+      nextCursor: null,
+      limit: 12
+    });
+  });
+
+  it('builds status tabs with counts and filters cards to the active tab', () => {
+    const orders = [
+      createOrder({
+        id: 'order-pending',
+        fulfillmentState: {
+          mode: 'pickup',
+          status: 'pending'
+        }
+      }),
+      createOrder({
+        id: 'order-ready',
+        fulfillmentState: {
+          mode: 'pickup',
+          status: 'ready_for_pickup'
+        }
+      }),
+      createOrder({
+        id: 'order-completed',
+        fulfillmentState: {
+          mode: 'delivery',
+          status: 'completed'
+        }
+      })
+    ];
+
+    const view = getOrdersPageViewModel(orders, null, 'active');
+
+    expect(getOrderStatusTabs(orders).map((item) => `${item.label}:${item.count}`)).toEqual([
+      '全部:3',
+      '待处理:1',
+      '进行中:1',
+      '已完成:1'
+    ]);
+    expect(view.isEmpty).toBe(false);
+    expect(view.cards.map((item) => item.id)).toEqual(['order-ready']);
+    expect(view.cards[0]).toMatchObject({
+      statusLabel: '待自取',
+      statusGroup: 'active',
+      statusTone: 'ready'
+    });
+  });
+
+  it('classifies fulfillment states into customer-facing order groups and tones', () => {
+    expect(getOrderStatusGroup(createOrder({ status: 'pending_payment' }))).toBe('pending');
+    expect(getOrderStatusGroup(createOrder({ fulfillmentState: { mode: 'delivery', status: 'pending' } }))).toBe('pending');
+    expect(getOrderStatusGroup(createOrder({ fulfillmentState: { mode: 'delivery', status: 'out_for_delivery' } }))).toBe('active');
+    expect(getOrderStatusGroup(createOrder({ fulfillmentState: { mode: 'pickup', status: 'completed' } }))).toBe('completed');
+  });
+
+  it('normalizes backend fulfillmentStatus before building customer order list status labels', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      orders: [createLegacyPickupOrder()]
+    });
+
+    const page = await queryMyOrders(request as CustomerApiRequester);
+    const view = getOrdersPageViewModel(page.orders);
+
+    expect(page.orders[0].fulfillmentState).toMatchObject({
+      mode: 'pickup',
+      status: 'ready_for_pickup'
+    });
+    expect(view.cards[0]).toMatchObject({
+      statusLabel: '待自取',
+      fulfillmentLabel: '到店自取'
+    });
   });
 
   it('builds a sorted orders page view model from cloud records', () => {
@@ -211,6 +336,20 @@ describe('orders service', () => {
           lineTotalLabel: '￥98.00'
         })
       ]
+    });
+  });
+
+  it('normalizes backend fulfillmentStatus before building customer order detail status labels', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      order: createLegacyPickupOrder()
+    });
+
+    const detailOrder = await getMyOrderDetail('order-001', request as CustomerApiRequester);
+
+    expect(getOrderDetailViewModel(detailOrder)).toMatchObject({
+      statusLabel: '待自取',
+      fulfillmentLabel: '到店自取'
     });
   });
 });

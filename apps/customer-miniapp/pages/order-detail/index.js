@@ -16,6 +16,15 @@ Page({
     async onShow() {
         await this.refreshDetail();
     },
+    async onPullDownRefresh() {
+        var _a;
+        try {
+            await this.refreshDetail();
+        }
+        finally {
+            (_a = wx.stopPullDownRefresh) === null || _a === void 0 ? void 0 : _a.call(wx);
+        }
+    },
     async refreshDetail() {
         const order = this.data.orderId ? await (0, orders_1.getMyOrderDetail)(this.data.orderId) : null;
         const detail = (0, orders_1.getOrderDetailViewModel)(order);

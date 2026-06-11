@@ -75,6 +75,7 @@ async function loadPageModule(modulePath: string) {
     redirectTo: vi.fn(),
     navigateTo: vi.fn(),
     navigateBack: vi.fn(),
+    stopPullDownRefresh: vi.fn(),
     cloud: {
       callFunction: vi.fn()
     }
@@ -216,6 +217,9 @@ describe('orders pages', () => {
     );
 
     expect(ordersTemplate).toContain('class="orders-badge"');
+    expect(ordersTemplate).toContain('class="orders-tabs"');
+    expect(ordersTemplate).toContain('data-status-group="{{item.value}}"');
+    expect(ordersTemplate).toContain('status-{{item.statusTone}}');
     expect(ordersTemplate).toContain('--orders-header-top: {{ordersHeaderTop}}rpx;');
     expect(ordersTemplate).toContain('class="orders-heading-row"');
     expect(ordersTemplate).toContain('class="empty-mark"');
@@ -224,6 +228,9 @@ describe('orders pages', () => {
     expect(ordersStyles).toContain('color: #40535C');
     expect(ordersStyles).toContain('padding: var(--orders-header-top, 96rpx) 24rpx calc(242rpx + env(safe-area-inset-bottom))');
     expect(ordersStyles).toContain('padding-right: var(--orders-header-right, 212rpx)');
+    expect(ordersStyles).toContain('.orders-tab.active');
+    expect(ordersStyles).toContain('.order-card.status-ready');
+    expect(ordersStyles).toContain('.order-card.status-completed');
     expect(ordersStyles).toContain('.catalog-button::after');
   });
 
@@ -294,6 +301,179 @@ describe('orders pages', () => {
     });
   });
 
+  it('switches status tabs and requests only that order group', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
+    wx.request.mockImplementation((options) => {
+      const url = new URL(options.url);
+      const path = url.pathname;
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders') {
+        const statusGroup = url.searchParams.get('statusGroup');
+        respondApi(options, {
+          ok: true,
+          orders: [
+            createOrder({
+              id: statusGroup === 'active' ? 'order-ready' : 'order-pending',
+              fulfillmentState: {
+                mode: 'pickup',
+                status: statusGroup === 'active' ? 'ready_for_pickup' : 'pending'
+              },
+              snapshot: {
+                ...createOrder().snapshot,
+                fulfillment: {
+                  mode: 'pickup',
+                  pickupPhone: '18811736099',
+                  reservation: createOrder().snapshot.fulfillment.reservation,
+                  store: createOrder().snapshot.fulfillment.store
+                }
+              }
+            })
+          ],
+          pageInfo: {
+            hasMore: false,
+            nextCursor: null,
+            limit: 20
+          }
+        });
+      }
+    });
+    const instance = createPageInstance(page);
+
+    await instance.onShow();
+    await instance.handleStatusTabTap({
+      currentTarget: {
+        dataset: {
+          statusGroup: 'active'
+        }
+      }
+    });
+
+    expect(instance.data.activeStatusGroup).toBe('active');
+    expect(instance.data.orderCards[0]).toMatchObject({
+      id: 'order-ready',
+      statusTone: 'ready'
+    });
+    expect(
+      wx.request.mock.calls.some(([options]) => options.url.includes('/api/v1/customer/orders?statusGroup=active&limit=20'))
+    ).toBe(true);
+  });
+
+  it('loads the next page for the active status tab when reaching bottom', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
+    wx.request.mockImplementation((options) => {
+      const url = new URL(options.url);
+      const path = url.pathname;
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders') {
+        const cursor = url.searchParams.get('cursor');
+        respondApi(options, {
+          ok: true,
+          orders: [
+            createOrder({
+              id: cursor ? 'order-page-2' : 'order-page-1',
+              fulfillmentState: {
+                mode: 'pickup',
+                status: 'ready_for_pickup'
+              },
+              snapshot: {
+                ...createOrder().snapshot,
+                fulfillment: {
+                  mode: 'pickup',
+                  pickupPhone: '18811736099',
+                  reservation: createOrder().snapshot.fulfillment.reservation,
+                  store: createOrder().snapshot.fulfillment.store
+                }
+              }
+            })
+          ],
+          pageInfo: cursor
+            ? { hasMore: false, nextCursor: null, limit: 20 }
+            : { hasMore: true, nextCursor: '20', limit: 20 }
+        });
+      }
+    });
+    const instance = createPageInstance(page);
+
+    await instance.handleStatusTabTap({
+      currentTarget: {
+        dataset: {
+          statusGroup: 'active'
+        }
+      }
+    });
+    await instance.onReachBottom();
+
+    expect(instance.data.orderCards.map((item: { id: string }) => item.id)).toEqual(['order-page-2', 'order-page-1']);
+    expect(
+      wx.request.mock.calls.some(([options]) => options.url.includes('/api/v1/customer/orders?statusGroup=active&limit=20&cursor=20'))
+    ).toBe(true);
+  });
+
+  it('refreshes the orders page from the latest API data on pull down', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/orders/index.ts');
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders') {
+        respondApi(options, {
+          ok: true,
+          orders: [
+            {
+              ...createOrder({
+                snapshot: {
+                  ...createOrder().snapshot,
+                  fulfillment: {
+                    mode: 'pickup',
+                    pickupPhone: '18811736099',
+                    reservation: createOrder().snapshot.fulfillment.reservation,
+                    store: createOrder().snapshot.fulfillment.store
+                  }
+                },
+                fulfillmentState: undefined
+              }),
+              fulfillmentStatus: 'ready_for_pickup'
+            }
+          ]
+        });
+      }
+    });
+    const instance = createPageInstance(page);
+
+    await instance.onPullDownRefresh();
+
+    expect(instance.data.orderCards[0]).toMatchObject({
+      statusLabel: '待自取'
+    });
+    expect(wx.stopPullDownRefresh).toHaveBeenCalled();
+  });
+
   it('renders the order detail page from the stored snapshot', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/order-detail/index.ts');
     wx.request.mockImplementation((options) => {
@@ -347,5 +527,53 @@ describe('orders pages', () => {
     expect(detailTemplate).toContain('navigate-on-back="{{false}}"');
     expect(detailTemplate).toContain('宠物信息');
     expect(detailTemplate).toContain('wx:for="{{detail.pets}}"');
+  });
+
+  it('refreshes the order detail page from the latest API data on pull down', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/order-detail/index.ts');
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/auth/login') {
+        respondApi(options, {
+          ok: true,
+          token: 'customer-token',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          openid: 'session-openid'
+        });
+        return;
+      }
+      if (path === '/api/v1/customer/orders/order-001') {
+        respondApi(options, {
+          ok: true,
+          order: {
+            ...createOrder({
+              snapshot: {
+                ...createOrder().snapshot,
+                fulfillment: {
+                  mode: 'pickup',
+                  pickupPhone: '18811736099',
+                  reservation: createOrder().snapshot.fulfillment.reservation,
+                  store: createOrder().snapshot.fulfillment.store
+                }
+              },
+              fulfillmentState: undefined
+            }),
+            fulfillmentStatus: 'ready_for_pickup'
+          }
+        });
+      }
+    });
+    const instance = createPageInstance(page);
+
+    instance.onLoad({
+      orderId: 'order-001'
+    });
+    await instance.onPullDownRefresh();
+
+    expect(instance.data.detail).toMatchObject({
+      statusLabel: '待自取'
+    });
+    expect(wx.stopPullDownRefresh).toHaveBeenCalled();
   });
 });

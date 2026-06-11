@@ -169,7 +169,7 @@
     </view>
     <view class="checkout-bottom-actions">
       <button class="checkout-return" bindtap="handleReturnCart">返回购物车</button>
-      <button class="checkout-submit {{canSubmit ? 'ready' : 'disabled'}}" bindtap="handleSubmit" loading="{{submitting}}" disabled="{{!canSubmit || submitting}}">确认下单</button>
+      <button class="checkout-submit {{canSubmit && !submitting ? 'ready' : 'disabled'}}" bindtap="handleSubmit" loading="{{submitting}}" disabled="{{!canSubmit || submitting}}">确认下单</button>
     </view>
   </view>
 
