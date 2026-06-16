@@ -237,6 +237,16 @@ export function createRechargeService(
       const rechargeRepository = createRechargeRepository(client as never);
       const existing = await rechargeRepository.findByOpenidAndIdempotencyKey(openid, input.idempotencyKey);
       if (existing) {
+        if (existing.status === RECHARGE_TRANSACTION_STATUS.pending) {
+          assertRechargePaymentCanStart(paymentProvider);
+          const payment = await startRechargePayment(rechargeRepository, paymentProvider, existing as RechargeTransactionRow, openid);
+          return {
+            ok: true as const,
+            paymentStatus: 'pending_wechat' as const,
+            transaction: mapRechargeTransaction(payment.transaction),
+            paymentParams: payment.paymentParams
+          };
+        }
         return createExistingTransactionResponse(existing as RechargeTransactionRow);
       }
 
