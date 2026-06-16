@@ -71,6 +71,7 @@ const DEFAULT_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
   { distanceKm: 50, minimumOrderAmount: null, deliveryFee: 80, explainer: '50.0 公里内，配送费 80 元' }
 ];
 const ACTIVE_ORDER_AUTO_COMPLETE_DAYS = 15;
+const RESERVED_ORDER_ID_PREFIXES = ['recharge-'];
 
 const CUSTOMER_COMPLETABLE_FULFILLMENT_STATUSES: Array<NonNullable<OrderRecord['fulfillmentStatus']>> = [
   'in_production',
@@ -238,6 +239,9 @@ function normalizeOrderItems(items: unknown): CreateOrderInput['items'] {
 
 function normalizeCreateOrderPayload(openid: string, payload: unknown): CreateOrderInput {
   const candidate = payload as CustomerOrderPayload;
+  if (candidate.id && RESERVED_ORDER_ID_PREFIXES.some((prefix) => candidate.id?.startsWith(prefix))) {
+    throw new ApiError('RESERVED_ORDER_ID', 'Order id uses a reserved payment prefix', 400);
+  }
   const pricing = isObject(candidate.pricing) ? candidate.pricing : null;
   const fulfillment = isObject(candidate.fulfillment) ? candidate.fulfillment : null;
   const paymentMethod = candidate.paymentMethod === 'balance' ? 'balance' : 'wechat';

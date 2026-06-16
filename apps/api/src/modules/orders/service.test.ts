@@ -118,6 +118,32 @@ describe('order service', () => {
     });
   });
 
+  it('rejects customer order ids that use reserved payment prefixes', async () => {
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      $transaction: vi.fn()
+    };
+    const service = createOrderService(client as any);
+
+    await expect(service.createCustomerOrder('openid-1', {
+      id: 'recharge-order-1',
+      idempotencyKey: 'checkout-key-1',
+      paymentMethod: 'wechat',
+      pricing: {
+        itemsSubtotal: 68,
+        deliveryFee: 0,
+        payableTotal: 68
+      },
+      items: []
+    })).rejects.toMatchObject({
+      code: 'RESERVED_ORDER_ID',
+      statusCode: 400
+    });
+    expect(client.$transaction).not.toHaveBeenCalled();
+  });
+
   it('rejects delivery customer orders below the configured minimum order amount', async () => {
     const client = {
       user: {

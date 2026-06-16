@@ -32,6 +32,10 @@ interface WechatPayTransactionResource {
   transaction_id?: string;
   trade_state?: string;
   success_time?: string;
+  amount?: {
+    total?: number;
+    payer_total?: number;
+  };
 }
 
 function normalizeKey(key: string) {
@@ -63,6 +67,44 @@ function decryptWechatPayResource(resource: NonNullable<WechatPayNotificationBod
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
 
+function readPaidAmountCents(resource: WechatPayTransactionResource) {
+  const amount = resource.amount?.payer_total ?? resource.amount?.total;
+  return typeof amount === 'number' && Number.isFinite(amount) ? amount : undefined;
+}
+
+function toCents(value: number) {
+  return Math.round(value * 100);
+}
+
+function decimalToNumber(value: unknown) {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (value && typeof value === 'object' && 'toNumber' in value && typeof value.toNumber === 'function') {
+    return value.toNumber();
+  }
+  return Number(value);
+}
+
+async function assertOrderPaymentAmountMatches(client: DbClient, orderId: string, paidAmountCents?: number) {
+  if (paidAmountCents === undefined) {
+    return;
+  }
+
+  const order = await client.order.findUnique({
+    where: { id: orderId },
+    select: { payableTotal: true }
+  });
+  if (!order) {
+    throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
+  }
+
+  const expectedAmountCents = toCents(decimalToNumber(order.payableTotal));
+  if (expectedAmountCents !== paidAmountCents) {
+    throw new ApiError('ORDER_PAYMENT_AMOUNT_MISMATCH', 'Order payment amount does not match order total', 409);
+  }
+}
+
 export function createPaymentNotifyService(
   config: ApiConfig['wechatPay'],
   client: DbClient = getPrismaClient()
@@ -89,12 +131,15 @@ export function createPaymentNotifyService(
 
       if (resource.trade_state === 'SUCCESS') {
         const paidAt = resource.success_time ? new Date(resource.success_time) : new Date();
+        const paidAmountCents = readPaidAmountCents(resource);
         if (resource.out_trade_no.startsWith('recharge-')) {
           await createRechargeService(client as never).settleWechatRechargePayment(resource.out_trade_no, {
             transactionId: resource.transaction_id,
-            paidAt
+            paidAt,
+            paidAmountCents
           });
         } else {
+          await assertOrderPaymentAmountMatches(client, resource.out_trade_no, paidAmountCents);
           const paymentRepository = createPaymentRepository(client);
           await paymentRepository.upsertPayment({
             orderId: resource.out_trade_no,

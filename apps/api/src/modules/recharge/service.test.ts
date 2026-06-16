@@ -564,7 +564,8 @@ describe('createRechargeService', () => {
     await expect(
       service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
         transactionId: 'wx-transaction-1',
-        paidAt
+        paidAt,
+        paidAmountCents: 10000
       })
     ).resolves.toMatchObject({
       id: 'recharge-openid-1_idem-1',
@@ -656,11 +657,13 @@ describe('createRechargeService', () => {
 
     await service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
       transactionId: 'wx-transaction-1',
-      paidAt
+      paidAt,
+      paidAmountCents: 10000
     });
     await service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
       transactionId: 'wx-transaction-1',
-      paidAt
+      paidAt,
+      paidAmountCents: 10000
     });
 
     expect(tx.rechargeTransaction.update).toHaveBeenCalledTimes(1);
@@ -675,10 +678,29 @@ describe('createRechargeService', () => {
     await expect(
       service.settleWechatRechargePayment('recharge-missing', {
         transactionId: 'wx-transaction-1',
-        paidAt: date('2026-06-16T10:30:00.000Z')
+        paidAt: date('2026-06-16T10:30:00.000Z'),
+        paidAmountCents: 10000
       })
     ).rejects.toMatchObject(
       new ApiError('RECHARGE_TRANSACTION_NOT_FOUND', 'Recharge transaction not found', 404)
     );
+  });
+
+  it('rejects recharge settlement when the WeChat paid amount does not match the transaction amount', async () => {
+    const { client, tx, paidAt } = createSettlementClient();
+    const service = createRechargeService(client as never);
+
+    await expect(
+      service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
+        transactionId: 'wx-transaction-1',
+        paidAt,
+        paidAmountCents: 9900
+      })
+    ).rejects.toMatchObject(
+      new ApiError('RECHARGE_PAYMENT_AMOUNT_MISMATCH', 'Recharge payment amount does not match transaction amount', 409)
+    );
+    expect(tx.rechargeTransaction.update).not.toHaveBeenCalled();
+    expect(tx.balanceLedger.create).not.toHaveBeenCalled();
+    expect(tx.userGift.create).not.toHaveBeenCalled();
   });
 });

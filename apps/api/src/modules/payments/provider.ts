@@ -24,6 +24,7 @@ export interface WechatPaymentSyncResult {
   tradeState: string;
   transactionId?: string;
   paidAt?: Date;
+  paidAmountCents?: number;
   failureCode?: string;
   failureMessage?: string;
 }
@@ -68,6 +69,10 @@ interface WechatTransactionResponse {
   trade_state?: string;
   transaction_id?: string;
   success_time?: string;
+  amount?: {
+    total?: number;
+    payer_total?: number;
+  };
   trade_state_desc?: string;
 }
 
@@ -213,7 +218,8 @@ export function createMockPaymentProvider(): PaymentProvider {
       return {
         tradeState: 'SUCCESS',
         transactionId: `mock-transaction-${subject.id}-${toCents(subject.amount)}`,
-        paidAt: new Date()
+        paidAt: new Date(),
+        paidAmountCents: toCents(subject.amount)
       };
     }
   };
@@ -265,6 +271,7 @@ export function createWechatPayProvider(options: WechatPayProviderOptions): Paym
         tradeState: response.trade_state ?? 'UNKNOWN',
         transactionId: response.transaction_id,
         paidAt: response.success_time ? new Date(response.success_time) : undefined,
+        paidAmountCents: response.amount?.payer_total ?? response.amount?.total,
         failureCode: response.trade_state && response.trade_state !== 'SUCCESS' ? response.trade_state : undefined,
         failureMessage: response.trade_state_desc
       };

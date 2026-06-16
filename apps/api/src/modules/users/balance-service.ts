@@ -65,22 +65,50 @@ export function createBalanceService(client: DbClient = getPrismaClient()) {
           };
         }
 
-        const balanceBefore = account.balance.toNumber();
-        const balanceAfter = balanceBefore + input.amountDelta;
-        if (balanceAfter < 0) {
-          throw new Error('Insufficient balance');
+        let updatedAccount: { balance: { toNumber(): number } } | null;
+        if (input.amountDelta < 0) {
+          const updated = await tx.balanceAccount.updateMany({
+            where: {
+              id: account.id,
+              balance: {
+                gte: Math.abs(input.amountDelta)
+              }
+            },
+            data: {
+              balance: {
+                increment: input.amountDelta
+              },
+              version: {
+                increment: 1
+              }
+            }
+          });
+          if (updated.count !== 1) {
+            throw new Error('Insufficient balance');
+          }
+          updatedAccount = await tx.balanceAccount.findUnique({ where: { id: account.id } });
+        } else {
+          updatedAccount = await tx.balanceAccount.update({
+            where: { id: account.id },
+            data: {
+              balance: {
+                increment: input.amountDelta
+              },
+              version: {
+                increment: 1
+              }
+            }
+          });
+          if (typeof tx.balanceAccount.findUnique === 'function') {
+            updatedAccount = await tx.balanceAccount.findUnique({ where: { id: account.id } });
+          }
+        }
+        if (!updatedAccount) {
+          throw new Error('Balance account not found after update');
         }
 
-        const updatedAccount = await tx.balanceAccount.update({
-          where: { id: account.id },
-          data: {
-            balance: balanceAfter,
-            version: {
-              increment: 1
-            }
-          }
-        });
-
+        const balanceAfter = updatedAccount.balance.toNumber();
+        const balanceBefore = balanceAfter - input.amountDelta;
         const ledger = await tx.balanceLedger.create({
           data: {
             accountId: account.id,
@@ -89,7 +117,7 @@ export function createBalanceService(client: DbClient = getPrismaClient()) {
             type: LEDGER_TYPE[input.type],
             amountDelta: input.amountDelta,
             balanceBefore,
-            balanceAfter: updatedAccount.balance,
+            balanceAfter,
             operatorId: input.operatorId,
             operatorName: input.operatorName,
             reason: input.reason,
