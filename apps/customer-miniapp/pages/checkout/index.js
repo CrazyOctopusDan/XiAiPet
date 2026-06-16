@@ -5,6 +5,7 @@ const checkout_1 = require("../../src/services/checkout");
 const cart_1 = require("../../src/services/cart");
 const pets_1 = require("../../src/services/pets");
 const profile_1 = require("../../src/services/profile");
+const gifts_1 = require("../../src/services/gifts");
 const order_submit_1 = require("../../src/services/order-submit");
 const runtime_config_1 = require("../../src/services/runtime-config");
 const tab_navigation_1 = require("../../src/services/tab-navigation");
@@ -74,6 +75,10 @@ Page({
         pets: [],
         selectedPetIds: [],
         remarkSummary: '',
+        selectedGiftCount: 0,
+        selectedGiftSummaryLabel: '去选择',
+        selectedGiftFeeLabel: '未选择',
+        selectedGiftSummary: [],
         customNotice: '',
         hasReadCustomNotice: false,
         canSubmit: false,
@@ -134,6 +139,7 @@ Page({
         const activePaymentMethod = (_a = this.data.activePaymentMethod) !== null && _a !== void 0 ? _a : 'balance';
         const selectedPetIds = view.selectedPets.map((item) => item.id);
         const selectedPetIdSet = new Set(selectedPetIds);
+        const selectedGiftSummary = (0, gifts_1.getSelectedCheckoutGiftSummary)();
         this.setData({
             items: (0, cart_1.getCartItems)().filter((item) => item.selected),
             selectedCount: summary.selectedCount,
@@ -156,6 +162,10 @@ Page({
             })),
             selectedPetIds,
             remarkSummary: view.remark || '还没有填写备注',
+            selectedGiftCount: selectedGiftSummary.length,
+            selectedGiftSummaryLabel: selectedGiftSummary.length ? `${selectedGiftSummary.length} 件已选` : '去选择',
+            selectedGiftFeeLabel: selectedGiftSummary.length ? `${selectedGiftSummary.length} 件` : '未选择',
+            selectedGiftSummary,
             customNotice: view.customNotice,
             hasReadCustomNotice: view.hasReadCustomNotice,
             canSubmit: view.canSubmit,
@@ -266,6 +276,11 @@ Page({
     handleRemarkTap() {
         wx.navigateTo({
             url: '/pages/checkout-remark/index'
+        });
+    },
+    handleGiftTap() {
+        wx.navigateTo({
+            url: '/pages/checkout-gifts/index'
         });
     },
     handlePaymentMethodTap(event) {

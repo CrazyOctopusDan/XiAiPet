@@ -17,4 +17,13 @@ describe('customer profile page', () => {
     expect(template).toContain('累计充值 ￥{{summary.totalRecharge}}');
     expect(template).not.toContain('累计消费 ￥{{summary.totalSpent}}');
   });
+
+  it('links profile gifts entry to the my gifts page', () => {
+    const script = readFileSync('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile/index.ts', 'utf8');
+    const template = readFileSync('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile/index.wxml', 'utf8');
+
+    expect(script).toContain("url: '/pages/my-gifts/index'");
+    expect(template).toContain('bindtap="handleGiftsTap"');
+    expect(template).toContain('我的赠品');
+  });
 });

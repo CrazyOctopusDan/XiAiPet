@@ -40,6 +40,9 @@
 .store-address,
 .reservation-date,
 .remark-summary-text,
+.gift-summary-text,
+.selected-gift-name,
+.selected-gift-desc,
 .pet-choice-name,
 .pet-choice-meta,
 .notice-check-label,
@@ -151,6 +154,7 @@
 .store-card,
 .address-summary-card,
 .remark-summary-card,
+.gift-summary-card,
 .notice-card {
   border: 2rpx solid rgba(226, 194, 134, 0.22);
   background: rgba(255, 253, 245, 0.9);
@@ -309,10 +313,62 @@
 }
 
 .remark-summary-card,
+.gift-summary-card,
 .notice-card {
   margin-top: 20rpx;
   padding: 22rpx;
   border-radius: 24rpx;
+}
+
+.gift-summary-card {
+  padding-top: 12rpx;
+  padding-bottom: 12rpx;
+}
+
+.gift-summary-text {
+  padding: 10rpx 0;
+  font-size: 24rpx;
+  color: #7B8B92;
+}
+
+.selected-gift-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 14rpx 0;
+}
+
+.selected-gift-row + .selected-gift-row {
+  border-top: 2rpx solid rgba(64, 83, 92, 0.08);
+}
+
+.selected-gift-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.selected-gift-name {
+  font-size: 25rpx;
+  font-weight: 800;
+  color: #40535C;
+}
+
+.selected-gift-desc {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: #7B8B92;
+}
+
+.selected-gift-days {
+  flex-shrink: 0;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #F6E396;
+  font-size: 21rpx;
+  font-weight: 800;
+  color: #40535C;
 }
 
 .fee-row,

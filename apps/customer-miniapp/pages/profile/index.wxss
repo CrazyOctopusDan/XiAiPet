@@ -234,6 +234,10 @@
   background: linear-gradient(135deg, #FFF8E8 0%, #FFE0A1 100%);
 }
 
+.quick-card.gifts-entry {
+  background: linear-gradient(135deg, #F9FEFF 0%, #D5F1FF 100%);
+}
+
 .quick-index {
   font-size: 30rpx;
   line-height: 1;

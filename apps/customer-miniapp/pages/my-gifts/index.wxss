@@ -1,0 +1,129 @@
+.gifts-page {
+  min-height: 100vh;
+  padding-bottom: calc(56rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 64%, #F6E396 100%);
+  color: #40535C;
+  box-sizing: border-box;
+}
+
+.gifts-shell {
+  padding: 18rpx 24rpx 0;
+}
+
+.gifts-head,
+.gift-section {
+  border: 2rpx solid rgba(226, 194, 134, 0.38);
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16rpx 34rpx rgba(80, 104, 105, 0.08);
+  box-sizing: border-box;
+}
+
+.gifts-head {
+  padding: 28rpx;
+}
+
+.gift-section {
+  margin-top: 18rpx;
+  padding: 24rpx;
+}
+
+.gift-section.disabled {
+  opacity: 0.72;
+}
+
+.gifts-title,
+.gifts-subtitle,
+.gift-section-title,
+.gift-section-count,
+.gift-name,
+.gift-description,
+.gift-expire,
+.gift-days,
+.gift-empty {
+  display: block;
+}
+
+.gifts-title {
+  font-size: 38rpx;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.gifts-subtitle {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: #7B8B92;
+}
+
+.gift-section-head,
+.gift-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.gift-section-title {
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.gift-section-count {
+  min-width: 48rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #F6E396;
+  font-size: 22rpx;
+  font-weight: 900;
+  text-align: center;
+}
+
+.gift-card {
+  margin-top: 18rpx;
+  padding: 20rpx;
+  border-radius: 24rpx;
+  border: 2rpx solid rgba(226, 194, 134, 0.24);
+  background: #FFFDF5;
+  box-sizing: border-box;
+}
+
+.gift-card.disabled {
+  background: #F2EDE3;
+}
+
+.gift-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.gift-name {
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.gift-description,
+.gift-expire {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: #7B8B92;
+}
+
+.gift-days {
+  flex-shrink: 0;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #F6E396;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.gift-empty {
+  margin-top: 18rpx;
+  padding: 24rpx 0 4rpx;
+  font-size: 24rpx;
+  font-weight: 800;
+  text-align: center;
+  color: #7B8B92;
+}

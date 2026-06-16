@@ -11,6 +11,9 @@
         <text class="overview-currency">￥</text>
         <text class="overview-value">{{overview.currentBalance}}</text>
       </view>
+      <view class="overview-action-row">
+        <button class="recharge-entry" bindtap="handleRechargeTap">去充值</button>
+      </view>
       <view class="overview-metrics">
         <view class="overview-pill">
           <text class="overview-pill-label">累计收入</text>

@@ -1,0 +1,30 @@
+<view class="gifts-page">
+  <page-nav />
+
+  <view class="gifts-shell">
+    <view class="gifts-head">
+      <text class="gifts-title">我的赠品</text>
+      <text class="gifts-subtitle">充值获赠的权益会按状态归档</text>
+    </view>
+
+    <view class="gift-section {{section.disabled ? 'disabled' : ''}}" wx:for="{{sections}}" wx:for-item="section" wx:key="key">
+      <view class="gift-section-head">
+        <text class="gift-section-title">{{section.label}}</text>
+        <text class="gift-section-count">{{section.items.length}}</text>
+      </view>
+
+      <view class="gift-card {{section.disabled ? 'disabled' : ''}}" wx:for="{{section.items}}" wx:key="id">
+        <view class="gift-main">
+          <text class="gift-name">{{item.giftSnapshot.name}}</text>
+          <text class="gift-description">{{item.giftSnapshot.description}}</text>
+          <text class="gift-expire">有效期至 {{item.expiresAt}}</text>
+        </view>
+        <text class="gift-days">{{item.giftSnapshot.validDays}} 天</text>
+      </view>
+
+      <view class="gift-empty" wx:if="{{!section.items.length}}">
+        <text>{{section.label}}为空</text>
+      </view>
+    </view>
+  </view>
+</view>

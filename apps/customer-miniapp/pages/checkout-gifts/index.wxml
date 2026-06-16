@@ -1,0 +1,30 @@
+<view class="checkout-gifts-page">
+  <page-nav />
+
+  <view class="checkout-gifts-shell">
+    <view class="checkout-gifts-head">
+      <text class="checkout-gifts-title">选择赠品</text>
+      <text class="checkout-gifts-count">{{selectedCount}} 件已选</text>
+    </view>
+
+    <view class="gift-option {{item.selected ? 'active' : ''}}" wx:for="{{gifts}}" wx:key="id" data-gift-id="{{item.id}}" bindtap="handleGiftTap">
+      <view class="gift-check">
+        <text wx:if="{{item.selected}}">✓</text>
+      </view>
+      <view class="gift-main">
+        <text class="gift-name">{{item.giftSnapshot.name}}</text>
+        <text class="gift-description">{{item.giftSnapshot.description}}</text>
+        <text class="gift-expire">有效期至 {{item.expiresAt}}</text>
+      </view>
+      <text class="gift-days">{{item.giftSnapshot.validDays}} 天</text>
+    </view>
+
+    <view class="gift-empty" wx:if="{{!loading && !gifts.length}}">
+      <text>暂无可选赠品</text>
+    </view>
+  </view>
+
+  <view class="checkout-gifts-bottom">
+    <button class="confirm-button" bindtap="handleConfirm">确认</button>
+  </view>
+</view>

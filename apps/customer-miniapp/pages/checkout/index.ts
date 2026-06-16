@@ -1,7 +1,7 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import type { PaymentMethod } from '@xiaipet/shared';
+import type { PaymentMethod, UserGiftView } from '@xiaipet/shared';
 
 import { beginAddressSelection, hydrateAddresses, type CustomerAddress } from '../../src/services/address';
 import {
@@ -21,6 +21,7 @@ import {
 import { getCartItems, getCartSummary, removeSelectedCartItems, type CartItem } from '../../src/services/cart';
 import { getPets, hydratePets, type PetProfile } from '../../src/services/pets';
 import { getPhoneBindingRedirectUrl, hydrateProfile } from '../../src/services/profile';
+import { getSelectedCheckoutGiftSummary } from '../../src/services/gifts';
 import { getCheckoutPricingPreview, getDeliveryFeePreview, submitOrder } from '../../src/services/order-submit';
 import { hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 import { setPendingOrdersHighlight } from '../../src/services/tab-navigation';
@@ -53,6 +54,10 @@ interface CheckoutPageData {
   pets: PetChoice[];
   selectedPetIds: string[];
   remarkSummary: string;
+  selectedGiftCount: number;
+  selectedGiftSummaryLabel: string;
+  selectedGiftFeeLabel: string;
+  selectedGiftSummary: UserGiftView[];
   customNotice: string;
   hasReadCustomNotice: boolean;
   canSubmit: boolean;
@@ -155,6 +160,10 @@ Page({
     pets: [],
     selectedPetIds: [],
     remarkSummary: '',
+    selectedGiftCount: 0,
+    selectedGiftSummaryLabel: '去选择',
+    selectedGiftFeeLabel: '未选择',
+    selectedGiftSummary: [],
     customNotice: '',
     hasReadCustomNotice: false,
     canSubmit: false,
@@ -213,6 +222,7 @@ Page({
     const activePaymentMethod = this.data.activePaymentMethod ?? 'balance';
     const selectedPetIds = view.selectedPets.map((item) => item.id);
     const selectedPetIdSet = new Set(selectedPetIds);
+    const selectedGiftSummary = getSelectedCheckoutGiftSummary();
 
     this.setData({
       items: getCartItems().filter((item) => item.selected),
@@ -236,6 +246,10 @@ Page({
       })),
       selectedPetIds,
       remarkSummary: view.remark || '还没有填写备注',
+      selectedGiftCount: selectedGiftSummary.length,
+      selectedGiftSummaryLabel: selectedGiftSummary.length ? `${selectedGiftSummary.length} 件已选` : '去选择',
+      selectedGiftFeeLabel: selectedGiftSummary.length ? `${selectedGiftSummary.length} 件` : '未选择',
+      selectedGiftSummary,
       customNotice: view.customNotice,
       hasReadCustomNotice: view.hasReadCustomNotice,
       canSubmit: view.canSubmit,
@@ -363,6 +377,11 @@ Page({
   handleRemarkTap() {
     wx.navigateTo({
       url: '/pages/checkout-remark/index'
+    });
+  },
+  handleGiftTap() {
+    wx.navigateTo({
+      url: '/pages/checkout-gifts/index'
     });
   },
   handlePaymentMethodTap(this: CheckoutPageInstance, event: { currentTarget?: { dataset?: { method?: PaymentMethod } } }) {

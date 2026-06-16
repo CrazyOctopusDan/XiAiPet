@@ -96,6 +96,11 @@ Page({
             url: '/pages/balance/index'
         });
     },
+    handleGiftsTap() {
+        wx.navigateTo({
+            url: '/pages/my-gifts/index'
+        });
+    },
     handleProfileFactTap(event) {
         var _a, _b;
         const target = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.target;

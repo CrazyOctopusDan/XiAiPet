@@ -105,6 +105,23 @@
       </view>
     </view>
 
+    <view class="checkout-card">
+      <view class="checkout-card-head">
+        <text class="checkout-card-title">本次赠品</text>
+        <text class="checkout-card-summary" bindtap="handleGiftTap">{{selectedGiftSummaryLabel}}</text>
+      </view>
+      <view class="gift-summary-card" bindtap="handleGiftTap">
+        <text class="gift-summary-text" wx:if="{{!selectedGiftSummary.length}}">未选择赠品</text>
+        <view class="selected-gift-row" wx:for="{{selectedGiftSummary}}" wx:key="id">
+          <view class="selected-gift-main">
+            <text class="selected-gift-name">{{item.giftSnapshot.name}}</text>
+            <text class="selected-gift-desc">{{item.giftSnapshot.description}}</text>
+          </view>
+          <text class="selected-gift-days">{{item.giftSnapshot.validDays}} 天</text>
+        </view>
+      </view>
+    </view>
+
     <view class="checkout-card" wx:if="{{customNotice}}">
       <view class="checkout-card-head">
         <text class="checkout-card-title">下单提示</text>
@@ -134,6 +151,13 @@
         <view class="fee-value-with-arrow">
           <text class="fee-value">￥{{deliveryFee}}</text>
           <text class="fee-arrow" wx:if="{{activeFulfillmentMode === 'delivery' && deliveryRuleRows.length}}">›</text>
+        </view>
+      </view>
+      <view class="fee-row gift-fee-row" bindtap="handleGiftTap">
+        <text class="fee-label">赠品</text>
+        <view class="fee-value-with-arrow">
+          <text class="fee-value">{{selectedGiftFeeLabel}}</text>
+          <text class="fee-arrow">›</text>
         </view>
       </view>
       <view class="payment-method-row">

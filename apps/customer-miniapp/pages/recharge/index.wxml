@@ -1,0 +1,54 @@
+<view class="recharge-page">
+  <page-nav />
+
+  <view class="recharge-shell">
+    <view class="recharge-head">
+      <text class="recharge-title">余额充值</text>
+      <text class="recharge-subtitle">固定方案到账后可用于订单支付</text>
+    </view>
+
+    <view class="plan-list">
+      <view class="plan-card {{selectedPlanId === item.planId ? 'active' : ''}}" wx:for="{{plans}}" wx:key="planId" data-plan-id="{{item.planId}}" bindtap="handlePlanTap">
+        <view class="plan-main">
+          <text class="plan-paid">￥{{item.paidAmount}}</text>
+          <text class="plan-description">{{item.description}}</text>
+        </view>
+        <view class="plan-side">
+          <text class="plan-bonus" wx:if="{{item.bonusAmount > 0}}">赠 ￥{{item.bonusAmount}}</text>
+          <text class="plan-bonus empty" wx:else>无赠额</text>
+          <text class="plan-gift-count">{{item.gifts.length}} 份赠品</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="selected-card" wx:if="{{selectedPlan}}">
+      <view class="selected-row">
+        <text class="selected-label">支付金额</text>
+        <text class="selected-value">￥{{selectedPlan.paidAmount}}</text>
+      </view>
+      <view class="selected-row">
+        <text class="selected-label">赠送余额</text>
+        <text class="selected-value">￥{{selectedPlan.bonusAmount}}</text>
+      </view>
+      <text class="selected-description">{{selectedPlan.description}}</text>
+
+      <view class="gift-list" wx:if="{{selectedPlan.gifts.length}}">
+        <view class="gift-row" wx:for="{{selectedPlan.gifts}}" wx:key="giftTemplateId">
+          <view class="gift-main">
+            <text class="gift-name">{{item.name}}</text>
+            <text class="gift-description">{{item.description}}</text>
+          </view>
+          <text class="gift-valid">{{item.validDays}} 天</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-card" wx:if="{{!loading && !plans.length}}">
+      <text class="empty-title">暂无可用充值方案</text>
+    </view>
+  </view>
+
+  <view class="recharge-bottom">
+    <button class="submit-button {{selectedPlanId && !submitting ? 'ready' : 'disabled'}}" loading="{{submitting}}" disabled="{{!selectedPlanId || submitting}}" bindtap="handleSubmitRecharge">确认充值</button>
+  </view>
+</view>

@@ -49,5 +49,10 @@
       <text class="quick-title">余额流水</text>
       <text class="quick-copy">收入、支出、余额</text>
     </view>
+    <view class="quick-card gifts-entry" bindtap="handleGiftsTap">
+      <text class="quick-index">05</text>
+      <text class="quick-title">我的赠品</text>
+      <text class="quick-copy">可用、锁定、已兑换</text>
+    </view>
   </view>
 </view>
