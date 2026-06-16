@@ -36,7 +36,7 @@ describe('recharge schema', () => {
     });
   });
 
-  it('rejects non-positive recharge amount and invalid gift days', () => {
+  it('rejects non-positive recharge amount', () => {
     expect(() =>
       normalizeRechargePlansConfig({
         plans: [
@@ -46,11 +46,28 @@ describe('recharge schema', () => {
             paidAmount: 0,
             bonusAmount: 0,
             description: '',
-            gifts: [{ giftTemplateId: 'gift-1', name: '蛋糕', description: '', validDays: 0 }]
+            gifts: [{ giftTemplateId: 'gift-1', name: '蛋糕', description: '', validDays: 1 }]
           }
         ]
       })
     ).toThrow('INVALID_RECHARGE_PLAN');
+  });
+
+  it('rejects invalid gift valid days', () => {
+    expect(() =>
+      normalizeRechargePlansConfig({
+        plans: [
+          {
+            planId: 'plan-1000',
+            enabled: true,
+            paidAmount: 1000,
+            bonusAmount: 0,
+            description: '',
+            gifts: [{ giftTemplateId: 'gift-1', name: '蛋糕', description: '', validDays: 0 }]
+          }
+        ]
+      })
+    ).toThrow('INVALID_RECHARGE_GIFT');
   });
 
   it('summarizes expired available gifts as expired for display', () => {
