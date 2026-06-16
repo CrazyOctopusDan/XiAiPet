@@ -72,7 +72,7 @@
           </view>
         </view>
 
-        <textarea class="field-area" data-plan-id="{{item.planId}}" data-field="description" value="{{item.description}}" placeholder="档位说明，展示给商户核对" bindinput="handlePlanInput"></textarea>
+        <textarea class="field-area" data-plan-id="{{item.planId}}" data-field="description" value="{{item.description}}" placeholder="展示给用户的充值说明" bindinput="handlePlanInput"></textarea>
 
         <view class="gift-toolbar">
           <text class="field-title">赠品</text>

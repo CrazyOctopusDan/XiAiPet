@@ -1,70 +1,73 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeRechargePlansDraft = normalizeRechargePlansDraft;
+exports.normalizeRechargeMoneyInputText = normalizeRechargeMoneyInputText;
+exports.parseRechargeMoneyInput = parseRechargeMoneyInput;
+exports.parseRechargeGiftValidDaysInput = parseRechargeGiftValidDaysInput;
 exports.queryRechargePlans = queryRechargePlans;
 exports.saveRechargePlans = saveRechargePlans;
 exports.buildRechargePlanDraft = buildRechargePlanDraft;
 exports.buildRechargeGiftDraft = buildRechargeGiftDraft;
 exports.getRechargeConfigViewModel = getRechargeConfigViewModel;
+const shared_1 = require("@xiaipet/shared");
 const api_client_1 = require("./api-client");
+let draftIdSequence = 0;
 function createDraftId(prefix) {
-    return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    draftIdSequence = (draftIdSequence + 1) % Number.MAX_SAFE_INTEGER;
+    const randomPart = Math.random().toString(36).slice(2, 10);
+    return `${prefix}-${Date.now()}-${draftIdSequence.toString(36)}-${randomPart}`;
 }
-function isRecord(value) {
-    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
-function asString(value, fallback = '') {
-    return typeof value === 'string' ? value.trim() : fallback;
-}
-function asMoney(value) {
-    const numberValue = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(numberValue) ? Math.floor(numberValue * 100) / 100 : 0;
-}
-function asDays(value) {
-    const numberValue = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(numberValue) ? Math.trunc(numberValue) : 0;
-}
-function normalizeGift(value, index) {
-    if (!isRecord(value)) {
-        throw new Error('INVALID_RECHARGE_GIFT');
-    }
-    const gift = {
-        giftTemplateId: asString(value.giftTemplateId, asString(value.id, `gift-${index + 1}`)),
-        name: asString(value.name),
-        description: asString(value.description),
-        validDays: asDays(value.validDays)
-    };
-    if (!gift.giftTemplateId || !gift.name || gift.validDays <= 0) {
-        throw new Error('INVALID_RECHARGE_GIFT');
-    }
-    return gift;
-}
-function normalizePlan(value, index) {
-    if (!isRecord(value)) {
-        throw new Error('INVALID_RECHARGE_PLAN');
-    }
-    const plan = {
-        planId: asString(value.planId, asString(value.id, `plan-${index + 1}`)),
-        enabled: typeof value.enabled === 'boolean' ? value.enabled : true,
-        paidAmount: asMoney(value.paidAmount),
-        bonusAmount: asMoney(value.bonusAmount),
-        description: asString(value.description)
-    };
-    if (!plan.planId || plan.paidAmount <= 0 || plan.bonusAmount < 0) {
-        throw new Error('INVALID_RECHARGE_PLAN');
-    }
-    return {
-        ...plan,
-        gifts: Array.isArray(value.gifts) ? value.gifts.map(normalizeGift) : []
-    };
+function validateUniqueRechargeIds(value) {
+    const planIds = new Set();
+    value.plans.forEach((plan) => {
+        if (planIds.has(plan.planId)) {
+            throw new Error('DUPLICATE_RECHARGE_PLAN_ID');
+        }
+        planIds.add(plan.planId);
+        const giftIds = new Set();
+        plan.gifts.forEach((gift) => {
+            if (giftIds.has(gift.giftTemplateId)) {
+                throw new Error('DUPLICATE_RECHARGE_GIFT_ID');
+            }
+            giftIds.add(gift.giftTemplateId);
+        });
+    });
 }
 function normalizeRechargePlansDraft(input) {
-    if (!isRecord(input)) {
-        return { plans: [] };
+    const normalized = (0, shared_1.normalizeRechargePlansConfig)(input);
+    validateUniqueRechargeIds(normalized);
+    return normalized;
+}
+function normalizeRechargeMoneyInputText(value) {
+    const raw = value !== null && value !== void 0 ? value : '';
+    if (raw.includes('-')) {
+        return '';
     }
-    return {
-        plans: Array.isArray(input.plans) ? input.plans.map(normalizePlan) : []
-    };
+    const sanitized = raw.replace(/[^\d.]/g, '');
+    const [integerPart = '', ...decimalParts] = sanitized.split('.');
+    if (!sanitized.includes('.')) {
+        return integerPart;
+    }
+    return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
+}
+function parseRechargeMoneyInput(value) {
+    const normalized = normalizeRechargeMoneyInputText(value);
+    const numeric = Number(normalized);
+    if (!normalized || !Number.isFinite(numeric) || numeric < 0) {
+        return 0;
+    }
+    return Math.floor(numeric * 100) / 100;
+}
+function parseRechargeGiftValidDaysInput(value) {
+    const raw = value !== null && value !== void 0 ? value : '';
+    if (raw.includes('-')) {
+        return 0;
+    }
+    const numeric = Number(raw.replace(/[^\d]/g, ''));
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+        return 0;
+    }
+    return Math.trunc(numeric);
 }
 async function queryRechargePlans(request = api_client_1.merchantApiRequest) {
     var _a;

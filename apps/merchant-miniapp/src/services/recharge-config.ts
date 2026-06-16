@@ -1,3 +1,4 @@
+import { normalizeRechargePlansConfig } from '@xiaipet/shared';
 import type { RechargeGiftTemplate, RechargePlanConfig, RechargePlansRuntimeConfigValue } from '@xiaipet/shared/types/recharge';
 import { merchantApiRequest, type MerchantApiRequester } from './api-client';
 
@@ -12,78 +13,79 @@ export interface RechargeConfigViewModel {
   rows: RechargePlanRowViewModel[];
 }
 
+let draftIdSequence = 0;
+
 function createDraftId(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  draftIdSequence = (draftIdSequence + 1) % Number.MAX_SAFE_INTEGER;
+  const randomPart = Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${Date.now()}-${draftIdSequence.toString(36)}-${randomPart}`;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
+function validateUniqueRechargeIds(value: RechargePlansRuntimeConfigValue) {
+  const planIds = new Set<string>();
 
-function asString(value: unknown, fallback = '') {
-  return typeof value === 'string' ? value.trim() : fallback;
-}
+  value.plans.forEach((plan) => {
+    if (planIds.has(plan.planId)) {
+      throw new Error('DUPLICATE_RECHARGE_PLAN_ID');
+    }
+    planIds.add(plan.planId);
 
-function asMoney(value: unknown) {
-  const numberValue = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(numberValue) ? Math.floor(numberValue * 100) / 100 : 0;
-}
-
-function asDays(value: unknown) {
-  const numberValue = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(numberValue) ? Math.trunc(numberValue) : 0;
-}
-
-function normalizeGift(value: unknown, index: number): RechargeGiftTemplate {
-  if (!isRecord(value)) {
-    throw new Error('INVALID_RECHARGE_GIFT');
-  }
-
-  const gift = {
-    giftTemplateId: asString(value.giftTemplateId, asString(value.id, `gift-${index + 1}`)),
-    name: asString(value.name),
-    description: asString(value.description),
-    validDays: asDays(value.validDays)
-  };
-
-  if (!gift.giftTemplateId || !gift.name || gift.validDays <= 0) {
-    throw new Error('INVALID_RECHARGE_GIFT');
-  }
-
-  return gift;
-}
-
-function normalizePlan(value: unknown, index: number): RechargePlanConfig {
-  if (!isRecord(value)) {
-    throw new Error('INVALID_RECHARGE_PLAN');
-  }
-
-  const plan = {
-    planId: asString(value.planId, asString(value.id, `plan-${index + 1}`)),
-    enabled: typeof value.enabled === 'boolean' ? value.enabled : true,
-    paidAmount: asMoney(value.paidAmount),
-    bonusAmount: asMoney(value.bonusAmount),
-    description: asString(value.description)
-  };
-
-  if (!plan.planId || plan.paidAmount <= 0 || plan.bonusAmount < 0) {
-    throw new Error('INVALID_RECHARGE_PLAN');
-  }
-
-  return {
-    ...plan,
-    gifts: Array.isArray(value.gifts) ? value.gifts.map(normalizeGift) : []
-  };
+    const giftIds = new Set<string>();
+    plan.gifts.forEach((gift) => {
+      if (giftIds.has(gift.giftTemplateId)) {
+        throw new Error('DUPLICATE_RECHARGE_GIFT_ID');
+      }
+      giftIds.add(gift.giftTemplateId);
+    });
+  });
 }
 
 export function normalizeRechargePlansDraft(input: unknown): RechargePlansRuntimeConfigValue {
-  if (!isRecord(input)) {
-    return { plans: [] };
+  const normalized = normalizeRechargePlansConfig(input);
+  validateUniqueRechargeIds(normalized);
+  return normalized;
+}
+
+export function normalizeRechargeMoneyInputText(value: string | undefined): string {
+  const raw = value ?? '';
+  if (raw.includes('-')) {
+    return '';
   }
 
-  return {
-    plans: Array.isArray(input.plans) ? input.plans.map(normalizePlan) : []
-  };
+  const sanitized = raw.replace(/[^\d.]/g, '');
+  const [integerPart = '', ...decimalParts] = sanitized.split('.');
+
+  if (!sanitized.includes('.')) {
+    return integerPart;
+  }
+
+  return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
+}
+
+export function parseRechargeMoneyInput(value: string | undefined): number {
+  const normalized = normalizeRechargeMoneyInputText(value);
+  const numeric = Number(normalized);
+
+  if (!normalized || !Number.isFinite(numeric) || numeric < 0) {
+    return 0;
+  }
+
+  return Math.floor(numeric * 100) / 100;
+}
+
+export function parseRechargeGiftValidDaysInput(value: string | undefined): number {
+  const raw = value ?? '';
+  if (raw.includes('-')) {
+    return 0;
+  }
+
+  const numeric = Number(raw.replace(/[^\d]/g, ''));
+
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return 0;
+  }
+
+  return Math.trunc(numeric);
 }
 
 export async function queryRechargePlans(request: MerchantApiRequester = merchantApiRequest): Promise<RechargePlanConfig[]> {

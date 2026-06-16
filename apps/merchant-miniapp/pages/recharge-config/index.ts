@@ -8,6 +8,9 @@ import {
   buildRechargePlanDraft,
   getRechargeConfigViewModel,
   normalizeRechargePlansDraft,
+  normalizeRechargeMoneyInputText,
+  parseRechargeGiftValidDaysInput,
+  parseRechargeMoneyInput,
   queryRechargePlans,
   saveRechargePlans
 } from '../../src/services/recharge-config';
@@ -25,37 +28,6 @@ interface RechargeConfigPageInstance {
   setData(updates: Record<string, unknown>): void;
   refreshView(plans: RechargePlanConfig[], expandedPlanId?: string): void;
   refreshPlans(): Promise<void>;
-}
-
-function normalizeMoneyInputText(value: string | undefined): string {
-  const sanitized = (value ?? '').replace(/[^\d.]/g, '');
-  const [integerPart = '', ...decimalParts] = sanitized.split('.');
-
-  if (!sanitized.includes('.')) {
-    return integerPart;
-  }
-
-  return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
-}
-
-function parseMoneyInput(value: string | undefined): number {
-  const numeric = Number(normalizeMoneyInputText(value));
-
-  if (!Number.isFinite(numeric) || numeric < 0) {
-    return 0;
-  }
-
-  return Math.floor(numeric * 100) / 100;
-}
-
-function parseDaysInput(value: string | undefined): number {
-  const numeric = Number((value ?? '').replace(/[^\d]/g, ''));
-
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    return 0;
-  }
-
-  return Math.trunc(numeric);
 }
 
 function patchPlan(
@@ -146,7 +118,7 @@ Page({
       }
 
       if (field === 'paidAmount' || field === 'bonusAmount') {
-        return { ...plan, [field]: parseMoneyInput(typeof rawValue === 'string' ? rawValue : '') };
+        return { ...plan, [field]: parseRechargeMoneyInput(typeof rawValue === 'string' ? rawValue : '') };
       }
 
       if (field === 'description') {
@@ -159,7 +131,7 @@ Page({
     this.refreshView(plans);
 
     if (field === 'paidAmount' || field === 'bonusAmount') {
-      return normalizeMoneyInputText(typeof rawValue === 'string' ? rawValue : '');
+      return normalizeRechargeMoneyInputText(typeof rawValue === 'string' ? rawValue : '');
     }
     return undefined;
   },
@@ -214,7 +186,7 @@ Page({
         }
 
         if (field === 'validDays') {
-          return { ...gift, validDays: parseDaysInput(rawValue) };
+          return { ...gift, validDays: parseRechargeGiftValidDaysInput(rawValue) };
         }
 
         return { ...gift, [field]: rawValue };
@@ -224,7 +196,7 @@ Page({
     this.refreshView(plans, planId);
 
     if (field === 'validDays') {
-      return String(parseDaysInput(rawValue) || '');
+      return String(parseRechargeGiftValidDaysInput(rawValue) || '');
     }
     return undefined;
   },

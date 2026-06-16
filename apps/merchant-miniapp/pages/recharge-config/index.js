@@ -1,28 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const recharge_config_1 = require("../../src/services/recharge-config");
-function normalizeMoneyInputText(value) {
-    const sanitized = (value !== null && value !== void 0 ? value : '').replace(/[^\d.]/g, '');
-    const [integerPart = '', ...decimalParts] = sanitized.split('.');
-    if (!sanitized.includes('.')) {
-        return integerPart;
-    }
-    return `${integerPart}.${decimalParts.join('').slice(0, 2)}`;
-}
-function parseMoneyInput(value) {
-    const numeric = Number(normalizeMoneyInputText(value));
-    if (!Number.isFinite(numeric) || numeric < 0) {
-        return 0;
-    }
-    return Math.floor(numeric * 100) / 100;
-}
-function parseDaysInput(value) {
-    const numeric = Number((value !== null && value !== void 0 ? value : '').replace(/[^\d]/g, ''));
-    if (!Number.isFinite(numeric) || numeric <= 0) {
-        return 0;
-    }
-    return Math.trunc(numeric);
-}
 function patchPlan(plans, planId, updater) {
     return plans.map((plan) => (plan.planId === planId ? updater(plan) : plan));
 }
@@ -103,7 +81,7 @@ Page({
                 return { ...plan, enabled: Boolean(rawValue) };
             }
             if (field === 'paidAmount' || field === 'bonusAmount') {
-                return { ...plan, [field]: parseMoneyInput(typeof rawValue === 'string' ? rawValue : '') };
+                return { ...plan, [field]: (0, recharge_config_1.parseRechargeMoneyInput)(typeof rawValue === 'string' ? rawValue : '') };
             }
             if (field === 'description') {
                 return { ...plan, description: typeof rawValue === 'string' ? rawValue : '' };
@@ -112,7 +90,7 @@ Page({
         });
         this.refreshView(plans);
         if (field === 'paidAmount' || field === 'bonusAmount') {
-            return normalizeMoneyInputText(typeof rawValue === 'string' ? rawValue : '');
+            return (0, recharge_config_1.normalizeRechargeMoneyInputText)(typeof rawValue === 'string' ? rawValue : '');
         }
         return undefined;
     },
@@ -157,14 +135,14 @@ Page({
                     return gift;
                 }
                 if (field === 'validDays') {
-                    return { ...gift, validDays: parseDaysInput(rawValue) };
+                    return { ...gift, validDays: (0, recharge_config_1.parseRechargeGiftValidDaysInput)(rawValue) };
                 }
                 return { ...gift, [field]: rawValue };
             })
         }));
         this.refreshView(plans, planId);
         if (field === 'validDays') {
-            return String(parseDaysInput(rawValue) || '');
+            return String((0, recharge_config_1.parseRechargeGiftValidDaysInput)(rawValue) || '');
         }
         return undefined;
     },

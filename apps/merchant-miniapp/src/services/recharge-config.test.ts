@@ -5,6 +5,10 @@ import {
   buildRechargeGiftDraft,
   buildRechargePlanDraft,
   getRechargeConfigViewModel,
+  normalizeRechargePlansDraft,
+  normalizeRechargeMoneyInputText,
+  parseRechargeGiftValidDaysInput,
+  parseRechargeMoneyInput,
   queryRechargePlans,
   saveRechargePlans
 } from './recharge-config';
@@ -108,6 +112,116 @@ describe('merchant recharge config service', () => {
         ]
       }
     });
+  });
+
+  it('rejects duplicate plan and gift IDs before saving', async () => {
+    const request = vi.fn();
+
+    await expect(
+      saveRechargePlans(
+        {
+          plans: [
+            {
+              planId: 'plan-dup',
+              enabled: true,
+              paidAmount: 100,
+              bonusAmount: 10,
+              description: '',
+              gifts: []
+            },
+            {
+              planId: 'plan-dup',
+              enabled: false,
+              paidAmount: 200,
+              bonusAmount: 20,
+              description: '',
+              gifts: []
+            }
+          ]
+        },
+        request as never
+      )
+    ).rejects.toThrow('DUPLICATE_RECHARGE_PLAN_ID');
+
+    expect(() =>
+      normalizeRechargePlansDraft({
+        plans: [
+          {
+            planId: 'plan-100',
+            enabled: true,
+            paidAmount: 100,
+            bonusAmount: 10,
+            description: '',
+            gifts: [
+              {
+                giftTemplateId: 'gift-dup',
+                name: '蛋糕',
+                description: '',
+                validDays: 365
+              },
+              {
+                giftTemplateId: 'gift-dup',
+                name: '零食',
+                description: '',
+                validDays: 30
+              }
+            ]
+          }
+        ]
+      })
+    ).toThrow('DUPLICATE_RECHARGE_GIFT_ID');
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('keeps negative numeric strings invalid instead of flipping them positive', () => {
+    expect(normalizeRechargeMoneyInputText('-100')).toBe('');
+    expect(parseRechargeMoneyInput('-100')).toBe(0);
+    expect(parseRechargeGiftValidDaysInput('-365')).toBe(0);
+
+    expect(() =>
+      normalizeRechargePlansDraft({
+        plans: [
+          {
+            planId: 'plan-negative',
+            enabled: true,
+            paidAmount: '-100',
+            bonusAmount: 0,
+            description: '',
+            gifts: []
+          }
+        ]
+      })
+    ).toThrow('INVALID_RECHARGE_PLAN');
+
+    expect(() =>
+      normalizeRechargePlansDraft({
+        plans: [
+          {
+            planId: 'plan-100',
+            enabled: true,
+            paidAmount: 100,
+            bonusAmount: 0,
+            description: '',
+            gifts: [
+              {
+                giftTemplateId: 'gift-negative',
+                name: '蛋糕',
+                description: '',
+                validDays: '-365'
+              }
+            ]
+          }
+        ]
+      })
+    ).toThrow('INVALID_RECHARGE_GIFT');
+  });
+
+  it('generates unique local draft IDs during rapid additions', () => {
+    const planIds = new Set(Array.from({ length: 200 }, () => buildRechargePlanDraft().planId));
+    const giftIds = new Set(Array.from({ length: 200 }, () => buildRechargeGiftDraft().giftTemplateId));
+
+    expect(planIds.size).toBe(200);
+    expect(giftIds.size).toBe(200);
   });
 
   it('builds compact recharge config summary rows', () => {
