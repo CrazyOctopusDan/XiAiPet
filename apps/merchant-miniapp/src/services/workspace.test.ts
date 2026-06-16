@@ -12,7 +12,8 @@ describe('merchant workspace service', () => {
       ['staff-accounts', '员工', '管理员', '/pages/staff-accounts/index'],
       ['catalog', '商品', '双入口', '/pages/categories/index'],
       ['users', '用户', '审计', '/pages/users/index'],
-      ['runtime-config', '配置', '店务', '/pages/runtime-config/index']
+      ['runtime-config', '配置', '店务', '/pages/runtime-config/index'],
+      ['recharge-config', '充值', '权益', '/pages/recharge-config/index']
     ]);
   });
 
@@ -40,6 +41,24 @@ describe('merchant workspace service', () => {
         url: '/pages/products/index'
       })
     ]);
+  });
+
+  it('adds recharge configuration as an admin-only workspace entry', () => {
+    const adminCards = getMerchantWorkspaceCards();
+    const staffCards = getMerchantWorkspaceCards('staff');
+
+    expect(adminCards.find((item) => item.id === 'recharge-config')).toMatchObject({
+      title: '充值',
+      subtitle: '档位赠品',
+      primaryUrl: '/pages/recharge-config/index',
+      actions: [
+        expect.objectContaining({
+          label: '充值配置',
+          url: '/pages/recharge-config/index'
+        })
+      ]
+    });
+    expect(staffCards.some((item) => item.id === 'recharge-config')).toBe(false);
   });
 
   it('keeps workspace card copy short for the warm operations dashboard', () => {

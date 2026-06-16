@@ -1,0 +1,102 @@
+<view class="page">
+  <view class="summary-card">
+    <view class="summary-head">
+      <view class="page-mark">充</view>
+      <view class="summary-copy">
+        <text class="page-title">充值配置</text>
+        <text class="page-subtitle">{{view.summaryLabel}}</text>
+      </view>
+    </view>
+
+    <view class="summary-metrics">
+      <view class="metric-chip metric-chip-primary">
+        <text class="metric-value">{{plans.length}}</text>
+        <text class="metric-label">档位</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{view.enabledCount}}</text>
+        <text class="metric-label">启用</text>
+      </view>
+      <view class="metric-chip">
+        <text class="metric-value">{{view.totalGiftCount}}</text>
+        <text class="metric-label">赠品</text>
+      </view>
+    </view>
+
+    <view class="top-actions">
+      <button class="ghost-button" bindtap="handleAddPlan">新增档位</button>
+      <button class="save-button" loading="{{saving}}" disabled="{{saving}}" bindtap="handleSave">保存配置</button>
+    </view>
+  </view>
+
+  <view class="loading-card" wx:if="{{loading}}">
+    <text class="loading-title">正在加载充值配置</text>
+  </view>
+
+  <view class="empty-card" wx:elif="{{!plans.length}}">
+    <text class="empty-title">暂无充值档位</text>
+    <text class="empty-body">新增档位后填写充值金额、赠送余额和赠品。</text>
+    <button class="ghost-button" bindtap="handleAddPlan">新增档位</button>
+  </view>
+
+  <view class="plan-list" wx:else>
+    <view class="plan-card" wx:for="{{view.rows}}" wx:key="planId">
+      <view class="plan-head" data-plan-id="{{item.planId}}" bindtap="handleTogglePlanExpanded">
+        <view class="plan-main">
+          <view class="plan-title-row">
+            <text class="plan-title">￥{{item.paidAmount}}</text>
+            <text class="status-badge {{item.enabled ? 'status-active' : ''}}">{{item.enabled ? '启用' : '停用'}}</text>
+          </view>
+          <text class="plan-meta">{{item.summaryLabel}}</text>
+        </view>
+        <text class="plan-toggle">{{expandedPlanId === item.planId ? '收起' : '编辑'}}</text>
+      </view>
+
+      <view class="plan-editor" wx:if="{{expandedPlanId === item.planId}}">
+        <view class="switch-row">
+          <view>
+            <text class="field-title">用户端可购买</text>
+            <text class="field-hint">停用后保留配置但不展示给用户</text>
+          </view>
+          <switch checked="{{item.enabled}}" data-plan-id="{{item.planId}}" data-field="enabled" bindchange="handlePlanInput" />
+        </view>
+
+        <view class="field-grid">
+          <view class="field-cell">
+            <text class="field-label">充值金额</text>
+            <input class="field-input" type="digit" data-plan-id="{{item.planId}}" data-field="paidAmount" value="{{item.paidAmount}}" placeholder="0.00" bindinput="handlePlanInput" />
+          </view>
+          <view class="field-cell">
+            <text class="field-label">赠送余额</text>
+            <input class="field-input" type="digit" data-plan-id="{{item.planId}}" data-field="bonusAmount" value="{{item.bonusAmount}}" placeholder="0.00" bindinput="handlePlanInput" />
+          </view>
+        </view>
+
+        <textarea class="field-area" data-plan-id="{{item.planId}}" data-field="description" value="{{item.description}}" placeholder="档位说明，展示给商户核对" bindinput="handlePlanInput"></textarea>
+
+        <view class="gift-toolbar">
+          <text class="field-title">赠品</text>
+          <button class="mini-button" data-plan-id="{{item.planId}}" bindtap="handleAddGift">新增赠品</button>
+        </view>
+
+        <view class="gift-list" wx:if="{{item.gifts.length}}">
+          <view class="gift-row" wx:for="{{item.gifts}}" wx:for-item="gift" wx:key="giftTemplateId">
+            <view class="gift-head">
+              <text class="gift-title">{{gift.name || '未命名赠品'}}</text>
+              <text class="delete-link" data-plan-id="{{item.planId}}" data-gift-id="{{gift.giftTemplateId}}" bindtap="handleDeleteGift">删除</text>
+            </view>
+            <input class="field-input" data-plan-id="{{item.planId}}" data-gift-id="{{gift.giftTemplateId}}" data-field="name" value="{{gift.name}}" placeholder="赠品名称" bindinput="handleGiftInput" />
+            <input class="field-input" data-plan-id="{{item.planId}}" data-gift-id="{{gift.giftTemplateId}}" data-field="description" value="{{gift.description}}" placeholder="赠品说明" bindinput="handleGiftInput" />
+            <input class="field-input" type="number" data-plan-id="{{item.planId}}" data-gift-id="{{gift.giftTemplateId}}" data-field="validDays" value="{{gift.validDays}}" placeholder="有效天数" bindinput="handleGiftInput" />
+          </view>
+        </view>
+
+        <view class="empty-inline" wx:else>
+          <text>该档位暂无赠品，可只赠送余额。</text>
+        </view>
+
+        <button class="danger-button" data-plan-id="{{item.planId}}" bindtap="handleDeletePlan">删除档位</button>
+      </view>
+    </view>
+  </view>
+</view>

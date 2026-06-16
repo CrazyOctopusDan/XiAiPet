@@ -5,7 +5,7 @@ export interface MerchantWorkspaceAction {
 }
 
 export interface MerchantWorkspaceCard {
-  id: 'orders' | 'order-history' | 'catalog' | 'users' | 'runtime-config' | 'staff-accounts';
+  id: 'orders' | 'order-history' | 'catalog' | 'users' | 'runtime-config' | 'recharge-config' | 'staff-accounts';
   title: string;
   subtitle: string;
   description: string;
@@ -124,6 +124,22 @@ const WORKSPACE_CARDS: MerchantWorkspaceCardSource[] = [
         tone: 'primary'
       }
     ]
+  },
+  {
+    id: 'recharge-config',
+    title: '充值',
+    subtitle: '档位赠品',
+    description: '充值金额、赠送余额',
+    badge: '权益',
+    accent: '#F2C46F',
+    iconToken: '充',
+    actions: [
+      {
+        label: '充值配置',
+        url: '/pages/recharge-config/index',
+        tone: 'primary'
+      }
+    ]
   }
 ];
 
@@ -137,6 +153,7 @@ export function getMerchantWorkspaceCards(role: 'admin' | 'staff' = 'admin'): Me
           'catalog',
           'users',
           'runtime-config',
+          'recharge-config',
           'staff-accounts'
         ]);
 

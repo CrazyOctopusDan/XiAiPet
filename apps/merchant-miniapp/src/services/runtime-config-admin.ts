@@ -279,14 +279,18 @@ function normalizeSection(
     };
   }
 
-  return {
-    sectionId: fallback.sectionId,
-    ...base,
-    value: {
-      enabled: typeof rawValue.enabled === 'boolean' ? rawValue.enabled : fallback.value.enabled,
-      content: asString(rawValue.content, fallback.value.content)
-    }
-  };
+  if (fallback.sectionId === 'custom-notice') {
+    return {
+      sectionId: fallback.sectionId,
+      ...base,
+      value: {
+        enabled: typeof rawValue.enabled === 'boolean' ? rawValue.enabled : fallback.value.enabled,
+        content: asString(rawValue.content, fallback.value.content)
+      }
+    };
+  }
+
+  return fallback;
 }
 
 function mergeSections(sections: RuntimeConfigSectionDocument[]) {
@@ -356,7 +360,11 @@ function getSectionSummaryLabel(section: RuntimeConfigSectionDocument) {
     return section.value.fileId ? '首页展示图已配置' : '上传首页展示图';
   }
 
-  return section.value.enabled ? '购前须知已开启' : '购前须知已关闭';
+  if (section.sectionId === 'custom-notice') {
+    return section.value.enabled ? '购前须知已开启' : '购前须知已关闭';
+  }
+
+  return '充值档位独立配置';
 }
 
 export async function queryRuntimeConfigSections(request: MerchantApiRequester = merchantApiRequest) {

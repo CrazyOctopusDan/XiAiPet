@@ -22,6 +22,15 @@
         <text class="metric-label">配送档</text>
       </view>
     </view>
+
+    <view class="linked-entry" bindtap="handleNavigateRechargeConfig">
+      <view class="linked-entry-icon">充</view>
+      <view class="linked-entry-copy">
+        <text class="linked-entry-title">充值档位与赠品</text>
+        <text class="linked-entry-meta">维护充值金额、赠送余额、赠品有效期</text>
+      </view>
+      <text class="linked-entry-action">进入</text>
+    </view>
   </view>
 
   <view class="loading-card" wx:if="{{loading}}">

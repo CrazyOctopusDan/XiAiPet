@@ -12,7 +12,8 @@
     "pages/product-editor/index",
     "pages/users/index",
     "pages/user-detail/index",
-    "pages/runtime-config/index"
+    "pages/runtime-config/index",
+    "pages/recharge-config/index"
   ],
   "window": {
     "navigationBarTitleText": "喜爱宠商户端"

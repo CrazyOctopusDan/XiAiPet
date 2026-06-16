@@ -376,6 +376,11 @@ Page({
     handleEditorTap() {
         return undefined;
     },
+    handleNavigateRechargeConfig() {
+        wx.navigateTo({
+            url: '/pages/recharge-config/index'
+        });
+    },
     async handleSaveSection(event) {
         var _a, _b;
         const sectionId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.sectionId;

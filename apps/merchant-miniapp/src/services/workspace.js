@@ -107,6 +107,22 @@ const WORKSPACE_CARDS = [
                 tone: 'primary'
             }
         ]
+    },
+    {
+        id: 'recharge-config',
+        title: '充值',
+        subtitle: '档位赠品',
+        description: '充值金额、赠送余额',
+        badge: '权益',
+        accent: '#F2C46F',
+        iconToken: '充',
+        actions: [
+            {
+                label: '充值配置',
+                url: '/pages/recharge-config/index',
+                tone: 'primary'
+            }
+        ]
     }
 ];
 function getMerchantWorkspaceCards(role = 'admin') {
@@ -118,6 +134,7 @@ function getMerchantWorkspaceCards(role = 'admin') {
             'catalog',
             'users',
             'runtime-config',
+            'recharge-config',
             'staff-accounts'
         ]);
     return WORKSPACE_CARDS.filter((card) => allowedIds.has(card.id)).map((card) => {

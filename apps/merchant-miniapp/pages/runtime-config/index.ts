@@ -469,6 +469,11 @@ Page({
   handleEditorTap() {
     return undefined;
   },
+  handleNavigateRechargeConfig() {
+    wx.navigateTo({
+      url: '/pages/recharge-config/index'
+    });
+  },
   async handleSaveSection(this: RuntimeConfigPageInstance, event: { currentTarget?: { dataset?: { sectionId?: RuntimeConfigSectionId } } }) {
     const sectionId = event.currentTarget?.dataset?.sectionId;
 
