@@ -255,13 +255,18 @@ function normalizeSelectedGiftIds(value: unknown): string[] {
     : [];
 }
 
-function appendGiftSnapshots(snapshot: unknown, gifts: LockedGiftSnapshot[]) {
-  const base = snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)
-    ? snapshot as Record<string, unknown>
-    : {};
+function stripClientGiftSnapshots(snapshot: unknown) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    return {};
+  }
 
+  const { gifts: _clientGifts, ...base } = snapshot as Record<string, unknown>;
+  return base;
+}
+
+function appendGiftSnapshots(snapshot: unknown, gifts: LockedGiftSnapshot[]) {
   return {
-    ...base,
+    ...stripClientGiftSnapshots(snapshot),
     gifts: gifts.map((gift) => ({
       id: gift.id,
       ...gift.giftSnapshot
@@ -291,7 +296,7 @@ function normalizeCreateOrderPayload(openid: string, payload: unknown): CreateOr
     itemsSubtotal: toNumber(pricing?.itemsSubtotal, candidate.itemsSubtotal ?? 0),
     deliveryFee: toNumber(pricing?.deliveryFee, candidate.deliveryFee ?? 0),
     payableTotal: toNumber(pricing?.payableTotal, candidate.payableTotal ?? 0),
-    snapshot: payload,
+    snapshot: stripClientGiftSnapshots(payload),
     items: normalizeOrderItems(candidate.items),
     selectedGiftIds: normalizeSelectedGiftIds(candidate.selectedGiftIds)
   };
@@ -396,7 +401,7 @@ export function createOrderService(
           : [];
         const order = await orderRepository.createPending({
           ...input,
-          snapshot: giftSnapshots.length ? appendGiftSnapshots(input.snapshot, giftSnapshots) : input.snapshot
+          snapshot: giftSnapshots.length ? appendGiftSnapshots(input.snapshot, giftSnapshots) : stripClientGiftSnapshots(input.snapshot)
         });
 
         for (const item of input.items) {
@@ -499,8 +504,7 @@ export function createOrderService(
       if (!order || order.openid !== openid) {
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
       }
-      const paidOrder = await markOrderPaidAndRedeemGifts(client as never, orderId);
-      return { ok: true as const, order: paidOrder, confirmation: payload };
+      return { ok: true as const, order, confirmation: payload };
     },
 
     async syncCustomerPayment(openid: string, orderId: string) {
@@ -621,7 +625,7 @@ export function createOrderService(
         paymentStatus?: OrderRecord['paymentStatus'];
         fulfillmentStatus?: NonNullable<OrderRecord['fulfillmentStatus']>;
       };
-      const order = await createOrderRepository(client).updateStatus(orderId, {
+      const updateInput = {
         status: candidate.status,
         paymentStatus: candidate.paymentStatus,
         fulfillmentStatus: candidate.fulfillmentStatus,
@@ -633,10 +637,14 @@ export function createOrderService(
           operatedAt: new Date().toISOString(),
           payload
         }
-      });
-      if (candidate.status === 'cancelled' && current.paymentStatus !== 'paid') {
-        await createGiftService(client as never).releaseGiftsForOrder(orderId);
-      }
+      };
+      const order = candidate.status === 'cancelled' && current.paymentStatus !== 'paid'
+        ? await runOrderSettlementTransaction(client as never, async (tx) => {
+          const cancelled = await createOrderRepository(tx as never).updateStatus(orderId, updateInput);
+          await createGiftService(tx as never).releaseGiftsForOrder(orderId, tx as never);
+          return cancelled;
+        })
+        : await createOrderRepository(client).updateStatus(orderId, updateInput);
       return { ok: true as const, order };
     }
   };

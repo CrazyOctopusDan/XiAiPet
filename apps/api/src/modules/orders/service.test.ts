@@ -227,6 +227,70 @@ describe('order service', () => {
     });
   });
 
+  it('strips client-provided gift snapshots when no gifts were selected', async () => {
+    const tx = {
+      order: {
+        findUnique: vi.fn(async () => null),
+        create: vi.fn(async ({ data }) =>
+          createOrderRow({
+            id: data.id,
+            openid: data.openid,
+            idempotencyKey: data.idempotencyKey,
+            paymentMethod: data.paymentMethod,
+            fulfillmentMode: data.fulfillmentMode,
+            itemsSubtotal: decimal(Number(data.itemsSubtotal)),
+            deliveryFee: decimal(Number(data.deliveryFee)),
+            payableTotal: decimal(Number(data.payableTotal)),
+            snapshot: data.snapshot
+          })
+        )
+      },
+      product: {
+        update: vi.fn()
+      },
+      userGift: {
+        updateMany: vi.fn()
+      }
+    };
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      $transaction: vi.fn(async (callback) => callback(tx))
+    };
+    const service = createOrderService(client as any);
+
+    const result = await service.createCustomerOrder('openid-1', {
+      id: 'order-1',
+      idempotencyKey: 'checkout-client-gift',
+      paymentMethod: 'balance',
+      pricing: {
+        itemsSubtotal: 133,
+        deliveryFee: 0,
+        payableTotal: 133
+      },
+      items: [],
+      gifts: [
+        {
+          id: 'gift-client',
+          name: '伪造赠品'
+        }
+      ]
+    });
+
+    expect(tx.order.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        snapshot: expect.not.objectContaining({
+          gifts: expect.anything()
+        })
+      })
+    }));
+    expect(tx.userGift.updateMany).not.toHaveBeenCalled();
+    expect(result.order.snapshot).not.toMatchObject({
+      gifts: expect.any(Array)
+    });
+  });
+
   it('rejects customer order creation before phone registration', async () => {
     const client = {
       user: {
@@ -684,7 +748,7 @@ describe('order service', () => {
     expect(client.order.update).not.toHaveBeenCalled();
   });
 
-  it('redeems locked gifts when customer payment is confirmed manually', async () => {
+  it('does not mark paid or redeem gifts when customer payment is confirmed manually', async () => {
     const order = createGiftSnapshotOrder({
       paymentMethod: 'WECHAT',
       paymentStatus: 'PROCESSING'
@@ -710,20 +774,12 @@ describe('order service', () => {
     const result = await service.confirmCustomerPayment('openid-1', 'order-1');
 
     expect(result.order).toMatchObject({
-      status: 'paid',
-      paymentStatus: 'paid'
+      status: 'pending_payment',
+      paymentStatus: 'processing'
     });
-    expect(client.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        id: { in: ['gift-1'] },
-        lockedOrderId: 'order-1',
-        status: 'LOCKED'
-      },
-      data: expect.objectContaining({
-        status: 'REDEEMED',
-        redeemedOrderId: 'order-1'
-      })
-    }));
+    expect(result.confirmation).toEqual({});
+    expect(client.order.update).not.toHaveBeenCalled();
+    expect(client.userGift.updateMany).not.toHaveBeenCalled();
   });
 
   it('rejects WeChat payment sync success when the provider omits paid amount', async () => {
@@ -946,6 +1002,22 @@ describe('order service', () => {
       paymentStatus: 'PENDING',
       status: 'PENDING_PAYMENT'
     });
+    const tx = {
+      order: {
+        update: vi.fn(async ({ data }) =>
+          createGiftSnapshotOrder({
+            ...current,
+            ...(data.status ? { status: data.status } : {}),
+            ...(data.paymentStatus ? { paymentStatus: data.paymentStatus } : {}),
+            ...(data.fulfillmentStatus ? { fulfillmentStatus: data.fulfillmentStatus } : {}),
+            ...(data.cancelledAt ? { cancelledAt: data.cancelledAt } : {})
+          })
+        )
+      },
+      userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
+      }
+    };
     const client = {
       order: {
         updateMany: vi.fn(),
@@ -962,7 +1034,8 @@ describe('order service', () => {
       },
       userGift: {
         updateMany: vi.fn(async () => ({ count: 1 }))
-      }
+      },
+      $transaction: vi.fn(async (callback) => callback(tx))
     };
     const service = createOrderService(client as any);
 
@@ -980,7 +1053,16 @@ describe('order service', () => {
       { status: 'cancelled' }
     );
 
-    expect(client.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+    expect(client.$transaction).toHaveBeenCalledOnce();
+    expect(client.order.update).not.toHaveBeenCalled();
+    expect(client.userGift.updateMany).not.toHaveBeenCalled();
+    expect(tx.order.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'order-1' },
+      data: expect.objectContaining({
+        status: 'CANCELLED'
+      })
+    }));
+    expect(tx.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { lockedOrderId: 'order-1', status: 'LOCKED' },
       data: expect.objectContaining({
         status: 'AVAILABLE',
