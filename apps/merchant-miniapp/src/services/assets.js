@@ -85,7 +85,6 @@ function getUploadSizeBytes(sizeBytes) {
     return Number.isFinite(sizeBytes) && Number(sizeBytes) > 0 ? Number(sizeBytes) : 1;
 }
 function buildOssProcessedAsset(asset, role, sourceSizeBytes) {
-    var _a, _b, _c;
     const variants = Object.entries(exports.ASSET_ROLE_RULES[role].variants).flatMap(([name, rule]) => {
         if (!rule) {
             return [];
@@ -101,12 +100,9 @@ function buildOssProcessedAsset(asset, role, sourceSizeBytes) {
                 contentType: asset.contentType
             }];
     });
-    const primaryRule = exports.ASSET_ROLE_RULES[role].variants[ASSET_ROLE_UPLOAD_VARIANTS[role]];
     return {
         ...asset,
-        width: (_a = primaryRule === null || primaryRule === void 0 ? void 0 : primaryRule.width) !== null && _a !== void 0 ? _a : asset.width,
-        height: (_b = primaryRule === null || primaryRule === void 0 ? void 0 : primaryRule.height) !== null && _b !== void 0 ? _b : asset.height,
-        sizeBytes: Math.min(sourceSizeBytes, (_c = primaryRule === null || primaryRule === void 0 ? void 0 : primaryRule.maxSizeBytes) !== null && _c !== void 0 ? _c : sourceSizeBytes),
+        sizeBytes: Math.min(sourceSizeBytes, asset.sizeBytes),
         variants
     };
 }
@@ -214,6 +210,18 @@ async function getUploadedVariantFileInfo(filePath, fallbackSizeBytes) {
         imageInfo
     };
 }
+async function getOptionalImageInfo(filePath) {
+    const wxApi = getWxApi();
+    if (typeof wxApi.getImageInfo !== 'function') {
+        return undefined;
+    }
+    try {
+        return await getImageInfo(filePath);
+    }
+    catch (_a) {
+        return undefined;
+    }
+}
 async function requestUploadPolicy(input, request = api_client_1.merchantApiRequest) {
     const response = await request('/api/v1/merchant/assets/upload-policies', {
         method: 'POST',
@@ -249,7 +257,7 @@ async function confirmUpload(input, request = api_client_1.merchantApiRequest) {
     return response;
 }
 async function uploadMerchantAsset(role, options = {}) {
-    var _a, _b;
+    var _a, _b, _c, _d;
     let uploadStage = 'select-file';
     try {
         const request = (_a = options.request) !== null && _a !== void 0 ? _a : api_client_1.merchantApiRequest;
@@ -261,6 +269,7 @@ async function uploadMerchantAsset(role, options = {}) {
         }
         const contentType = normalizeImageContentType(selectedFile);
         const uploadSizeBytes = getUploadSizeBytes(options.fileSizeBytes);
+        const sourceImageInfo = await getOptionalImageInfo(selectedFile);
         uploadStage = `request-upload-policy:${variantName}`;
         const upload = await requestUploadPolicy({
             role,
@@ -277,9 +286,9 @@ async function uploadMerchantAsset(role, options = {}) {
             role,
             variantName,
             objectKey: upload.objectKey,
-            width: rule.width,
-            height: rule.height,
-            sizeBytes: Math.min(uploadSizeBytes, getRuleMaxSizeBytes(role, variantName)),
+            width: (_c = sourceImageInfo === null || sourceImageInfo === void 0 ? void 0 : sourceImageInfo.width) !== null && _c !== void 0 ? _c : rule.width,
+            height: (_d = sourceImageInfo === null || sourceImageInfo === void 0 ? void 0 : sourceImageInfo.height) !== null && _d !== void 0 ? _d : rule.height,
+            sizeBytes: uploadSizeBytes,
             contentType
         }, request);
         const asset = buildOssProcessedAsset(confirmed.asset, role, uploadSizeBytes);

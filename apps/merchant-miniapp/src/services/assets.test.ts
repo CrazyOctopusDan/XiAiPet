@@ -195,7 +195,12 @@ describe('merchant asset upload service', () => {
   });
 
   it('uploads a source image and derives OSS processed cover variants', async () => {
+    const fsGetFileInfo = vi.fn((options) => options.success({ size: 1000 }));
     (globalThis as any).wx = {
+      getImageInfo: vi.fn((options) => options.success({ width: 960, height: 640, path: '/tmp/cover.jpg' })),
+      getFileSystemManager: vi.fn(() => ({
+        getFileInfo: fsGetFileInfo
+      })),
       uploadFile: vi.fn((options) => options.success({ statusCode: 200 }))
     };
     const request = vi.fn((path: string, options: any) => {
@@ -224,9 +229,9 @@ describe('merchant asset upload service', () => {
           region: 'oss-cn-shanghai',
           objectKey: `key-${variantName}`,
           url: `https://assets.example.test/key-${variantName}`,
-          width: 480,
-          height: 480,
-          sizeBytes: 1000,
+          width: options.body.width,
+          height: options.body.height,
+          sizeBytes: options.body.sizeBytes,
           contentType: 'image/jpeg',
           uploadedAt: '2026-05-11T00:00:00.000Z',
           variants: [
@@ -251,6 +256,8 @@ describe('merchant asset upload service', () => {
     });
 
     expect(result.asset.variants.map((variant) => variant.name).sort()).toEqual(['display', 'thumbnail']);
+    expect(result.asset.width).toBe(960);
+    expect(result.asset.height).toBe(640);
     expect(result.asset.variants).toEqual(expect.arrayContaining([
       expect.objectContaining({
         name: 'thumbnail',
@@ -265,6 +272,12 @@ describe('merchant asset upload service', () => {
         url: 'https://assets.example.test/key-display?x-oss-process=image/resize,m_fill,w_720,h_720/format,webp/quality,q_80'
       })
     ]));
+    expect(request).toHaveBeenNthCalledWith(2, '/api/v1/merchant/assets/uploads/confirm', expect.objectContaining({
+      body: expect.objectContaining({
+        width: 960,
+        height: 640
+      })
+    }));
     expect((globalThis as any).wx.uploadFile).toHaveBeenCalledTimes(1);
   });
 

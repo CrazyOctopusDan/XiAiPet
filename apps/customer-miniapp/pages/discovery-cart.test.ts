@@ -344,6 +344,9 @@ describe('discovery cart pages', () => {
 
     expect(detailTemplate).toContain('class="detail-card spec-card"');
     expect(detailTemplate).toContain('尺寸和口味选择');
+    expect(detailTemplate).toContain('class="detail-image" mode="aspectFill"');
+    expect(detailTemplate).toContain('style="height: {{swiperHeightRpx}}rpx;"');
+    expect(detailTemplate).toContain('bindload="handleGalleryImageLoad"');
     expect(detailStyles).toContain('linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%)');
     expect(detailStyles).toContain('margin-top: -74rpx');
     expect(detailStyles).toContain('.stepper-btn::before');
@@ -496,6 +499,100 @@ describe('discovery cart pages', () => {
     expect(getCartCount()).toBe(2);
     expect(instance.data.cartCount).toBe(2);
     expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({ title: '已加入购物车' }));
+  });
+
+  it('sizes the detail swiper from the tallest gallery photo metadata', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/product-detail/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.applyProduct({
+      id: 'dynamic-gallery',
+      name: '动态高度商品',
+      summary: '默认规格',
+      description: '图片高度不同',
+      price: 12,
+      stock: 10,
+      soldOut: false,
+      cartActionLabel: '直接加购',
+      memberLevelLabel: '普通会员可购',
+      categoryId: 'cakes',
+      deliveryModes: ['delivery'],
+      thumbnail: '',
+      gallery: ['https://assets.example.test/wide.jpg', 'https://assets.example.test/tall.jpg'],
+      introductionImageAssets: [
+        {
+          provider: 'oss',
+          role: 'product-introduction',
+          bucket: 'bucket',
+          region: 'oss-cn-hangzhou',
+          objectKey: 'wide.jpg',
+          url: 'https://assets.example.test/wide.jpg',
+          width: 1000,
+          height: 500,
+          sizeBytes: 1000,
+          contentType: 'image/jpeg',
+          uploadedAt: '2026-05-11T00:00:00.000Z',
+          variants: []
+        },
+        {
+          provider: 'oss',
+          role: 'product-introduction',
+          bucket: 'bucket',
+          region: 'oss-cn-hangzhou',
+          objectKey: 'tall.jpg',
+          url: 'https://assets.example.test/tall.jpg',
+          width: 600,
+          height: 900,
+          sizeBytes: 1000,
+          contentType: 'image/jpeg',
+          uploadedAt: '2026-05-11T00:00:00.000Z',
+          variants: []
+        }
+      ],
+      detailImages: [],
+      specs: []
+    });
+
+    expect(instance.data.swiperHeightRpx).toBe(1125);
+  });
+
+  it('updates the detail swiper height from loaded image dimensions when metadata is missing', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/product-detail/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.applyProduct({
+      id: 'legacy-gallery',
+      name: '旧图商品',
+      summary: '默认规格',
+      description: '只有图片地址',
+      price: 12,
+      stock: 10,
+      soldOut: false,
+      cartActionLabel: '直接加购',
+      memberLevelLabel: '普通会员可购',
+      categoryId: 'cakes',
+      deliveryModes: ['delivery'],
+      thumbnail: '',
+      gallery: ['https://assets.example.test/legacy.jpg'],
+      detailImages: [],
+      specs: []
+    });
+
+    expect(instance.data.swiperHeightRpx).toBe(670);
+
+    instance.handleGalleryImageLoad({
+      currentTarget: {
+        dataset: {
+          index: 0
+        }
+      },
+      detail: {
+        width: 600,
+        height: 900
+      }
+    });
+
+    expect(instance.data.swiperHeightRpx).toBe(1125);
   });
 
   it('requires spec selection before adding a spec product from detail', async () => {

@@ -1,9 +1,9 @@
 <view class="detail-page" wx:if="{{product}}">
   <page-nav theme="light" reserve-space="{{false}}" />
 
-  <swiper wx:if="{{product.gallery.length}}" class="detail-swiper" circular="true" indicator-dots="false" current="{{swiperIndex - 1}}" autoplay="{{product.gallery.length > 1}}" interval="3000" bindchange="handleSwiperChange">
+  <swiper wx:if="{{product.gallery.length}}" class="detail-swiper" style="height: {{swiperHeightRpx}}rpx;" circular="true" indicator-dots="false" current="{{swiperIndex - 1}}" autoplay="{{product.gallery.length > 1}}" interval="3000" bindchange="handleSwiperChange">
     <swiper-item wx:for="{{product.gallery}}" wx:key="*this">
-      <image class="detail-image" mode="aspectFill" src="{{item}}" />
+      <image class="detail-image" mode="aspectFill" src="{{item}}" data-index="{{index}}" bindload="handleGalleryImageLoad" />
     </swiper-item>
   </swiper>
   <view wx:else class="detail-swiper detail-swiper-placeholder"><text>{{product.name}}</text></view>

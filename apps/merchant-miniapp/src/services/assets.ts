@@ -172,12 +172,9 @@ function buildOssProcessedAsset(asset: OssAssetReference, role: OssAssetRole, so
     }];
   });
 
-  const primaryRule = ASSET_ROLE_RULES[role].variants[ASSET_ROLE_UPLOAD_VARIANTS[role]];
   return {
     ...asset,
-    width: primaryRule?.width ?? asset.width,
-    height: primaryRule?.height ?? asset.height,
-    sizeBytes: Math.min(sourceSizeBytes, primaryRule?.maxSizeBytes ?? sourceSizeBytes),
+    sizeBytes: Math.min(sourceSizeBytes, asset.sizeBytes),
     variants
   };
 }
@@ -311,6 +308,19 @@ async function getUploadedVariantFileInfo(
   };
 }
 
+async function getOptionalImageInfo(filePath: string): Promise<WxImageInfo | undefined> {
+  const wxApi = getWxApi();
+  if (typeof wxApi.getImageInfo !== 'function') {
+    return undefined;
+  }
+
+  try {
+    return await getImageInfo(filePath);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function requestUploadPolicy(
   input: {
     role: OssAssetRole;
@@ -389,6 +399,7 @@ export async function uploadMerchantAsset(
 
     const contentType = normalizeImageContentType(selectedFile);
     const uploadSizeBytes = getUploadSizeBytes(options.fileSizeBytes);
+    const sourceImageInfo = await getOptionalImageInfo(selectedFile);
     uploadStage = `request-upload-policy:${variantName}`;
     const upload = await requestUploadPolicy({
       role,
@@ -405,9 +416,9 @@ export async function uploadMerchantAsset(
       role,
       variantName,
       objectKey: upload.objectKey,
-      width: rule.width,
-      height: rule.height,
-      sizeBytes: Math.min(uploadSizeBytes, getRuleMaxSizeBytes(role, variantName)),
+      width: sourceImageInfo?.width ?? rule.width,
+      height: sourceImageInfo?.height ?? rule.height,
+      sizeBytes: uploadSizeBytes,
       contentType
     }, request);
 

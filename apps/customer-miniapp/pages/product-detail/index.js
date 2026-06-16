@@ -2,6 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const cart_1 = require("../../src/services/cart");
 const catalog_1 = require("../../src/services/catalog");
+const SWIPER_WIDTH_RPX = 750;
+const DEFAULT_SWIPER_HEIGHT_RPX = 670;
+function isUsableImageSize(size) {
+    return Boolean(size && Number.isFinite(size.width) && Number(size.width) > 0 && Number.isFinite(size.height) && Number(size.height) > 0);
+}
 function requiresSpecSelection(product) {
     return Boolean(product === null || product === void 0 ? void 0 : product.specs.length);
 }
@@ -23,6 +28,29 @@ function resolveAddToCartDisabled(product, specId) {
     }
     return requiresSpecSelection(product) && !specId;
 }
+function galleryAssetSizes(product) {
+    var _a;
+    if (!product) {
+        return [];
+    }
+    const assets = ((_a = product.introductionImageAssets) === null || _a === void 0 ? void 0 : _a.length)
+        ? product.introductionImageAssets
+        : product.imageAsset
+            ? [product.imageAsset]
+            : [];
+    return assets
+        .filter((asset) => isUsableImageSize(asset))
+        .map((asset) => ({
+        width: asset.width,
+        height: asset.height
+    }));
+}
+function calculateSwiperHeightRpx(sizes) {
+    const heights = sizes
+        .filter(isUsableImageSize)
+        .map((size) => Math.round((size.height / size.width) * SWIPER_WIDTH_RPX));
+    return heights.length ? Math.max(...heights) : DEFAULT_SWIPER_HEIGHT_RPX;
+}
 Page({
     data: {
         product: null,
@@ -32,6 +60,8 @@ Page({
         quantity: 1,
         cartCount: (0, cart_1.getCartCount)(),
         swiperIndex: 1,
+        swiperHeightRpx: DEFAULT_SWIPER_HEIGHT_RPX,
+        galleryImageSizes: {},
         isAddToCartDisabled: true
     },
     async onLoad(query) {
@@ -63,8 +93,37 @@ Page({
             quantity: 1,
             cartCount: (0, cart_1.getCartCount)(),
             swiperIndex: 1,
+            swiperHeightRpx: calculateSwiperHeightRpx(galleryAssetSizes(product)),
+            galleryImageSizes: {},
             isAddToCartDisabled: resolveAddToCartDisabled(product, selectedSpecId)
         });
+    },
+    refreshSwiperHeight() {
+        const loadedSizes = Object.values(this.data.galleryImageSizes).filter(isUsableImageSize);
+        this.setData({
+            swiperHeightRpx: calculateSwiperHeightRpx([
+                ...galleryAssetSizes(this.data.product),
+                ...loadedSizes
+            ])
+        });
+    },
+    handleGalleryImageLoad(event) {
+        var _a, _b, _c, _d;
+        const index = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.index;
+        const width = (_c = event.detail) === null || _c === void 0 ? void 0 : _c.width;
+        const height = (_d = event.detail) === null || _d === void 0 ? void 0 : _d.height;
+        if (index === undefined || !isUsableImageSize({ width, height })) {
+            return;
+        }
+        this.setData({
+            galleryImageSizes: {
+                ...this.data.galleryImageSizes,
+                [String(index)]: {
+                    width: Number(width),
+                    height: Number(height)
+                }
+            }
+        }, () => this.refreshSwiperHeight());
     },
     onShow() {
         this.syncCartCount();

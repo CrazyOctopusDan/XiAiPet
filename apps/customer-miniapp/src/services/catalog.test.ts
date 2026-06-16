@@ -900,7 +900,7 @@ describe('catalog service', () => {
     });
 
     expect(product.thumbnail).toBe('https://assets.example.test/cover-thumbnail.jpg?x-oss-process=image/resize,m_fill,w_360,h_360/format,webp/quality,q_76');
-    expect(product.gallery).toEqual(['https://assets.example.test/intro-display.jpg?x-oss-process=image/resize,m_fill,w_750,h_670/format,webp/quality,q_80']);
+    expect(product.gallery).toEqual(['https://assets.example.test/intro-display.jpg?x-oss-process=image/format,webp/quality,q_80']);
     expect(product.detailImages).toEqual(['https://assets.example.test/detail.jpg?x-oss-process=image/resize,m_lfit,w_720/format,webp/quality,q_78']);
   });
 
@@ -958,6 +958,10 @@ describe('catalog service', () => {
 
     expect(product.thumbnail).toContain('w_360,h_360');
     expect(product.quickBuyImage).toContain('w_720,h_720');
+    expect(product.gallery).toEqual([
+      'https://assets.example.test/cover.jpg?x-oss-process=image/format,webp/quality,q_80'
+    ]);
+    expect(product.gallery[0]).not.toContain('m_fill,w_720,h_720');
   });
 
   it('adds https before rendering protocol-less remote product image URLs', () => {

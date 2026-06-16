@@ -64,6 +64,7 @@ const OSS_DISPLAY_RULES: Partial<Record<OssAssetVariantName, string>> = {
   detail: 'image/resize,m_lfit,w_720/format,webp/quality,q_78',
   banner: 'image/resize,m_lfit,w_750/format,webp/quality,q_80'
 };
+const OSS_COVER_DETAIL_PROCESS = 'image/format,webp/quality,q_80';
 const OSS_ROLE_DISPLAY_RULES: Partial<Record<OssAssetReference['role'], Partial<Record<OssAssetVariantName, string>>>> = {
   'product-introduction': {
     display: 'image/resize,m_fill,w_750,h_670/format,webp/quality,q_80'
@@ -351,6 +352,19 @@ function getVariantUrl(asset: OssAssetReference | undefined, variantName: OssAss
   return appendOssProcess(rawUrl, process);
 }
 
+function getDetailGalleryUrl(asset: OssAssetReference | undefined) {
+  if (!asset || (asset.role !== 'product-cover' && asset.role !== 'product-introduction')) {
+    return undefined;
+  }
+
+  const rawUrl = imageUrl(asset.url);
+  if (!rawUrl || !/^https?:\/\//.test(rawUrl)) {
+    return rawUrl;
+  }
+
+  return appendOssProcess(rawUrl, OSS_COVER_DETAIL_PROCESS);
+}
+
 function normalizeAssetArray(value: unknown): OssAssetReference[] | undefined {
   const assets = getArray(value).filter(isAssetReference);
   return assets.length ? assets : undefined;
@@ -394,16 +408,19 @@ function normalizeProduct(product: unknown): CatalogProduct | null {
   const detailImageAssets = normalizeAssetArray(product.detailImageAssets);
   const price = asNumber(product.price, asNumber(product.basePrice));
   const specs = normalizeProductSpecs(product, price);
+  const coverDetailUrl = getDetailGalleryUrl(imageAsset);
   const thumbnail = imageUrl(
     getVariantUrl(imageAsset, 'thumbnail') ??
       asString(product.thumbnail, asString(product.imagePreviewUrl, asString(product.imageFileId)))
   ) ?? '';
 
   const gallery = introductionImageAssets?.length
-    ? introductionImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'display') ?? asset.url) ?? '')
-    : getArray(product.gallery)
-        .filter((item): item is string => typeof item === 'string')
-        .map(normalizeImageUrlForDisplay);
+    ? introductionImageAssets.map((asset) => imageUrl(getDetailGalleryUrl(asset) ?? getVariantUrl(asset, 'display') ?? asset.url) ?? '')
+    : coverDetailUrl
+      ? [coverDetailUrl]
+      : getArray(product.gallery)
+          .filter((item): item is string => typeof item === 'string')
+          .map(normalizeImageUrlForDisplay);
   const detailImages = detailImageAssets?.length
     ? detailImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'detail') ?? asset.url) ?? '')
     : getArray(product.detailImages).filter((item): item is string => typeof item === 'string').length
@@ -670,9 +687,12 @@ function pruneSectionCacheForMode(mode: DeliveryMode, categoryIds: Set<string>) 
 
 export function resolveCatalogProductAssetUrls(product: CatalogProduct): CatalogProduct {
   const thumbnail = imageUrl(getVariantUrl(product.imageAsset, 'thumbnail') ?? product.imageAsset?.url ?? product.thumbnail) ?? '';
+  const coverDetailUrl = getDetailGalleryUrl(product.imageAsset);
   const gallery = product.introductionImageAssets?.length
-    ? product.introductionImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'display') ?? asset.url) ?? '')
-    : product.gallery.map(normalizeImageUrlForDisplay);
+    ? product.introductionImageAssets.map((asset) => imageUrl(getDetailGalleryUrl(asset) ?? getVariantUrl(asset, 'display') ?? asset.url) ?? '')
+    : coverDetailUrl
+      ? [coverDetailUrl]
+      : product.gallery.map(normalizeImageUrlForDisplay);
   const detailImages = product.detailImageAssets?.length
     ? product.detailImageAssets.map((asset) => imageUrl(getVariantUrl(asset, 'detail') ?? asset.url) ?? '')
     : product.detailImages.length

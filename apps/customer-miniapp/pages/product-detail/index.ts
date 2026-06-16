@@ -21,6 +21,8 @@ interface ProductDetailPageData {
   quantity: number;
   cartCount: number;
   swiperIndex: number;
+  swiperHeightRpx: number;
+  galleryImageSizes: Record<string, { width: number; height: number }>;
   isAddToCartDisabled: boolean;
 }
 
@@ -29,6 +31,14 @@ interface ProductDetailPageInstance {
   setData(data: Record<string, unknown>, callback?: () => void): void;
   syncCartCount(): void;
   applyProduct(product: CatalogProduct | null): void;
+  refreshSwiperHeight(): void;
+}
+
+const SWIPER_WIDTH_RPX = 750;
+const DEFAULT_SWIPER_HEIGHT_RPX = 670;
+
+function isUsableImageSize(size: { width?: number; height?: number } | undefined) {
+  return Boolean(size && Number.isFinite(size.width) && Number(size.width) > 0 && Number.isFinite(size.height) && Number(size.height) > 0);
 }
 
 function requiresSpecSelection(product: CatalogProduct | null) {
@@ -59,6 +69,33 @@ function resolveAddToCartDisabled(product: CatalogProduct | null, specId: string
   return requiresSpecSelection(product) && !specId;
 }
 
+function galleryAssetSizes(product: CatalogProduct | null) {
+  if (!product) {
+    return [];
+  }
+
+  const assets = product.introductionImageAssets?.length
+    ? product.introductionImageAssets
+    : product.imageAsset
+      ? [product.imageAsset]
+      : [];
+
+  return assets
+    .filter((asset) => isUsableImageSize(asset))
+    .map((asset) => ({
+      width: asset.width,
+      height: asset.height
+    }));
+}
+
+function calculateSwiperHeightRpx(sizes: Array<{ width: number; height: number }>) {
+  const heights = sizes
+    .filter(isUsableImageSize)
+    .map((size) => Math.round((size.height / size.width) * SWIPER_WIDTH_RPX));
+
+  return heights.length ? Math.max(...heights) : DEFAULT_SWIPER_HEIGHT_RPX;
+}
+
 Page({
   data: {
     product: null,
@@ -68,6 +105,8 @@ Page({
     quantity: 1,
     cartCount: getCartCount(),
     swiperIndex: 1,
+    swiperHeightRpx: DEFAULT_SWIPER_HEIGHT_RPX,
+    galleryImageSizes: {},
     isAddToCartDisabled: true
   },
   async onLoad(this: ProductDetailPageInstance, query: { productId?: string }) {
@@ -102,8 +141,41 @@ Page({
       quantity: 1,
       cartCount: getCartCount(),
       swiperIndex: 1,
+      swiperHeightRpx: calculateSwiperHeightRpx(galleryAssetSizes(product)),
+      galleryImageSizes: {},
       isAddToCartDisabled: resolveAddToCartDisabled(product, selectedSpecId)
     });
+  },
+  refreshSwiperHeight(this: ProductDetailPageInstance) {
+    const loadedSizes = Object.values(this.data.galleryImageSizes).filter(isUsableImageSize) as Array<{ width: number; height: number }>;
+    this.setData({
+      swiperHeightRpx: calculateSwiperHeightRpx([
+        ...galleryAssetSizes(this.data.product),
+        ...loadedSizes
+      ])
+    });
+  },
+  handleGalleryImageLoad(
+    this: ProductDetailPageInstance,
+    event: { currentTarget?: { dataset?: { index?: number | string } }; detail?: { width?: number; height?: number } }
+  ) {
+    const index = event.currentTarget?.dataset?.index;
+    const width = event.detail?.width;
+    const height = event.detail?.height;
+
+    if (index === undefined || !isUsableImageSize({ width, height })) {
+      return;
+    }
+
+    this.setData({
+      galleryImageSizes: {
+        ...this.data.galleryImageSizes,
+        [String(index)]: {
+          width: Number(width),
+          height: Number(height)
+        }
+      }
+    }, () => this.refreshSwiperHeight());
   },
   onShow(this: ProductDetailPageInstance) {
     this.syncCartCount();
