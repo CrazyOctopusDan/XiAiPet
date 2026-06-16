@@ -28,11 +28,25 @@ export interface WechatPaymentSyncResult {
   failureMessage?: string;
 }
 
+export interface WechatPaymentSubject {
+  id: string;
+  description: string;
+  amount: number;
+}
+
+export function createOrderPaymentSubject(order: OrderRecord): WechatPaymentSubject {
+  return {
+    id: order.id,
+    description: `XiAiPet 订单 ${order.id}`,
+    amount: order.pricing.payableTotal
+  };
+}
+
 export interface PaymentProvider {
   kind?: 'mock' | 'wechat' | 'unconfigured';
   supportsRechargePayments?: boolean;
-  startWechatPayment(order: OrderRecord, context: WechatPaymentContext): Promise<WechatPaymentStartResult>;
-  syncWechatPayment(order: OrderRecord, context: WechatPaymentContext): Promise<WechatPaymentSyncResult>;
+  startWechatPayment(subject: WechatPaymentSubject, context: WechatPaymentContext): Promise<WechatPaymentStartResult>;
+  syncWechatPayment(subject: WechatPaymentSubject, context: WechatPaymentContext): Promise<WechatPaymentSyncResult>;
 }
 
 export interface WechatPayProviderOptions {
@@ -177,25 +191,28 @@ export function createUnconfiguredWechatPaymentProvider(): PaymentProvider {
 export function createMockPaymentProvider(): PaymentProvider {
   return {
     kind: 'mock',
-    async startWechatPayment(order: OrderRecord, context: WechatPaymentContext): Promise<WechatPaymentStartResult> {
-      const prepayId = `mock_${order.id}_${context.openid}`;
+    supportsRechargePayments: true,
+    async startWechatPayment(subject: WechatPaymentSubject, context: WechatPaymentContext): Promise<WechatPaymentStartResult> {
+      const amountCents = toCents(subject.amount);
+      const descriptionKey = subject.description.replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 32) || 'payment';
+      const prepayId = `mock_${subject.id}_${amountCents}_${context.openid}`;
       return {
-        outTradeNo: order.id,
+        outTradeNo: subject.id,
         prepayId,
         paymentParams: {
           timeStamp: '1700000000',
-          nonceStr: `mock-${order.id}`,
+          nonceStr: `mock-${subject.id}`,
           package: `prepay_id=${prepayId}`,
           signType: 'RSA',
           paySign: 'mock-pay-sign'
         },
-        providerTraceId: `mock-${order.id}`
+        providerTraceId: `mock-${subject.id}-${descriptionKey}-${amountCents}`
       };
     },
-    async syncWechatPayment(order: OrderRecord): Promise<WechatPaymentSyncResult> {
+    async syncWechatPayment(subject: WechatPaymentSubject): Promise<WechatPaymentSyncResult> {
       return {
         tradeState: 'SUCCESS',
-        transactionId: `mock-transaction-${order.id}`,
+        transactionId: `mock-transaction-${subject.id}-${toCents(subject.amount)}`,
         paidAt: new Date()
       };
     }
@@ -205,8 +222,9 @@ export function createMockPaymentProvider(): PaymentProvider {
 export function createWechatPayProvider(options: WechatPayProviderOptions): PaymentProvider {
   return {
     kind: 'wechat',
-    async startWechatPayment(order: OrderRecord, context: WechatPaymentContext): Promise<WechatPaymentStartResult> {
-      const outTradeNo = order.id;
+    supportsRechargePayments: true,
+    async startWechatPayment(subject: WechatPaymentSubject, context: WechatPaymentContext): Promise<WechatPaymentStartResult> {
+      const outTradeNo = subject.id;
       const response = await requestWechatPay<WechatPrepayResponse>(
         options,
         'POST',
@@ -214,11 +232,11 @@ export function createWechatPayProvider(options: WechatPayProviderOptions): Paym
         {
           appid: options.appId,
           mchid: options.mchId,
-          description: `XiAiPet 订单 ${order.id}`,
+          description: subject.description,
           out_trade_no: outTradeNo,
           notify_url: options.notifyUrl,
           amount: {
-            total: toCents(order.pricing.payableTotal),
+            total: toCents(subject.amount),
             currency: 'CNY'
           },
           payer: {
@@ -239,8 +257,8 @@ export function createWechatPayProvider(options: WechatPayProviderOptions): Paym
       };
     },
 
-    async syncWechatPayment(order: OrderRecord): Promise<WechatPaymentSyncResult> {
-      const query = `/v3/pay/transactions/out-trade-no/${encodeURIComponent(order.id)}?mchid=${encodeURIComponent(options.mchId)}`;
+    async syncWechatPayment(subject: WechatPaymentSubject): Promise<WechatPaymentSyncResult> {
+      const query = `/v3/pay/transactions/out-trade-no/${encodeURIComponent(subject.id)}?mchid=${encodeURIComponent(options.mchId)}`;
       const response = await requestWechatPay<WechatTransactionResponse>(options, 'GET', query);
 
       return {

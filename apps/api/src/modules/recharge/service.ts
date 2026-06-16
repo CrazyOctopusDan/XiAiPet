@@ -1,12 +1,12 @@
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import { createHash } from 'node:crypto';
 
-import { RECHARGE_TRANSACTION_STATUS, toSharedEnum } from '../../db/enums';
+import { RECHARGE_TRANSACTION_STATUS, USER_GIFT_STATUS, toSharedEnum } from '../../db/enums';
 import { getPrismaClient } from '../../db/prisma';
 import { ApiError } from '../../lib/errors';
-import type { OrderRecord } from '../orders/repository';
-import { createMockPaymentProvider, type PaymentProvider, type WechatPaymentSyncResult } from '../payments/provider';
+import { createMockPaymentProvider, type PaymentProvider, type WechatPaymentSubject } from '../payments/provider';
 import { createRuntimeConfigRepository, type RuntimeConfigSectionRecord } from '../runtime-config/repository';
+import { createBalanceService } from '../users/balance-service';
 import { createRechargeRepository } from './repository';
 
 const { normalizeRechargePlansConfig } = require('../../../../../packages/shared/src/schema/recharge.js') as {
@@ -72,6 +72,11 @@ interface RechargeTransactionRow {
   updatedAt: Date;
 }
 
+interface WechatRechargeSettlementPayment {
+  transactionId?: string;
+  paidAt?: Date;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
@@ -126,28 +131,12 @@ function createPlanSnapshot(plan: RechargePlanConfig, purchasedAt: Date): Rechar
   };
 }
 
-function createPaymentOrderShape(transaction: RechargeTransactionRow): OrderRecord {
+function createRechargePaymentSubject(transaction: RechargeTransactionRow): WechatPaymentSubject {
   const view = mapRechargeTransaction(transaction);
   return {
     id: transaction.outTradeNo,
-    openid: transaction.openid,
-    status: 'payment_processing',
-    idempotencyKey: transaction.idempotencyKey,
-    paymentMethod: 'wechat',
-    paymentStatus: 'processing',
-    fulfillmentMode: 'pickup',
-    pricing: {
-      itemsSubtotal: view.paidAmount,
-      deliveryFee: 0,
-      payableTotal: view.paidAmount
-    },
-    snapshot: {
-      type: 'recharge',
-      plan: view.planSnapshot
-    },
-    createdAt: transaction.createdAt.toISOString(),
-    updatedAt: transaction.updatedAt.toISOString(),
-    paidAt: view.paidAt
+    description: `XiAiPet 充值 ${view.paidAmount}`,
+    amount: view.paidAmount
   };
 }
 
@@ -193,7 +182,7 @@ async function startRechargePayment(
   transaction: RechargeTransactionRow,
   openid: string
 ) {
-  const paymentStart = await paymentProvider.startWechatPayment(createPaymentOrderShape(transaction), { openid });
+  const paymentStart = await paymentProvider.startWechatPayment(createRechargePaymentSubject(transaction), { openid });
   const processing = await rechargeRepository.markPaymentProcessing(transaction.id, {
     prepayId: paymentStart.prepayId
   });
@@ -298,13 +287,17 @@ export function createRechargeService(
         throw new ApiError('RECHARGE_TRANSACTION_NOT_FOUND', 'Recharge transaction not found', 404);
       }
 
-      const syncedPayment = await paymentProvider.syncWechatPayment(createPaymentOrderShape(transaction as RechargeTransactionRow), { openid });
+      const syncedPayment = await paymentProvider.syncWechatPayment(createRechargePaymentSubject(transaction as RechargeTransactionRow), { openid });
       let current = transaction as RechargeTransactionRow;
       if (syncedPayment.tradeState === 'SUCCESS') {
-        current = await rechargeRepository.recordWechatPaymentSync(transaction.id, {
+        const settled = await this.settleWechatRechargePayment((transaction as RechargeTransactionRow).outTradeNo, {
           transactionId: syncedPayment.transactionId,
           paidAt: syncedPayment.paidAt ?? new Date()
-        }) as RechargeTransactionRow;
+        });
+        return {
+          ok: true as const,
+          transaction: settled
+        };
       }
 
       return {
@@ -313,8 +306,88 @@ export function createRechargeService(
       };
     },
 
-    async settleWechatRechargePayment(_outTradeNo: string, _payment: WechatPaymentSyncResult) {
-      throw new ApiError('RECHARGE_SETTLEMENT_NOT_IMPLEMENTED', 'Recharge settlement is not implemented yet', 501);
+    async settleWechatRechargePayment(outTradeNo: string, payment: WechatRechargeSettlementPayment) {
+      return client.$transaction(async (tx) => {
+        const existing = await tx.rechargeTransaction.findUnique({
+          where: { outTradeNo }
+        }) as RechargeTransactionRow | null;
+        if (!existing) {
+          throw new ApiError('RECHARGE_TRANSACTION_NOT_FOUND', 'Recharge transaction not found', 404);
+        }
+        if (existing.settledAt) {
+          return mapRechargeTransaction(existing);
+        }
+
+        const paidAt = payment.paidAt ?? new Date();
+        const updated = await tx.rechargeTransaction.update({
+          where: { id: existing.id },
+          data: {
+            status: RECHARGE_TRANSACTION_STATUS.paid,
+            transactionId: payment.transactionId,
+            paidAt,
+            settledAt: paidAt
+          }
+        }) as RechargeTransactionRow;
+
+        await createBalanceService(tx as never).adjustBalance({
+          openid: existing.openid,
+          amountDelta: toNumber(existing.paidAmount),
+          type: 'recharge',
+          idempotencyKey: `recharge-paid-${existing.id}`,
+          reason: '充值到账',
+          metadata: { rechargeTransactionId: existing.id, amountKind: 'paid', planId: existing.planId }
+        });
+
+        const bonusAmount = toNumber(existing.bonusAmount);
+        if (bonusAmount > 0) {
+          await createBalanceService(tx as never).adjustBalance({
+            openid: existing.openid,
+            amountDelta: bonusAmount,
+            type: 'recharge',
+            idempotencyKey: `recharge-bonus-${existing.id}`,
+            reason: '充值赠送',
+            metadata: { rechargeTransactionId: existing.id, amountKind: 'bonus', planId: existing.planId }
+          });
+        }
+
+        const planSnapshot = existing.planSnapshot as RechargePlanSnapshot;
+        const gifts = Array.isArray(planSnapshot.gifts) ? planSnapshot.gifts : [];
+        if (gifts.length > 0) {
+          const existingGifts = await tx.userGift.findMany({
+            where: {
+              sourceRechargeTransactionId: existing.id
+            },
+            select: {
+              giftTemplateId: true
+            }
+          });
+          const existingGiftTemplateIds = new Set(existingGifts.map((gift) => gift.giftTemplateId));
+
+          for (const gift of gifts) {
+            if (existingGiftTemplateIds.has(gift.giftTemplateId)) {
+              continue;
+            }
+            await tx.userGift.create({
+              data: {
+                openid: existing.openid,
+                sourceRechargeTransactionId: existing.id,
+                sourcePlanId: planSnapshot.planId ?? existing.planId,
+                giftTemplateId: gift.giftTemplateId,
+                giftSnapshot: {
+                  giftTemplateId: gift.giftTemplateId,
+                  name: gift.name,
+                  description: gift.description,
+                  validDays: gift.validDays
+                } as Prisma.InputJsonValue,
+                status: USER_GIFT_STATUS.available,
+                expiresAt: new Date(paidAt.getTime() + gift.validDays * 24 * 60 * 60 * 1000)
+              }
+            });
+          }
+        }
+
+        return mapRechargeTransaction(updated);
+      });
     }
   };
 }

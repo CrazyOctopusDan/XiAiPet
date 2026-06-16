@@ -2,6 +2,7 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 
 import { LEDGER_TYPE } from '../../db/enums';
 import { getPrismaClient } from '../../db/prisma';
+import type { DbClient } from '../../db/types';
 
 export interface BalanceAdjustmentInput {
   openid: string;
@@ -23,10 +24,19 @@ export interface BalanceAdjustmentResult {
   ledgerId: string;
 }
 
-export function createBalanceService(client: PrismaClient = getPrismaClient()) {
+function runInTransaction<T>(client: DbClient, callback: (tx: Prisma.TransactionClient) => Promise<T>) {
+  const transactionalClient = client as PrismaClient;
+  if (typeof transactionalClient.$transaction === 'function') {
+    return transactionalClient.$transaction(callback);
+  }
+
+  return callback(client as Prisma.TransactionClient);
+}
+
+export function createBalanceService(client: DbClient = getPrismaClient()) {
   return {
     async adjustBalance(input: BalanceAdjustmentInput): Promise<BalanceAdjustmentResult> {
-      return client.$transaction(async (tx) => {
+      return runInTransaction(client, async (tx) => {
         const account = await tx.balanceAccount.upsert({
           where: { openid: input.openid },
           update: {},

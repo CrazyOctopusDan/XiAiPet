@@ -65,6 +65,64 @@ function createPaymentStart(prepayId = 'mock_prepay') {
   };
 }
 
+function createSettlementClient(options: {
+  transaction?: ReturnType<typeof createTransactionRow> | null;
+  updatedTransaction?: ReturnType<typeof createTransactionRow>;
+  existingGifts?: Array<{ giftTemplateId: string }>;
+} = {}) {
+  const paidAt = date('2026-06-16T10:30:00.000Z');
+  const transaction = options.transaction === undefined
+    ? createTransactionRow({
+      planSnapshot: {
+        planId: 'plan-100',
+        enabled: true,
+        paidAmount: 100,
+        bonusAmount: 20,
+        description: '充100送20',
+        gifts: [
+          { giftTemplateId: 'gift-cookie', name: '饼干券', description: '宠物饼干一份', validDays: 30 },
+          { giftTemplateId: 'gift-cake', name: '蛋糕券', description: '生日蛋糕折扣', validDays: 7 }
+        ],
+        purchasedAt: '2026-06-16T10:00:00.000Z'
+      }
+    })
+    : options.transaction;
+  const updatedTransaction = options.updatedTransaction ?? createTransactionRow({
+    ...(transaction ?? {}),
+    status: 'PAID',
+    transactionId: 'wx-transaction-1',
+    paidAt,
+    settledAt: paidAt
+  });
+  const tx = {
+    rechargeTransaction: {
+      findUnique: vi.fn(async () => transaction),
+      update: vi.fn(async () => updatedTransaction)
+    },
+    balanceAccount: {
+      upsert: vi.fn(async () => ({ id: 'balance-account-1', openid: 'openid-1', balance: decimal(0) })),
+      update: vi.fn()
+        .mockResolvedValueOnce({ id: 'balance-account-1', balance: decimal(100) })
+        .mockResolvedValueOnce({ id: 'balance-account-1', balance: decimal(120) })
+    },
+    balanceLedger: {
+      findUnique: vi.fn(async () => null),
+      create: vi.fn()
+        .mockResolvedValueOnce({ id: 'ledger-paid', balanceAfter: decimal(100) })
+        .mockResolvedValueOnce({ id: 'ledger-bonus', balanceAfter: decimal(120) })
+    },
+    userGift: {
+      findMany: vi.fn(async () => options.existingGifts ?? []),
+      create: vi.fn(async ({ data }: { data: unknown }) => data)
+    }
+  };
+  const client = {
+    $transaction: vi.fn(async (callback: (txClient: typeof tx) => unknown) => callback(tx))
+  };
+
+  return { client, tx, paidAt, transaction, updatedTransaction };
+}
+
 describe('createRechargeService', () => {
   it('lists only enabled recharge plans for customers and all plans for merchants', async () => {
     const client = {
@@ -224,17 +282,20 @@ describe('createRechargeService', () => {
     );
   });
 
-  it('syncs a customer recharge payment without settling the transaction yet', async () => {
+  it('syncs a customer recharge payment and settles successful WeChat payments', async () => {
     const paidAt = date('2026-06-16T10:30:00.000Z');
     const row = createTransactionRow();
-    const syncedRow = createTransactionRow({
+    const paidRow = createTransactionRow({
+      status: 'PAID',
       transactionId: 'wx-transaction-1',
-      paidAt
+      paidAt,
+      settledAt: paidAt
     });
+    const { tx } = createSettlementClient({ transaction: row, updatedTransaction: paidRow });
     const client = {
+      $transaction: vi.fn(async (callback: (txClient: typeof tx) => unknown) => callback(tx)),
       rechargeTransaction: {
-        findUnique: vi.fn(async () => row),
-        update: vi.fn(async () => syncedRow)
+        findUnique: vi.fn(async () => row)
       }
     };
     const paymentProvider = {
@@ -258,11 +319,14 @@ describe('createRechargeService', () => {
         planSnapshot: row.planSnapshot,
         paidAmount: 100,
         bonusAmount: 20,
-        status: 'processing',
-        paidAt: '2026-06-16T10:30:00.000Z'
+        status: 'paid',
+        paidAt: '2026-06-16T10:30:00.000Z',
+        settledAt: '2026-06-16T10:30:00.000Z'
       }
     });
     expect(paymentProvider.syncWechatPayment).toHaveBeenCalledTimes(1);
+    expect(client.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.balanceLedger.create).toHaveBeenCalledTimes(2);
   });
 
   it('blocks starting recharge payment with unsafe real providers before settlement routing exists', async () => {
@@ -491,5 +555,130 @@ describe('createRechargeService', () => {
     });
     expect(paymentProvider.startWechatPayment).toHaveBeenCalledTimes(2);
     expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it('settles a WeChat recharge payment with paid and bonus ledgers and gift snapshots', async () => {
+    const { client, tx, paidAt } = createSettlementClient();
+    const service = createRechargeService(client as never);
+
+    await expect(
+      service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
+        transactionId: 'wx-transaction-1',
+        paidAt
+      })
+    ).resolves.toMatchObject({
+      id: 'recharge-openid-1_idem-1',
+      status: 'paid',
+      paidAt: '2026-06-16T10:30:00.000Z',
+      settledAt: '2026-06-16T10:30:00.000Z'
+    });
+
+    expect(tx.rechargeTransaction.findUnique).toHaveBeenCalledWith({
+      where: { outTradeNo: 'recharge-openid-1_idem-1' }
+    });
+    expect(tx.rechargeTransaction.update).toHaveBeenCalledWith({
+      where: { id: 'recharge-openid-1_idem-1' },
+      data: {
+        status: 'PAID',
+        transactionId: 'wx-transaction-1',
+        paidAt,
+        settledAt: paidAt
+      }
+    });
+    expect(tx.balanceLedger.create).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      data: expect.objectContaining({
+        amountDelta: 100,
+        idempotencyKey: 'recharge-paid-recharge-openid-1_idem-1',
+        reason: '充值到账',
+        type: 'RECHARGE'
+      })
+    }));
+    expect(tx.balanceLedger.create).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      data: expect.objectContaining({
+        amountDelta: 20,
+        idempotencyKey: 'recharge-bonus-recharge-openid-1_idem-1',
+        reason: '充值赠送',
+        type: 'RECHARGE'
+      })
+    }));
+    expect(tx.userGift.create).toHaveBeenCalledTimes(2);
+    expect(tx.userGift.create).toHaveBeenNthCalledWith(1, {
+      data: expect.objectContaining({
+        openid: 'openid-1',
+        sourceRechargeTransactionId: 'recharge-openid-1_idem-1',
+        sourcePlanId: 'plan-100',
+        giftTemplateId: 'gift-cookie',
+        status: 'AVAILABLE',
+        giftSnapshot: {
+          giftTemplateId: 'gift-cookie',
+          name: '饼干券',
+          description: '宠物饼干一份',
+          validDays: 30
+        },
+        expiresAt: date('2026-07-16T10:30:00.000Z')
+      })
+    });
+    expect(tx.userGift.create).toHaveBeenNthCalledWith(2, {
+      data: expect.objectContaining({
+        giftTemplateId: 'gift-cake',
+        expiresAt: date('2026-06-23T10:30:00.000Z')
+      })
+    });
+  });
+
+  it('does not duplicate ledgers or gifts when settlement is repeated', async () => {
+    const paidAt = date('2026-06-16T10:30:00.000Z');
+    const unsettled = createTransactionRow({
+      planSnapshot: {
+        planId: 'plan-100',
+        enabled: true,
+        paidAmount: 100,
+        bonusAmount: 20,
+        description: '充100送20',
+        gifts: [
+          { giftTemplateId: 'gift-cookie', name: '饼干券', description: '宠物饼干一份', validDays: 30 }
+        ],
+        purchasedAt: '2026-06-16T10:00:00.000Z'
+      }
+    });
+    const settled = createTransactionRow({
+      ...unsettled,
+      status: 'PAID',
+      transactionId: 'wx-transaction-1',
+      paidAt,
+      settledAt: paidAt
+    });
+    const { client, tx } = createSettlementClient({ transaction: unsettled, updatedTransaction: settled });
+    tx.rechargeTransaction.findUnique
+      .mockResolvedValueOnce(unsettled)
+      .mockResolvedValueOnce(settled);
+    const service = createRechargeService(client as never);
+
+    await service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
+      transactionId: 'wx-transaction-1',
+      paidAt
+    });
+    await service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
+      transactionId: 'wx-transaction-1',
+      paidAt
+    });
+
+    expect(tx.rechargeTransaction.update).toHaveBeenCalledTimes(1);
+    expect(tx.balanceLedger.create).toHaveBeenCalledTimes(2);
+    expect(tx.userGift.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns RECHARGE_TRANSACTION_NOT_FOUND when settling a missing out trade number', async () => {
+    const { client } = createSettlementClient({ transaction: null });
+    const service = createRechargeService(client as never);
+
+    await expect(
+      service.settleWechatRechargePayment('recharge-missing', {
+        transactionId: 'wx-transaction-1',
+        paidAt: date('2026-06-16T10:30:00.000Z')
+      })
+    ).rejects.toMatchObject(
+      new ApiError('RECHARGE_TRANSACTION_NOT_FOUND', 'Recharge transaction not found', 404)
+    );
   });
 });

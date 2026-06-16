@@ -4,6 +4,7 @@ import type { ApiConfig } from '../../config/env';
 import { ApiError } from '../../lib/errors';
 import { getPrismaClient } from '../../db/prisma';
 import type { DbClient } from '../../db/types';
+import { createRechargeService } from '../recharge/service';
 import { createPaymentRepository } from './repository';
 
 export interface WechatPayNotificationHeaders {
@@ -88,16 +89,23 @@ export function createPaymentNotifyService(
 
       if (resource.trade_state === 'SUCCESS') {
         const paidAt = resource.success_time ? new Date(resource.success_time) : new Date();
-        const paymentRepository = createPaymentRepository(client);
-        await paymentRepository.upsertPayment({
-          orderId: resource.out_trade_no,
-          method: 'wechat',
-          status: 'paid',
-          outTradeNo: resource.out_trade_no,
-          transactionId: resource.transaction_id,
-          paidAt
-        });
-        await paymentRepository.markOrderPaid(resource.out_trade_no, paidAt);
+        if (resource.out_trade_no.startsWith('recharge-')) {
+          await createRechargeService(client as never).settleWechatRechargePayment(resource.out_trade_no, {
+            transactionId: resource.transaction_id,
+            paidAt
+          });
+        } else {
+          const paymentRepository = createPaymentRepository(client);
+          await paymentRepository.upsertPayment({
+            orderId: resource.out_trade_no,
+            method: 'wechat',
+            status: 'paid',
+            outTradeNo: resource.out_trade_no,
+            transactionId: resource.transaction_id,
+            paidAt
+          });
+          await paymentRepository.markOrderPaid(resource.out_trade_no, paidAt);
+        }
       }
 
       return { ok: true as const };

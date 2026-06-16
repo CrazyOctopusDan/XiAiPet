@@ -1,11 +1,18 @@
 import { createCipheriv, createSign, generateKeyPairSync, randomBytes } from 'node:crypto';
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DbClient } from '../../db/types';
 import { createPaymentNotifyService } from './notification-service';
 
 const API_V3_KEY = '12345678901234567890123456789012';
+const rechargeSettlementMock = vi.hoisted(() => vi.fn());
+
+vi.mock('../recharge/service', () => ({
+  createRechargeService: vi.fn(() => ({
+    settleWechatRechargePayment: rechargeSettlementMock
+  }))
+}));
 
 function createOrderRow(orderId: string) {
   const now = new Date('2026-06-11T01:00:00.000Z');
@@ -54,6 +61,10 @@ function signBody(privateKey: string, timestamp: string, nonce: string, rawBody:
 }
 
 describe('createPaymentNotifyService', () => {
+  beforeEach(() => {
+    rechargeSettlementMock.mockReset();
+  });
+
   it('verifies, decrypts and records successful WeChat Pay notifications', async () => {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
@@ -108,6 +119,55 @@ describe('createPaymentNotifyService', () => {
         paymentStatus: 'PAID'
       })
     }));
+    expect(rechargeSettlementMock).not.toHaveBeenCalled();
+  });
+
+  it('routes successful recharge notifications to recharge settlement', async () => {
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+    const publicPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    const paymentUpsert = vi.fn();
+    const orderUpdate = vi.fn();
+    const client = {
+      payment: { upsert: paymentUpsert },
+      order: { update: orderUpdate }
+    } as unknown as DbClient;
+    const rawBody = JSON.stringify({
+      id: 'notice-1',
+      resource: encryptResource({
+        out_trade_no: 'recharge-openid-1_idem-1',
+        transaction_id: 'wx-recharge-transaction-1',
+        trade_state: 'SUCCESS',
+        success_time: '2026-06-11T01:02:03+08:00'
+      })
+    });
+    const timestamp = '1700000000';
+    const nonce = randomBytes(12).toString('hex');
+    const service = createPaymentNotifyService({
+      mchId: '1113847744',
+      mchSerialNo: 'merchant-serial',
+      privateKey: privatePem,
+      notifyUrl: 'https://api.xiaipet.vip/api/v1/payments/wechat/notify',
+      apiV3Key: API_V3_KEY,
+      platformPublicKey: publicPem
+    }, client);
+
+    await expect(service.handleWechatPayNotification({
+      rawBody,
+      headers: {
+        timestamp,
+        nonce,
+        serial: 'platform-serial',
+        signature: signBody(privatePem, timestamp, nonce, rawBody)
+      }
+    })).resolves.toEqual({ ok: true });
+
+    expect(rechargeSettlementMock).toHaveBeenCalledWith('recharge-openid-1_idem-1', {
+      transactionId: 'wx-recharge-transaction-1',
+      paidAt: new Date('2026-06-10T17:02:03.000Z')
+    });
+    expect(paymentUpsert).not.toHaveBeenCalled();
+    expect(orderUpdate).not.toHaveBeenCalled();
   });
 
   it('rejects notifications with invalid signatures', async () => {

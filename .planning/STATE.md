@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-11 -- Quick task 260611-docker-daemon-eof-recovery completed: documented Docker daemon EOF recovery
+last_activity: 2026-06-16 -- Quick task 260616-qus completed: settled recharge payments
 progress:
   total_phases: 8
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-05-12 -- Phase 12 execution started
+Last activity: 2026-06-16 -- Quick task 260616-qus completed: settled recharge payments
 
 Progress: [████████░░] 83%
 
@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-16 | 260616-qus Task 4 payment settlement for recharge | Generalized WeChat payment subjects, routed recharge notifications, and implemented idempotent transactional recharge settlement with balance ledgers and gift snapshots. |
 | 2026-06-16 | 260616-imp recharge plans and gifts implementation plan | Wrote the implementation plan for recharge contracts, REST APIs, WeChat Pay settlement, gift snapshots, checkout gift use, and miniapp pages. |
 | 2026-06-16 | 260616-rch recharge plans and gifts design | Designed fixed recharge plans, WeChat Pay recharge settlement, separate paid/bonus ledgers, user gift snapshots, expiration, and checkout gift locking. |
 | 2026-06-11 | 260611-docker-daemon-eof-recovery Docker daemon EOF recovery | Added ECS recovery steps for Docker daemon EOF before `docker system df`, including non-Docker cleanup and a last-resort data-root reset path. |

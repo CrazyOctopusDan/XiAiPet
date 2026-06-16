@@ -12,7 +12,7 @@ import { getPrismaClient } from '../../db/prisma';
 import { ApiError } from '../../lib/errors';
 import type { MerchantContext } from '../auth/types';
 import type { PaymentProvider } from '../payments/provider';
-import { createMockPaymentProvider } from '../payments/provider';
+import { createMockPaymentProvider, createOrderPaymentSubject } from '../payments/provider';
 import { createBalanceService } from '../users/balance-service';
 import { createPaymentRepository } from '../payments/repository';
 import { createRuntimeConfigRepository, type RuntimeConfigSectionRecord } from '../runtime-config/repository';
@@ -408,7 +408,7 @@ export function createOrderService(
         }
       }
       const processing = await orderRepository.markPaymentProcessing(orderId);
-      const paymentStart = await paymentProvider.startWechatPayment(processing, { openid });
+      const paymentStart = await paymentProvider.startWechatPayment(createOrderPaymentSubject(processing), { openid });
       await createPaymentRepository(client).upsertPayment({
         orderId,
         method: 'wechat',
@@ -441,7 +441,7 @@ export function createOrderService(
       }
 
       if (order.paymentMethod === 'wechat' && order.paymentStatus !== 'paid') {
-        const syncedPayment = await paymentProvider.syncWechatPayment(order, { openid });
+        const syncedPayment = await paymentProvider.syncWechatPayment(createOrderPaymentSubject(order), { openid });
 
         if (syncedPayment.tradeState === 'SUCCESS') {
           await createPaymentRepository(client).upsertPayment({
