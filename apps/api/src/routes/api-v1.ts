@@ -6,6 +6,7 @@ import { customerAccountRoutes } from './customer/account';
 import { customerProfileRoutes } from './customer/profile';
 import { customerCatalogRoutes } from './customer/catalog';
 import { customerOrderRoutes } from './customer/orders';
+import { customerRechargeRoutes } from './customer/recharge';
 import { customerRuntimeConfigRoutes } from './customer/runtime-config';
 import { merchantAccountRoutes } from './merchant/accounts';
 import { merchantAuthRoutes } from './merchant/auth';
@@ -13,6 +14,7 @@ import { merchantAssetRoutes } from './merchant/assets';
 import { merchantCatalogRoutes } from './merchant/catalog';
 import { merchantOrderRoutes } from './merchant/orders';
 import { merchantPrintingRoutes } from './merchant/printing';
+import { merchantRechargeRoutes } from './merchant/recharge';
 import { merchantRuntimeConfigRoutes } from './merchant/runtime-config';
 import { merchantUserRoutes } from './merchant/users';
 import { paymentRoutes } from './payments';
@@ -28,6 +30,7 @@ export async function apiV1Routes(
   await app.register(customerCatalogRoutes, { prefix: '/api/v1/customer', dependencies });
   await app.register(customerRuntimeConfigRoutes, { prefix: '/api/v1/customer', dependencies });
   await app.register(customerOrderRoutes, { prefix: '/api/v1/customer', dependencies });
+  await app.register(customerRechargeRoutes, { prefix: '/api/v1/customer', dependencies });
   await app.register(paymentRoutes, { prefix: '/api/v1/payments', dependencies });
   await app.register(merchantAuthRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantAccountRoutes, { prefix: '/api/v1/merchant', dependencies });
@@ -36,5 +39,6 @@ export async function apiV1Routes(
   await app.register(merchantCatalogRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantUserRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantRuntimeConfigRoutes, { prefix: '/api/v1/merchant', dependencies });
+  await app.register(merchantRechargeRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantPrintingRoutes, { prefix: '/api/v1/merchant', dependencies });
 }

@@ -19,6 +19,7 @@ import { createRuntimeConfigService } from '../modules/runtime-config/service';
 import { createPrintingService } from '../modules/printing/service';
 import { createAssetService } from '../modules/assets/service';
 import { createCustomerAccountService } from '../modules/customer-account/service';
+import { createRechargeService } from '../modules/recharge/service';
 
 type AsyncResult = Promise<unknown>;
 
@@ -109,6 +110,14 @@ export interface ApiRouteServices {
     getMerchantOrderDetail(merchantContext: unknown, orderId: string): AsyncResult;
     updateMerchantOrderStatus(merchantContext: unknown, orderId: string, payload: unknown): AsyncResult;
   };
+  rechargeService: {
+    listCustomerRechargePlans(): AsyncResult;
+    listMerchantRechargePlans(merchantContext: unknown): AsyncResult;
+    saveMerchantRechargePlans(merchantContext: unknown, payload: unknown): AsyncResult;
+    createCustomerRechargeTransaction(openid: string, payload: unknown): AsyncResult;
+    syncCustomerRechargeTransaction(openid: string, transactionId: string): AsyncResult;
+    settleWechatRechargePayment(outTradeNo: string, payment: unknown): AsyncResult;
+  };
   paymentNotifyService: {
     handleWechatPayNotification(payload: unknown): AsyncResult;
   };
@@ -171,6 +180,7 @@ export function createApiRouteDependencies(
     merchantUserService: overrides.merchantUserService ?? createMerchantUserService(),
     merchantAccountService,
     orderService: overrides.orderService ?? createOrderService(undefined, paymentProvider),
+    rechargeService: overrides.rechargeService ?? createRechargeService(undefined, paymentProvider),
     paymentNotifyService: overrides.paymentNotifyService ?? createPaymentNotifyService(config.wechatPay),
     printingService: overrides.printingService ?? createPrintingService(),
     assetService: overrides.assetService ?? createAssetService(config),
