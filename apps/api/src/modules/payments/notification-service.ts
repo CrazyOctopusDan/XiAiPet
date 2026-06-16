@@ -5,6 +5,7 @@ import { ApiError } from '../../lib/errors';
 import { getPrismaClient } from '../../db/prisma';
 import type { DbClient } from '../../db/types';
 import { createRechargeService } from '../recharge/service';
+import { createGiftService } from '../gifts/service';
 import { createPaymentRepository } from './repository';
 
 export interface WechatPayNotificationHeaders {
@@ -153,6 +154,7 @@ export function createPaymentNotifyService(
             paidAt
           });
           await paymentRepository.markOrderPaid(resource.out_trade_no, paidAt);
+          await createGiftService(client).redeemGiftsForOrder(resource.out_trade_no);
         }
       }
 

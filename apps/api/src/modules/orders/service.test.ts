@@ -104,6 +104,113 @@ describe('order service', () => {
     });
   });
 
+  it('locks selected gifts and stores gift snapshots when creating an order', async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    const tx = {
+      order: {
+        findUnique: vi.fn(async () => null),
+        create: vi.fn(async ({ data }) =>
+          createOrderRow({
+            id: data.id,
+            openid: data.openid,
+            idempotencyKey: data.idempotencyKey,
+            paymentMethod: data.paymentMethod,
+            fulfillmentMode: data.fulfillmentMode,
+            itemsSubtotal: decimal(Number(data.itemsSubtotal)),
+            deliveryFee: decimal(Number(data.deliveryFee)),
+            payableTotal: decimal(Number(data.payableTotal)),
+            snapshot: data.snapshot
+          })
+        )
+      },
+      product: {
+        update: vi.fn()
+      },
+      userGift: {
+        updateMany,
+        findMany: vi.fn(async () => [
+          {
+            id: 'gift-1',
+            openid: 'openid-1',
+            sourceRechargeTransactionId: 'recharge-tx-1',
+            sourcePlanId: 'plan-1',
+            giftTemplateId: 'cake-year',
+            giftSnapshot: {
+              name: '周年蛋糕',
+              description: '一年内可兑换',
+              validDays: 365
+            },
+            status: 'LOCKED',
+            expiresAt: new Date('2026-12-31T00:00:00.000Z'),
+            lockedOrderId: 'order-1',
+            redeemedOrderId: null,
+            lockedAt: new Date('2026-06-16T09:00:00.000Z'),
+            redeemedAt: null,
+            releasedAt: null,
+            createdAt: new Date('2026-06-16T00:00:00.000Z'),
+            updatedAt: new Date('2026-06-16T09:00:00.000Z')
+          }
+        ])
+      }
+    };
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      $transaction: vi.fn(async (callback) => callback(tx))
+    };
+    const service = createOrderService(client as any);
+
+    const result = await service.createCustomerOrder('openid-1', {
+      id: 'order-1',
+      idempotencyKey: 'checkout-with-gift',
+      paymentMethod: 'balance',
+      pricing: {
+        itemsSubtotal: 133,
+        deliveryFee: 0,
+        payableTotal: 133
+      },
+      items: [],
+      selectedGiftIds: [' gift-1 ', 'gift-1'],
+      remark: '带赠品'
+    });
+
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        openid: 'openid-1',
+        id: { in: ['gift-1'] },
+        status: 'AVAILABLE'
+      }),
+      data: expect.objectContaining({
+        status: 'LOCKED',
+        lockedOrderId: 'order-1'
+      })
+    }));
+    expect(tx.order.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        snapshot: expect.objectContaining({
+          selectedGiftIds: [' gift-1 ', 'gift-1'],
+          gifts: [
+            {
+              id: 'gift-1',
+              name: '周年蛋糕',
+              description: '一年内可兑换',
+              validDays: 365
+            }
+          ]
+        })
+      })
+    }));
+    expect(result.order.snapshot).toMatchObject({
+      gifts: [
+        {
+          id: 'gift-1',
+          name: '周年蛋糕'
+        }
+      ]
+    });
+  });
+
   it('rejects customer order creation before phone registration', async () => {
     const client = {
       user: {
@@ -293,6 +400,9 @@ describe('order service', () => {
       },
       payment: {
         upsert: vi.fn(async ({ create, update }) => ({ ...create, ...update }))
+      },
+      userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
       }
     };
     const paymentProvider = {
@@ -348,6 +458,102 @@ describe('order service', () => {
       }),
       { openid: 'openid-1' }
     );
+    expect(client.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { lockedOrderId: 'order-1', status: 'LOCKED' },
+      data: expect.objectContaining({
+        status: 'REDEEMED',
+        redeemedOrderId: 'order-1'
+      })
+    }));
+  });
+
+  it('redeems locked gifts after balance payment succeeds', async () => {
+    const order = createOrderRow({
+      paymentMethod: 'BALANCE',
+      paymentStatus: 'PENDING',
+      payableTotal: decimal(68)
+    });
+    const client = {
+      order: {
+        findUnique: vi.fn(async () => order),
+        update: vi.fn(async ({ data }) =>
+          createOrderRow({
+            ...order,
+            status: data.status,
+            paymentStatus: data.paymentStatus,
+            paidAt: data.paidAt
+          })
+        )
+      },
+      balanceAccount: {
+        upsert: vi.fn(async () => ({ id: 'balance-1', balance: decimal(100) })),
+        updateMany: vi.fn(async () => ({ count: 1 })),
+        findUnique: vi.fn(async () => ({ id: 'balance-1', balance: decimal(32) }))
+      },
+      balanceLedger: {
+        findUnique: vi.fn(async () => null),
+        create: vi.fn(async () => ({ id: 'ledger-1', balanceAfter: decimal(32) }))
+      },
+      userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
+      }
+    };
+    const service = createOrderService(client as any);
+
+    const result = await service.startCustomerPayment('openid-1', 'order-1');
+
+    expect(result).toMatchObject({ ok: true, paymentStatus: 'paid' });
+    expect(client.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { lockedOrderId: 'order-1', status: 'LOCKED' },
+      data: expect.objectContaining({
+        status: 'REDEEMED',
+        redeemedOrderId: 'order-1'
+      })
+    }));
+  });
+
+  it('releases locked gifts when balance payment has insufficient funds', async () => {
+    const order = createOrderRow({
+      paymentMethod: 'BALANCE',
+      paymentStatus: 'PENDING',
+      payableTotal: decimal(68)
+    });
+    const client = {
+      order: {
+        findUnique: vi.fn(async () => order),
+        update: vi.fn()
+      },
+      balanceAccount: {
+        upsert: vi.fn(async () => ({ id: 'balance-1', balance: decimal(20) })),
+        updateMany: vi.fn(async () => ({ count: 0 })),
+        findUnique: vi.fn()
+      },
+      balanceLedger: {
+        findUnique: vi.fn(async () => null),
+        create: vi.fn()
+      },
+      userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
+      }
+    };
+    const service = createOrderService(client as any);
+
+    const result = await service.startCustomerPayment('openid-1', 'order-1');
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: 'INSUFFICIENT_BALANCE',
+      paymentStatus: 'blocked'
+    });
+    expect(client.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { lockedOrderId: 'order-1', status: 'LOCKED' },
+      data: expect.objectContaining({
+        status: 'AVAILABLE',
+        lockedOrderId: null,
+        lockedAt: null
+      })
+    }));
+    expect(client.order.update).not.toHaveBeenCalled();
   });
 
   it('rejects WeChat payment sync success when the provider omits paid amount', async () => {

@@ -77,6 +77,9 @@ describe('createPaymentNotifyService', () => {
       order: {
         findUnique: vi.fn(async () => createOrderRow('order-1')),
         update: orderUpdate
+      },
+      userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
       }
     } as unknown as DbClient;
     const rawBody = JSON.stringify({
@@ -125,6 +128,13 @@ describe('createPaymentNotifyService', () => {
       data: expect.objectContaining({
         status: 'PAID',
         paymentStatus: 'PAID'
+      })
+    }));
+    expect(client.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { lockedOrderId: 'order-1', status: 'LOCKED' },
+      data: expect.objectContaining({
+        status: 'REDEEMED',
+        redeemedOrderId: 'order-1'
       })
     }));
     expect(rechargeSettlementMock).not.toHaveBeenCalled();

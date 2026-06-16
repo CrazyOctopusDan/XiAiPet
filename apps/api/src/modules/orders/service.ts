@@ -16,6 +16,7 @@ import { createMockPaymentProvider, createOrderPaymentSubject } from '../payment
 import { createBalanceService } from '../users/balance-service';
 import { createPaymentRepository } from '../payments/repository';
 import { createRuntimeConfigRepository, type RuntimeConfigSectionRecord } from '../runtime-config/repository';
+import { createGiftService, type LockedGiftSnapshot } from '../gifts/service';
 
 interface CustomerOrderPayload {
   id?: string;
@@ -38,6 +39,7 @@ interface CustomerOrderPayload {
     payableTotal?: number;
   };
   items?: unknown[];
+  selectedGiftIds?: unknown;
 }
 
 interface StoreCoordinateSnapshot {
@@ -241,6 +243,26 @@ function normalizeOrderItems(items: unknown): CreateOrderInput['items'] {
     .filter((item) => item.productId && item.name && item.quantity > 0);
 }
 
+function normalizeSelectedGiftIds(value: unknown): string[] {
+  return Array.isArray(value)
+    ? [...new Set(value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim()))]
+    : [];
+}
+
+function appendGiftSnapshots(snapshot: unknown, gifts: LockedGiftSnapshot[]) {
+  const base = snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)
+    ? snapshot as Record<string, unknown>
+    : {};
+
+  return {
+    ...base,
+    gifts: gifts.map((gift) => ({
+      id: gift.id,
+      ...gift.giftSnapshot
+    }))
+  };
+}
+
 function normalizeCreateOrderPayload(openid: string, payload: unknown): CreateOrderInput {
   const candidate = payload as CustomerOrderPayload;
   if (candidate.id && RESERVED_ORDER_ID_PREFIXES.some((prefix) => candidate.id?.startsWith(prefix))) {
@@ -264,7 +286,8 @@ function normalizeCreateOrderPayload(openid: string, payload: unknown): CreateOr
     deliveryFee: toNumber(pricing?.deliveryFee, candidate.deliveryFee ?? 0),
     payableTotal: toNumber(pricing?.payableTotal, candidate.payableTotal ?? 0),
     snapshot: payload,
-    items: normalizeOrderItems(candidate.items)
+    items: normalizeOrderItems(candidate.items),
+    selectedGiftIds: normalizeSelectedGiftIds(candidate.selectedGiftIds)
   };
 }
 
@@ -362,7 +385,13 @@ export function createOrderService(
           return existing;
         }
 
-        const order = await orderRepository.createPending(input);
+        const giftSnapshots = input.selectedGiftIds.length
+          ? await createGiftService(tx as never).lockGiftsForOrder(input.openid, input.id, input.selectedGiftIds, tx as never)
+          : [];
+        const order = await orderRepository.createPending({
+          ...input,
+          snapshot: giftSnapshots.length ? appendGiftSnapshots(input.snapshot, giftSnapshots) : input.snapshot
+        });
 
         for (const item of input.items) {
           await catalogRepository.decrementStock(item.productId, item.quantity);
@@ -399,8 +428,9 @@ export function createOrderService(
         return { ok: true as const, paymentStatus: 'paid', order };
       }
       if (order.paymentMethod === 'balance') {
+        let balance: Awaited<ReturnType<ReturnType<typeof createBalanceService>['adjustBalance']>>;
         try {
-          const balance = await createBalanceService(client).adjustBalance({
+          balance = await createBalanceService(client).adjustBalance({
             openid,
             amountDelta: -order.pricing.payableTotal,
             type: 'order_payment',
@@ -408,14 +438,8 @@ export function createOrderService(
             idempotencyKey: `order-payment-${orderId}`,
             metadata: payload
           });
-          const paidOrder = await createPaymentRepository(client).markOrderPaid(orderId);
-          return {
-            ok: true as const,
-            paymentStatus: 'paid',
-            order: paidOrder,
-            balanceAfter: balance.balanceAfter
-          };
         } catch {
+          await createGiftService(client as never).releaseGiftsForOrder(orderId);
           return {
             ok: false as const,
             code: 'INSUFFICIENT_BALANCE',
@@ -423,6 +447,14 @@ export function createOrderService(
             paymentStatus: 'blocked'
           };
         }
+        const paidOrder = await createPaymentRepository(client).markOrderPaid(orderId);
+        await createGiftService(client as never).redeemGiftsForOrder(orderId);
+        return {
+          ok: true as const,
+          paymentStatus: 'paid',
+          order: paidOrder,
+          balanceAfter: balance.balanceAfter
+        };
       }
       const processing = await orderRepository.markPaymentProcessing(orderId);
       const paymentStart = await paymentProvider.startWechatPayment(createOrderPaymentSubject(processing), { openid });
@@ -471,6 +503,7 @@ export function createOrderService(
             paidAt: syncedPayment.paidAt ?? new Date()
           });
           const paidOrder = await createPaymentRepository(client).markOrderPaid(orderId, syncedPayment.paidAt);
+          await createGiftService(client as never).redeemGiftsForOrder(orderId);
           return { ok: true as const, order: paidOrder };
         }
 

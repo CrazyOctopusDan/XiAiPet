@@ -25,6 +25,7 @@ export interface CreateOrderInput {
   payableTotal: number;
   snapshot: unknown;
   items: OrderItemInput[];
+  selectedGiftIds: string[];
 }
 
 export interface MerchantOrderListFilters {

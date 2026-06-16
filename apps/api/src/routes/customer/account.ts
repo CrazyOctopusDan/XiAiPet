@@ -47,4 +47,12 @@ export async function customerAccountRoutes(
     const query = request.query as { cursor?: string; limit?: string } | undefined;
     return dependencies.customerAccountService.getBalance(request.auth?.openid ?? '', query);
   });
+
+  app.get('/gifts', customerGuard, async (request) => {
+    return dependencies.giftService.listCustomerGifts(request.auth?.openid ?? '');
+  });
+
+  app.get('/checkout-gifts', customerGuard, async (request) => {
+    return dependencies.giftService.listCheckoutGifts(request.auth?.openid ?? '');
+  });
 }

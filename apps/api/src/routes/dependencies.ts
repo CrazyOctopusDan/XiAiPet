@@ -20,6 +20,7 @@ import { createPrintingService } from '../modules/printing/service';
 import { createAssetService } from '../modules/assets/service';
 import { createCustomerAccountService } from '../modules/customer-account/service';
 import { createRechargeService } from '../modules/recharge/service';
+import { createGiftService } from '../modules/gifts/service';
 
 type AsyncResult = Promise<unknown>;
 
@@ -39,6 +40,10 @@ export interface ApiRouteServices {
     createPet(openid: string, payload: unknown): AsyncResult;
     updatePet(openid: string, petId: string, payload: unknown): AsyncResult;
     getBalance(openid: string, pagination?: { cursor?: string | number; limit?: string | number }): AsyncResult;
+  };
+  giftService: {
+    listCustomerGifts(openid: string): AsyncResult;
+    listCheckoutGifts(openid: string): AsyncResult;
   };
   catalogService: {
     queryCustomerCategories(filters?: { deliveryMode?: 'pickup' | 'delivery' | 'express' }): AsyncResult;
@@ -175,6 +180,7 @@ export function createApiRouteDependencies(
     paymentProvider,
     identityService,
     customerAccountService: overrides.customerAccountService ?? createCustomerAccountService(),
+    giftService: overrides.giftService ?? createGiftService(),
     catalogService: overrides.catalogService ?? createCatalogService(),
     runtimeConfigService: overrides.runtimeConfigService ?? createRuntimeConfigService(),
     merchantUserService: overrides.merchantUserService ?? createMerchantUserService(),

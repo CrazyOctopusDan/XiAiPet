@@ -80,4 +80,36 @@ describe('customer account data routes', () => {
       limit: '20'
     });
   });
+
+  it('routes customer gift lists through the gift service', async () => {
+    const listCustomerGifts = vi.fn(async () => ({ ok: true, gifts: [], groups: { available: [], locked: [], redeemed: [], expired: [] } }));
+    const listCheckoutGifts = vi.fn(async () => ({ ok: true, gifts: [] }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        customerAccountService: {
+          listAddresses: async () => ({ ok: true, addresses: [] }),
+          createAddress: async () => ({ ok: true }),
+          updateAddress: async () => ({ ok: true }),
+          setDefaultAddress: async () => ({ ok: true }),
+          listPets: async () => ({ ok: true, pets: [] }),
+          createPet: async () => ({ ok: true }),
+          updatePet: async () => ({ ok: true }),
+          getBalance: async () => ({ ok: true })
+        },
+        giftService: {
+          listCustomerGifts,
+          listCheckoutGifts
+        }
+      } as any
+    });
+
+    const gifts = await app.inject({ method: 'GET', url: '/api/v1/customer/gifts', headers: authHeader('openid-g') });
+    const checkoutGifts = await app.inject({ method: 'GET', url: '/api/v1/customer/checkout-gifts', headers: authHeader('openid-g') });
+
+    expect(gifts.statusCode).toBe(200);
+    expect(checkoutGifts.statusCode).toBe(200);
+    expect(listCustomerGifts).toHaveBeenCalledWith('openid-g');
+    expect(listCheckoutGifts).toHaveBeenCalledWith('openid-g');
+  });
 });
