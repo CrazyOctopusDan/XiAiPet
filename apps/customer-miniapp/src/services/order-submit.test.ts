@@ -20,6 +20,11 @@ import {
   getCheckoutPricingPreview,
   submitOrder
 } from './order-submit';
+import {
+  hydrateCheckoutGifts,
+  resetCheckoutGiftSelection,
+  toggleCheckoutGiftSelection
+} from './gifts';
 import { resetCustomerRuntimeConfigCache } from './runtime-config';
 
 function createOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
@@ -83,6 +88,7 @@ describe('order submit service', () => {
     resetPets();
     resetProfile();
     resetCustomerRuntimeConfigCache();
+    resetCheckoutGiftSelection();
     updateProfile({ contactPhoneMasked: '138****1234' });
   });
 
@@ -307,6 +313,84 @@ describe('order submit service', () => {
       body: {
         paymentMethod: 'balance'
       },
+      auth: 'customer'
+    });
+  });
+
+  it('includes selected checkout gift ids when creating an order', async () => {
+    const product = getProductById('ocean-party');
+    const address = createCityAddressFixture();
+
+    if (!product || !address) {
+      throw new Error('missing gift order fixtures');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+    selectAddress(address.id);
+    setCustomNoticeAcknowledged(true);
+    setReservationSelection({
+      dateValue: '2026-04-17',
+      dateLabel: '今天 04-17',
+      timeValue: '11:00',
+      timeLabel: '11:00'
+    });
+
+    await hydrateCheckoutGifts((async () => ({
+      ok: true,
+      gifts: [
+        {
+          id: 'gift-1',
+          status: 'available',
+          displayGroup: 'available',
+          giftSnapshot: {
+            name: '生日蛋糕',
+            description: '可兑换生日蛋糕',
+            validDays: 365
+          },
+          expiresAt: '2027-06-16T00:00:00.000Z'
+        }
+      ]
+    })) as CustomerApiRequester);
+    toggleCheckoutGiftSelection('gift-1');
+
+    const request = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/orders') {
+        return {
+          ok: true,
+          order: createOrder({
+            paymentMethod: 'balance',
+            payment: {
+              method: 'balance',
+              status: 'pending'
+            }
+          })
+        };
+      }
+      if (path === '/api/v1/customer/orders/order-001/payment') {
+        return {
+          ok: true,
+          paymentStatus: 'paid',
+          order: createOrder({
+            status: 'paid',
+            paymentMethod: 'balance',
+            payment: {
+              method: 'balance',
+              status: 'paid'
+            }
+          })
+        };
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    await submitOrder('balance', request as CustomerApiRequester, { idempotencyKey: 'checkout-with-gift' });
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/v1/customer/orders', {
+      method: 'POST',
+      body: expect.objectContaining({
+        idempotencyKey: 'checkout-with-gift',
+        selectedGiftIds: ['gift-1']
+      }),
       auth: 'customer'
     });
   });

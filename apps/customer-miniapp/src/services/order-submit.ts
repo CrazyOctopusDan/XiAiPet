@@ -13,6 +13,7 @@ import { customerApiRequest, CustomerApiError, type CustomerApiRequester } from 
 import { getCartItems, getSelectedCartFulfillmentModes } from './cart';
 import { ensureContactPhoneFromProfile, getCheckoutViewModel } from './checkout';
 import { getDeliveryRuleViolation, resolveDeliveryFeePreview, type DeliveryFeePreview } from './delivery-rules';
+import { getSelectedCheckoutGiftIds } from './gifts';
 import { getCachedCustomerRuntimeConfig } from './runtime-config';
 
 declare const wx: any;
@@ -114,7 +115,8 @@ export function buildCreateOrderPayload(paymentMethod: PaymentMethod, idempotenc
     pets,
     remark: checkout.remark,
     hasReadCustomNotice: checkout.hasReadCustomNotice,
-    pricing
+    pricing,
+    selectedGiftIds: getSelectedCheckoutGiftIds()
   };
 }
 

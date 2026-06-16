@@ -80,6 +80,7 @@ export interface CreateOrderPayload {
   remark: string;
   hasReadCustomNotice: boolean;
   pricing: OrderPricingBreakdown;
+  selectedGiftIds?: string[];
 }
 
 export interface OrderSnapshot {

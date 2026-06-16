@@ -10,6 +10,7 @@ const api_client_1 = require("./api-client");
 const cart_1 = require("./cart");
 const checkout_1 = require("./checkout");
 const delivery_rules_1 = require("./delivery-rules");
+const gifts_1 = require("./gifts");
 const runtime_config_1 = require("./runtime-config");
 function buildAddressSnapshot(address) {
     if (!address) {
@@ -96,7 +97,8 @@ function buildCreateOrderPayload(paymentMethod, idempotencyKey = createIdempoten
         pets,
         remark: checkout.remark,
         hasReadCustomNotice: checkout.hasReadCustomNotice,
-        pricing
+        pricing,
+        selectedGiftIds: (0, gifts_1.getSelectedCheckoutGiftIds)()
     };
 }
 function toSubmitOrderError(error) {
