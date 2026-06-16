@@ -24,7 +24,7 @@ function createRuntimeSection(value: unknown) {
 
 function createTransactionRow(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'recharge_openid-1_idem-1',
+    id: 'recharge-openid-1_idem-1',
     openid: 'openid-1',
     planId: 'plan-100',
     planSnapshot: {
@@ -39,7 +39,7 @@ function createTransactionRow(overrides: Record<string, unknown> = {}) {
     paidAmount: decimal(100),
     bonusAmount: decimal(20),
     status: 'PROCESSING',
-    outTradeNo: 'recharge_openid-1_idem-1',
+    outTradeNo: 'recharge-openid-1_idem-1',
     prepayId: 'mock_prepay',
     transactionId: null,
     idempotencyKey: 'idem-1',
@@ -125,8 +125,9 @@ describe('createRechargeService', () => {
     const update = vi.fn(async () => processingRow);
     const create = vi.fn(async () => createdRow);
     const paymentProvider = {
+      kind: 'mock',
       startWechatPayment: vi.fn(async () => ({
-        outTradeNo: 'recharge_openid-1_idem-1',
+        outTradeNo: 'recharge-openid-1_idem-1',
         prepayId: 'mock_prepay',
         paymentParams: {
           timeStamp: '1700000000',
@@ -169,7 +170,7 @@ describe('createRechargeService', () => {
       ok: true,
       paymentStatus: 'pending_wechat',
       transaction: {
-        id: 'recharge_openid-1_idem-1',
+        id: 'recharge-openid-1_idem-1',
         planId: 'plan-100',
         paidAmount: 100,
         bonusAmount: 20,
@@ -181,17 +182,15 @@ describe('createRechargeService', () => {
     });
     expect(second).toMatchObject({
       ok: true,
-      paymentStatus: 'pending_wechat',
+      paymentStatus: 'pending_wechat_sync_required',
       transaction: {
-        id: 'recharge_openid-1_idem-1',
+        id: 'recharge-openid-1_idem-1',
         status: 'processing'
-      },
-      paymentParams: {
-        package: 'prepay_id=mock_prepay'
       }
     });
+    expect(second).not.toHaveProperty('paymentParams');
     expect(create).toHaveBeenCalledTimes(1);
-    expect(paymentProvider.startWechatPayment).toHaveBeenCalledTimes(2);
+    expect(paymentProvider.startWechatPayment).toHaveBeenCalledTimes(1);
   });
 
   it('rejects invalid or unavailable recharge transaction requests', async () => {
@@ -235,6 +234,7 @@ describe('createRechargeService', () => {
       }
     };
     const paymentProvider = {
+      kind: 'mock',
       startWechatPayment: vi.fn(),
       syncWechatPayment: vi.fn(async () => ({
         tradeState: 'SUCCESS',
@@ -244,12 +244,12 @@ describe('createRechargeService', () => {
     };
     const service = createRechargeService(client as never, paymentProvider as never);
 
-    const result = await service.syncCustomerRechargeTransaction('openid-1', 'recharge_openid-1_idem-1');
+    const result = await service.syncCustomerRechargeTransaction('openid-1', 'recharge-openid-1_idem-1');
 
     expect(result).toEqual({
       ok: true,
       transaction: {
-        id: 'recharge_openid-1_idem-1',
+        id: 'recharge-openid-1_idem-1',
         planId: 'plan-100',
         planSnapshot: row.planSnapshot,
         paidAmount: 100,
@@ -259,5 +259,83 @@ describe('createRechargeService', () => {
       }
     });
     expect(paymentProvider.syncWechatPayment).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks starting recharge payment with unsafe real providers before settlement routing exists', async () => {
+    const create = vi.fn();
+    const client = {
+      runtimeConfigSection: {
+        findMany: vi.fn(async () => [
+          createRuntimeSection({
+            plans: [
+              { planId: 'plan-100', enabled: true, paidAmount: 100, bonusAmount: 20, description: '充100送20', gifts: [] }
+            ]
+          })
+        ])
+      },
+      rechargeTransaction: {
+        findUnique: vi.fn(async () => null),
+        create
+      }
+    };
+    const paymentProvider = {
+      kind: 'wechat',
+      startWechatPayment: vi.fn(),
+      syncWechatPayment: vi.fn()
+    };
+    const service = createRechargeService(client as never, paymentProvider as never);
+
+    await expect(
+      service.createCustomerRechargeTransaction('openid-1', { planId: 'plan-100', idempotencyKey: 'idem-1' })
+    ).rejects.toMatchObject(
+      new ApiError('RECHARGE_PAYMENT_NOT_READY', 'Recharge payment is not ready for this provider', 503)
+    );
+    expect(create).not.toHaveBeenCalled();
+    expect(paymentProvider.startWechatPayment).not.toHaveBeenCalled();
+  });
+
+  it('re-reads an existing transaction after a concurrent idempotency unique conflict', async () => {
+    const existing = createTransactionRow({ status: 'PROCESSING', prepayId: 'mock_prepay' });
+    const uniqueError = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
+    const findByIdempotency = vi.fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existing);
+    const client = {
+      runtimeConfigSection: {
+        findMany: vi.fn(async () => [
+          createRuntimeSection({
+            plans: [
+              { planId: 'plan-100', enabled: true, paidAmount: 100, bonusAmount: 20, description: '充100送20', gifts: [] }
+            ]
+          })
+        ])
+      },
+      rechargeTransaction: {
+        findUnique: findByIdempotency,
+        create: vi.fn(async () => {
+          throw uniqueError;
+        }),
+        update: vi.fn()
+      }
+    };
+    const paymentProvider = {
+      kind: 'mock',
+      startWechatPayment: vi.fn(),
+      syncWechatPayment: vi.fn()
+    };
+    const service = createRechargeService(client as never, paymentProvider as never);
+
+    await expect(
+      service.createCustomerRechargeTransaction('openid-1', { planId: 'plan-100', idempotencyKey: 'idem-1' })
+    ).resolves.toMatchObject({
+      ok: true,
+      paymentStatus: 'pending_wechat_sync_required',
+      transaction: {
+        id: 'recharge-openid-1_idem-1',
+        status: 'processing'
+      }
+    });
+    expect(findByIdempotency).toHaveBeenCalledTimes(2);
+    expect(paymentProvider.startWechatPayment).not.toHaveBeenCalled();
   });
 });

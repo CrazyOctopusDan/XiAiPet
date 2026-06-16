@@ -29,6 +29,8 @@ export interface WechatPaymentSyncResult {
 }
 
 export interface PaymentProvider {
+  kind?: 'mock' | 'wechat' | 'unconfigured';
+  supportsRechargePayments?: boolean;
   startWechatPayment(order: OrderRecord, context: WechatPaymentContext): Promise<WechatPaymentStartResult>;
   syncWechatPayment(order: OrderRecord, context: WechatPaymentContext): Promise<WechatPaymentSyncResult>;
 }
@@ -162,6 +164,7 @@ function createPaymentParams(options: WechatPayProviderOptions, prepayId: string
 
 export function createUnconfiguredWechatPaymentProvider(): PaymentProvider {
   return {
+    kind: 'unconfigured',
     async startWechatPayment() {
       throw new ApiError('WECHAT_PAY_NOT_CONFIGURED', 'WeChat Pay is not configured', 503);
     },
@@ -173,6 +176,7 @@ export function createUnconfiguredWechatPaymentProvider(): PaymentProvider {
 
 export function createMockPaymentProvider(): PaymentProvider {
   return {
+    kind: 'mock',
     async startWechatPayment(order: OrderRecord, context: WechatPaymentContext): Promise<WechatPaymentStartResult> {
       const prepayId = `mock_${order.id}_${context.openid}`;
       return {
@@ -200,6 +204,7 @@ export function createMockPaymentProvider(): PaymentProvider {
 
 export function createWechatPayProvider(options: WechatPayProviderOptions): PaymentProvider {
   return {
+    kind: 'wechat',
     async startWechatPayment(order: OrderRecord, context: WechatPaymentContext): Promise<WechatPaymentStartResult> {
       const outTradeNo = order.id;
       const response = await requestWechatPay<WechatPrepayResponse>(

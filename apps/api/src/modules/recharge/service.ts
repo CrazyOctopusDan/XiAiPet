@@ -112,10 +112,10 @@ function mapRechargeTransaction(row: RechargeTransactionRow): RechargeTransactio
 function createRechargeTransactionId(openid: string, idempotencyKey: string) {
   const raw = `${openid}_${idempotencyKey}`.replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 150);
   if (raw) {
-    return `recharge_${raw}`;
+    return `recharge-${raw}`;
   }
   const digest = createHash('sha256').update(`${openid}:${idempotencyKey}`).digest('hex').slice(0, 32);
-  return `recharge_${digest}`;
+  return `recharge-${digest}`;
 }
 
 function createPlanSnapshot(plan: RechargePlanConfig, purchasedAt: Date): RechargePlanSnapshot {
@@ -162,6 +162,28 @@ function mapSectionWithNormalizedPlans(section: RuntimeConfigSectionRecord, plan
     value: {
       plans
     }
+  };
+}
+
+function canStartRechargePayment(paymentProvider: PaymentProvider) {
+  return paymentProvider.kind === 'mock' || paymentProvider.supportsRechargePayments === true;
+}
+
+function assertRechargePaymentCanStart(paymentProvider: PaymentProvider) {
+  if (!canStartRechargePayment(paymentProvider)) {
+    throw new ApiError('RECHARGE_PAYMENT_NOT_READY', 'Recharge payment is not ready for this provider', 503);
+  }
+}
+
+function isPrismaUniqueConflict(error: unknown) {
+  return isRecord(error) && error.code === 'P2002';
+}
+
+function createExistingTransactionResponse(transaction: RechargeTransactionRow) {
+  return {
+    ok: true as const,
+    paymentStatus: transaction.status === RECHARGE_TRANSACTION_STATUS.paid ? 'paid' as const : 'pending_wechat_sync_required' as const,
+    transaction: mapRechargeTransaction(transaction)
   };
 }
 
@@ -215,20 +237,7 @@ export function createRechargeService(
       const rechargeRepository = createRechargeRepository(client as never);
       const existing = await rechargeRepository.findByOpenidAndIdempotencyKey(openid, input.idempotencyKey);
       if (existing) {
-        if (existing.status === RECHARGE_TRANSACTION_STATUS.paid) {
-          return {
-            ok: true as const,
-            paymentStatus: 'paid' as const,
-            transaction: mapRechargeTransaction(existing as RechargeTransactionRow)
-          };
-        }
-        const payment = await startRechargePayment(rechargeRepository, paymentProvider, existing as RechargeTransactionRow, openid);
-        return {
-          ok: true as const,
-          paymentStatus: 'pending_wechat' as const,
-          transaction: mapRechargeTransaction(payment.transaction),
-          paymentParams: payment.paymentParams
-        };
+        return createExistingTransactionResponse(existing as RechargeTransactionRow);
       }
 
       const plans = await listRechargePlans(client);
@@ -239,16 +248,29 @@ export function createRechargeService(
 
       const id = createRechargeTransactionId(openid, input.idempotencyKey);
       const purchasedAt = new Date();
-      const created = await rechargeRepository.createPending({
-        id,
-        openid,
-        planId: plan.planId,
-        planSnapshot: createPlanSnapshot(plan, purchasedAt),
-        paidAmount: plan.paidAmount,
-        bonusAmount: plan.bonusAmount,
-        outTradeNo: id,
-        idempotencyKey: input.idempotencyKey
-      });
+      assertRechargePaymentCanStart(paymentProvider);
+      let created: unknown;
+      try {
+        created = await rechargeRepository.createPending({
+          id,
+          openid,
+          planId: plan.planId,
+          planSnapshot: createPlanSnapshot(plan, purchasedAt),
+          paidAmount: plan.paidAmount,
+          bonusAmount: plan.bonusAmount,
+          outTradeNo: id,
+          idempotencyKey: input.idempotencyKey
+        });
+      } catch (error) {
+        if (!isPrismaUniqueConflict(error)) {
+          throw error;
+        }
+        const concurrent = await rechargeRepository.findByOpenidAndIdempotencyKey(openid, input.idempotencyKey);
+        if (!concurrent) {
+          throw error;
+        }
+        return createExistingTransactionResponse(concurrent as RechargeTransactionRow);
+      }
       const payment = await startRechargePayment(rechargeRepository, paymentProvider, created as RechargeTransactionRow, openid);
 
       return {
