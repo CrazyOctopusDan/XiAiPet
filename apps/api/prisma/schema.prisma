@@ -55,6 +55,24 @@ enum PaymentStatus {
   @@map("payment_status")
 }
 
+enum RechargeTransactionStatus {
+  PENDING    @map("pending")
+  PROCESSING @map("processing")
+  PAID       @map("paid")
+  FAILED     @map("failed")
+  CANCELLED  @map("cancelled")
+
+  @@map("recharge_transaction_status")
+}
+
+enum UserGiftStatus {
+  AVAILABLE @map("available")
+  LOCKED    @map("locked")
+  REDEEMED  @map("redeemed")
+
+  @@map("user_gift_status")
+}
+
 enum FulfillmentMode {
   DELIVERY @map("delivery")
   PICKUP   @map("pickup")
@@ -119,11 +137,13 @@ model User {
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
 
-  addresses      Address[]
-  pets           Pet[]
-  orders         Order[]
-  merchantUser   MerchantUser?
-  balanceAccount BalanceAccount?
+  addresses            Address[]
+  pets                 Pet[]
+  orders               Order[]
+  merchantUser         MerchantUser?
+  balanceAccount       BalanceAccount?
+  rechargeTransactions RechargeTransaction[]
+  gifts                UserGift[]
 
   @@index([status])
   @@map("users")
@@ -333,6 +353,58 @@ model Payment {
 
   @@index([method, status])
   @@map("payments")
+}
+
+model RechargeTransaction {
+  id             String                    @id @db.VarChar(191)
+  openid         String                    @db.VarChar(191)
+  planId         String                    @db.VarChar(191)
+  planSnapshot   Json
+  paidAmount     Decimal                   @db.Decimal(10, 2)
+  bonusAmount    Decimal                   @db.Decimal(10, 2)
+  status         RechargeTransactionStatus @default(PENDING)
+  outTradeNo     String                    @unique @db.VarChar(191)
+  prepayId       String?                   @db.VarChar(191)
+  transactionId  String?                   @unique @db.VarChar(191)
+  idempotencyKey String                    @db.VarChar(191)
+  paidAt         DateTime?
+  settledAt      DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  user  User       @relation(fields: [openid], references: [openid], onDelete: Restrict)
+  gifts UserGift[]
+
+  @@unique([openid, idempotencyKey])
+  @@index([openid, createdAt])
+  @@index([status, createdAt])
+  @@map("recharge_transactions")
+}
+
+model UserGift {
+  id                          String         @id @default(cuid())
+  openid                      String         @db.VarChar(191)
+  sourceRechargeTransactionId String         @db.VarChar(191)
+  sourcePlanId                String         @db.VarChar(191)
+  giftTemplateId              String         @db.VarChar(191)
+  giftSnapshot                Json
+  status                      UserGiftStatus @default(AVAILABLE)
+  expiresAt                   DateTime
+  lockedOrderId               String?        @db.VarChar(191)
+  redeemedOrderId             String?        @db.VarChar(191)
+  lockedAt                    DateTime?
+  redeemedAt                  DateTime?
+  releasedAt                  DateTime?
+  createdAt                   DateTime       @default(now())
+  updatedAt                   DateTime       @updatedAt
+
+  user                User                @relation(fields: [openid], references: [openid], onDelete: Restrict)
+  rechargeTransaction RechargeTransaction @relation(fields: [sourceRechargeTransactionId], references: [id], onDelete: Restrict)
+
+  @@index([openid, status, expiresAt])
+  @@index([lockedOrderId])
+  @@index([redeemedOrderId])
+  @@map("user_gifts")
 }
 
 model BalanceAccount {

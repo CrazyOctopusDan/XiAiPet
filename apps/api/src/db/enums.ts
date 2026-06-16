@@ -34,6 +34,20 @@ export const PAYMENT_STATUS = {
   failed: 'FAILED'
 } as const;
 
+export const RECHARGE_TRANSACTION_STATUS = {
+  pending: 'PENDING',
+  processing: 'PROCESSING',
+  paid: 'PAID',
+  failed: 'FAILED',
+  cancelled: 'CANCELLED'
+} as const;
+
+export const USER_GIFT_STATUS = {
+  available: 'AVAILABLE',
+  locked: 'LOCKED',
+  redeemed: 'REDEEMED'
+} as const;
+
 export const FULFILLMENT_MODE = {
   delivery: 'DELIVERY',
   pickup: 'PICKUP',
