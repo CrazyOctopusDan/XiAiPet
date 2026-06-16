@@ -15,7 +15,7 @@ vi.mock('../recharge/service', () => ({
   }))
 }));
 
-function createOrderRow(orderId: string) {
+function createOrderRow(orderId: string, overrides: Record<string, unknown> = {}) {
   const now = new Date('2026-06-11T01:00:00.000Z');
   return {
     id: orderId,
@@ -33,7 +33,8 @@ function createOrderRow(orderId: string) {
     createdAt: now,
     updatedAt: now,
     paidAt: now,
-    cancelledAt: null
+    cancelledAt: null,
+    ...overrides
   };
 }
 
@@ -75,7 +76,18 @@ describe('createPaymentNotifyService', () => {
     const client = {
       payment: { upsert: paymentUpsert },
       order: {
-        findUnique: vi.fn(async () => createOrderRow('order-1')),
+        findUnique: vi.fn(async () => createOrderRow('order-1', {
+          paymentStatus: 'PROCESSING',
+          status: 'PAYMENT_PROCESSING',
+          snapshot: {
+            gifts: [
+              {
+                id: 'gift-1',
+                name: '周年蛋糕'
+              }
+            ]
+          }
+        })),
         update: orderUpdate
       },
       userGift: {
@@ -131,13 +143,98 @@ describe('createPaymentNotifyService', () => {
       })
     }));
     expect(client.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { lockedOrderId: 'order-1', status: 'LOCKED' },
+      where: {
+        id: { in: ['gift-1'] },
+        lockedOrderId: 'order-1',
+        status: 'LOCKED'
+      },
       data: expect.objectContaining({
         status: 'REDEEMED',
         redeemedOrderId: 'order-1'
       })
     }));
     expect(rechargeSettlementMock).not.toHaveBeenCalled();
+  });
+
+  it('does not mark notification-settled orders paid when promised gifts are unavailable', async () => {
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+    const publicPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    const paymentUpsert = vi.fn(async () => ({}));
+    const orderUpdate = vi.fn();
+    const client = {
+      payment: { upsert: paymentUpsert },
+      order: {
+        findUnique: vi.fn(async () => createOrderRow('order-1', {
+          paymentStatus: 'PENDING',
+          status: 'PAYMENT_PROCESSING',
+          snapshot: {
+            gifts: [
+              {
+                id: 'gift-1',
+                name: '周年蛋糕'
+              }
+            ]
+          }
+        })),
+        update: orderUpdate.mockImplementation(async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) =>
+          createOrderRow(where.id, {
+            status: data.status,
+            paymentStatus: data.paymentStatus,
+            paidAt: data.paidAt,
+            snapshot: {
+              gifts: [
+                {
+                  id: 'gift-1',
+                  name: '周年蛋糕'
+                }
+              ]
+            }
+          })
+        )
+      },
+      userGift: {
+        updateMany: vi.fn(async () => ({ count: 0 }))
+      }
+    } as unknown as DbClient;
+    const rawBody = JSON.stringify({
+      id: 'notice-1',
+      resource: encryptResource({
+        out_trade_no: 'order-1',
+        transaction_id: 'wx-transaction-1',
+        trade_state: 'SUCCESS',
+        success_time: '2026-06-11T01:02:03+08:00',
+        amount: {
+          total: 1,
+          payer_total: 1
+        }
+      })
+    });
+    const timestamp = '1700000000';
+    const nonce = randomBytes(12).toString('hex');
+    const service = createPaymentNotifyService({
+      mchId: '1113847744',
+      mchSerialNo: 'merchant-serial',
+      privateKey: privatePem,
+      notifyUrl: 'https://api.xiaipet.vip/api/v1/payments/wechat/notify',
+      apiV3Key: API_V3_KEY,
+      platformPublicKey: publicPem
+    }, client);
+
+    await expect(service.handleWechatPayNotification({
+      rawBody,
+      headers: {
+        timestamp,
+        nonce,
+        serial: 'platform-serial',
+        signature: signBody(privatePem, timestamp, nonce, rawBody)
+      }
+    })).rejects.toMatchObject({
+      code: 'ORDER_GIFT_UNAVAILABLE',
+      statusCode: 409
+    });
+
+    expect(orderUpdate).not.toHaveBeenCalled();
   });
 
   it('rejects successful order notifications when the paid amount does not match the order total', async () => {

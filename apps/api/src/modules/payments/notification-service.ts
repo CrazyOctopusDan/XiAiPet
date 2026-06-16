@@ -5,8 +5,7 @@ import { ApiError } from '../../lib/errors';
 import { getPrismaClient } from '../../db/prisma';
 import type { DbClient } from '../../db/types';
 import { createRechargeService } from '../recharge/service';
-import { createGiftService } from '../gifts/service';
-import { createPaymentRepository } from './repository';
+import { recordOrderPaymentAndSettle } from '../orders/settlement';
 
 export interface WechatPayNotificationHeaders {
   timestamp: string;
@@ -144,8 +143,7 @@ export function createPaymentNotifyService(
           });
         } else {
           await assertOrderPaymentAmountMatches(client, resource.out_trade_no, paidAmountCents);
-          const paymentRepository = createPaymentRepository(client);
-          await paymentRepository.upsertPayment({
+          await recordOrderPaymentAndSettle(client, {
             orderId: resource.out_trade_no,
             method: 'wechat',
             status: 'paid',
@@ -153,8 +151,6 @@ export function createPaymentNotifyService(
             transactionId: resource.transaction_id,
             paidAt
           });
-          await paymentRepository.markOrderPaid(resource.out_trade_no, paidAt);
-          await createGiftService(client).redeemGiftsForOrder(resource.out_trade_no);
         }
       }
 

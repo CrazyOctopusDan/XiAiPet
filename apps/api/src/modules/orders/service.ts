@@ -17,6 +17,12 @@ import { createBalanceService } from '../users/balance-service';
 import { createPaymentRepository } from '../payments/repository';
 import { createRuntimeConfigRepository, type RuntimeConfigSectionRecord } from '../runtime-config/repository';
 import { createGiftService, type LockedGiftSnapshot } from '../gifts/service';
+import {
+  assertOrderGiftsLockedForSettlement,
+  markOrderPaidAndRedeemGifts,
+  recordOrderPaymentAndSettle,
+  runOrderSettlementTransaction
+} from './settlement';
 
 interface CustomerOrderPayload {
   id?: string;
@@ -425,20 +431,33 @@ export function createOrderService(
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
       }
       if (order.paymentStatus === 'paid') {
-        return { ok: true as const, paymentStatus: 'paid', order };
+        const settledOrder = await markOrderPaidAndRedeemGifts(
+          client as never,
+          orderId,
+          order.paidAt ? new Date(order.paidAt) : undefined
+        );
+        return { ok: true as const, paymentStatus: 'paid', order: settledOrder };
       }
       if (order.paymentMethod === 'balance') {
-        let balance: Awaited<ReturnType<ReturnType<typeof createBalanceService>['adjustBalance']>>;
+        let balance: Awaited<ReturnType<ReturnType<typeof createBalanceService>['adjustBalance']>> | undefined;
+        let paidOrder: OrderRecord | undefined;
         try {
-          balance = await createBalanceService(client).adjustBalance({
-            openid,
-            amountDelta: -order.pricing.payableTotal,
-            type: 'order_payment',
-            orderId,
-            idempotencyKey: `order-payment-${orderId}`,
-            metadata: payload
+          await assertOrderGiftsLockedForSettlement(client as never, orderId, order.snapshot);
+          await runOrderSettlementTransaction(client as never, async (tx) => {
+            balance = await createBalanceService(tx as never).adjustBalance({
+              openid,
+              amountDelta: -order.pricing.payableTotal,
+              type: 'order_payment',
+              orderId,
+              idempotencyKey: `order-payment-${orderId}`,
+              metadata: payload
+            });
+            paidOrder = await markOrderPaidAndRedeemGifts(tx as never, orderId);
           });
-        } catch {
+        } catch (error) {
+          if (error instanceof ApiError) {
+            throw error;
+          }
           await createGiftService(client as never).releaseGiftsForOrder(orderId);
           return {
             ok: false as const,
@@ -447,8 +466,9 @@ export function createOrderService(
             paymentStatus: 'blocked'
           };
         }
-        const paidOrder = await createPaymentRepository(client).markOrderPaid(orderId);
-        await createGiftService(client as never).redeemGiftsForOrder(orderId);
+        if (!balance || !paidOrder) {
+          throw new ApiError('ORDER_PAYMENT_SETTLEMENT_FAILED', 'Order payment settlement failed', 500);
+        }
         return {
           ok: true as const,
           paymentStatus: 'paid',
@@ -479,7 +499,7 @@ export function createOrderService(
       if (!order || order.openid !== openid) {
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
       }
-      const paidOrder = await createPaymentRepository(client).markOrderPaid(orderId);
+      const paidOrder = await markOrderPaidAndRedeemGifts(client as never, orderId);
       return { ok: true as const, order: paidOrder, confirmation: payload };
     },
 
@@ -494,7 +514,7 @@ export function createOrderService(
 
         if (syncedPayment.tradeState === 'SUCCESS') {
           assertSyncedPaymentAmountMatchesOrder(order, syncedPayment.paidAmountCents);
-          await createPaymentRepository(client).upsertPayment({
+          const paidOrder = await recordOrderPaymentAndSettle(client as never, {
             orderId,
             method: 'wechat',
             status: 'paid',
@@ -502,8 +522,6 @@ export function createOrderService(
             transactionId: syncedPayment.transactionId,
             paidAt: syncedPayment.paidAt ?? new Date()
           });
-          const paidOrder = await createPaymentRepository(client).markOrderPaid(orderId, syncedPayment.paidAt);
-          await createGiftService(client as never).redeemGiftsForOrder(orderId);
           return { ok: true as const, order: paidOrder };
         }
 
@@ -616,6 +634,9 @@ export function createOrderService(
           payload
         }
       });
+      if (candidate.status === 'cancelled' && current.paymentStatus !== 'paid') {
+        await createGiftService(client as never).releaseGiftsForOrder(orderId);
+      }
       return { ok: true as const, order };
     }
   };
