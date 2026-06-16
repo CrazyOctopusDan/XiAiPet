@@ -7,6 +7,7 @@ declare const wx: any;
 interface CreateRechargeTransactionResponse {
   ok?: boolean;
   transaction: RechargeTransactionView;
+  paymentStatus?: 'paid' | 'processing' | 'pending_wechat' | 'blocked';
   paymentParams?: Record<string, unknown>;
   code?: string;
 }
@@ -15,6 +16,10 @@ interface SyncRechargeTransactionResponse {
   ok?: boolean;
   transaction?: RechargeTransactionView;
   code?: string;
+}
+
+export interface StartRechargeOptions {
+  idempotencyKey?: string;
 }
 
 let rechargePlans: RechargePlanConfig[] = [];
@@ -76,13 +81,17 @@ export function getSelectedRechargePlan() {
   return getRechargePlans().find((plan) => plan.planId === selectedRechargePlanId) ?? null;
 }
 
-export async function startRecharge(planId: string, request: CustomerApiRequester = customerApiRequest) {
+export async function startRecharge(
+  planId: string,
+  request: CustomerApiRequester = customerApiRequest,
+  options: StartRechargeOptions = {}
+) {
   const response = await request<CreateRechargeTransactionResponse>('/api/v1/customer/recharge-transactions', {
     method: 'POST',
     auth: 'customer',
     body: {
       planId,
-      idempotencyKey: createRechargeIdempotencyKey()
+      idempotencyKey: options.idempotencyKey ?? createRechargeIdempotencyKey()
     }
   });
 
@@ -90,7 +99,21 @@ export async function startRecharge(planId: string, request: CustomerApiRequeste
     throw new Error(String(response.code ?? 'create_recharge_transaction_failed'));
   }
 
+  const paymentStatus = response.paymentStatus ?? response.transaction.status;
+
+  if (paymentStatus === 'paid') {
+    return response;
+  }
+
   if (!response.paymentParams) {
+    if (paymentStatus === 'pending_wechat') {
+      throw new Error('missing_wechat_payment_params');
+    }
+
+    return syncRechargeTransaction(response.transaction.id, request);
+  }
+
+  if (paymentStatus && paymentStatus !== 'pending_wechat' && paymentStatus !== 'processing' && paymentStatus !== 'pending') {
     throw new Error('missing_wechat_payment_params');
   }
 

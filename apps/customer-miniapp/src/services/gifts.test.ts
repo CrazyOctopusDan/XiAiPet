@@ -68,6 +68,30 @@ describe('gifts service', () => {
     });
   });
 
+  it('keeps existing my gift groups when hydrate response omits groups', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        groups: {
+          available: [createGift({ id: 'gift-cached' })],
+          locked: [],
+          redeemed: [],
+          expired: []
+        }
+      })
+      .mockResolvedValueOnce({
+        ok: true
+      });
+
+    await hydrateMyGifts(request as CustomerApiRequester);
+    await hydrateMyGifts(request as CustomerApiRequester);
+
+    expect(getMyGiftGroups().available).toEqual([
+      expect.objectContaining({ id: 'gift-cached' })
+    ]);
+  });
+
   it('toggles checkout gift selection and filters selection against checkout options', async () => {
     const request = vi.fn(async () => ({
       ok: true,

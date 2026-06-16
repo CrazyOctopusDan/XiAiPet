@@ -40,7 +40,7 @@ export async function hydrateMyGifts(request: CustomerApiRequester = customerApi
     method: 'GET',
     auth: 'customer'
   });
-  myGiftGroups = cloneGiftGroups(response.groups);
+  myGiftGroups = response.groups ? cloneGiftGroups(response.groups) : myGiftGroups;
   return getMyGiftGroups();
 }
 

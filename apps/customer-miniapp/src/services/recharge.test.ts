@@ -132,4 +132,147 @@ describe('recharge service', () => {
       auth: 'customer'
     });
   });
+
+  it('uses a caller-provided idempotency key across recharge retries', async () => {
+    const requestPayment = vi.fn((options: Record<string, unknown>) => {
+      (options.success as () => void)?.();
+    });
+    vi.stubGlobal('wx', { requestPayment });
+
+    const request = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/recharge-transactions') {
+        return {
+          ok: true,
+          transaction: {
+            id: 'recharge-retry',
+            planId: 'plan-5000',
+            status: 'processing'
+          },
+          paymentStatus: 'pending_wechat',
+          paymentParams: {
+            package: 'prepay_id=retry'
+          }
+        };
+      }
+
+      return {
+        ok: true,
+        transaction: {
+          id: 'recharge-retry',
+          planId: 'plan-5000',
+          status: 'paid'
+        }
+      };
+    });
+
+    await startRecharge('plan-5000', request as CustomerApiRequester, {
+      idempotencyKey: 'recharge-flow-key'
+    });
+    await startRecharge('plan-5000', request as CustomerApiRequester, {
+      idempotencyKey: 'recharge-flow-key'
+    });
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/v1/customer/recharge-transactions', expect.objectContaining({
+      body: {
+        planId: 'plan-5000',
+        idempotencyKey: 'recharge-flow-key'
+      }
+    }));
+    expect(request).toHaveBeenNthCalledWith(3, '/api/v1/customer/recharge-transactions', expect.objectContaining({
+      body: {
+        planId: 'plan-5000',
+        idempotencyKey: 'recharge-flow-key'
+      }
+    }));
+  });
+
+  it('syncs an idempotent replay when payment params are absent', async () => {
+    const requestPayment = vi.fn();
+    vi.stubGlobal('wx', { requestPayment });
+
+    const request = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/recharge-transactions') {
+        return {
+          ok: true,
+          transaction: {
+            id: 'recharge-replay',
+            planId: 'plan-5000',
+            status: 'processing'
+          },
+          paymentStatus: 'processing'
+        };
+      }
+
+      if (path === '/api/v1/customer/recharge-transactions/recharge-replay/payment-sync') {
+        return {
+          ok: true,
+          transaction: {
+            id: 'recharge-replay',
+            planId: 'plan-5000',
+            status: 'paid'
+          }
+        };
+      }
+
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    await expect(
+      startRecharge('plan-5000', request as CustomerApiRequester, {
+        idempotencyKey: 'recharge-replay-key'
+      })
+    ).resolves.toMatchObject({
+      transaction: {
+        id: 'recharge-replay',
+        status: 'paid'
+      }
+    });
+
+    expect(requestPayment).not.toHaveBeenCalled();
+    expect(request).toHaveBeenNthCalledWith(2, '/api/v1/customer/recharge-transactions/recharge-replay/payment-sync', {
+      method: 'POST',
+      auth: 'customer'
+    });
+  });
+
+  it('returns an already-paid idempotent replay without requiring payment params', async () => {
+    const requestPayment = vi.fn();
+    vi.stubGlobal('wx', { requestPayment });
+
+    const request = vi.fn(async () => ({
+      ok: true,
+      transaction: {
+        id: 'recharge-paid',
+        planId: 'plan-5000',
+        status: 'paid'
+      },
+      paymentStatus: 'paid'
+    }));
+
+    await expect(startRecharge('plan-5000', request as CustomerApiRequester)).resolves.toMatchObject({
+      transaction: {
+        id: 'recharge-paid',
+        status: 'paid'
+      }
+    });
+
+    expect(requestPayment).not.toHaveBeenCalled();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws when a new pending WeChat recharge has no payment params', async () => {
+    const request = vi.fn(async () => ({
+      ok: true,
+      transaction: {
+        id: 'recharge-missing-params',
+        planId: 'plan-5000',
+        status: 'processing'
+      },
+      paymentStatus: 'pending_wechat'
+    }));
+
+    await expect(startRecharge('plan-5000', request as CustomerApiRequester)).rejects.toThrow(
+      'missing_wechat_payment_params'
+    );
+  });
 });

@@ -13,7 +13,7 @@ import { customerApiRequest, CustomerApiError, type CustomerApiRequester } from 
 import { getCartItems, getSelectedCartFulfillmentModes } from './cart';
 import { ensureContactPhoneFromProfile, getCheckoutViewModel } from './checkout';
 import { getDeliveryRuleViolation, resolveDeliveryFeePreview, type DeliveryFeePreview } from './delivery-rules';
-import { getSelectedCheckoutGiftIds } from './gifts';
+import { getSelectedCheckoutGiftIds, resetCheckoutGiftSelection } from './gifts';
 import { getCachedCustomerRuntimeConfig } from './runtime-config';
 
 declare const wx: any;
@@ -226,11 +226,15 @@ export async function submitOrder(
         throw new Error(String(syncOrderPaymentResponse.code ?? 'sync_payment_failed'));
       }
 
+      resetCheckoutGiftSelection();
+
       return {
         order: syncOrderPaymentResponse.order,
         payment: payOrderResponse
       };
     }
+
+    resetCheckoutGiftSelection();
 
     return {
       order: payOrderResponse.order,

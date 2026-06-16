@@ -56,20 +56,30 @@ function getSelectedRechargePlan() {
     var _a;
     return (_a = getRechargePlans().find((plan) => plan.planId === selectedRechargePlanId)) !== null && _a !== void 0 ? _a : null;
 }
-async function startRecharge(planId, request = api_client_1.customerApiRequest) {
-    var _a, _b;
+async function startRecharge(planId, request = api_client_1.customerApiRequest, options = {}) {
+    var _a, _b, _c, _d;
     const response = await request('/api/v1/customer/recharge-transactions', {
         method: 'POST',
         auth: 'customer',
         body: {
             planId,
-            idempotencyKey: createRechargeIdempotencyKey()
+            idempotencyKey: (_a = options.idempotencyKey) !== null && _a !== void 0 ? _a : createRechargeIdempotencyKey()
         }
     });
-    if (!((_a = response.transaction) === null || _a === void 0 ? void 0 : _a.id)) {
-        throw new Error(String((_b = response.code) !== null && _b !== void 0 ? _b : 'create_recharge_transaction_failed'));
+    if (!((_b = response.transaction) === null || _b === void 0 ? void 0 : _b.id)) {
+        throw new Error(String((_c = response.code) !== null && _c !== void 0 ? _c : 'create_recharge_transaction_failed'));
+    }
+    const paymentStatus = (_d = response.paymentStatus) !== null && _d !== void 0 ? _d : response.transaction.status;
+    if (paymentStatus === 'paid') {
+        return response;
     }
     if (!response.paymentParams) {
+        if (paymentStatus === 'pending_wechat') {
+            throw new Error('missing_wechat_payment_params');
+        }
+        return syncRechargeTransaction(response.transaction.id, request);
+    }
+    if (paymentStatus && paymentStatus !== 'pending_wechat' && paymentStatus !== 'processing' && paymentStatus !== 'pending') {
         throw new Error('missing_wechat_payment_params');
     }
     await requestRechargePayment(response.paymentParams);

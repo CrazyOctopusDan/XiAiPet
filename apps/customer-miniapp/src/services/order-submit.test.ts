@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OrderRecord } from '@xiaipet/shared';
 
 import { createAddress, resetAddresses, selectAddress } from './address';
-import { CustomerApiError, type CustomerApiRequester } from './api-client';
+import { CustomerApiError, type CustomerApiRequester, type CustomerApiRequestOptions } from './api-client';
 import { addCartItem, clearCart } from './cart';
 import {
   resetCheckoutDraft,
@@ -21,6 +21,7 @@ import {
   submitOrder
 } from './order-submit';
 import {
+  getSelectedCheckoutGiftIds,
   hydrateCheckoutGifts,
   resetCheckoutGiftSelection,
   toggleCheckoutGiftSelection
@@ -256,7 +257,7 @@ describe('order submit service', () => {
       timeLabel: '11:00'
     });
 
-    const request = vi.fn(async (path: string) => {
+    const request = vi.fn(async (path: string, _options?: CustomerApiRequestOptions) => {
       if (path === '/api/v1/customer/orders') {
         return {
           ok: true,
@@ -353,7 +354,7 @@ describe('order submit service', () => {
     })) as CustomerApiRequester);
     toggleCheckoutGiftSelection('gift-1');
 
-    const request = vi.fn(async (path: string) => {
+    const request = vi.fn(async (path: string, _options?: CustomerApiRequestOptions) => {
       if (path === '/api/v1/customer/orders') {
         return {
           ok: true,
@@ -385,12 +386,18 @@ describe('order submit service', () => {
 
     await submitOrder('balance', request as CustomerApiRequester, { idempotencyKey: 'checkout-with-gift' });
 
+    const createOrderPayload = request.mock.calls[0]?.[1]?.body as Record<string, unknown>;
+
+    expect(createOrderPayload).toEqual(expect.objectContaining({
+      idempotencyKey: 'checkout-with-gift',
+      selectedGiftIds: ['gift-1']
+    }));
+    expect(createOrderPayload).not.toHaveProperty('gifts');
+    expect(JSON.stringify(createOrderPayload)).not.toContain('giftSnapshot');
+    expect(getSelectedCheckoutGiftIds()).toEqual([]);
     expect(request).toHaveBeenNthCalledWith(1, '/api/v1/customer/orders', {
       method: 'POST',
-      body: expect.objectContaining({
-        idempotencyKey: 'checkout-with-gift',
-        selectedGiftIds: ['gift-1']
-      }),
+      body: createOrderPayload,
       auth: 'customer'
     });
   });
@@ -412,6 +419,23 @@ describe('order submit service', () => {
       timeValue: '11:00',
       timeLabel: '11:00'
     });
+    await hydrateCheckoutGifts((async () => ({
+      ok: true,
+      gifts: [
+        {
+          id: 'gift-wechat',
+          status: 'available',
+          displayGroup: 'available',
+          giftSnapshot: {
+            name: '庆祝蛋糕',
+            description: '可兑换庆祝蛋糕',
+            validDays: 180
+          },
+          expiresAt: '2027-06-16T00:00:00.000Z'
+        }
+      ]
+    })) as CustomerApiRequester);
+    toggleCheckoutGiftSelection('gift-wechat');
 
     const requestPayment = vi.fn((options: Record<string, unknown>) => {
       (options.success as () => void)?.();
@@ -483,6 +507,7 @@ describe('order submit service', () => {
       signType: 'RSA',
       paySign: 'pay-sign-1'
     }));
+    expect(getSelectedCheckoutGiftIds()).toEqual([]);
   });
 
   it('surfaces insufficient balance as a stable service error code', async () => {
