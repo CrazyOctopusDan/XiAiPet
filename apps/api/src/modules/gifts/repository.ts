@@ -17,7 +17,7 @@ export function createGiftRepository(client: DbClient = getPrismaClient()) {
       });
     },
 
-    async listCheckoutEligible(openid: string, now: Date) {
+    async listCheckoutEligible(openid: string, now: Date = new Date()) {
       return client.userGift.findMany({
         where: {
           openid,
