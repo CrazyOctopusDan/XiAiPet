@@ -70,6 +70,23 @@ describe('recharge schema', () => {
     ).toThrow('INVALID_RECHARGE_GIFT');
   });
 
+  it('rejects empty gift template id', () => {
+    expect(() =>
+      normalizeRechargePlansConfig({
+        plans: [
+          {
+            planId: 'plan-1000',
+            enabled: true,
+            paidAmount: 1000,
+            bonusAmount: 0,
+            description: '',
+            gifts: [{ giftTemplateId: '', name: '蛋糕', description: '', validDays: 30 }]
+          }
+        ]
+      })
+    ).toThrow('INVALID_RECHARGE_GIFT');
+  });
+
   it('summarizes expired available gifts as expired for display', () => {
     expect(
       summarizeUserGiftStatus(

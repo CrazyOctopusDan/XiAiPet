@@ -5,12 +5,14 @@ import type {
   DeliveryRulesRuntimeConfigSection,
   MembershipTierConfig,
   MembershipTiersRuntimeConfigSection,
+  RechargePlansRuntimeConfigSection,
   RuntimeConfigSectionDocument,
   RuntimeConfigUpdatedBy,
   StoreProfileRuntimeConfigSection
 } from '../types/runtime-config';
 import { RUNTIME_CONFIG_SECTION_IDS } from '../types/runtime-config';
 import { isAssetStorageId, isOssAssetReference } from './assets';
+import { normalizeRechargePlansConfig } from './recharge';
 
 export const LOCKED_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
   { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
@@ -142,6 +144,19 @@ function isCustomNoticeValue(value: unknown) {
   );
 }
 
+function isRechargePlansValue(value: unknown) {
+  if (!isObject(value) || !hasOnlyKeys(value, ['plans']) || !Array.isArray(value.plans)) {
+    return false;
+  }
+
+  try {
+    normalizeRechargePlansConfig(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function isRuntimeConfigSectionDocument(value: unknown): value is RuntimeConfigSectionDocument {
   if (!isObject(value) || typeof value.sectionId !== 'string') {
     return false;
@@ -161,6 +176,10 @@ export function isRuntimeConfigSectionDocument(value: unknown): value is Runtime
 
   if (value.sectionId === 'membership-tiers') {
     return isMembershipTiersRuntimeConfigSection(value);
+  }
+
+  if (value.sectionId === 'recharge-plans') {
+    return isRechargePlansRuntimeConfigSection(value);
   }
 
   if (value.sectionId === 'banner') {
@@ -211,6 +230,18 @@ export function isMembershipTiersRuntimeConfigSection(
     Array.isArray(value.value.tiers) &&
     value.value.tiers.length > 0 &&
     value.value.tiers.every((tier) => isMembershipTierConfig(tier))
+  );
+}
+
+export function isRechargePlansRuntimeConfigSection(value: unknown): value is RechargePlansRuntimeConfigSection {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  return (
+    hasOnlyKeys(value, ['sectionId', 'updatedAt', 'updatedBy', 'value']) &&
+    hasRuntimeConfigMeta(value, 'recharge-plans') &&
+    isRechargePlansValue(value.value)
   );
 }
 

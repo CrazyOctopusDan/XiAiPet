@@ -5,10 +5,12 @@ exports.isRuntimeConfigSectionDocument = isRuntimeConfigSectionDocument;
 exports.isStoreProfileRuntimeConfigSection = isStoreProfileRuntimeConfigSection;
 exports.isDeliveryRulesRuntimeConfigSection = isDeliveryRulesRuntimeConfigSection;
 exports.isMembershipTiersRuntimeConfigSection = isMembershipTiersRuntimeConfigSection;
+exports.isRechargePlansRuntimeConfigSection = isRechargePlansRuntimeConfigSection;
 exports.isBannerRuntimeConfigSection = isBannerRuntimeConfigSection;
 exports.isCustomNoticeRuntimeConfigSection = isCustomNoticeRuntimeConfigSection;
 const runtime_config_1 = require("../types/runtime-config");
 const assets_1 = require("./assets");
+const recharge_1 = require("./recharge");
 exports.LOCKED_DELIVERY_RULE_ROWS = [
     { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
     { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
@@ -101,6 +103,18 @@ function isCustomNoticeValue(value) {
         typeof value.enabled === 'boolean' &&
         isNonEmptyString(value.content));
 }
+function isRechargePlansValue(value) {
+    if (!isObject(value) || !hasOnlyKeys(value, ['plans']) || !Array.isArray(value.plans)) {
+        return false;
+    }
+    try {
+        (0, recharge_1.normalizeRechargePlansConfig)(value);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
 function isRuntimeConfigSectionDocument(value) {
     if (!isObject(value) || typeof value.sectionId !== 'string') {
         return false;
@@ -116,6 +130,9 @@ function isRuntimeConfigSectionDocument(value) {
     }
     if (value.sectionId === 'membership-tiers') {
         return isMembershipTiersRuntimeConfigSection(value);
+    }
+    if (value.sectionId === 'recharge-plans') {
+        return isRechargePlansRuntimeConfigSection(value);
     }
     if (value.sectionId === 'banner') {
         return isBannerRuntimeConfigSection(value);
@@ -151,6 +168,14 @@ function isMembershipTiersRuntimeConfigSection(value) {
         Array.isArray(value.value.tiers) &&
         value.value.tiers.length > 0 &&
         value.value.tiers.every((tier) => isMembershipTierConfig(tier)));
+}
+function isRechargePlansRuntimeConfigSection(value) {
+    if (!isObject(value)) {
+        return false;
+    }
+    return (hasOnlyKeys(value, ['sectionId', 'updatedAt', 'updatedBy', 'value']) &&
+        hasRuntimeConfigMeta(value, 'recharge-plans') &&
+        isRechargePlansValue(value.value));
 }
 function isBannerRuntimeConfigSection(value) {
     if (!isObject(value)) {

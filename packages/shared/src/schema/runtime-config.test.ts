@@ -56,6 +56,30 @@ describe('runtime config schema', () => {
         }
       },
       {
+        sectionId: 'recharge-plans',
+        updatedAt: '2026-04-17T12:00:00.000Z',
+        updatedBy: createUpdatedBy(),
+        value: {
+          plans: [
+            {
+              planId: 'plan-5000',
+              enabled: true,
+              paidAmount: 5000,
+              bonusAmount: 500,
+              description: '年度储值',
+              gifts: [
+                {
+                  giftTemplateId: 'cake-year',
+                  name: '周年蛋糕',
+                  description: '一年内可兑换',
+                  validDays: 365
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
         sectionId: 'banner',
         updatedAt: '2026-04-17T12:00:00.000Z',
         updatedBy: createUpdatedBy(),
@@ -151,6 +175,28 @@ describe('runtime config schema', () => {
               tierId: 'gold',
               threshold: 998,
               name: '金卡会员'
+            }
+          ]
+        }
+      })
+    ).toBe(false);
+  });
+
+  it('requires recharge plan values to pass recharge schema validation', () => {
+    expect(
+      isRuntimeConfigSectionDocument({
+        sectionId: 'recharge-plans',
+        updatedAt: '2026-04-17T12:00:00.000Z',
+        updatedBy: createUpdatedBy(),
+        value: {
+          plans: [
+            {
+              planId: 'plan-5000',
+              enabled: true,
+              paidAmount: 5000,
+              bonusAmount: 500,
+              description: '年度储值',
+              gifts: [{ giftTemplateId: '', name: '周年蛋糕', description: '一年内可兑换', validDays: 365 }]
             }
           ]
         }

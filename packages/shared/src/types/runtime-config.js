@@ -5,6 +5,7 @@ exports.RUNTIME_CONFIG_SECTION_IDS = [
     'store-profile',
     'delivery-rules',
     'membership-tiers',
+    'recharge-plans',
     'banner',
     'custom-notice'
 ];

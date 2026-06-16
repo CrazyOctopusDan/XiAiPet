@@ -35,7 +35,7 @@ function normalizeGift(value: unknown, index: number): RechargeGiftTemplate {
     validDays: asDays(value.validDays)
   };
 
-  if (!gift.name || gift.validDays <= 0) {
+  if (!gift.giftTemplateId || !gift.name || gift.validDays <= 0) {
     throw new Error('INVALID_RECHARGE_GIFT');
   }
 
