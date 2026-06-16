@@ -1,9 +1,11 @@
 import type { OssAssetReference } from './assets';
+import type { RechargePlansRuntimeConfigValue } from './recharge';
 
 export const RUNTIME_CONFIG_SECTION_IDS = [
   'store-profile',
   'delivery-rules',
   'membership-tiers',
+  'recharge-plans',
   'banner',
   'custom-notice'
 ] as const;
@@ -52,6 +54,11 @@ export interface MembershipTiersRuntimeConfigValue {
   tiers: MembershipTierConfig[];
 }
 
+export interface RechargePlansRuntimeConfigSection extends RuntimeConfigSectionMeta {
+  sectionId: 'recharge-plans';
+  value: RechargePlansRuntimeConfigValue;
+}
+
 export interface BannerRuntimeConfigValue {
   fileId: string;
   altText: string;
@@ -92,5 +99,6 @@ export type RuntimeConfigSectionDocument =
   | StoreProfileRuntimeConfigSection
   | DeliveryRulesRuntimeConfigSection
   | MembershipTiersRuntimeConfigSection
+  | RechargePlansRuntimeConfigSection
   | BannerRuntimeConfigSection
   | CustomNoticeRuntimeConfigSection;
