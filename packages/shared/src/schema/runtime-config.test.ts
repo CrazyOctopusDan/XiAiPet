@@ -204,6 +204,65 @@ describe('runtime config schema', () => {
     ).toBe(false);
   });
 
+  it('strictly rejects malformed recharge runtime config values', () => {
+    const rechargePlansSection: RuntimeConfigSectionDocument = {
+      sectionId: 'recharge-plans',
+      updatedAt: '2026-04-17T12:00:00.000Z',
+      updatedBy: createUpdatedBy(),
+      value: {
+        plans: [
+          {
+            planId: 'plan-5000',
+            enabled: true,
+            paidAmount: 5000,
+            bonusAmount: 500,
+            description: '年度储值',
+            gifts: [
+              {
+                giftTemplateId: 'cake-year',
+                name: '周年蛋糕',
+                description: '一年内可兑换',
+                validDays: 365
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    expect(
+      isRuntimeConfigSectionDocument({
+        ...rechargePlansSection,
+        value: {
+          plans: [{ ...rechargePlansSection.value.plans[0], paidAmount: '5000' }]
+        }
+      })
+    ).toBe(false);
+
+    expect(
+      isRuntimeConfigSectionDocument({
+        ...rechargePlansSection,
+        value: {
+          plans: [
+            {
+              ...rechargePlansSection.value.plans[0],
+              gifts: [{ name: '周年蛋糕', description: '一年内可兑换', validDays: 365 }]
+            }
+          ]
+        }
+      })
+    ).toBe(false);
+
+    expect(
+      isRuntimeConfigSectionDocument({
+        ...rechargePlansSection,
+        value: {
+          plans: [{ ...rechargePlansSection.value.plans[0], sortOrder: 1 }]
+        }
+      })
+    ).toBe(false);
+  });
+
   it('keeps banner fileId metadata and retains custom notice text even when disabled', () => {
     expect(
       isBannerRuntimeConfigSection({

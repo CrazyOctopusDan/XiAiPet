@@ -10,7 +10,6 @@ exports.isBannerRuntimeConfigSection = isBannerRuntimeConfigSection;
 exports.isCustomNoticeRuntimeConfigSection = isCustomNoticeRuntimeConfigSection;
 const runtime_config_1 = require("../types/runtime-config");
 const assets_1 = require("./assets");
-const recharge_1 = require("./recharge");
 exports.LOCKED_DELIVERY_RULE_ROWS = [
     { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
     { distanceKm: 10, minimumOrderAmount: 98, deliveryFee: 15, explainer: '10.0 公里内 98 元起送，配送费 15 元' },
@@ -107,13 +106,33 @@ function isRechargePlansValue(value) {
     if (!isObject(value) || !hasOnlyKeys(value, ['plans']) || !Array.isArray(value.plans)) {
         return false;
     }
-    try {
-        (0, recharge_1.normalizeRechargePlansConfig)(value);
-        return true;
-    }
-    catch {
+    return value.plans.every((plan) => isRechargePlanConfig(plan));
+}
+function isRechargePlanConfig(value) {
+    if (!isObject(value)) {
         return false;
     }
+    return (hasOnlyKeys(value, ['planId', 'enabled', 'paidAmount', 'bonusAmount', 'description', 'gifts']) &&
+        isNonEmptyString(value.planId) &&
+        typeof value.enabled === 'boolean' &&
+        isFiniteNumber(value.paidAmount) &&
+        value.paidAmount > 0 &&
+        isFiniteNumber(value.bonusAmount) &&
+        value.bonusAmount >= 0 &&
+        isNonEmptyString(value.description) &&
+        Array.isArray(value.gifts) &&
+        value.gifts.every((gift) => isRechargeGiftTemplate(gift)));
+}
+function isRechargeGiftTemplate(value) {
+    if (!isObject(value)) {
+        return false;
+    }
+    return (hasOnlyKeys(value, ['giftTemplateId', 'name', 'description', 'validDays']) &&
+        isNonEmptyString(value.giftTemplateId) &&
+        isNonEmptyString(value.name) &&
+        isNonEmptyString(value.description) &&
+        isFiniteNumber(value.validDays) &&
+        value.validDays > 0);
 }
 function isRuntimeConfigSectionDocument(value) {
     if (!isObject(value) || typeof value.sectionId !== 'string') {

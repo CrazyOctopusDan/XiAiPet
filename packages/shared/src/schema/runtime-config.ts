@@ -12,7 +12,6 @@ import type {
 } from '../types/runtime-config';
 import { RUNTIME_CONFIG_SECTION_IDS } from '../types/runtime-config';
 import { isAssetStorageId, isOssAssetReference } from './assets';
-import { normalizeRechargePlansConfig } from './recharge';
 
 export const LOCKED_DELIVERY_RULE_ROWS: DeliveryRuleTierRow[] = [
   { distanceKm: 5, minimumOrderAmount: 98, deliveryFee: 0, explainer: '5.0 公里内 98 元起送，配送费 0 元' },
@@ -149,12 +148,41 @@ function isRechargePlansValue(value: unknown) {
     return false;
   }
 
-  try {
-    normalizeRechargePlansConfig(value);
-    return true;
-  } catch {
+  return value.plans.every((plan) => isRechargePlanConfig(plan));
+}
+
+function isRechargePlanConfig(value: unknown) {
+  if (!isObject(value)) {
     return false;
   }
+
+  return (
+    hasOnlyKeys(value, ['planId', 'enabled', 'paidAmount', 'bonusAmount', 'description', 'gifts']) &&
+    isNonEmptyString(value.planId) &&
+    typeof value.enabled === 'boolean' &&
+    isFiniteNumber(value.paidAmount) &&
+    value.paidAmount > 0 &&
+    isFiniteNumber(value.bonusAmount) &&
+    value.bonusAmount >= 0 &&
+    isNonEmptyString(value.description) &&
+    Array.isArray(value.gifts) &&
+    value.gifts.every((gift) => isRechargeGiftTemplate(gift))
+  );
+}
+
+function isRechargeGiftTemplate(value: unknown) {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  return (
+    hasOnlyKeys(value, ['giftTemplateId', 'name', 'description', 'validDays']) &&
+    isNonEmptyString(value.giftTemplateId) &&
+    isNonEmptyString(value.name) &&
+    isNonEmptyString(value.description) &&
+    isFiniteNumber(value.validDays) &&
+    value.validDays > 0
+  );
 }
 
 export function isRuntimeConfigSectionDocument(value: unknown): value is RuntimeConfigSectionDocument {
