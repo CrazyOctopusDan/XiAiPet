@@ -97,6 +97,7 @@ function createSettlementClient(options: {
   const tx = {
     rechargeTransaction: {
       findUnique: vi.fn(async () => transaction),
+      updateMany: vi.fn(async () => ({ count: 1 })),
       update: vi.fn(async () => updatedTransaction)
     },
     balanceAccount: {
@@ -304,7 +305,8 @@ describe('createRechargeService', () => {
       syncWechatPayment: vi.fn(async () => ({
         tradeState: 'SUCCESS',
         transactionId: 'wx-transaction-1',
-        paidAt
+        paidAt,
+        paidAmountCents: 10000
       }))
     };
     const service = createRechargeService(client as never, paymentProvider as never);
@@ -577,8 +579,8 @@ describe('createRechargeService', () => {
     expect(tx.rechargeTransaction.findUnique).toHaveBeenCalledWith({
       where: { outTradeNo: 'recharge-openid-1_idem-1' }
     });
-    expect(tx.rechargeTransaction.update).toHaveBeenCalledWith({
-      where: { id: 'recharge-openid-1_idem-1' },
+    expect(tx.rechargeTransaction.updateMany).toHaveBeenCalledWith({
+      where: { id: 'recharge-openid-1_idem-1', settledAt: null },
       data: {
         status: 'PAID',
         transactionId: 'wx-transaction-1',
@@ -666,7 +668,8 @@ describe('createRechargeService', () => {
       paidAmountCents: 10000
     });
 
-    expect(tx.rechargeTransaction.update).toHaveBeenCalledTimes(1);
+    expect(tx.rechargeTransaction.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.rechargeTransaction.update).not.toHaveBeenCalled();
     expect(tx.balanceLedger.create).toHaveBeenCalledTimes(2);
     expect(tx.userGift.create).toHaveBeenCalledTimes(1);
   });
@@ -684,6 +687,67 @@ describe('createRechargeService', () => {
     ).rejects.toMatchObject(
       new ApiError('RECHARGE_TRANSACTION_NOT_FOUND', 'Recharge transaction not found', 404)
     );
+  });
+
+  it('rejects recharge settlement when paid amount is missing', async () => {
+    const { client, tx, paidAt } = createSettlementClient();
+    const service = createRechargeService(client as never);
+
+    await expect(
+      service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
+        transactionId: 'wx-transaction-1',
+        paidAt
+      })
+    ).rejects.toMatchObject(
+      new ApiError('RECHARGE_PAYMENT_AMOUNT_MISSING', 'Recharge payment amount is required for settlement', 409)
+    );
+    expect(tx.rechargeTransaction.updateMany).not.toHaveBeenCalled();
+    expect(tx.rechargeTransaction.update).not.toHaveBeenCalled();
+    expect(tx.balanceLedger.create).not.toHaveBeenCalled();
+    expect(tx.userGift.create).not.toHaveBeenCalled();
+  });
+
+  it('returns an already settled transaction without side effects when a duplicate settlement loses the claim', async () => {
+    const paidAt = date('2026-06-16T10:30:00.000Z');
+    const unsettled = createTransactionRow();
+    const settled = createTransactionRow({
+      ...unsettled,
+      status: 'PAID',
+      transactionId: 'wx-transaction-1',
+      paidAt,
+      settledAt: paidAt
+    });
+    const { client, tx } = createSettlementClient({ transaction: unsettled, updatedTransaction: settled });
+    tx.rechargeTransaction.updateMany.mockResolvedValueOnce({ count: 0 });
+    tx.rechargeTransaction.findUnique
+      .mockResolvedValueOnce(unsettled)
+      .mockResolvedValueOnce(settled);
+    const service = createRechargeService(client as never);
+
+    await expect(
+      service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
+        transactionId: 'wx-transaction-1',
+        paidAt,
+        paidAmountCents: 10000
+      })
+    ).resolves.toMatchObject({
+      id: 'recharge-openid-1_idem-1',
+      status: 'paid',
+      settledAt: '2026-06-16T10:30:00.000Z'
+    });
+
+    expect(tx.rechargeTransaction.updateMany).toHaveBeenCalledWith({
+      where: { id: 'recharge-openid-1_idem-1', settledAt: null },
+      data: {
+        status: 'PAID',
+        transactionId: 'wx-transaction-1',
+        paidAt,
+        settledAt: paidAt
+      }
+    });
+    expect(tx.rechargeTransaction.update).not.toHaveBeenCalled();
+    expect(tx.balanceLedger.create).not.toHaveBeenCalled();
+    expect(tx.userGift.create).not.toHaveBeenCalled();
   });
 
   it('rejects recharge settlement when the WeChat paid amount does not match the transaction amount', async () => {

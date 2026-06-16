@@ -321,24 +321,45 @@ export function createRechargeService(
           throw new ApiError('RECHARGE_TRANSACTION_NOT_FOUND', 'Recharge transaction not found', 404);
         }
 
-        if (payment.paidAmountCents !== undefined && payment.paidAmountCents !== toCents(toNumber(existing.paidAmount))) {
+        if (payment.paidAmountCents === undefined) {
+          throw new ApiError('RECHARGE_PAYMENT_AMOUNT_MISSING', 'Recharge payment amount is required for settlement', 409);
+        }
+        if (payment.paidAmountCents !== toCents(toNumber(existing.paidAmount))) {
           throw new ApiError('RECHARGE_PAYMENT_AMOUNT_MISMATCH', 'Recharge payment amount does not match transaction amount', 409);
         }
-
         if (existing.settledAt) {
           return mapRechargeTransaction(existing);
         }
 
         const paidAt = payment.paidAt ?? new Date();
-        const updated = await tx.rechargeTransaction.update({
-          where: { id: existing.id },
+        const claim = await tx.rechargeTransaction.updateMany({
+          where: {
+            id: existing.id,
+            settledAt: null
+          },
           data: {
             status: RECHARGE_TRANSACTION_STATUS.paid,
             transactionId: payment.transactionId,
             paidAt,
             settledAt: paidAt
           }
-        }) as RechargeTransactionRow;
+        });
+        if (claim.count !== 1) {
+          const settled = await tx.rechargeTransaction.findUnique({
+            where: { id: existing.id }
+          }) as RechargeTransactionRow | null;
+          if (settled?.settledAt) {
+            return mapRechargeTransaction(settled);
+          }
+          throw new ApiError('RECHARGE_SETTLEMENT_CONFLICT', 'Recharge settlement could not be claimed', 409);
+        }
+        const updated = {
+          ...existing,
+          status: RECHARGE_TRANSACTION_STATUS.paid,
+          transactionId: payment.transactionId ?? existing.transactionId,
+          paidAt,
+          settledAt: paidAt
+        };
 
         await createBalanceService(tx as never).adjustBalance({
           openid: existing.openid,

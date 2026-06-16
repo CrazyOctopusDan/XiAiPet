@@ -98,6 +98,10 @@ function toNumber(value: unknown, fallback = 0) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
+function toCents(value: number) {
+  return Math.round(value * 100);
+}
+
 function toOptionalNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
@@ -334,6 +338,15 @@ function canCustomerCompleteOrder(order: OrderRecord) {
   return order.fulfillmentStatus ? CUSTOMER_COMPLETABLE_FULFILLMENT_STATUSES.includes(order.fulfillmentStatus) : false;
 }
 
+function assertSyncedPaymentAmountMatchesOrder(order: OrderRecord, paidAmountCents?: number) {
+  if (paidAmountCents === undefined) {
+    throw new ApiError('ORDER_PAYMENT_AMOUNT_MISSING', 'Order payment amount is required for settlement', 409);
+  }
+  if (paidAmountCents !== toCents(order.pricing.payableTotal)) {
+    throw new ApiError('ORDER_PAYMENT_AMOUNT_MISMATCH', 'Order payment amount does not match order total', 409);
+  }
+}
+
 export function createOrderService(
   client: PrismaClient = getPrismaClient(),
   paymentProvider: PaymentProvider = createMockPaymentProvider()
@@ -448,6 +461,7 @@ export function createOrderService(
         const syncedPayment = await paymentProvider.syncWechatPayment(createOrderPaymentSubject(order), { openid });
 
         if (syncedPayment.tradeState === 'SUCCESS') {
+          assertSyncedPaymentAmountMatchesOrder(order, syncedPayment.paidAmountCents);
           await createPaymentRepository(client).upsertPayment({
             orderId,
             method: 'wechat',

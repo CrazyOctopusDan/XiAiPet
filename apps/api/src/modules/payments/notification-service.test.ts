@@ -183,6 +183,55 @@ describe('createPaymentNotifyService', () => {
     expect(orderUpdate).not.toHaveBeenCalled();
   });
 
+  it('rejects successful order notifications with missing paid amount', async () => {
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+    const publicPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    const paymentUpsert = vi.fn();
+    const orderUpdate = vi.fn();
+    const client = {
+      payment: { upsert: paymentUpsert },
+      order: {
+        findUnique: vi.fn(async () => createOrderRow('order-1')),
+        update: orderUpdate
+      }
+    } as unknown as DbClient;
+    const rawBody = JSON.stringify({
+      id: 'notice-1',
+      resource: encryptResource({
+        out_trade_no: 'order-1',
+        transaction_id: 'wx-transaction-1',
+        trade_state: 'SUCCESS',
+        success_time: '2026-06-11T01:02:03+08:00'
+      })
+    });
+    const timestamp = '1700000000';
+    const nonce = randomBytes(12).toString('hex');
+    const service = createPaymentNotifyService({
+      mchId: '1113847744',
+      mchSerialNo: 'merchant-serial',
+      privateKey: privatePem,
+      notifyUrl: 'https://api.xiaipet.vip/api/v1/payments/wechat/notify',
+      apiV3Key: API_V3_KEY,
+      platformPublicKey: publicPem
+    }, client);
+
+    await expect(service.handleWechatPayNotification({
+      rawBody,
+      headers: {
+        timestamp,
+        nonce,
+        serial: 'platform-serial',
+        signature: signBody(privatePem, timestamp, nonce, rawBody)
+      }
+    })).rejects.toMatchObject({
+      code: 'WECHAT_PAY_NOTIFY_AMOUNT_MISSING',
+      statusCode: 400
+    });
+    expect(paymentUpsert).not.toHaveBeenCalled();
+    expect(orderUpdate).not.toHaveBeenCalled();
+  });
+
   it('routes successful recharge notifications to recharge settlement', async () => {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
@@ -286,6 +335,52 @@ describe('createPaymentNotifyService', () => {
     expect(rechargeSettlementMock).toHaveBeenCalledWith('recharge-openid-1_idem-1', expect.objectContaining({
       paidAmountCents: 9900
     }));
+  });
+
+  it('rejects successful recharge notifications with malformed paid amount before settlement', async () => {
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+    const publicPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    const client = {
+      payment: { upsert: vi.fn() },
+      order: { update: vi.fn() }
+    } as unknown as DbClient;
+    const rawBody = JSON.stringify({
+      id: 'notice-1',
+      resource: encryptResource({
+        out_trade_no: 'recharge-openid-1_idem-1',
+        transaction_id: 'wx-recharge-transaction-1',
+        trade_state: 'SUCCESS',
+        success_time: '2026-06-11T01:02:03+08:00',
+        amount: {
+          total: '10000'
+        }
+      })
+    });
+    const timestamp = '1700000000';
+    const nonce = randomBytes(12).toString('hex');
+    const service = createPaymentNotifyService({
+      mchId: '1113847744',
+      mchSerialNo: 'merchant-serial',
+      privateKey: privatePem,
+      notifyUrl: 'https://api.xiaipet.vip/api/v1/payments/wechat/notify',
+      apiV3Key: API_V3_KEY,
+      platformPublicKey: publicPem
+    }, client);
+
+    await expect(service.handleWechatPayNotification({
+      rawBody,
+      headers: {
+        timestamp,
+        nonce,
+        serial: 'platform-serial',
+        signature: signBody(privatePem, timestamp, nonce, rawBody)
+      }
+    })).rejects.toMatchObject({
+      code: 'WECHAT_PAY_NOTIFY_AMOUNT_MISSING',
+      statusCode: 400
+    });
+    expect(rechargeSettlementMock).not.toHaveBeenCalled();
   });
 
   it('rejects notifications with invalid signatures', async () => {

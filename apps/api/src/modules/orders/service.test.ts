@@ -310,7 +310,8 @@ describe('order service', () => {
       syncWechatPayment: vi.fn(async () => ({
         tradeState: 'SUCCESS',
         transactionId: 'wx-transaction-1',
-        paidAt: new Date('2026-05-25T08:00:00.000Z')
+        paidAt: new Date('2026-05-25T08:00:00.000Z'),
+        paidAmountCents: 6800
       }))
     };
     const service = createOrderService(client as any, paymentProvider);
@@ -347,6 +348,73 @@ describe('order service', () => {
       }),
       { openid: 'openid-1' }
     );
+  });
+
+  it('rejects WeChat payment sync success when the provider omits paid amount', async () => {
+    const order = createOrderRow({
+      paymentMethod: 'WECHAT',
+      paymentStatus: 'PROCESSING',
+      payableTotal: decimal(68)
+    });
+    const client = {
+      order: {
+        findUnique: vi.fn(async () => order),
+        update: vi.fn()
+      },
+      payment: {
+        upsert: vi.fn()
+      }
+    };
+    const paymentProvider = {
+      startWechatPayment: vi.fn(),
+      syncWechatPayment: vi.fn(async () => ({
+        tradeState: 'SUCCESS',
+        transactionId: 'wx-transaction-1',
+        paidAt: new Date('2026-05-25T08:00:00.000Z')
+      }))
+    };
+    const service = createOrderService(client as any, paymentProvider);
+
+    await expect(service.syncCustomerPayment('openid-1', 'order-1')).rejects.toMatchObject({
+      code: 'ORDER_PAYMENT_AMOUNT_MISSING',
+      statusCode: 409
+    });
+    expect(client.payment.upsert).not.toHaveBeenCalled();
+    expect(client.order.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects WeChat payment sync success when the paid amount does not match the order total', async () => {
+    const order = createOrderRow({
+      paymentMethod: 'WECHAT',
+      paymentStatus: 'PROCESSING',
+      payableTotal: decimal(68)
+    });
+    const client = {
+      order: {
+        findUnique: vi.fn(async () => order),
+        update: vi.fn()
+      },
+      payment: {
+        upsert: vi.fn()
+      }
+    };
+    const paymentProvider = {
+      startWechatPayment: vi.fn(),
+      syncWechatPayment: vi.fn(async () => ({
+        tradeState: 'SUCCESS',
+        transactionId: 'wx-transaction-1',
+        paidAt: new Date('2026-05-25T08:00:00.000Z'),
+        paidAmountCents: 6700
+      }))
+    };
+    const service = createOrderService(client as any, paymentProvider);
+
+    await expect(service.syncCustomerPayment('openid-1', 'order-1')).rejects.toMatchObject({
+      code: 'ORDER_PAYMENT_AMOUNT_MISMATCH',
+      statusCode: 409
+    });
+    expect(client.payment.upsert).not.toHaveBeenCalled();
+    expect(client.order.update).not.toHaveBeenCalled();
   });
 
   it('lets the customer complete a ready pickup order', async () => {

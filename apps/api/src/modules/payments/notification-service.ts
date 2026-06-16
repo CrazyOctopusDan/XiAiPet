@@ -67,9 +67,12 @@ function decryptWechatPayResource(resource: NonNullable<WechatPayNotificationBod
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
 
-function readPaidAmountCents(resource: WechatPayTransactionResource) {
+function requirePaidAmountCents(resource: WechatPayTransactionResource) {
   const amount = resource.amount?.payer_total ?? resource.amount?.total;
-  return typeof amount === 'number' && Number.isFinite(amount) ? amount : undefined;
+  if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+    throw new ApiError('WECHAT_PAY_NOTIFY_AMOUNT_MISSING', 'WeChat Pay notification missing paid amount', 400);
+  }
+  return amount;
 }
 
 function toCents(value: number) {
@@ -131,7 +134,7 @@ export function createPaymentNotifyService(
 
       if (resource.trade_state === 'SUCCESS') {
         const paidAt = resource.success_time ? new Date(resource.success_time) : new Date();
-        const paidAmountCents = readPaidAmountCents(resource);
+        const paidAmountCents = requirePaidAmountCents(resource);
         if (resource.out_trade_no.startsWith('recharge-')) {
           await createRechargeService(client as never).settleWechatRechargePayment(resource.out_trade_no, {
             transactionId: resource.transaction_id,
