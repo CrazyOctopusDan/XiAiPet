@@ -22,6 +22,7 @@ interface RechargePageData {
 interface RechargePageInstance {
   data: RechargePageData;
   rechargeIdempotencyKey: string;
+  rechargeTransactionStarted: boolean;
   setData(data: Record<string, unknown>): void;
   refreshPlans(): Promise<void>;
   refreshSelection(plan?: RechargePlanConfig | null): void;
@@ -40,8 +41,10 @@ Page({
     submitting: false
   },
   rechargeIdempotencyKey: '',
+  rechargeTransactionStarted: false,
   onLoad(this: RechargePageInstance) {
     this.rechargeIdempotencyKey = createPageRechargeKey();
+    this.rechargeTransactionStarted = false;
   },
   onShow(this: RechargePageInstance) {
     void this.refreshPlans();
@@ -76,6 +79,10 @@ Page({
       return;
     }
 
+    if (!this.rechargeTransactionStarted && planId !== this.data.selectedPlanId) {
+      this.rechargeIdempotencyKey = createPageRechargeKey();
+    }
+
     this.refreshSelection(selectRechargePlan(planId));
   },
   async handleSubmitRecharge(this: RechargePageInstance) {
@@ -84,10 +91,13 @@ Page({
     }
 
     this.setData({ submitting: true });
+    this.rechargeTransactionStarted = true;
     try {
       await startRecharge(this.data.selectedPlanId, undefined, {
         idempotencyKey: this.rechargeIdempotencyKey
       });
+      this.rechargeIdempotencyKey = createPageRechargeKey();
+      this.rechargeTransactionStarted = false;
       wx.showToast({
         title: '充值成功',
         icon: 'success'
@@ -99,7 +109,6 @@ Page({
         icon: 'none'
       });
     } finally {
-      this.rechargeIdempotencyKey = createPageRechargeKey();
       this.setData({ submitting: false });
     }
   }

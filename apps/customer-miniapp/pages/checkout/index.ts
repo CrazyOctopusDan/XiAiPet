@@ -21,7 +21,7 @@ import {
 import { getCartItems, getCartSummary, removeSelectedCartItems, type CartItem } from '../../src/services/cart';
 import { getPets, hydratePets, type PetProfile } from '../../src/services/pets';
 import { getPhoneBindingRedirectUrl, hydrateProfile } from '../../src/services/profile';
-import { getSelectedCheckoutGiftSummary } from '../../src/services/gifts';
+import { getSelectedCheckoutGiftSummary, resetCheckoutGiftSelection } from '../../src/services/gifts';
 import { getCheckoutPricingPreview, getDeliveryFeePreview, submitOrder } from '../../src/services/order-submit';
 import { hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 import { setPendingOrdersHighlight } from '../../src/services/tab-navigation';
@@ -183,6 +183,7 @@ Page({
   onLoad(this: CheckoutPageInstance) {
     checkoutSubmissionLocked = false;
     resetCheckoutDraft();
+    resetCheckoutGiftSelection();
     this.setData({
       activePaymentMethod: 'balance',
       showReservationModal: false,

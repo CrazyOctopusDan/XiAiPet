@@ -98,6 +98,7 @@ Page({
     onLoad() {
         checkoutSubmissionLocked = false;
         (0, checkout_1.resetCheckoutDraft)();
+        (0, gifts_1.resetCheckoutGiftSelection)();
         this.setData({
             activePaymentMethod: 'balance',
             showReservationModal: false,

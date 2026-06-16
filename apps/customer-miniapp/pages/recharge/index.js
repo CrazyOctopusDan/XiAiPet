@@ -13,8 +13,10 @@ Page({
         submitting: false
     },
     rechargeIdempotencyKey: '',
+    rechargeTransactionStarted: false,
     onLoad() {
         this.rechargeIdempotencyKey = createPageRechargeKey();
+        this.rechargeTransactionStarted = false;
     },
     onShow() {
         void this.refreshPlans();
@@ -49,6 +51,9 @@ Page({
         if (!planId) {
             return;
         }
+        if (!this.rechargeTransactionStarted && planId !== this.data.selectedPlanId) {
+            this.rechargeIdempotencyKey = createPageRechargeKey();
+        }
         this.refreshSelection((0, recharge_1.selectRechargePlan)(planId));
     },
     async handleSubmitRecharge() {
@@ -56,10 +61,13 @@ Page({
             return;
         }
         this.setData({ submitting: true });
+        this.rechargeTransactionStarted = true;
         try {
             await (0, recharge_1.startRecharge)(this.data.selectedPlanId, undefined, {
                 idempotencyKey: this.rechargeIdempotencyKey
             });
+            this.rechargeIdempotencyKey = createPageRechargeKey();
+            this.rechargeTransactionStarted = false;
             wx.showToast({
                 title: '充值成功',
                 icon: 'success'
@@ -73,7 +81,6 @@ Page({
             });
         }
         finally {
-            this.rechargeIdempotencyKey = createPageRechargeKey();
             this.setData({ submitting: false });
         }
     }

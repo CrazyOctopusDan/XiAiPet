@@ -14,13 +14,15 @@ function cloneData<T>(value: T): T {
 }
 
 async function loadPageModule(modulePath: string) {
+  const storage = new Map<string, unknown>();
   let capturedPage: PageOptions | null = null;
   const wxMock = {
     login: vi.fn().mockResolvedValue({ code: 'wx-login-code' }),
     request: vi.fn(),
-    getStorageSync: vi.fn(),
-    setStorageSync: vi.fn(),
-    removeStorageSync: vi.fn(),
+    requestPayment: vi.fn(),
+    getStorageSync: vi.fn((key: string) => storage.get(key)),
+    setStorageSync: vi.fn((key: string, value: unknown) => storage.set(key, value)),
+    removeStorageSync: vi.fn((key: string) => storage.delete(key)),
     getAccountInfoSync: vi.fn(() => ({
       miniProgram: {
         envVersion: 'develop'
@@ -108,5 +110,108 @@ describe('customer recharge and gift page flow', () => {
     instance.handleGiftTap();
 
     expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/checkout-gifts/index' });
+  });
+
+  it('keeps recharge idempotency key stable when payment is cancelled and retried', async () => {
+    const idempotencyKeys: string[] = [];
+    const { page, wx } = await loadPageModule(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/recharge/index.ts'
+    );
+    wx.request.mockImplementation((options: any) => {
+      const path = new URL(options.url).pathname;
+
+      if (path === '/api/v1/customer/auth/login') {
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            token: 'customer-token',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+            openid: 'session-openid'
+          }
+        });
+        return;
+      }
+
+      if (path === '/api/v1/customer/recharge-transactions') {
+        idempotencyKeys.push(options.data.idempotencyKey);
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            transaction: {
+              id: `recharge-${idempotencyKeys.length}`,
+              planId: options.data.planId,
+              planSnapshot: {
+                planId: options.data.planId,
+                enabled: true,
+                paidAmount: 100,
+                bonusAmount: 10,
+                description: '测试充值',
+                gifts: [],
+                purchasedAt: '2026-06-16T00:00:00.000Z'
+              },
+              paidAmount: 100,
+              bonusAmount: 10,
+              status: 'pending'
+            },
+            paymentStatus: 'pending_wechat',
+            paymentParams: {
+              timeStamp: '1',
+              nonceStr: 'nonce',
+              package: 'prepay_id=1',
+              signType: 'RSA',
+              paySign: 'sign'
+            }
+          }
+        });
+      }
+    });
+    wx.requestPayment.mockImplementation((options: any) => {
+      options.fail?.({ errMsg: 'requestPayment:fail cancel' });
+    });
+    const instance = createPageInstance(page);
+
+    instance.onLoad();
+    instance.setData({
+      selectedPlanId: 'plan-100',
+      submitting: false
+    });
+    await instance.handleSubmitRecharge();
+    await instance.handleSubmitRecharge();
+
+    expect(idempotencyKeys).toHaveLength(2);
+    expect(idempotencyKeys[1]).toBe(idempotencyKeys[0]);
+  });
+
+  it('resets stale checkout gift selection on a new checkout load', async () => {
+    const { page } = await loadPageModule(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts'
+    );
+    const giftsService = await import('../src/services/gifts');
+    await giftsService.hydrateCheckoutGifts(async <T>() => ({
+      ok: true,
+      gifts: [
+        {
+          id: 'gift-1',
+          status: 'available',
+          displayGroup: 'available',
+          giftSnapshot: {
+            name: '生日蛋糕',
+            description: '订单可兑换',
+            validDays: 30
+          },
+          expiresAt: '2026-07-16T00:00:00.000Z'
+        }
+      ]
+    }) as T);
+    giftsService.toggleCheckoutGiftSelection('gift-1');
+    const instance = createPageInstance(page);
+
+    instance.onLoad();
+
+    expect(instance.data.selectedGiftCount).toBe(0);
+    expect(instance.data.selectedGiftSummary).toEqual([]);
+    expect(giftsService.getSelectedCheckoutGiftIds()).toEqual([]);
   });
 });
