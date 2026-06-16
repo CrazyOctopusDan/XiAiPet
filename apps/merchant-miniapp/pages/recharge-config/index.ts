@@ -1,8 +1,6 @@
 declare const wx: any;
 declare function Page(options: Record<string, unknown>): void;
 
-import type { RechargeGiftTemplate, RechargePlanConfig } from '@xiaipet/shared/types/recharge';
-
 import {
   buildRechargeGiftDraft,
   buildRechargePlanDraft,
@@ -14,6 +12,7 @@ import {
   queryRechargePlans,
   saveRechargePlans
 } from '../../src/services/recharge-config';
+import type { RechargeGiftTemplate, RechargePlanConfig } from '../../src/shared/recharge-schema';
 
 interface RechargeConfigPageData {
   loading: boolean;

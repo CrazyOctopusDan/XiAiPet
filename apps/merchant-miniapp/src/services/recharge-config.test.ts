@@ -1,6 +1,12 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
-import type { RechargePlansRuntimeConfigValue } from '@xiaipet/shared/types/recharge';
+import {
+  normalizeRechargePlansConfig as normalizeMerchantRechargePlansConfig,
+  type RechargePlansRuntimeConfigValue
+} from '../shared/recharge-schema';
 import {
   buildRechargeGiftDraft,
   buildRechargePlanDraft,
@@ -13,7 +19,49 @@ import {
   saveRechargePlans
 } from './recharge-config';
 
+const sharedSchemaPath = path.resolve(__dirname, '..', '..', '..', '..', 'packages', 'shared', 'src', 'schema', 'recharge.js');
+const { normalizeRechargePlansConfig: normalizeSharedRechargePlansConfig } = require(sharedSchemaPath) as {
+  normalizeRechargePlansConfig(input: unknown): RechargePlansRuntimeConfigValue;
+};
+
 describe('merchant recharge config service', () => {
+  it('keeps merchant recharge normalization aligned with the shared schema', () => {
+    const source = {
+      plans: [
+        {
+          planId: ' plan-500 ',
+          enabled: true,
+          paidAmount: 500.129,
+          bonusAmount: 50.999,
+          description: '  储值说明  ',
+          gifts: [
+            {
+              giftTemplateId: ' gift-snack ',
+              name: ' 零食 ',
+              description: '  30 天内有效 ',
+              validDays: 30.8
+            }
+          ]
+        }
+      ]
+    };
+
+    expect(normalizeMerchantRechargePlansConfig(source)).toEqual(normalizeSharedRechargePlansConfig(source));
+    expect(() => normalizeMerchantRechargePlansConfig({ plans: [{ planId: 'bad', paidAmount: 0, bonusAmount: 0, gifts: [] }] })).toThrow(
+      'INVALID_RECHARGE_PLAN'
+    );
+  });
+
+  it('keeps checked-in recharge service runtime imports inside the miniapp root', () => {
+    const runtimeSource = readFileSync(path.resolve(__dirname, 'recharge-config.js'), 'utf8');
+    const sharedPackageName = '@xiaipet' + '/shared';
+    const escapedPackagePath = ['..', '..', '..', '..', 'packages'].join('/');
+
+    expect(runtimeSource).not.toContain(`require("${sharedPackageName}")`);
+    expect(runtimeSource).not.toContain(`require('${sharedPackageName}')`);
+    expect(runtimeSource).not.toContain(escapedPackagePath);
+  });
+
   it('builds editable recharge plan and gift drafts for the merchant form', () => {
     const plan = buildRechargePlanDraft();
     const gift = buildRechargeGiftDraft();

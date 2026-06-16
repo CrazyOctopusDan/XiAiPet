@@ -9,8 +9,8 @@ exports.saveRechargePlans = saveRechargePlans;
 exports.buildRechargePlanDraft = buildRechargePlanDraft;
 exports.buildRechargeGiftDraft = buildRechargeGiftDraft;
 exports.getRechargeConfigViewModel = getRechargeConfigViewModel;
+const recharge_schema_1 = require("../shared/recharge-schema");
 const api_client_1 = require("./api-client");
-const { normalizeRechargePlansConfig } = require('../../../../packages/shared/src/schema/recharge.js');
 let draftIdSequence = 0;
 function createDraftId(prefix) {
     draftIdSequence = (draftIdSequence + 1) % Number.MAX_SAFE_INTEGER;
@@ -34,7 +34,7 @@ function validateUniqueRechargeIds(value) {
     });
 }
 function normalizeRechargePlansDraft(input) {
-    const normalized = normalizeRechargePlansConfig(input);
+    const normalized = (0, recharge_schema_1.normalizeRechargePlansConfig)(input);
     validateUniqueRechargeIds(normalized);
     return normalized;
 }

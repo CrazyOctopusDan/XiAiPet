@@ -1,9 +1,10 @@
-import type { RechargeGiftTemplate, RechargePlanConfig, RechargePlansRuntimeConfigValue } from '@xiaipet/shared/types/recharge';
+import {
+  normalizeRechargePlansConfig,
+  type RechargeGiftTemplate,
+  type RechargePlanConfig,
+  type RechargePlansRuntimeConfigValue
+} from '../shared/recharge-schema';
 import { merchantApiRequest, type MerchantApiRequester } from './api-client';
-
-const { normalizeRechargePlansConfig } = require('../../../../packages/shared/src/schema/recharge.js') as {
-  normalizeRechargePlansConfig(input: unknown): RechargePlansRuntimeConfigValue;
-};
 
 export interface RechargePlanRowViewModel extends RechargePlanConfig {
   summaryLabel: string;
