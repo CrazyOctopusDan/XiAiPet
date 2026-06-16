@@ -4,6 +4,11 @@ const recharge_1 = require("../../src/services/recharge");
 function createPageRechargeKey() {
     return `recharge-page-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+function resetRechargeSubmissionState(page) {
+    page.rechargeIdempotencyKey = createPageRechargeKey();
+    page.rechargeIdempotencyPlanId = '';
+    page.rechargeTransactionStarted = false;
+}
 Page({
     data: {
         plans: [],
@@ -13,10 +18,10 @@ Page({
         submitting: false
     },
     rechargeIdempotencyKey: '',
+    rechargeIdempotencyPlanId: '',
     rechargeTransactionStarted: false,
     onLoad() {
-        this.rechargeIdempotencyKey = createPageRechargeKey();
-        this.rechargeTransactionStarted = false;
+        resetRechargeSubmissionState(this);
     },
     onShow() {
         void this.refreshPlans();
@@ -51,8 +56,8 @@ Page({
         if (!planId) {
             return;
         }
-        if (!this.rechargeTransactionStarted && planId !== this.data.selectedPlanId) {
-            this.rechargeIdempotencyKey = createPageRechargeKey();
+        if (planId !== this.data.selectedPlanId && this.rechargeIdempotencyPlanId !== planId) {
+            resetRechargeSubmissionState(this);
         }
         this.refreshSelection((0, recharge_1.selectRechargePlan)(planId));
     },
@@ -61,13 +66,18 @@ Page({
             return;
         }
         this.setData({ submitting: true });
+        if (this.rechargeIdempotencyPlanId && this.rechargeIdempotencyPlanId !== this.data.selectedPlanId) {
+            resetRechargeSubmissionState(this);
+        }
+        if (!this.rechargeIdempotencyPlanId) {
+            this.rechargeIdempotencyPlanId = this.data.selectedPlanId;
+        }
         this.rechargeTransactionStarted = true;
         try {
             await (0, recharge_1.startRecharge)(this.data.selectedPlanId, undefined, {
                 idempotencyKey: this.rechargeIdempotencyKey
             });
-            this.rechargeIdempotencyKey = createPageRechargeKey();
-            this.rechargeTransactionStarted = false;
+            resetRechargeSubmissionState(this);
             wx.showToast({
                 title: '充值成功',
                 icon: 'success'

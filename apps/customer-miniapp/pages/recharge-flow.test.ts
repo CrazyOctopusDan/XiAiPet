@@ -184,6 +184,113 @@ describe('customer recharge and gift page flow', () => {
     expect(idempotencyKeys[1]).toBe(idempotencyKeys[0]);
   });
 
+  it('rotates recharge idempotency key when switching plans after a cancelled payment', async () => {
+    const submissions: Array<{ planId: string; idempotencyKey: string }> = [];
+    const { page, wx } = await loadPageModule(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/recharge/index.ts'
+    );
+    wx.request.mockImplementation((options: any) => {
+      const path = new URL(options.url).pathname;
+
+      if (path === '/api/v1/customer/auth/login') {
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            token: 'customer-token',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+            openid: 'session-openid'
+          }
+        });
+        return;
+      }
+
+      if (path === '/api/v1/customer/recharge-plans') {
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            plans: [
+              {
+                planId: 'plan-a',
+                enabled: true,
+                paidAmount: 100,
+                bonusAmount: 10,
+                description: '方案 A',
+                gifts: []
+              },
+              {
+                planId: 'plan-b',
+                enabled: true,
+                paidAmount: 200,
+                bonusAmount: 30,
+                description: '方案 B',
+                gifts: []
+              }
+            ]
+          }
+        });
+        return;
+      }
+
+      if (path === '/api/v1/customer/recharge-transactions') {
+        submissions.push({
+          planId: options.data.planId,
+          idempotencyKey: options.data.idempotencyKey
+        });
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            transaction: {
+              id: `recharge-${submissions.length}`,
+              planId: options.data.planId,
+              planSnapshot: {
+                planId: options.data.planId,
+                enabled: true,
+                paidAmount: options.data.planId === 'plan-a' ? 100 : 200,
+                bonusAmount: options.data.planId === 'plan-a' ? 10 : 30,
+                description: options.data.planId === 'plan-a' ? '方案 A' : '方案 B',
+                gifts: [],
+                purchasedAt: '2026-06-16T00:00:00.000Z'
+              },
+              paidAmount: options.data.planId === 'plan-a' ? 100 : 200,
+              bonusAmount: options.data.planId === 'plan-a' ? 10 : 30,
+              status: 'pending'
+            },
+            paymentStatus: 'pending_wechat',
+            paymentParams: {
+              timeStamp: '1',
+              nonceStr: 'nonce',
+              package: 'prepay_id=1',
+              signType: 'RSA',
+              paySign: 'sign'
+            }
+          }
+        });
+      }
+    });
+    wx.requestPayment.mockImplementation((options: any) => {
+      options.fail?.({ errMsg: 'requestPayment:fail cancel' });
+    });
+    const instance = createPageInstance(page);
+
+    instance.onLoad();
+    await instance.refreshPlans();
+    await instance.handleSubmitRecharge();
+    instance.handlePlanTap({
+      currentTarget: {
+        dataset: {
+          planId: 'plan-b'
+        }
+      }
+    });
+    await instance.handleSubmitRecharge();
+
+    expect(submissions.map((item) => item.planId)).toEqual(['plan-a', 'plan-b']);
+    expect(submissions[1].idempotencyKey).not.toBe(submissions[0].idempotencyKey);
+  });
+
   it('resets stale checkout gift selection on a new checkout load', async () => {
     const { page } = await loadPageModule(
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts'
