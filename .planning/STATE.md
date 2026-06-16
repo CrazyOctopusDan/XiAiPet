@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-16 | 260616-imp recharge plans and gifts implementation plan | Wrote the implementation plan for recharge contracts, REST APIs, WeChat Pay settlement, gift snapshots, checkout gift use, and miniapp pages. |
 | 2026-06-16 | 260616-rch recharge plans and gifts design | Designed fixed recharge plans, WeChat Pay recharge settlement, separate paid/bonus ledgers, user gift snapshots, expiration, and checkout gift locking. |
 | 2026-06-11 | 260611-docker-daemon-eof-recovery Docker daemon EOF recovery | Added ECS recovery steps for Docker daemon EOF before `docker system df`, including non-Docker cleanup and a last-resort data-root reset path. |
 | 2026-06-11 | 260611-api-docker-startup-hardening API Docker startup hardening | Started the runtime container directly with Node, added ECS preflight checks, reduced Docker build context, and documented ENOSPC recovery. |
