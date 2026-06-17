@@ -27,8 +27,7 @@
 .field-label,
 .field-tip,
 .contact-value,
-.contact-action,
-.lock-badge {
+.contact-action {
   display: block;
 }
 
@@ -148,13 +147,19 @@
 }
 
 .lock-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  padding: 8rpx 14rpx;
+  height: 52rpx;
+  padding: 0 18rpx;
   border-radius: 999rpx;
   background: #F6E396;
   font-size: 20rpx;
+  line-height: 1;
   font-weight: 700;
   color: #6B7C84;
+  box-sizing: border-box;
 }
 
 .lock-badge.locked {

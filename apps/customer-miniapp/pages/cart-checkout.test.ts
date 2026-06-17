@@ -1933,6 +1933,21 @@ describe('cart checkout flow', () => {
     expect(detailStyles).toContain('background: radial-gradient(circle at 12% 0%, rgba(246, 227, 150, 0.4) 0, transparent 34%)');
   });
 
+  it('centers the profile birthday lock badge text inside the pill', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const detailStyles = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile-detail/index.wxss',
+      'utf8'
+    );
+    const lockBadgeRule = detailStyles.match(/\.lock-badge\s*\{[^}]+\}/)?.[0] ?? '';
+
+    expect(lockBadgeRule).toContain('display: flex');
+    expect(lockBadgeRule).toContain('align-items: center');
+    expect(lockBadgeRule).toContain('justify-content: center');
+    expect(lockBadgeRule).toContain('height: 52rpx');
+    expect(lockBadgeRule).toContain('line-height: 1');
+  });
+
   it('returns to the requested balance page after phone binding succeeds', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.ts');
     const instance = createPageInstance(page);

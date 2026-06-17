@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-17 -- Quick task 260617-balance-card-remove-status-pill completed: removed balance card order-deduction status pill
+last_activity: 2026-06-17 -- Quick task 260617-profile-lock-badge-alignment completed: centered profile birthday lock badge text
 progress:
   total_phases: 8
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-06-17 -- Quick task 260617-balance-card-remove-status-pill completed: removed balance card order-deduction status pill
+Last activity: 2026-06-17 -- Quick task 260617-profile-lock-badge-alignment completed: centered profile birthday lock badge text
 
 Progress: [████████░░] 83%
 
@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-17 | 260617-profile-lock-badge-alignment Profile lock badge alignment | Centered the customer profile birthday lock badge text with fixed-height flex styling. |
 | 2026-06-17 | 260617-balance-card-remove-status-pill Balance card status pill removal | Removed the customer balance card `可用于订单抵扣` pill and kept `去充值` as the only right-side header action. |
 | 2026-06-17 | 260617-balance-card-recharge-button Balance card recharge CTA layout | Moved the customer balance card recharge button from the centered amount area into a right-aligned header action group with the status pill. |
 | 2026-06-17 | 260617-recharge-plans-array-response Recharge plan GET array response | Made customer and merchant recharge services accept the API's raw plan-array GET response as well as `{ plans }`, fixing empty recharge configuration hydration. |
