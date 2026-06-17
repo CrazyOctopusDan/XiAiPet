@@ -71,4 +71,17 @@ describe('home page', () => {
     expect(styles).not.toContain('.copy-button');
     expect(styles).not.toContain('::after');
   });
+
+  it('keeps long purchase notices inside a fixed-height scrollable dialog', async () => {
+    const template = await readFile('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/home/index.wxml', 'utf8');
+    const styles = await readFile('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/home/index.wxss', 'utf8');
+
+    expect(template).toContain('class="home-modal home-modal--notice"');
+    expect(template).toContain('<scroll-view class="notice-modal-scroll" scroll-y="true">');
+    expect(styles).toContain('.home-modal--notice');
+    expect(styles).toContain('height: 76vh');
+    expect(styles).toContain('overflow: hidden');
+    expect(styles).toContain('.notice-modal-scroll');
+    expect(styles).toContain('flex: 1');
+  });
 });

@@ -144,6 +144,14 @@
     0 22rpx 54rpx rgba(74, 42, 19, 0.18);
 }
 
+.home-modal--notice {
+  display: flex;
+  flex-direction: column;
+  height: 76vh;
+  max-height: 860rpx;
+  overflow: hidden;
+}
+
 .home-modal-head,
 .contact-row {
   display: flex;
@@ -235,15 +243,22 @@
   font-weight: 800;
 }
 
-.notice-modal-copy {
+.notice-modal-scroll {
+  flex: 1;
+  min-height: 0;
   margin-top: 22rpx;
   padding: 22rpx;
   border-radius: 22rpx;
+  box-sizing: border-box;
   background: #FFF9E8;
+}
+
+.notice-modal-copy {
   color: #40535C;
   font-size: 28rpx;
   line-height: 1.65;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .notice-modal-button {

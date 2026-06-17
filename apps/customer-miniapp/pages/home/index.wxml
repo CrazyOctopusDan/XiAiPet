@@ -39,12 +39,14 @@
     </view>
   </view>
   <view class="home-modal-mask" wx:if="{{noticeModalVisible}}" bindtap="handleCloseNoticeModal">
-    <view class="home-modal" catchtap="handleHomeTap">
+    <view class="home-modal home-modal--notice" catchtap="handleHomeTap">
       <view class="home-modal-head">
         <text class="home-modal-title">购前须知</text>
         <text class="home-modal-close" bindtap="handleCloseNoticeModal">×</text>
       </view>
-      <text class="notice-modal-copy">{{purchaseNotice || '购前须知暂未配置。'}}</text>
+      <scroll-view class="notice-modal-scroll" scroll-y="true">
+        <text class="notice-modal-copy">{{purchaseNotice || '购前须知暂未配置。'}}</text>
+      </scroll-view>
       <view class="notice-modal-button" bindtap="handleCloseNoticeModal">我知道了</view>
     </view>
   </view>

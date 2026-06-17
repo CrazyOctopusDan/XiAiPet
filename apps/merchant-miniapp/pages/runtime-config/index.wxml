@@ -102,7 +102,7 @@
           <text class="toolbar-copy">用户端首页点击「购前须知」后展示</text>
           <text class="toolbar-link" bindtap="handleNoticeToggle">{{item.customNoticeFields.enabled ? '已开启' : '已关闭'}}</text>
         </view>
-        <textarea class="field-area" data-field="content" value="{{item.customNoticeFields.content}}" placeholder="购前须知内容" bindinput="handleNoticeInput"></textarea>
+        <textarea class="field-area" maxlength="-1" data-field="content" value="{{item.customNoticeFields.content}}" placeholder="购前须知内容" bindinput="handleNoticeInput"></textarea>
       </view>
 
       <button class="save-button" data-section-id="{{item.sectionId}}" bindtap="handleSaveSection">保存{{item.title}}</button>
