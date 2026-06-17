@@ -6,7 +6,6 @@
       <view class="overview-head">
         <text class="overview-label">当前余额</text>
         <view class="overview-head-action">
-          <text class="overview-status">可用于订单抵扣</text>
           <button class="recharge-entry" bindtap="handleRechargeTap">去充值</button>
         </view>
       </view>

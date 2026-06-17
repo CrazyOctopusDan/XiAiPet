@@ -22,7 +22,6 @@
 
 .overview-label,
 .overview-head-action,
-.overview-status,
 .overview-currency,
 .overview-value,
 .overview-pill-label,
@@ -82,20 +81,8 @@
 
 .overview-head-action {
   display: flex;
-  flex-direction: column;
   align-items: flex-end;
   flex-shrink: 0;
-  gap: 12rpx;
-}
-
-.overview-status {
-  flex-shrink: 0;
-  padding: 10rpx 16rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.28);
-  font-size: 20rpx;
-  font-weight: 800;
-  color: #40535C;
 }
 
 .overview-balance-line {
