@@ -53,7 +53,7 @@ function formatGiftExpiresAt(value: string) {
     padDatePart(date.getHours()),
     padDatePart(date.getMinutes()),
     padDatePart(date.getSeconds())
-  ].join('-');
+  ].join(':');
 
   return `${datePart} ${timePart}`;
 }

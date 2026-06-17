@@ -24,7 +24,7 @@ function formatGiftExpiresAt(value) {
         padDatePart(date.getHours()),
         padDatePart(date.getMinutes()),
         padDatePart(date.getSeconds())
-    ].join('-');
+    ].join(':');
     return `${datePart} ${timePart}`;
 }
 function mapGiftDisplayItem(gift) {

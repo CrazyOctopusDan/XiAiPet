@@ -2,7 +2,7 @@
 
 ## Request
 
-Change gift list expiration time display to the standard `yyyy-mm-dd hh-mm-ss` format.
+Change gift list expiration time display to the standard `yyyy-mm-dd hh:mm:ss` format.
 
 ## Plan
 

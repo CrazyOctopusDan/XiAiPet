@@ -2,7 +2,7 @@
 
 ## Result
 
-Changed the customer my-gifts page to display expiration times as `yyyy-mm-dd hh-mm-ss`.
+Changed the customer my-gifts page to display expiration times as `yyyy-mm-dd hh:mm:ss`.
 
 ## Changes
 

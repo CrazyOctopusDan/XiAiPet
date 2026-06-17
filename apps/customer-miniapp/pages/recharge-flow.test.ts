@@ -163,7 +163,7 @@ describe('customer recharge and gift page flow', () => {
 
     await instance.refreshGifts();
 
-    expect(instance.data.sections[0].items[0].displayExpiresAt).toBe('2027-06-16 08-09-10');
+    expect(instance.data.sections[0].items[0].displayExpiresAt).toBe('2027-06-16 08:09:10');
     expect(instance.data.sections[0].items[0].expiresAt).toBe('2027-06-16T00:09:10.000Z');
   });
 
