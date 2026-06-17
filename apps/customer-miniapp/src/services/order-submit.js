@@ -150,7 +150,22 @@ async function submitOrder(paymentMethod, request = api_client_1.customerApiRequ
             if (!payOrderResponse.paymentParams) {
                 throw new Error('missing_wechat_payment_params');
             }
-            await requestWechatPayment(payOrderResponse.paymentParams);
+            try {
+                await requestWechatPayment(payOrderResponse.paymentParams);
+            }
+            catch (paymentError) {
+                try {
+                    await request(`/api/v1/customer/orders/${createOrderResponse.order.id}/cancel`, {
+                        method: 'POST',
+                        auth: 'customer'
+                    });
+                    (0, gifts_1.resetCheckoutGiftSelection)();
+                }
+                catch (_d) {
+                    // Preserve the original payment error so the page can keep the user's retry context.
+                }
+                throw paymentError;
+            }
             const syncOrderPaymentResponse = await request(`/api/v1/customer/orders/${createOrderResponse.order.id}/payment-sync`, {
                 method: 'POST',
                 auth: 'customer'

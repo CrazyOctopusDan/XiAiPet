@@ -108,6 +108,7 @@ export interface ApiRouteServices {
     startCustomerPayment(openid: string, orderId: string, payload?: unknown): AsyncResult;
     confirmCustomerPayment(openid: string, orderId: string, payload?: unknown): AsyncResult;
     syncCustomerPayment(openid: string, orderId: string): AsyncResult;
+    cancelCustomerOrder(openid: string, orderId: string): AsyncResult;
     queryCustomerOrders(openid: string, filters?: Record<string, unknown>): AsyncResult;
     getCustomerOrderDetail(openid: string, orderId: string): AsyncResult;
     completeCustomerOrder(openid: string, orderId: string): AsyncResult;

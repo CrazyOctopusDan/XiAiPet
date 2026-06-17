@@ -593,6 +593,51 @@ export function createOrderService(
       return { ok: true as const, order };
     },
 
+    async cancelCustomerOrder(openid: string, orderId: string) {
+      const orderRepository = createOrderRepository(client);
+      const current = await orderRepository.getById(orderId);
+
+      if (!current || current.openid !== openid) {
+        throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
+      }
+
+      if (current.status === 'cancelled') {
+        return { ok: true as const, order: current };
+      }
+
+      if (current.paymentStatus === 'paid') {
+        throw new ApiError('ORDER_ALREADY_PAID', 'Paid order cannot be cancelled by customer', 409);
+      }
+
+      const cancelledAt = new Date();
+      const order = await runOrderSettlementTransaction(client as never, async (tx) => {
+        await createPaymentRepository(tx as never).upsertPayment({
+          orderId,
+          method: current.paymentMethod,
+          status: 'failed',
+          failureCode: 'CUSTOMER_CANCELLED',
+          failureMessage: 'Customer cancelled payment',
+          paidAt: undefined
+        });
+        const cancelled = await createOrderRepository(tx as never).updateStatus(orderId, {
+          status: 'cancelled',
+          paymentStatus: 'failed',
+          fulfillmentStatus: 'cancelled',
+          cancelledAt,
+          merchantOverride: {
+            actorType: 'customer',
+            actorOpenid: openid,
+            action: 'customer_cancel_unpaid_order',
+            operatedAt: cancelledAt.toISOString()
+          }
+        });
+        await createGiftService(tx as never).releaseGiftsForOrder(orderId, tx as never);
+        return cancelled;
+      });
+
+      return { ok: true as const, order };
+    },
+
     async queryMerchantOrders(_merchantContext: MerchantContext, filters: Record<string, unknown> = {}) {
       await completeStaleActiveOrders(client);
       const orders = await createOrderRepository(client).listForMerchant(normalizeMerchantOrderFilters(filters));

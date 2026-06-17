@@ -12,6 +12,7 @@ function createOrderService(overrides: Record<string, unknown> = {}) {
     queryCustomerOrders: vi.fn(async () => ({ ok: true, orders: [] })),
     getCustomerOrderDetail: vi.fn(async () => ({ ok: true, order: { id: 'order-1' } })),
     completeCustomerOrder: vi.fn(async () => ({ ok: true, order: { id: 'order-1', fulfillmentStatus: 'completed' } })),
+    cancelCustomerOrder: vi.fn(async () => ({ ok: true, order: { id: 'order-1', status: 'cancelled' } })),
     queryMerchantOrders: vi.fn(async () => ({ ok: true })),
     getMerchantOrderDetail: vi.fn(async () => ({ ok: true })),
     updateMerchantOrderStatus: vi.fn(async () => ({ ok: true })),
@@ -29,6 +30,7 @@ describe('customer order routes', () => {
     await app.inject({ method: 'POST', url: '/api/v1/customer/orders/order-1/payment-sync', headers: authHeader('openid-1') });
     await app.inject({ method: 'POST', url: '/api/v1/customer/orders/order-1/payment-confirmation', headers: authHeader('openid-1'), payload: { transactionId: 't1' } });
     await app.inject({ method: 'POST', url: '/api/v1/customer/orders/order-1/complete', headers: authHeader('openid-1') });
+    await app.inject({ method: 'POST', url: '/api/v1/customer/orders/order-1/cancel', headers: authHeader('openid-1') });
     await app.inject({ method: 'GET', url: '/api/v1/customer/orders', headers: authHeader('openid-1') });
     await app.inject({ method: 'GET', url: '/api/v1/customer/orders/order-1', headers: authHeader('openid-1') });
 
@@ -37,6 +39,7 @@ describe('customer order routes', () => {
     expect(orderService.syncCustomerPayment).toHaveBeenCalledWith('openid-1', 'order-1');
     expect(orderService.confirmCustomerPayment).toHaveBeenCalledWith('openid-1', 'order-1', expect.any(Object));
     expect(orderService.completeCustomerOrder).toHaveBeenCalledWith('openid-1', 'order-1');
+    expect(orderService.cancelCustomerOrder).toHaveBeenCalledWith('openid-1', 'order-1');
     expect(orderService.queryCustomerOrders).toHaveBeenCalledWith('openid-1', expect.any(Object));
     expect(orderService.getCustomerOrderDetail).toHaveBeenCalledWith('openid-1', 'order-1');
   });

@@ -510,6 +510,166 @@ describe('order submit service', () => {
     expect(getSelectedCheckoutGiftIds()).toEqual([]);
   });
 
+  it('cancels an unpaid WeChat order to release locked gifts when payment is cancelled', async () => {
+    const product = getProductById('ocean-party');
+    const address = createCityAddressFixture();
+
+    if (!product || !address) {
+      throw new Error('missing submit fixtures');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+    selectAddress(address.id);
+    setCustomNoticeAcknowledged(true);
+    setReservationSelection({
+      dateValue: '2026-04-17',
+      dateLabel: '今天 04-17',
+      timeValue: '11:00',
+      timeLabel: '11:00'
+    });
+    await hydrateCheckoutGifts((async () => ({
+      ok: true,
+      gifts: [
+        {
+          id: 'gift-wechat-cancel',
+          status: 'available',
+          displayGroup: 'available',
+          giftSnapshot: {
+            name: '庆祝蛋糕',
+            description: '可兑换庆祝蛋糕',
+            validDays: 180
+          },
+          expiresAt: '2027-06-16T00:00:00.000Z'
+        }
+      ]
+    })) as CustomerApiRequester);
+    toggleCheckoutGiftSelection('gift-wechat-cancel');
+
+    const requestPayment = vi.fn((options: Record<string, unknown>) => {
+      (options.fail as () => void)?.();
+    });
+    vi.stubGlobal('wx', { requestPayment });
+
+    const request = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/orders') {
+        return {
+          ok: true,
+          order: createOrder()
+        };
+      }
+      if (path === '/api/v1/customer/orders/order-001/payment') {
+        return {
+          ok: true,
+          paymentStatus: 'pending_wechat',
+          paymentParams: {
+            timeStamp: '123',
+            nonceStr: 'nonce-1',
+            package: 'prepay_id=prepay-1',
+            signType: 'RSA',
+            paySign: 'pay-sign-1'
+          },
+          order: createOrder({
+            status: 'payment_processing',
+            payment: {
+              method: 'wechat',
+              status: 'processing'
+            }
+          })
+        };
+      }
+      if (path === '/api/v1/customer/orders/order-001/cancel') {
+        return {
+          ok: true,
+          order: createOrder({
+            status: 'cancelled'
+          })
+        };
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    await expect(
+      submitOrder('wechat', request as CustomerApiRequester, { idempotencyKey: 'checkout-wechat-cancel' })
+    ).rejects.toThrow('WECHAT_PAY_CANCELLED');
+
+    expect(request).toHaveBeenCalledWith('/api/v1/customer/orders/order-001/cancel', {
+      method: 'POST',
+      auth: 'customer'
+    });
+    expect(getSelectedCheckoutGiftIds()).toEqual([]);
+  });
+
+  it('does not cancel a WeChat order after payment succeeds but settlement sync fails', async () => {
+    const product = getProductById('ocean-party');
+    const address = createCityAddressFixture();
+
+    if (!product || !address) {
+      throw new Error('missing submit fixtures');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+    selectAddress(address.id);
+    setCustomNoticeAcknowledged(true);
+    setReservationSelection({
+      dateValue: '2026-04-17',
+      dateLabel: '今天 04-17',
+      timeValue: '11:00',
+      timeLabel: '11:00'
+    });
+
+    const requestPayment = vi.fn((options: Record<string, unknown>) => {
+      (options.success as () => void)?.();
+    });
+    vi.stubGlobal('wx', { requestPayment });
+
+    const request = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/orders') {
+        return {
+          ok: true,
+          order: createOrder()
+        };
+      }
+      if (path === '/api/v1/customer/orders/order-001/payment') {
+        return {
+          ok: true,
+          paymentStatus: 'pending_wechat',
+          paymentParams: {
+            timeStamp: '123',
+            nonceStr: 'nonce-1',
+            package: 'prepay_id=prepay-1',
+            signType: 'RSA',
+            paySign: 'pay-sign-1'
+          },
+          order: createOrder({
+            status: 'payment_processing',
+            payment: {
+              method: 'wechat',
+              status: 'processing'
+            }
+          })
+        };
+      }
+      if (path === '/api/v1/customer/orders/order-001/payment-sync') {
+        throw new Error('sync_payment_failed');
+      }
+      if (path === '/api/v1/customer/orders/order-001/cancel') {
+        return {
+          ok: true,
+          order: createOrder({
+            status: 'cancelled'
+          })
+        };
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    await expect(
+      submitOrder('wechat', request as CustomerApiRequester, { idempotencyKey: 'checkout-sync-failed' })
+    ).rejects.toThrow('sync_payment_failed');
+
+    expect(request).not.toHaveBeenCalledWith('/api/v1/customer/orders/order-001/cancel', expect.anything());
+  });
+
   it('surfaces insufficient balance as a stable service error code', async () => {
     const product = getProductById('ocean-party');
     const address = createCityAddressFixture();

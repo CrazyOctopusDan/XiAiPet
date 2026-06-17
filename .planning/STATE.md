@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-17 -- Quick task 260617-profile-lock-badge-alignment completed: centered profile birthday lock badge text
+last_activity: 2026-06-17 -- Quick task 260617-recharge-gift-settlement-audit completed: audited and hardened recharge gift settlement cleanup
 progress:
   total_phases: 8
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-06-17 -- Quick task 260617-profile-lock-badge-alignment completed: centered profile birthday lock badge text
+Last activity: 2026-06-17 -- Quick task 260617-recharge-gift-settlement-audit completed: audited and hardened recharge gift settlement cleanup
 
 Progress: [████████░░] 83%
 
@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-17 | 260617-recharge-gift-settlement-audit Recharge gift settlement audit | Audited recharge paid/bonus settlement and gift state flow; added customer unpaid WeChat order cancellation to release locked gifts without cancelling paid-but-unsynced orders. |
 | 2026-06-17 | 260617-profile-lock-badge-alignment Profile lock badge alignment | Centered the customer profile birthday lock badge text with fixed-height flex styling. |
 | 2026-06-17 | 260617-balance-card-remove-status-pill Balance card status pill removal | Removed the customer balance card `可用于订单抵扣` pill and kept `去充值` as the only right-side header action. |
 | 2026-06-17 | 260617-balance-card-recharge-button Balance card recharge CTA layout | Moved the customer balance card recharge button from the centered amount area into a right-aligned header action group with the status pill. |

@@ -33,6 +33,11 @@ export async function customerOrderRoutes(
     return dependencies.orderService.completeCustomerOrder(request.auth?.openid ?? '', params.orderId);
   });
 
+  app.post('/orders/:orderId/cancel', customerGuard, async (request) => {
+    const params = request.params as { orderId: string };
+    return dependencies.orderService.cancelCustomerOrder(request.auth?.openid ?? '', params.orderId);
+  });
+
   app.get('/orders', customerGuard, async (request) => {
     return dependencies.orderService.queryCustomerOrders(request.auth?.openid ?? '', request.query as Record<string, unknown>);
   });

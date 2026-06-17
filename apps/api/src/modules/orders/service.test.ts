@@ -1014,6 +1014,9 @@ describe('order service', () => {
           })
         )
       },
+      payment: {
+        upsert: vi.fn()
+      },
       userGift: {
         updateMany: vi.fn(async () => ({ count: 1 }))
       }
@@ -1067,6 +1070,74 @@ describe('order service', () => {
       data: expect.objectContaining({
         status: 'AVAILABLE',
         lockedOrderId: null
+      })
+    }));
+  });
+
+  it('lets the customer cancel an unpaid WeChat order and releases locked gifts', async () => {
+    const current = createGiftSnapshotOrder({
+      paymentMethod: 'WECHAT',
+      paymentStatus: 'PROCESSING',
+      status: 'PAYMENT_PROCESSING'
+    });
+    const tx = {
+      order: {
+        update: vi.fn(async ({ data }) =>
+          createGiftSnapshotOrder({
+            ...current,
+            ...(data.status ? { status: data.status } : {}),
+            ...(data.paymentStatus ? { paymentStatus: data.paymentStatus } : {}),
+            ...(data.cancelledAt ? { cancelledAt: data.cancelledAt } : {})
+          })
+        )
+      },
+      payment: {
+        upsert: vi.fn()
+      },
+      userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
+      }
+    };
+    const client = {
+      order: {
+        updateMany: vi.fn(),
+        findUnique: vi.fn(async () => current)
+      },
+      $transaction: vi.fn(async (callback) => callback(tx))
+    };
+    const service = createOrderService(client as any);
+
+    await expect(service.cancelCustomerOrder('openid-1', 'order-1')).resolves.toMatchObject({
+      ok: true,
+      order: {
+        id: 'order-1',
+        status: 'cancelled'
+      }
+    });
+
+    expect(client.$transaction).toHaveBeenCalledOnce();
+    expect(tx.order.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'order-1' },
+      data: expect.objectContaining({
+        status: 'CANCELLED',
+        paymentStatus: 'FAILED',
+        fulfillmentStatus: 'CANCELLED',
+        cancelledAt: expect.any(Date)
+      })
+    }));
+    expect(tx.payment.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { orderId: 'order-1' },
+      update: expect.objectContaining({
+        status: 'FAILED',
+        failureCode: 'CUSTOMER_CANCELLED'
+      })
+    }));
+    expect(tx.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { lockedOrderId: 'order-1', status: 'LOCKED' },
+      data: expect.objectContaining({
+        status: 'AVAILABLE',
+        lockedOrderId: null,
+        lockedAt: null
       })
     }));
   });
