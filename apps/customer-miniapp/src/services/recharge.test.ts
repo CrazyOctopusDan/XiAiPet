@@ -63,6 +63,15 @@ describe('recharge service', () => {
     });
   });
 
+  it('hydrates plans when the API returns the raw plan array', async () => {
+    const request = vi.fn(async () => [plan5000]);
+
+    await expect(hydrateRechargePlans(request as CustomerApiRequester)).resolves.toEqual([
+      expect.objectContaining({ planId: 'plan-5000' })
+    ]);
+    expect(getSelectedRechargePlan()).toMatchObject({ planId: 'plan-5000' });
+  });
+
   it('creates a recharge transaction, requests WeChat payment, then syncs it', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1780000000000);
     vi.spyOn(Math, 'random').mockReturnValue(0.123456);

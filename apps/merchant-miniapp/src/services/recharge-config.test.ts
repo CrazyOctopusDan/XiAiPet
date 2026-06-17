@@ -108,6 +108,25 @@ describe('merchant recharge config service', () => {
     });
   });
 
+  it('queries recharge plans when the API returns the raw plan array', async () => {
+    const request = vi.fn().mockResolvedValue([
+      {
+        planId: 'plan-array',
+        enabled: true,
+        paidAmount: 5000,
+        bonusAmount: 500,
+        description: '年度储值',
+        gifts: []
+      }
+    ]);
+
+    await expect(queryRechargePlans(request)).resolves.toEqual([
+      expect.objectContaining({
+        planId: 'plan-array'
+      })
+    ]);
+  });
+
   it('saves normalized recharge plans through the merchant API', async () => {
     const request = vi.fn(async (_path: string, options: { body?: RechargePlansRuntimeConfigValue }) => ({
       ok: true,

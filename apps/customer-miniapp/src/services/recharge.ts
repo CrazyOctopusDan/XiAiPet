@@ -18,6 +18,8 @@ interface SyncRechargeTransactionResponse {
   code?: string;
 }
 
+type RechargePlansQueryResponse = { ok?: boolean; plans?: RechargePlanConfig[] } | RechargePlanConfig[];
+
 export interface StartRechargeOptions {
   idempotencyKey?: string;
 }
@@ -52,11 +54,12 @@ function requestRechargePayment(paymentParams: Record<string, unknown>) {
 }
 
 export async function hydrateRechargePlans(request: CustomerApiRequester = customerApiRequest) {
-  const response = await request<{ ok?: boolean; plans?: RechargePlanConfig[] }>('/api/v1/customer/recharge-plans', {
+  const response = await request<RechargePlansQueryResponse>('/api/v1/customer/recharge-plans', {
     method: 'GET',
     auth: 'customer'
   });
-  rechargePlans = (response.plans ?? []).map(cloneRechargePlan);
+  const plans = Array.isArray(response) ? response : response.plans ?? [];
+  rechargePlans = plans.map(cloneRechargePlan);
 
   if (!rechargePlans.some((plan) => plan.planId === selectedRechargePlanId)) {
     selectedRechargePlanId = rechargePlans[0]?.planId ?? '';

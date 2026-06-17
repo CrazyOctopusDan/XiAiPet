@@ -17,6 +17,8 @@ export interface RechargeConfigViewModel {
   rows: RechargePlanRowViewModel[];
 }
 
+type RechargePlansQueryResponse = { ok?: boolean; plans?: RechargePlanConfig[] } | RechargePlanConfig[];
+
 let draftIdSequence = 0;
 
 function createDraftId(prefix: string) {
@@ -93,12 +95,12 @@ export function parseRechargeGiftValidDaysInput(value: string | undefined): numb
 }
 
 export async function queryRechargePlans(request: MerchantApiRequester = merchantApiRequest): Promise<RechargePlanConfig[]> {
-  const response = await request<{ ok?: boolean; plans?: RechargePlanConfig[] }>('/api/v1/merchant/recharge-plans', {
+  const response = await request<RechargePlansQueryResponse>('/api/v1/merchant/recharge-plans', {
     method: 'GET',
     auth: 'merchant'
   });
 
-  return response.plans ?? [];
+  return Array.isArray(response) ? response : response.plans ?? [];
 }
 
 export async function saveRechargePlans(

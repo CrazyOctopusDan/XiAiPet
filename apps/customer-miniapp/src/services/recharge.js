@@ -37,7 +37,8 @@ async function hydrateRechargePlans(request = api_client_1.customerApiRequest) {
         method: 'GET',
         auth: 'customer'
     });
-    rechargePlans = ((_a = response.plans) !== null && _a !== void 0 ? _a : []).map(cloneRechargePlan);
+    const plans = Array.isArray(response) ? response : (_a = response.plans) !== null && _a !== void 0 ? _a : [];
+    rechargePlans = plans.map(cloneRechargePlan);
     if (!rechargePlans.some((plan) => plan.planId === selectedRechargePlanId)) {
         selectedRechargePlanId = (_c = (_b = rechargePlans[0]) === null || _b === void 0 ? void 0 : _b.planId) !== null && _c !== void 0 ? _c : '';
     }

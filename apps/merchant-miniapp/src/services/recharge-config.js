@@ -75,7 +75,7 @@ async function queryRechargePlans(request = api_client_1.merchantApiRequest) {
         method: 'GET',
         auth: 'merchant'
     });
-    return (_a = response.plans) !== null && _a !== void 0 ? _a : [];
+    return Array.isArray(response) ? response : (_a = response.plans) !== null && _a !== void 0 ? _a : [];
 }
 async function saveRechargePlans(value, request = api_client_1.merchantApiRequest) {
     var _a;
