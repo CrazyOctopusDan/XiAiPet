@@ -1888,32 +1888,8 @@ describe('cart checkout flow', () => {
     expect(instance.data.profileSafeTop).toBe(208);
   });
 
-  it('uses the WeChat phone code flow without requiring a frontend phone number', async () => {
-    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.ts');
+  it('renders contact binding as a manual phone entry only flow', async () => {
     const { readFile } = await import('node:fs/promises');
-    const instance = createPageInstance(page);
-
-    await instance.handleWechatPhone({
-      detail: {
-        errMsg: 'getPhoneNumber:ok',
-        code: 'wechat-phone-code'
-      }
-    });
-
-    expect(wx.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: expect.stringContaining('/api/v1/customer/profile/phone'),
-        method: 'POST',
-        data: {
-          phoneCode: 'wechat-phone-code'
-        }
-      })
-    );
-    expect(instance.data.statusText).toBe('联系方式已安全保存');
-    expect(instance.data.statusTone).toBe('success');
-    expect(instance.data.statusText).not.toContain('cloud.callFunction');
-    expect(instance.data.statusText).not.toContain('Invalid phone binding payload');
-
     const contactTemplate = await readFile(
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.wxml',
       'utf8'
@@ -1927,25 +1903,61 @@ describe('cart checkout flow', () => {
       'utf8'
     );
 
+    expect(contactTemplate).toContain('绑定手机号');
+    expect(contactTemplate).toContain('bindtap="handleManualSubmit"');
+    expect(contactTemplate).toContain('inputmode="tel"');
+    expect(contactTemplate).toContain('maxlength="11"');
+    expect(contactTemplate).not.toContain('微信手机号授权');
+    expect(contactTemplate).not.toContain('使用微信手机号');
+    expect(contactTemplate).not.toContain('open-type="getPhoneNumber"');
+    expect(contactTemplate).not.toContain('open-type="agreePrivacyAuthorization"');
+    expect(contactTemplate).not.toContain('privacyAuthorizationRequired');
     expect(contactTemplate).toContain('status-card {{statusTone}}');
     expect(contactStyles).toContain('background: linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 64%, #F6E396 100%)');
     expect(contactStyles).toContain('.status-card.error');
     expect(detailStyles).toContain('background: radial-gradient(circle at 12% 0%, rgba(246, 227, 150, 0.4) 0, transparent 34%)');
   });
 
+  it('prefills the contact binding form from the existing full profile phone', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.ts');
+    const { resetProfile, updateProfile } = await import('../src/services/profile');
+    resetProfile();
+    updateProfile({
+      contactPhone: '18811736099',
+      contactPhoneMasked: '188****6099'
+    });
+    const instance = createPageInstance(page);
+
+    instance.onLoad({
+      redirect: encodeURIComponent('/pages/profile-detail/index')
+    });
+
+    expect(instance.data.manualPhone).toBe('18811736099');
+    expect(instance.data.redirectUrl).toBe('/pages/profile-detail/index');
+  });
+
   it('centers the profile birthday lock badge text inside the pill', async () => {
     const { readFile } = await import('node:fs/promises');
+    const detailTemplate = await readFile(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile-detail/index.wxml',
+      'utf8'
+    );
     const detailStyles = await readFile(
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/profile-detail/index.wxss',
       'utf8'
     );
     const lockBadgeRule = detailStyles.match(/\.lock-badge\s*\{[^}]+\}/)?.[0] ?? '';
+    const lockBadgeTextRule = detailStyles.match(/\.lock-badge-text\s*\{[^}]+\}/)?.[0] ?? '';
 
+    expect(detailTemplate).toContain('<view class="lock-badge {{profile.birthdayLocked ? \'locked\' : \'\'}}">');
+    expect(detailTemplate).toContain('<text class="lock-badge-text">');
+    expect(detailTemplate).not.toContain('<text class="lock-badge {{profile.birthdayLocked ? \'locked\' : \'\'}}">');
     expect(lockBadgeRule).toContain('display: flex');
     expect(lockBadgeRule).toContain('align-items: center');
     expect(lockBadgeRule).toContain('justify-content: center');
     expect(lockBadgeRule).toContain('height: 52rpx');
-    expect(lockBadgeRule).toContain('line-height: 1');
+    expect(lockBadgeTextRule).toContain('line-height: 1');
+    expect(lockBadgeTextRule).toContain('transform: translateY(2rpx)');
   });
 
   it('returns to the requested balance page after phone binding succeeds', async () => {
@@ -1955,111 +1967,14 @@ describe('cart checkout flow', () => {
     instance.onLoad({
       redirect: encodeURIComponent('/pages/balance/index')
     });
-    await instance.handleWechatPhone({
-      detail: {
-        errMsg: 'getPhoneNumber:ok',
-        code: 'wechat-phone-code'
-      }
+    instance.setData({
+      manualPhone: '13800138123'
     });
+    await instance.handleManualSubmit();
 
     expect(wx.redirectTo).toHaveBeenCalledWith({
       url: '/pages/balance/index'
     });
-  });
-
-  it('does not call bindPhone or expose cloud errors when WeChat returns neither code nor phone number', async () => {
-    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.ts');
-    const instance = createPageInstance(page);
-
-    await instance.handleWechatPhone({
-      detail: {
-        errMsg: 'getPhoneNumber:fail user deny'
-      }
-    });
-
-    expect(wx.request).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: expect.stringContaining('/api/v1/customer/profile/phone')
-      })
-    );
-    expect(instance.data.statusText).toBe('你已取消微信手机号授权，可重新点击授权');
-    expect(instance.data.statusTone).toBe('error');
-  });
-
-  it('surfaces WeChat getPhoneNumber permission failures and renders the privacy authorization gate', async () => {
-    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.ts');
-    const { readFile } = await import('node:fs/promises');
-    const instance = createPageInstance(page);
-
-    wx.getPrivacySetting = vi.fn((options?: { success?: (result: Record<string, unknown>) => void }) => {
-      options?.success?.({
-        needAuthorization: true,
-        privacyContractName: '《虾衣宠隐私保护指引》'
-      });
-    });
-
-    instance.onShow();
-
-    expect(instance.data.privacyAuthorizationRequired).toBe(true);
-    expect(instance.data.privacyContractName).toBe('《虾衣宠隐私保护指引》');
-
-    await instance.handleWechatPhone({
-      detail: {
-        errMsg: 'getPhoneNumber:fail operateWXData:fail jsapi has no permission',
-        errno: 102
-      }
-    });
-
-    expect(instance.data.statusText).toBe('当前小程序账号未开通获取手机号权限');
-    expect(instance.data.statusTone).toBe('error');
-
-    const appConfig = await readFile('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/app.json', 'utf8');
-    const contactTemplate = await readFile(
-      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.wxml',
-      'utf8'
-    );
-
-    expect(appConfig).toContain('"__usePrivacyCheck__": true');
-    expect(contactTemplate).toContain('open-type="agreePrivacyAuthorization"');
-    expect(contactTemplate).toContain('bindtap="handleAgreePrivacyAuthorization"');
-    expect(contactTemplate).toContain('disabled="{{privacyAuthorizationRequired}}"');
-  });
-
-  it('reveals the privacy authorization card after WeChat reports a privacy failure', async () => {
-    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.ts');
-    const instance = createPageInstance(page);
-
-    await instance.handleWechatPhone({
-      detail: {
-        errMsg: 'getPhoneNumber:fail privacy permission is not authorized',
-        errno: 104
-      }
-    });
-
-    expect(instance.data.statusText).toBe('请先同意隐私保护指引，再使用微信手机号');
-    expect(instance.data.statusTone).toBe('error');
-    expect(instance.data.privacyAuthorizationRequired).toBe(true);
-  });
-
-  it('uses requirePrivacyAuthorize when the user taps the privacy agreement fallback', async () => {
-    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/contact-bind/index.ts');
-    const instance = createPageInstance(page);
-
-    wx.requirePrivacyAuthorize = vi.fn((options?: { success?: () => void }) => {
-      options?.success?.();
-    });
-
-    instance.setData({
-      privacyAuthorizationRequired: true,
-      statusText: '请先同意隐私保护指引，再使用微信手机号',
-      statusTone: 'error'
-    });
-    instance.handleAgreePrivacyAuthorization();
-
-    expect(wx.requirePrivacyAuthorize).toHaveBeenCalled();
-    expect(instance.data.privacyAuthorizationRequired).toBe(false);
-    expect(instance.data.statusText).toBe('已同意隐私保护指引，可以继续获取微信手机号');
-    expect(instance.data.statusTone).toBe('success');
   });
 
   it('shows wechat and balance payment methods on the checkout page', async () => {

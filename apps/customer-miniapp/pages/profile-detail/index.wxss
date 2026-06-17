@@ -155,15 +155,23 @@
   padding: 0 18rpx;
   border-radius: 999rpx;
   background: #F6E396;
+  box-sizing: border-box;
+}
+
+.lock-badge-text {
+  display: block;
   font-size: 20rpx;
   line-height: 1;
   font-weight: 700;
   color: #6B7C84;
-  box-sizing: border-box;
+  transform: translateY(2rpx);
 }
 
 .lock-badge.locked {
   background: #FFFDF5;
+}
+
+.lock-badge.locked .lock-badge-text {
   color: #7B8B92;
 }
 

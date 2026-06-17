@@ -470,6 +470,7 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         totalRecharge: rechargeTotal,
         birthday: profile?.birthday ?? '',
         birthdayLocked: profile?.birthdayLocked ?? false,
+        contactPhone: user ? getFullContactPhone(user, profile) ?? '' : '',
         contactPhoneMasked: profile?.contactPhoneMasked || user?.contactPhoneMasked || ''
       };
     },

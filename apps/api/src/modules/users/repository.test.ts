@@ -36,6 +36,7 @@ describe('user repository', () => {
           openid: 'openid-1',
           status: 'ACTIVE',
           phoneBindingState: 'BOUND',
+          contactPhoneEncrypted: '18811736099',
           contactPhoneMasked: '188****6099',
           contactPhoneCountryCode: '+86',
           lastLoginAt: new Date('2026-05-22T00:00:00.000Z'),
@@ -85,7 +86,9 @@ describe('user repository', () => {
       memberLevel: '普通会员',
       balance: 932,
       totalSpent: 932,
-      totalRecharge: 800
+      totalRecharge: 800,
+      contactPhone: '18811736099',
+      contactPhoneMasked: '188****6099'
     });
     expect(aggregate).toHaveBeenCalledWith({
       where: {

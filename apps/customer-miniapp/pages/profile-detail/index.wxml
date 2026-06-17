@@ -1,43 +1,43 @@
 <view class="profile-detail-page">
   <page-nav />
-
   <view class="detail-hero-card">
     <text class="detail-eyebrow">个人信息</text>
-    <text class="detail-title">让店主更快确认你的订单上下文</text>
+    <text class="detail-title">让店主知道是谁在下单～</text>
     <text class="detail-subtitle">昵称、性别、生日和联系方式会在下单时复用；生日在保存后锁定，保存前可以反复调整。</text>
   </view>
-
   <view class="detail-card">
     <view class="section-head">
       <text class="section-title">基础资料</text>
       <text class="section-index">01</text>
     </view>
-
     <view class="field-block">
       <text class="field-label">昵称</text>
       <input class="text-input" value="{{profile.nickname}}" bindinput="handleNicknameInput" placeholder="请输入昵称" />
     </view>
-
     <view class="field-block">
       <text class="field-label">性别</text>
       <view class="gender-row">
-        <view class="gender-pill {{profile.gender === item.value ? 'active' : ''}}" wx:for="{{genderOptions}}" wx:key="value" data-gender="{{item.value}}" bindtap="handleGenderTap">{{item.label}}</view>
+        <view class="gender-pill {{profile.gender === item.value ? 'active' : ''}}" wx:for="{{genderOptions}}" wx:key="value" data-gender="{{item.value}}" bindtap="handleGenderTap">
+          {{item.label}}
+        </view>
       </view>
     </view>
-
     <view class="field-block">
       <view class="field-headline">
         <text class="field-label">生日</text>
-        <text class="lock-badge {{profile.birthdayLocked ? 'locked' : ''}}">{{profile.birthdayLocked ? '已锁定' : '保存后锁定'}}</text>
+        <view class="lock-badge {{profile.birthdayLocked ? 'locked' : ''}}">
+          <text class="lock-badge-text">{{profile.birthdayLocked ? '已锁定' : '保存后锁定'}}</text>
+        </view>
       </view>
       <picker wx:if="{{!profile.birthdayLocked}}" mode="date" value="{{profile.birthday}}" bindchange="handleBirthdayChange">
         <view class="picker-shell">{{profile.birthday || '请选择生日'}}</view>
       </picker>
       <view class="picker-shell locked" wx:else>{{profile.birthday}}</view>
-      <text class="field-tip">{{profile.birthdayLocked ? '生日已经锁定，如需变更请联系店主。' : '保存前可以修改；点击保存资料后生日会锁定。'}}</text>
+      <text class="field-tip">
+        {{profile.birthdayLocked ? '生日已经锁定，如需变更请联系店主。' : '保存前可以修改；点击保存资料后生日会锁定。'}}
+      </text>
     </view>
   </view>
-
   <view class="detail-card contact-card">
     <view class="section-head">
       <text class="section-title">联系方式</text>
@@ -51,7 +51,6 @@
       <text class="contact-action">去绑定</text>
     </view>
   </view>
-
   <view class="save-shell">
     <button class="save-button" bindtap="handleSave">保存资料</button>
   </view>

@@ -1,43 +1,24 @@
 <view class="contact-bind-page">
   <page-nav />
-
   <view class="contact-hero">
     <view class="hero-copy">
       <text class="eyebrow">联系方式</text>
-      <text class="heading">把店主能联系到你的电话补齐</text>
-      <text class="body">用于预约沟通、配送确认和定制细节确认；微信授权不可用时，可以直接手动补录。</text>
+      <text class="heading">告诉我怎么联系你～</text>
+      <text class="body">用于配送确认和定制沟通。</text>
     </view>
     <view class="hero-badge">
       <text class="hero-badge-main">安全</text>
-      <text class="hero-badge-sub">仅用于订单履约</text>
+      <text class="hero-badge-sub">仅用于订单</text>
     </view>
   </view>
-
-  <view class="wechat-card">
-    <view class="card-head">
-      <text class="card-title">微信手机号授权</text>
-      <text class="card-tag">推荐</text>
-    </view>
-    <text class="card-copy">如果微信能返回手机号，会自动保存到个人资料；如果授权链路暂未接通，请使用下方手动补录。</text>
-
-    <view class="privacy-card" wx:if="{{privacyAuthorizationRequired}}">
-      <text class="privacy-title">需要先同意{{privacyContractName}}</text>
-      <text class="privacy-copy">微信手机号属于敏感信息，授权前需要先确认小程序隐私保护指引。</text>
-      <button class="privacy-cta" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="handleAgreePrivacyAuthorization" bindtap="handleAgreePrivacyAuthorization">同意并继续</button>
-    </view>
-
-    <button class="primary-cta" open-type="getPhoneNumber" bindgetphonenumber="handleWechatPhone" loading="{{submitting}}" disabled="{{privacyAuthorizationRequired}}">
-      使用微信手机号
+  <view class="manual-card">
+    <text class="card-title">绑定手机号</text>
+    <text class="input-label">手机号</text>
+    <input class="input" type="number" inputmode="tel" maxlength="11" value="{{manualPhone}}" bindinput="handleManualPhoneInput" placeholder="请输入手机号" />
+    <button class="secondary-cta" bindtap="handleManualSubmit" loading="{{submitting}}">
+      提交绑定
     </button>
   </view>
-
-  <view class="manual-card">
-    <text class="card-title">手动补录</text>
-    <text class="input-label">手机号</text>
-    <input class="input" type="number" value="{{manualPhone}}" bindinput="handleManualPhoneInput" placeholder="请输入手机号" />
-    <button class="secondary-cta" bindtap="handleManualSubmit" loading="{{submitting}}">提交手动补录</button>
-  </view>
-
   <view class="status-card {{statusTone}}">
     <text class="status-label">当前状态</text>
     <text class="status-text">{{statusText}}</text>
