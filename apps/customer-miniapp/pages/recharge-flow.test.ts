@@ -112,6 +112,61 @@ describe('customer recharge and gift page flow', () => {
     expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/checkout-gifts/index' });
   });
 
+  it('formats my gift expiration times for display', async () => {
+    const { page, wx } = await loadPageModule(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/my-gifts/index.ts'
+    );
+    wx.request.mockImplementation((options: any) => {
+      const path = new URL(options.url).pathname;
+
+      if (path === '/api/v1/customer/auth/login') {
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            token: 'customer-token',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+            openid: 'session-openid'
+          }
+        });
+        return;
+      }
+
+      if (path === '/api/v1/customer/gifts') {
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            groups: {
+              available: [
+                {
+                  id: 'gift-1',
+                  status: 'available',
+                  displayGroup: 'available',
+                  giftSnapshot: {
+                    name: '生日蛋糕',
+                    description: '一年内可兑换',
+                    validDays: 365
+                  },
+                  expiresAt: '2027-06-16T00:09:10.000Z'
+                }
+              ],
+              locked: [],
+              redeemed: [],
+              expired: []
+            }
+          }
+        });
+      }
+    });
+    const instance = createPageInstance(page);
+
+    await instance.refreshGifts();
+
+    expect(instance.data.sections[0].items[0].displayExpiresAt).toBe('2027-06-16 08-09-10');
+    expect(instance.data.sections[0].items[0].expiresAt).toBe('2027-06-16T00:09:10.000Z');
+  });
+
   it('keeps recharge idempotency key stable when payment is cancelled and retried', async () => {
     const idempotencyKeys: string[] = [];
     const { page, wx } = await loadPageModule(

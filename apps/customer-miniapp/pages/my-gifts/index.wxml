@@ -17,7 +17,7 @@
         <view class="gift-main">
           <text class="gift-name">{{item.giftSnapshot.name}}</text>
           <text class="gift-description">{{item.giftSnapshot.description}}</text>
-          <text class="gift-expire">有效期至 {{item.expiresAt}}</text>
+          <text class="gift-expire">有效期至 {{item.displayExpiresAt}}</text>
         </view>
         <text class="gift-days">{{item.giftSnapshot.validDays}} 天</text>
       </view>
