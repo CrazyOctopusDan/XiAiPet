@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-17 -- Quick task 260617-recharge-plans-array-response completed: fixed recharge plan GET array response hydration
+last_activity: 2026-06-17 -- Quick task 260617-balance-card-recharge-button completed: moved balance card recharge CTA into the header action area
 progress:
   total_phases: 8
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-06-17 -- Quick task 260617-recharge-plans-array-response completed: fixed recharge plan GET array response hydration
+Last activity: 2026-06-17 -- Quick task 260617-balance-card-recharge-button completed: moved balance card recharge CTA into the header action area
 
 Progress: [████████░░] 83%
 
@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-17 | 260617-balance-card-recharge-button Balance card recharge CTA layout | Moved the customer balance card recharge button from the centered amount area into a right-aligned header action group with the status pill. |
 | 2026-06-17 | 260617-recharge-plans-array-response Recharge plan GET array response | Made customer and merchant recharge services accept the API's raw plan-array GET response as well as `{ plans }`, fixing empty recharge configuration hydration. |
 | 2026-06-17 | 260617-custom-notice-long-text Long purchase notice text | Disabled the merchant purchase notice textarea length limit and made the customer home purchase notice modal fixed-height with internal scrolling. |
 | 2026-06-17 | 260617-api-recharge-docker-runtime-schema API recharge Docker runtime schema | Removed API runtime dependency on monorepo shared source path by compiling a local recharge schema module into API dist and adding shared parity coverage. |

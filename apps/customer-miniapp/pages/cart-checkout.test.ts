@@ -1851,10 +1851,14 @@ describe('cart checkout flow', () => {
     expect(balanceTemplate).not.toContain('按月份看充值、抵扣和补偿返还');
     expect(balanceTemplate).toContain('class="balance-overview-card"');
     expect(balanceTemplate).toContain('class="overview-balance-line"');
+    expect(balanceTemplate).toContain('class="overview-head-action"');
+    expect(balanceTemplate).not.toContain('class="overview-action-row"');
     expect(balanceTemplate).toContain('class="ledger-amount-wrap {{item.type ===');
     expect(balanceStyles).toContain('.balance-overview-card');
+    expect(balanceStyles).toContain('.overview-head-action');
     expect(balanceStyles).toContain('linear-gradient(145deg, #FFF8D8 0%, #F6E396 62%, #F2C46F 100%)');
     expect(balanceStyles).toContain('.ledger-amount-wrap.income .ledger-amount');
+    expect(balanceStyles).not.toContain('.overview-action-row');
     expect(balanceStyles).not.toContain('.balance-hero');
     expect(balanceStyles).not.toContain('.balance-title');
   });

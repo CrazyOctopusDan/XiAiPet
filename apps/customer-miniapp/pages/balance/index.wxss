@@ -11,7 +11,6 @@
 .month-card-head,
 .overview-head,
 .overview-balance-line,
-.overview-action-row,
 .overview-metrics {
   display: flex;
   align-items: center;
@@ -22,6 +21,7 @@
 }
 
 .overview-label,
+.overview-head-action,
 .overview-status,
 .overview-currency,
 .overview-value,
@@ -62,28 +62,37 @@
 
 .overview-head,
 .overview-balance-line,
-.overview-action-row,
 .overview-metrics {
   position: relative;
   z-index: 1;
 }
 
 .overview-head {
+  align-items: flex-start;
   justify-content: space-between;
   gap: 18rpx;
 }
 
 .overview-label {
+  padding-top: 12rpx;
   font-size: 24rpx;
   font-weight: 800;
   color: #7B8B92;
+}
+
+.overview-head-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 12rpx;
 }
 
 .overview-status {
   flex-shrink: 0;
   padding: 10rpx 16rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.28);
   font-size: 20rpx;
   font-weight: 800;
   color: #40535C;
@@ -91,7 +100,7 @@
 
 .overview-balance-line {
   align-items: flex-end;
-  margin-top: 12rpx;
+  margin-top: 10rpx;
 }
 
 .overview-currency {
@@ -109,24 +118,20 @@
   color: #40535C;
 }
 
-.overview-action-row {
-  justify-content: flex-end;
-  margin-top: 20rpx;
-}
-
 .recharge-entry {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 176rpx;
-  height: 66rpx;
+  width: 150rpx;
+  height: 58rpx;
   padding: 0;
   border-radius: 999rpx;
   background: #40535C;
   color: #FFFDF5;
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 900;
-  line-height: 66rpx;
+  line-height: 58rpx;
+  box-shadow: 0 12rpx 24rpx rgba(64, 83, 92, 0.22);
 }
 
 .recharge-entry::after {
@@ -135,7 +140,7 @@
 
 .overview-metrics {
   gap: 18rpx;
-  margin-top: 28rpx;
+  margin-top: 34rpx;
 }
 
 .overview-pill {

@@ -5,14 +5,14 @@
     <view class="balance-overview-card">
       <view class="overview-head">
         <text class="overview-label">当前余额</text>
-        <text class="overview-status">可用于订单抵扣</text>
+        <view class="overview-head-action">
+          <text class="overview-status">可用于订单抵扣</text>
+          <button class="recharge-entry" bindtap="handleRechargeTap">去充值</button>
+        </view>
       </view>
       <view class="overview-balance-line">
         <text class="overview-currency">￥</text>
         <text class="overview-value">{{overview.currentBalance}}</text>
-      </view>
-      <view class="overview-action-row">
-        <button class="recharge-entry" bindtap="handleRechargeTap">去充值</button>
       </view>
       <view class="overview-metrics">
         <view class="overview-pill">
