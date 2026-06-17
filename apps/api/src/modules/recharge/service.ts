@@ -8,10 +8,7 @@ import { createMockPaymentProvider, type PaymentProvider, type WechatPaymentSubj
 import { createRuntimeConfigRepository, type RuntimeConfigSectionRecord } from '../runtime-config/repository';
 import { createBalanceService } from '../users/balance-service';
 import { createRechargeRepository } from './repository';
-
-const { normalizeRechargePlansConfig } = require('../../../../../packages/shared/src/schema/recharge.js') as {
-  normalizeRechargePlansConfig(input: unknown): RechargePlansRuntimeConfigValue;
-};
+import { normalizeRechargePlansConfig } from './recharge-schema';
 
 const RECHARGE_PLANS_SECTION_ID = 'recharge-plans';
 

@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-16 -- Quick task 260616-u69 completed: added merchant recharge configuration UI
+last_activity: 2026-06-17 -- Quick task 260617-api-recharge-docker-runtime-schema completed: fixed API Docker recharge schema runtime path
 progress:
   total_phases: 8
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-06-16 -- Quick task 260616-u69 completed: added merchant recharge configuration UI
+Last activity: 2026-06-17 -- Quick task 260617-api-recharge-docker-runtime-schema completed: fixed API Docker recharge schema runtime path
 
 Progress: [████████░░] 83%
 
@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-17 | 260617-api-recharge-docker-runtime-schema API recharge Docker runtime schema | Removed API runtime dependency on monorepo shared source path by compiling a local recharge schema module into API dist and adding shared parity coverage. |
 | 2026-06-16 | 260616-u69 Task 8 merchant recharge configuration UI | Added merchant recharge plan and gift configuration service/page, admin workspace entry, runtime-config navigation, and verification coverage. |
 | 2026-06-16 | 260616-rpi Enforce payment amount settlement guards | Required valid paid amount cents for WeChat sync, notifications, and recharge settlement; added conditional settlement claiming to prevent duplicate side effects. |
 | 2026-06-16 | 260616-rco Harden recharge payment settlement after code review | Reserved recharge payment prefixes for recharge transactions, validated WeChat paid amounts, and made balance updates atomic. |
