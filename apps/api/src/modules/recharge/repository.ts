@@ -70,6 +70,16 @@ export function createRechargeRepository(client: DbClient = getPrismaClient()) {
       });
     },
 
+    async replacePendingTradeNumber(id: string, input: { id: string; outTradeNo: string }) {
+      return client.rechargeTransaction.update({
+        where: { id },
+        data: {
+          id: input.id,
+          outTradeNo: input.outTradeNo
+        }
+      });
+    },
+
     async recordWechatPaymentSync(id: string, input: { transactionId?: string; paidAt?: Date }) {
       return client.rechargeTransaction.update({
         where: { id },

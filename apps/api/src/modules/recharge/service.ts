@@ -11,6 +11,8 @@ import { createRechargeRepository } from './repository';
 import { normalizeRechargePlansConfig } from './recharge-schema';
 
 const RECHARGE_PLANS_SECTION_ID = 'recharge-plans';
+const RECHARGE_TRANSACTION_ID_PREFIX = 'recharge-';
+const WECHAT_OUT_TRADE_NO_MAX_LENGTH = 32;
 
 interface RechargeGiftTemplate {
   giftTemplateId: string;
@@ -117,12 +119,9 @@ function mapRechargeTransaction(row: RechargeTransactionRow): RechargeTransactio
 }
 
 function createRechargeTransactionId(openid: string, idempotencyKey: string) {
-  const raw = `${openid}_${idempotencyKey}`.replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 150);
-  if (raw) {
-    return `recharge-${raw}`;
-  }
-  const digest = createHash('sha256').update(`${openid}:${idempotencyKey}`).digest('hex').slice(0, 32);
-  return `recharge-${digest}`;
+  const digestLength = WECHAT_OUT_TRADE_NO_MAX_LENGTH - RECHARGE_TRANSACTION_ID_PREFIX.length;
+  const digest = createHash('sha256').update(`${openid}:${idempotencyKey}`).digest('hex').slice(0, digestLength);
+  return `${RECHARGE_TRANSACTION_ID_PREFIX}${digest}`;
 }
 
 function createPlanSnapshot(plan: RechargePlanConfig, purchasedAt: Date): RechargePlanSnapshot {
@@ -178,6 +177,25 @@ function createExistingTransactionResponse(transaction: RechargeTransactionRow) 
   };
 }
 
+function needsRechargeTradeNumberRepair(transaction: RechargeTransactionRow) {
+  return transaction.outTradeNo.length > WECHAT_OUT_TRADE_NO_MAX_LENGTH || transaction.id.length > WECHAT_OUT_TRADE_NO_MAX_LENGTH;
+}
+
+async function repairPendingRechargeTradeNumber(
+  rechargeRepository: ReturnType<typeof createRechargeRepository>,
+  transaction: RechargeTransactionRow,
+  nextTradeNo: string
+) {
+  if (!needsRechargeTradeNumberRepair(transaction)) {
+    return transaction;
+  }
+
+  return rechargeRepository.replacePendingTradeNumber(transaction.id, {
+    id: nextTradeNo,
+    outTradeNo: nextTradeNo
+  }) as Promise<RechargeTransactionRow>;
+}
+
 async function startRechargePayment(
   rechargeRepository: ReturnType<typeof createRechargeRepository>,
   paymentProvider: PaymentProvider,
@@ -230,7 +248,12 @@ export function createRechargeService(
       if (existing) {
         if (existing.status === RECHARGE_TRANSACTION_STATUS.pending) {
           assertRechargePaymentCanStart(paymentProvider);
-          const payment = await startRechargePayment(rechargeRepository, paymentProvider, existing as RechargeTransactionRow, openid);
+          const pending = await repairPendingRechargeTradeNumber(
+            rechargeRepository,
+            existing as RechargeTransactionRow,
+            createRechargeTransactionId(openid, input.idempotencyKey)
+          );
+          const payment = await startRechargePayment(rechargeRepository, paymentProvider, pending, openid);
           return {
             ok: true as const,
             paymentStatus: 'pending_wechat' as const,

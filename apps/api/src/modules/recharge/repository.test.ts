@@ -101,6 +101,10 @@ describe('recharge repository', () => {
     } as never);
 
     await repository.markPaymentProcessing('recharge-1', { prepayId: 'prepay-1' });
+    await repository.replacePendingTradeNumber('recharge-legacy', {
+      id: 'recharge-fixed',
+      outTradeNo: 'recharge-fixed'
+    });
     await repository.recordWechatPaymentSync('recharge-1', { transactionId: 'wx-1', paidAt });
 
     expect(update).toHaveBeenNthCalledWith(1, {
@@ -111,6 +115,13 @@ describe('recharge repository', () => {
       }
     });
     expect(update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'recharge-legacy' },
+      data: {
+        id: 'recharge-fixed',
+        outTradeNo: 'recharge-fixed'
+      }
+    });
+    expect(update).toHaveBeenNthCalledWith(3, {
       where: { id: 'recharge-1' },
       data: {
         transactionId: 'wx-1',

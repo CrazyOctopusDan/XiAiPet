@@ -256,6 +256,58 @@ describe('createRechargeService', () => {
     expect(paymentProvider.startWechatPayment).toHaveBeenCalledTimes(1);
   });
 
+  it('creates WeChat-compatible recharge trade numbers from long customer keys', async () => {
+    const create = vi.fn(async ({ data }: { data: Record<string, unknown> }) => createTransactionRow({
+      ...data,
+      status: 'PENDING',
+      prepayId: null
+    }));
+    const update = vi.fn(async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => createTransactionRow({
+      id: where.id,
+      outTradeNo: where.id,
+      status: data.status,
+      prepayId: data.prepayId
+    }));
+    const paymentProvider = {
+      kind: 'mock',
+      startWechatPayment: vi.fn(async () => createPaymentStart()),
+      syncWechatPayment: vi.fn()
+    };
+    const client = {
+      runtimeConfigSection: {
+        findMany: vi.fn(async () => [
+          createRuntimeSection({
+            plans: [
+              { planId: 'plan-100', enabled: true, paidAmount: 100, bonusAmount: 20, description: '充100送20', gifts: [] }
+            ]
+          })
+        ])
+      },
+      rechargeTransaction: {
+        findUnique: vi.fn(async () => null),
+        create,
+        update
+      }
+    };
+    const service = createRechargeService(client as never, paymentProvider as never);
+
+    await service.createCustomerRechargeTransaction('o7UpF6WkVeryLongCustomerOpenid', {
+      planId: 'plan-100',
+      idempotencyKey: 'recharge-page-1781684004957-cash01'
+    });
+
+    const createdData = create.mock.calls[0]?.[0].data;
+    expect(createdData.id).toMatch(/^recharge-[a-f0-9]+$/);
+    expect(createdData.id).toHaveLength(32);
+    expect(createdData.outTradeNo).toBe(createdData.id);
+    expect(paymentProvider.startWechatPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: createdData.id
+      }),
+      { openid: 'o7UpF6WkVeryLongCustomerOpenid' }
+    );
+  });
+
   it('rejects invalid or unavailable recharge transaction requests', async () => {
     const client = {
       runtimeConfigSection: {
@@ -448,6 +500,74 @@ describe('createRechargeService', () => {
     );
     expect(update).toHaveBeenCalledWith({
       where: { id: 'recharge-openid-1_idem-1' },
+      data: {
+        status: 'PROCESSING',
+        prepayId: 'mock_prepay'
+      }
+    });
+  });
+
+  it('repairs an existing pending recharge with an overlong trade number before retrying payment start', async () => {
+    const legacyTradeNo = 'recharge-o7UpF6WkVeryLongCustomerOpenid_recharge-page-1781684004957-cash01';
+    const pendingRow = createTransactionRow({
+      id: legacyTradeNo,
+      outTradeNo: legacyTradeNo,
+      openid: 'o7UpF6WkVeryLongCustomerOpenid',
+      status: 'PENDING',
+      prepayId: null,
+      idempotencyKey: 'recharge-page-1781684004957-cash01'
+    });
+    let repairedTradeNo = '';
+    const update = vi.fn(async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+      if (typeof data.id === 'string' && typeof data.outTradeNo === 'string') {
+        repairedTradeNo = data.id;
+        return createTransactionRow({
+          ...pendingRow,
+          id: data.id,
+          outTradeNo: data.outTradeNo
+        });
+      }
+      return createTransactionRow({
+        ...pendingRow,
+        id: where.id,
+        outTradeNo: where.id,
+        status: data.status,
+        prepayId: data.prepayId
+      });
+    });
+    const client = {
+      rechargeTransaction: {
+        findUnique: vi.fn(async () => pendingRow),
+        update
+      }
+    };
+    const paymentProvider = {
+      kind: 'mock',
+      startWechatPayment: vi.fn(async () => createPaymentStart()),
+      syncWechatPayment: vi.fn()
+    };
+    const service = createRechargeService(client as never, paymentProvider as never);
+
+    await service.createCustomerRechargeTransaction('o7UpF6WkVeryLongCustomerOpenid', {
+      planId: 'plan-100',
+      idempotencyKey: 'recharge-page-1781684004957-cash01'
+    });
+
+    expect(repairedTradeNo).toMatch(/^recharge-[a-f0-9]+$/);
+    expect(repairedTradeNo).toHaveLength(32);
+    expect(update).toHaveBeenNthCalledWith(1, {
+      where: { id: legacyTradeNo },
+      data: {
+        id: repairedTradeNo,
+        outTradeNo: repairedTradeNo
+      }
+    });
+    expect(paymentProvider.startWechatPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ id: repairedTradeNo }),
+      { openid: 'o7UpF6WkVeryLongCustomerOpenid' }
+    );
+    expect(update).toHaveBeenNthCalledWith(2, {
+      where: { id: repairedTradeNo },
       data: {
         status: 'PROCESSING',
         prepayId: 'mock_prepay'
