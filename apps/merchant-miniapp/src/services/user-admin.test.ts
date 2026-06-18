@@ -195,6 +195,7 @@ describe('user admin service', () => {
       {
         id: 'pet-1',
         name: 'Cookie',
+        genderLabel: '性别 女孩',
         birthdayLabel: '生日 2024-05-09',
         allergyNotesLabel: '过敏源：不吃鸡肉',
         hasAllergyNotes: true
@@ -202,6 +203,7 @@ describe('user admin service', () => {
       {
         id: 'pet-2',
         name: '布丁',
+        genderLabel: '性别未设置',
         birthdayLabel: '生日未设置',
         allergyNotesLabel: '过敏源：无记录',
         hasAllergyNotes: false

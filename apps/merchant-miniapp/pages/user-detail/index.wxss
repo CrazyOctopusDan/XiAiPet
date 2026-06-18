@@ -249,7 +249,7 @@
   word-break: break-all;
 }
 
-.pet-birthday {
+.pet-meta {
   flex: 0 0 auto;
   margin-left: 18rpx;
   color: #756756;

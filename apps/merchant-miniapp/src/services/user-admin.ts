@@ -71,6 +71,7 @@ export interface UserBasicInfoRowViewModel {
 export interface UserPetViewModel {
   id: string;
   name: string;
+  genderLabel: string;
   birthdayLabel: string;
   allergyNotesLabel: string;
   hasAllergyNotes: boolean;
@@ -258,12 +259,23 @@ export function getAddressViewModels(addresses: MerchantUserAddressItem[] = []):
   }));
 }
 
+function getPetGenderLabel(gender: MerchantUserPetItem['gender']) {
+  if (gender === 'female') {
+    return '性别 女孩';
+  }
+  if (gender === 'male') {
+    return '性别 男孩';
+  }
+  return '性别未设置';
+}
+
 export function getPetViewModels(pets: MerchantUserPetItem[] = []): UserPetViewModel[] {
   return pets.map((pet) => {
     const allergyNotes = pet.allergyNotes.trim();
     return {
       id: pet.id,
       name: pet.name,
+      genderLabel: getPetGenderLabel(pet.gender),
       birthdayLabel: pet.birthday ? `生日 ${pet.birthday}` : '生日未设置',
       allergyNotesLabel: allergyNotes ? `过敏源：${allergyNotes}` : '过敏源：无记录',
       hasAllergyNotes: Boolean(allergyNotes)

@@ -53,7 +53,7 @@
           <view class="pet-card" wx:for="{{detail.petRows}}" wx:key="id">
             <view class="pet-card-head">
               <text class="pet-name">{{item.name}}</text>
-              <text class="pet-birthday">{{item.birthdayLabel}}</text>
+              <text class="pet-meta">{{item.genderLabel}} · {{item.birthdayLabel}}</text>
             </view>
             <text class="pet-allergy {{item.hasAllergyNotes ? 'warning' : ''}}">{{item.allergyNotesLabel}}</text>
           </view>

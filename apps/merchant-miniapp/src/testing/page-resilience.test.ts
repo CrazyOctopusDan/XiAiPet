@@ -479,6 +479,7 @@ describe('merchant page API resilience', () => {
 
     expect(wxml).toContain('class="field-input" type="digit" placeholder="调整金额"');
     expect(wxml).toContain('wx:for="{{detail.petRows}}"');
+    expect(wxml).toContain('{{item.genderLabel}}');
     expect(wxml).toContain('{{item.allergyNotesLabel}}');
     expect(wxml).toContain('wx:for="{{reasonOptions}}"');
     expect(wxml).not.toContain('class="field-input" type="number"');
