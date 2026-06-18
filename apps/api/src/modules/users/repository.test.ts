@@ -184,6 +184,19 @@ describe('user repository', () => {
       address: {
         count: vi.fn(async () => 1)
       },
+      pet: {
+        findMany: vi.fn(async () => [
+          {
+            id: 'pet-1',
+            name: 'Cookie',
+            birthday: new Date('2024-05-09T00:00:00.000Z'),
+            profile: {
+              gender: 'female',
+              allergyNotes: '不吃鸡肉'
+            }
+          }
+        ])
+      },
       runtimeConfigSection: {
         findUnique: vi.fn(async () => ({
           id: 'membership-tiers',
@@ -221,6 +234,15 @@ describe('user repository', () => {
           operatedAt: '2026-05-19T11:35:00.000Z'
         },
         addressCount: 1,
+        petCount: 1,
+        pets: [
+          {
+            id: 'pet-1',
+            name: 'Cookie',
+            birthday: '2024-05-09',
+            allergyNotes: '不吃鸡肉'
+          }
+        ],
         balanceLedgerCount: 2,
         balanceLedgers: [],
         addresses: []

@@ -90,15 +90,13 @@ describe('customer recharge and gift page flow', () => {
     vi.unstubAllGlobals();
   });
 
-  it('navigates from balance page to recharge page', async () => {
-    const { page, wx } = await loadPageModule(
+  it('does not expose a recharge entry from the balance page', async () => {
+    const { page } = await loadPageModule(
       '/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/balance/index.ts'
     );
     const instance = createPageInstance(page);
 
-    instance.handleRechargeTap();
-
-    expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/recharge/index' });
+    expect(instance.handleRechargeTap).toBeUndefined();
   });
 
   it('navigates from checkout to checkout gift picker', async () => {

@@ -1783,9 +1783,13 @@ describe('cart checkout flow', () => {
     expect(profileTemplate).toContain('bindtap="handleBalanceTap"');
     expect(profileTemplate).toContain('class="quick-grid"');
     expect(profileTemplate).toContain('class="member-chip in-card"');
-    expect(profileTemplate).toContain('class="fact-pill {{summary.birthdayLabel ===');
-    expect(profileTemplate).toContain('data-target="birthday"');
-    expect(profileTemplate).toContain('data-target="contact"');
+    expect(profileTemplate).toContain('bindtap="handleRechargeTap"');
+    expect(profileTemplate).toContain('充值');
+    expect(profileTemplate).toContain('余额充值、赠品权益');
+    expect(profileTemplate).not.toContain('class="profile-facts"');
+    expect(profileTemplate).not.toContain('class="fact-pill');
+    expect(profileTemplate).not.toContain('data-target="birthday"');
+    expect(profileTemplate).not.toContain('data-target="contact"');
     expect(profileStyles).toContain('.balance-card');
     expect(profileStyles).toContain('background: var(--member-card-bg)');
     expect(profileStyles).toContain('font-size: 76rpx');
@@ -1801,6 +1805,13 @@ describe('cart checkout flow', () => {
       url: '/pages/contact-bind/index?redirect=%2Fpages%2Fbalance%2Findex'
     });
 
+    wx.showModal.mockResolvedValueOnce({ confirm: true });
+    await instance.handleRechargeTap();
+
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/contact-bind/index?redirect=%2Fpages%2Frecharge%2Findex'
+    });
+
     updateProfile({ contactPhoneMasked: '138****1234' });
     instance.handleBalanceTap();
 
@@ -1808,17 +1819,13 @@ describe('cart checkout flow', () => {
       url: '/pages/balance/index'
     });
 
-    instance.handleProfileFactTap({
-      currentTarget: {
-        dataset: {
-          target: 'birthday'
-        }
-      }
+    await instance.handleRechargeTap();
+
+    expect(wx.navigateTo).toHaveBeenLastCalledWith({
+      url: '/pages/recharge/index'
     });
 
-    expect(wx.navigateTo).toHaveBeenCalledWith({
-      url: '/pages/profile-detail/index'
-    });
+    expect(instance.handleProfileFactTap).toBeUndefined();
   });
 
   it('renders the balance ledger page without the old hero title copy', async () => {
@@ -1851,13 +1858,16 @@ describe('cart checkout flow', () => {
     expect(balanceTemplate).not.toContain('按月份看充值、抵扣和补偿返还');
     expect(balanceTemplate).toContain('class="balance-overview-card"');
     expect(balanceTemplate).toContain('class="overview-balance-line"');
-    expect(balanceTemplate).toContain('class="overview-head-action"');
+    expect(balanceTemplate).not.toContain('class="overview-head-action"');
+    expect(balanceTemplate).not.toContain('bindtap="handleRechargeTap"');
+    expect(balanceTemplate).not.toContain('去充值');
     expect(balanceTemplate).not.toContain('可用于订单抵扣');
     expect(balanceTemplate).not.toContain('class="overview-status"');
     expect(balanceTemplate).not.toContain('class="overview-action-row"');
     expect(balanceTemplate).toContain('class="ledger-amount-wrap {{item.type ===');
     expect(balanceStyles).toContain('.balance-overview-card');
-    expect(balanceStyles).toContain('.overview-head-action');
+    expect(balanceStyles).not.toContain('.overview-head-action');
+    expect(balanceStyles).not.toContain('.recharge-entry');
     expect(balanceStyles).not.toContain('.overview-status');
     expect(balanceStyles).toContain('linear-gradient(145deg, #FFF8D8 0%, #F6E396 62%, #F2C46F 100%)');
     expect(balanceStyles).toContain('.ledger-amount-wrap.income .ledger-amount');

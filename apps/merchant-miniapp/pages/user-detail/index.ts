@@ -28,6 +28,8 @@ interface UserDetailSections {
   balanceLedgers?: MerchantBalanceLedgerEntry[];
   balanceLedgerCount?: number;
   currentBalance?: number;
+  pets?: MerchantUserDetail['pets'];
+  petCount?: number;
 }
 
 interface UserDetailPageData {
@@ -162,6 +164,8 @@ Page({
       currentBalance: sections.currentBalance ?? current.currentBalance,
       latestAdjustment: current.latestAdjustment ?? getCachedLatestAdjustment(current.openid),
       addresses: sections.addresses ?? current.addresses ?? [],
+      pets: sections.pets ?? current.pets ?? [],
+      petCount: sections.petCount ?? current.petCount,
       balanceLedgers: sections.balanceLedgers ?? current.balanceLedgers ?? [],
       addressCount: sections.addresses?.length ?? current.addressCount,
       balanceLedgerCount: sections.balanceLedgerCount ?? current.balanceLedgerCount

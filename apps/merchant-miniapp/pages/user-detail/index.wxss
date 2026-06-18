@@ -34,6 +34,7 @@
 .detail-tab,
 .basic-row,
 .address-head,
+.pet-card-head,
 .pill-row {
   display: flex;
   align-items: center;
@@ -219,6 +220,55 @@
 
 .address-head {
   justify-content: space-between;
+}
+
+.pet-section {
+  margin-top: 10rpx;
+  border-top: 2rpx solid #F1E5D6;
+}
+
+.pet-card {
+  margin-top: 16rpx;
+  padding: 18rpx;
+  border: 2rpx solid #F0E2D0;
+  border-radius: 16rpx;
+  background: #FBF6EE;
+}
+
+.pet-card-head {
+  justify-content: space-between;
+}
+
+.pet-name {
+  min-width: 0;
+  flex: 1;
+  color: #26333D;
+  font-size: 28rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.pet-birthday {
+  flex: 0 0 auto;
+  margin-left: 18rpx;
+  color: #756756;
+  font-size: 22rpx;
+  line-height: 1.2;
+}
+
+.pet-allergy {
+  display: block;
+  margin-top: 12rpx;
+  color: #756756;
+  font-size: 24rpx;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+.pet-allergy.warning {
+  color: #9A4E19;
+  font-weight: 800;
 }
 
 .address-head .history-title {

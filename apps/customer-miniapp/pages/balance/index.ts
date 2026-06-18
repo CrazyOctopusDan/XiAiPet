@@ -93,11 +93,6 @@ Page({
       loadingMore: false
     });
   },
-  handleRechargeTap() {
-    wx.navigateTo({
-      url: '/pages/recharge/index'
-    });
-  },
   onReachBottom(this: BalancePageInstance) {
     void this.loadMoreRecords();
   }

@@ -96,18 +96,37 @@ Page({
             url: '/pages/balance/index'
         });
     },
+    async handleRechargeTap() {
+        if (!(0, profile_1.hasBoundPhone)()) {
+            try {
+                await (0, profile_1.hydrateProfile)();
+            }
+            catch (_a) {
+                // Keep the local registration state when profile hydration is unavailable.
+            }
+        }
+        if (!(0, profile_1.hasBoundPhone)()) {
+            const result = await wx.showModal({
+                title: '请先完善用户信息',
+                content: '绑定手机号才可以成为我们的会员，享受店内服务。',
+                confirmText: '去完善',
+                cancelText: '稍后再说',
+                confirmColor: '#40535C'
+            });
+            if (result === null || result === void 0 ? void 0 : result.confirm) {
+                wx.navigateTo({
+                    url: (0, profile_1.getPhoneBindingRedirectUrl)('/pages/recharge/index')
+                });
+            }
+            return;
+        }
+        wx.navigateTo({
+            url: '/pages/recharge/index'
+        });
+    },
     handleGiftsTap() {
         wx.navigateTo({
             url: '/pages/my-gifts/index'
         });
-    },
-    handleProfileFactTap(event) {
-        var _a, _b;
-        const target = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.target;
-        if (target === 'birthday' || target === 'contact') {
-            wx.navigateTo({
-                url: '/pages/profile-detail/index'
-            });
-        }
     }
 });

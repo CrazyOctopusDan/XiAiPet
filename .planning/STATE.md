@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-17 -- Quick task 260617-my-gifts-expire-format completed: standardized my-gifts expiration display format
+last_activity: 2026-06-18 -- Quick task 260618-dmd completed: added long-press copy for home consulting WeChat ID
 progress:
   total_phases: 8
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-06-17 -- Quick task 260617-my-gifts-expire-format completed: standardized my-gifts expiration display format
+Last activity: 2026-06-18 -- Quick task 260618-dmd completed: added long-press copy for home consulting WeChat ID
 
 Progress: [████████░░] 83%
 
@@ -75,7 +75,11 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
-| 2026-06-17 | 260617-my-gifts-expire-format My gifts expiration display format | Changed the customer my-gifts page to render expiration times as `yyyy-mm-dd hh-mm-ss` while keeping raw API timestamps intact. |
+| 2026-06-18 | 260618-dmd Home consulting WeChat copy | Added long-press copy for the customer home consulting modal WeChat ID using `wx.setClipboardData`, following WeChat event and clipboard docs. |
+| 2026-06-18 | 260618-cv9 Profile facts removal | Removed the duplicate birthday/contact cards from the customer profile page while keeping the personal information card as the detail entry. |
+| 2026-06-18 | 260618-cq9 Profile recharge entry | Added a prominent customer profile recharge card with phone-binding prompt/redirect, and removed the recharge CTA from the balance ledger page. |
+| 2026-06-17 | 260617-qyx Merchant product price 32.80 truncation | Fixed product-editor money parsing so `32.80` stores as `32.8` instead of being truncated to `32.79`, with regression coverage. |
+| 2026-06-17 | 260617-my-gifts-expire-format My gifts expiration display format | Changed the customer my-gifts page to render expiration times as `yyyy-mm-dd hh:mm:ss` while keeping raw API timestamps intact. |
 | 2026-06-17 | 260617-recharge-out-trade-no Recharge payment 502 | Fixed recharge WeChat prepay 502s by generating deterministic 32-character `recharge-` trade numbers and adding regression coverage. |
 | 2026-06-17 | 260617-recharge-gift-settlement-audit Recharge gift settlement audit | Audited recharge paid/bonus settlement and gift state flow; added customer unpaid WeChat order cancellation to release locked gifts without cancelling paid-but-unsynced orders. |
 | 2026-06-17 | 260617-profile-lock-badge-alignment Profile lock badge alignment | Centered the customer profile birthday lock badge text with fixed-height flex styling. |

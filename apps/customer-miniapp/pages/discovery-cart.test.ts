@@ -501,6 +501,32 @@ describe('discovery cart pages', () => {
     expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({ title: '已加入购物车' }));
   });
 
+  it('enables right-top menu sharing on product detail without a custom image', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/product-detail/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const product = getProductById('sea-sponge');
+
+    if (!product) {
+      throw new Error('missing direct-add product fixture');
+    }
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ productId: product.id });
+
+    expect(wx.showShareMenu).toHaveBeenCalledWith({
+      withShareTicket: true,
+      menus: ['shareAppMessage']
+    });
+
+    const sharePayload = instance.onShareAppMessage();
+
+    expect(sharePayload).toEqual({
+      title: product.name,
+      path: `/pages/product-detail/index?productId=${product.id}`
+    });
+    expect(sharePayload).not.toHaveProperty('imageUrl');
+  });
+
   it('sizes the detail swiper from the tallest gallery photo metadata', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/product-detail/index.ts');
     const instance = createPageInstance(page);

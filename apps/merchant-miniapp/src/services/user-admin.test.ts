@@ -160,6 +160,55 @@ describe('user admin service', () => {
     });
   });
 
+  it('builds user detail pet rows for merchant review', () => {
+    const view = getUserDetailViewModel(
+      {
+        ...createUser(),
+        latestAdjustment: null,
+        addressCount: 0,
+        petCount: 2,
+        balanceLedgerCount: 0,
+        balanceLedgers: [],
+        addresses: [],
+        pets: [
+          {
+            id: 'pet-1',
+            name: 'Cookie',
+            gender: 'female',
+            birthday: '2024-05-09',
+            allergyNotes: '不吃鸡肉'
+          },
+          {
+            id: 'pet-2',
+            name: '布丁',
+            gender: 'unknown',
+            birthday: '',
+            allergyNotes: ''
+          }
+        ]
+      },
+      null
+    );
+
+    expect(view.detailTabs[0]).toEqual({ key: 'basic', label: '基本信息', countLabel: '5' });
+    expect(view.petRows).toEqual([
+      {
+        id: 'pet-1',
+        name: 'Cookie',
+        birthdayLabel: '生日 2024-05-09',
+        allergyNotesLabel: '过敏源：不吃鸡肉',
+        hasAllergyNotes: true
+      },
+      {
+        id: 'pet-2',
+        name: '布丁',
+        birthdayLabel: '生日未设置',
+        allergyNotesLabel: '过敏源：无记录',
+        hasAllergyNotes: false
+      }
+    ]);
+  });
+
   it('fetches merchant user addresses without pagination', async () => {
     const request = vi.fn().mockResolvedValue({
       ok: true,

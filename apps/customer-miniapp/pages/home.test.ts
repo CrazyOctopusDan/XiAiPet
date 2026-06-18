@@ -45,15 +45,22 @@ describe('home page', () => {
     const appConfig = await readFile('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/app.json', 'utf8');
     const template = await readFile('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/home/index.wxml', 'utf8');
     const script = await readFile('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/home/index.ts', 'utf8');
-    const pages = JSON.parse(appConfig).pages;
+    const config = JSON.parse(appConfig);
+    const pages = config.pages;
 
     expect(pages[0]).toBe('pages/home/index');
+    expect(config.window.navigationBarTitleText).toBe('XiAi宠物烘焙');
     expect(pages).not.toContain('pages/launch/index');
     expect(template).toContain('{{storeContact.wechatId || \'暂未配置\'}}');
     expect(template).toContain('{{storeContact.ownerPhone || \'暂未配置\'}}');
+    expect(template).toContain('<text class="contact-value" user-select="true">{{storeContact.wechatId || \'暂未配置\'}}</text>');
+    expect(template).not.toContain('bindlongpress="handleCopyWechatId"');
     expect(template).not.toContain('copy-button');
     expect(template).not.toContain('handleCopyContact');
+    expect(script).not.toContain('handleCopyWechatId');
     expect(script).not.toContain('wx.setClipboardData');
+    expect(script).not.toContain('isClipboardPrivacyDeclarationFailure');
+    expect(script).not.toContain('需配置剪切板隐私权限');
     expect(script).not.toContain('ensurePrivacyAuthorized');
     expect(script).not.toContain('handleCopyContact');
     expect(script).not.toContain('复制权限未开通');
@@ -83,5 +90,15 @@ describe('home page', () => {
     expect(styles).toContain('overflow: hidden');
     expect(styles).toContain('.notice-modal-scroll');
     expect(styles).toContain('flex: 1');
+  });
+
+  it('enables right-top menu sharing with the home banner image', async () => {
+    const script = await readFile('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/home/index.ts', 'utf8');
+
+    expect(script).toContain('wx.showShareMenu');
+    expect(script).toContain('onShareAppMessage');
+    expect(script).toContain("title: 'XiAi宠物烘焙'");
+    expect(script).toContain("path: '/pages/home/index'");
+    expect(script).toContain('imageUrl: HERO_BANNER_SRC');
   });
 });

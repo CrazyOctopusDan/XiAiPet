@@ -60,12 +60,22 @@ export interface MerchantUserAddressItem {
   isDefault: boolean;
 }
 
+export interface MerchantUserPetItem {
+  id: string;
+  name: string;
+  gender: 'female' | 'male' | 'unknown';
+  birthday: string;
+  allergyNotes: string;
+}
+
 export interface MerchantUserDetailItem extends MerchantUserSearchItem {
   latestAdjustment: MerchantLatestAdjustment | null;
   addressCount?: number;
+  petCount?: number;
   balanceLedgerCount?: number;
   balanceLedgers: MerchantBalanceLedgerEntry[];
   addresses: MerchantUserAddressItem[];
+  pets: MerchantUserPetItem[];
 }
 
 export interface PaginationInput {
@@ -137,6 +147,13 @@ interface AddressRow {
   tag: string;
   isDefault: boolean;
   snapshot: unknown | null;
+}
+
+interface PetRow {
+  id: string;
+  name: string;
+  birthday: Date | null;
+  profile: unknown | null;
 }
 
 interface MembershipTierRow {
@@ -339,6 +356,25 @@ function mapMerchantUserAddress(row: AddressRow): MerchantUserAddressItem {
   };
 }
 
+function toDateLabel(value: Date | string | null | undefined) {
+  if (!value) {
+    return '';
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+}
+
+function mapMerchantUserPet(row: PetRow): MerchantUserPetItem {
+  const profile = isObject(row.profile) ? row.profile : {};
+  return {
+    id: row.id,
+    name: row.name,
+    gender: profile.gender === 'female' || profile.gender === 'male' ? profile.gender : 'unknown',
+    birthday: toDateLabel(row.birthday),
+    allergyNotes: typeof profile.allergyNotes === 'string' ? profile.allergyNotes : ''
+  };
+}
+
 function mapLatestAdjustment(row: BalanceLedgerRow | null): MerchantLatestAdjustment | null {
   if (!row) {
     return null;
@@ -485,7 +521,7 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         return { ok: true as const, user: null };
       }
 
-      const [latestLedger, balanceLedgerCount, addressCount, membershipTiers, rechargeTotal] = await Promise.all([
+      const [latestLedger, balanceLedgerCount, addressCount, pets, membershipTiers, rechargeTotal] = await Promise.all([
         client.balanceLedger.findMany({
           where: { openid },
           orderBy: { createdAt: 'desc' },
@@ -493,6 +529,10 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
         }) as Promise<BalanceLedgerRow[]>,
         client.balanceLedger.count({ where: { openid } }),
         client.address.count({ where: { openid } }),
+        client.pet.findMany({
+          where: { openid },
+          orderBy: { updatedAt: 'desc' }
+        }) as Promise<PetRow[]>,
         getMembershipTiers(client),
         getRechargeTotal(client, openid)
       ]);
@@ -503,6 +543,8 @@ export function createUserRepository(client: DbClient = getPrismaClient()) {
           ...mapMerchantUser(user, getMembershipTierLabel(membershipTiers, rechargeTotal)),
           latestAdjustment: mapLatestAdjustment(latestLedger[0] ?? null),
           addressCount,
+          petCount: pets.length,
+          pets: pets.map(mapMerchantUserPet),
           balanceLedgerCount,
           balanceLedgers: [],
           addresses: []

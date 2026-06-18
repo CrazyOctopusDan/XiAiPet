@@ -120,7 +120,7 @@ describe('customer runtime config service', () => {
     );
 
     expect(runtimeConfig.banner.fileId).toBe('/assets/catalog/banner.jpg');
-    expect(runtimeConfig.store.name).toBe('虾衣宠物烘焙工作室');
+    expect(runtimeConfig.store.name).toBe('XiAi宠物烘焙');
     expect(runtimeConfig.customNotice.enabled).toBe(false);
     expect(runtimeConfig.deliveryRules.tiers[0]?.explainer).toBe('5.0 公里内 98 元起送，配送费 0 元');
     expect(runtimeConfig.membershipTiers.tiers).toEqual([]);

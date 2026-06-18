@@ -18,15 +18,13 @@
       <text class="balance-action">查看流水</text>
     </view>
   </view>
-  <view class="profile-facts">
-    <view class="fact-pill {{summary.birthdayLabel === '未设置生日' ? 'editable' : ''}}" data-target="birthday" bindtap="handleProfileFactTap">
-      <text class="fact-label">生日</text>
-      <text class="fact-value">{{summary.birthdayLabel}}</text>
+  <view class="recharge-card" bindtap="handleRechargeTap">
+    <view class="recharge-card-main">
+      <text class="recharge-card-kicker">会员账户</text>
+      <text class="recharge-card-title">充值</text>
+      <text class="recharge-card-copy">余额充值、赠品权益</text>
     </view>
-    <view class="fact-pill {{summary.contactPhoneLabel === '未绑定手机号' ? 'editable' : ''}}" data-target="contact" bindtap="handleProfileFactTap">
-      <text class="fact-label">联系方式</text>
-      <text class="fact-value">{{summary.contactPhoneLabel}}</text>
-    </view>
+    <text class="recharge-card-action">去充值</text>
   </view>
   <view class="quick-grid">
     <view class="quick-card primary" bindtap="handleProfileDetailTap">

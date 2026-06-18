@@ -48,6 +48,20 @@
           <text class="basic-label">{{item.label}}</text>
           <text class="basic-value">{{item.value}}</text>
         </view>
+        <view class="pet-section" wx:if="{{detail.petRows.length}}">
+          <text class="history-title">宠物信息</text>
+          <view class="pet-card" wx:for="{{detail.petRows}}" wx:key="id">
+            <view class="pet-card-head">
+              <text class="pet-name">{{item.name}}</text>
+              <text class="pet-birthday">{{item.birthdayLabel}}</text>
+            </view>
+            <text class="pet-allergy {{item.hasAllergyNotes ? 'warning' : ''}}">{{item.allergyNotesLabel}}</text>
+          </view>
+        </view>
+        <view class="empty-section" wx:else>
+          <text class="history-title">暂无宠物信息</text>
+          <text class="page-subtitle">用户还没有填写宠物资料。</text>
+        </view>
       </view>
 
       <view class="detail-panel" wx:elif="{{activeDetailTab === 'addresses'}}">

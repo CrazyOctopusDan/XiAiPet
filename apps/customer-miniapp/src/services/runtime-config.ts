@@ -63,8 +63,8 @@ const DEFAULT_RUNTIME_CONFIG: CustomerRuntimeConfig = {
     altText: '首页 Banner'
   },
   store: {
-    name: '虾衣宠物烘焙工作室',
-    storeName: '虾衣宠物烘焙工作室',
+    name: 'XiAi宠物烘焙',
+    storeName: 'XiAi宠物烘焙',
     address: '上海市静安区南京西路 1266 号 8 楼',
     latitude: 31.22911,
     longitude: 121.44853,

@@ -41,12 +41,22 @@ export interface MerchantUserAddressItem {
   isDefault: boolean;
 }
 
+export interface MerchantUserPetItem {
+  id: string;
+  name: string;
+  gender: 'female' | 'male' | 'unknown';
+  birthday: string;
+  allergyNotes: string;
+}
+
 export interface MerchantUserDetail extends MerchantUserSearchListItem {
   latestAdjustment: MerchantLatestAdjustmentSummary | null;
   addressCount?: number;
+  petCount?: number;
   balanceLedgerCount?: number;
   balanceLedgers: MerchantBalanceLedgerEntry[];
   addresses: MerchantUserAddressItem[];
+  pets: MerchantUserPetItem[];
 }
 
 export interface MerchantBalanceLedgerPage {

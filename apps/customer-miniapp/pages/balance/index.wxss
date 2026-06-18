@@ -21,7 +21,6 @@
 }
 
 .overview-label,
-.overview-head-action,
 .overview-currency,
 .overview-value,
 .overview-pill-label,
@@ -79,12 +78,6 @@
   color: #7B8B92;
 }
 
-.overview-head-action {
-  display: flex;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-
 .overview-balance-line {
   align-items: flex-end;
   margin-top: 10rpx;
@@ -103,26 +96,6 @@
   line-height: 1;
   font-weight: 900;
   color: #40535C;
-}
-
-.recharge-entry {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 150rpx;
-  height: 58rpx;
-  padding: 0;
-  border-radius: 999rpx;
-  background: #40535C;
-  color: #FFFDF5;
-  font-size: 24rpx;
-  font-weight: 900;
-  line-height: 58rpx;
-  box-shadow: 0 12rpx 24rpx rgba(64, 83, 92, 0.22);
-}
-
-.recharge-entry::after {
-  border: 0;
 }
 
 .overview-metrics {

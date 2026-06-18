@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getBalanceAdjustmentReasonOptions = getBalanceAdjustmentReasonOptions;
 exports.getBalanceLedgerViewModels = getBalanceLedgerViewModels;
 exports.getAddressViewModels = getAddressViewModels;
+exports.getPetViewModels = getPetViewModels;
 exports.queryMerchantUsers = queryMerchantUsers;
 exports.fetchMerchantUserDetail = fetchMerchantUserDetail;
 exports.fetchMerchantUserAddresses = fetchMerchantUserAddresses;
@@ -129,6 +130,18 @@ function getAddressViewModels(addresses = []) {
         isDefault: address.isDefault
     }));
 }
+function getPetViewModels(pets = []) {
+    return pets.map((pet) => {
+        const allergyNotes = pet.allergyNotes.trim();
+        return {
+            id: pet.id,
+            name: pet.name,
+            birthdayLabel: pet.birthday ? `生日 ${pet.birthday}` : '生日未设置',
+            allergyNotesLabel: allergyNotes ? `过敏源：${allergyNotes}` : '过敏源：无记录',
+            hasAllergyNotes: Boolean(allergyNotes)
+        };
+    });
+}
 async function queryMerchantUsers(input, request = api_client_1.merchantApiRequest) {
     var _a;
     const response = await request('/api/v1/merchant/users', {
@@ -200,12 +213,14 @@ function getCachedLatestAdjustment(userOpenid) {
     return (_a = readUserDetailCache()[userOpenid]) !== null && _a !== void 0 ? _a : null;
 }
 function getUserDetailViewModel(user, latest) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const detailUser = user;
     const addressRows = getAddressViewModels((_a = detailUser.addresses) !== null && _a !== void 0 ? _a : []);
-    const ledgerRows = getBalanceLedgerViewModels((_b = detailUser.balanceLedgers) !== null && _b !== void 0 ? _b : []);
-    const addressCount = (_c = detailUser.addressCount) !== null && _c !== void 0 ? _c : addressRows.length;
-    const balanceLedgerCount = (_d = detailUser.balanceLedgerCount) !== null && _d !== void 0 ? _d : ledgerRows.length;
+    const petRows = getPetViewModels((_b = detailUser.pets) !== null && _b !== void 0 ? _b : []);
+    const ledgerRows = getBalanceLedgerViewModels((_c = detailUser.balanceLedgers) !== null && _c !== void 0 ? _c : []);
+    const addressCount = (_d = detailUser.addressCount) !== null && _d !== void 0 ? _d : addressRows.length;
+    const petCount = (_e = detailUser.petCount) !== null && _e !== void 0 ? _e : petRows.length;
+    const balanceLedgerCount = (_f = detailUser.balanceLedgerCount) !== null && _f !== void 0 ? _f : ledgerRows.length;
     const contactPhoneLabel = getContactPhoneLabel(user);
     return {
         openid: user.openid,
@@ -214,18 +229,19 @@ function getUserDetailViewModel(user, latest) {
         membershipTierLabel: user.membershipTierLabel,
         contactPhoneLabel,
         currentBalanceLabel: formatMoney(user.currentBalance),
-        latestOperationTitle: (_e = latest === null || latest === void 0 ? void 0 : latest.normalizedTitle) !== null && _e !== void 0 ? _e : '暂无最近操作',
-        latestOperationNote: (_f = latest === null || latest === void 0 ? void 0 : latest.shortNote) !== null && _f !== void 0 ? _f : '还没有余额调整记录',
+        latestOperationTitle: (_g = latest === null || latest === void 0 ? void 0 : latest.normalizedTitle) !== null && _g !== void 0 ? _g : '暂无最近操作',
+        latestOperationNote: (_h = latest === null || latest === void 0 ? void 0 : latest.shortNote) !== null && _h !== void 0 ? _h : '还没有余额调整记录',
         latestOperationMeta: latest ? `${latest.operatorName} · ${formatDateTime(latest.operatedAt)}` : '等待第一次调整',
         basicRows: [
             { label: '昵称', value: user.nickname },
             { label: '手机号', value: contactPhoneLabel },
             { label: '会员等级', value: user.membershipTierLabel }
         ],
+        petRows,
         addressRows,
         ledgerRows,
         detailTabs: [
-            { key: 'basic', label: '基本信息', countLabel: '3' },
+            { key: 'basic', label: '基本信息', countLabel: String(3 + petCount) },
             { key: 'addresses', label: '地址信息', countLabel: String(addressCount) },
             { key: 'ledger', label: '余额流水', countLabel: String(balanceLedgerCount) }
         ]

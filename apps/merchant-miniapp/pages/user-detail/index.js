@@ -87,7 +87,7 @@ Page({
         }
     },
     mergeDetailSections(sections) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
         if (!this.data.user) {
             return null;
         }
@@ -97,9 +97,11 @@ Page({
             currentBalance: (_a = sections.currentBalance) !== null && _a !== void 0 ? _a : current.currentBalance,
             latestAdjustment: (_b = current.latestAdjustment) !== null && _b !== void 0 ? _b : (0, user_admin_1.getCachedLatestAdjustment)(current.openid),
             addresses: (_d = (_c = sections.addresses) !== null && _c !== void 0 ? _c : current.addresses) !== null && _d !== void 0 ? _d : [],
-            balanceLedgers: (_f = (_e = sections.balanceLedgers) !== null && _e !== void 0 ? _e : current.balanceLedgers) !== null && _f !== void 0 ? _f : [],
-            addressCount: (_h = (_g = sections.addresses) === null || _g === void 0 ? void 0 : _g.length) !== null && _h !== void 0 ? _h : current.addressCount,
-            balanceLedgerCount: (_j = sections.balanceLedgerCount) !== null && _j !== void 0 ? _j : current.balanceLedgerCount
+            pets: (_f = (_e = sections.pets) !== null && _e !== void 0 ? _e : current.pets) !== null && _f !== void 0 ? _f : [],
+            petCount: (_g = sections.petCount) !== null && _g !== void 0 ? _g : current.petCount,
+            balanceLedgers: (_j = (_h = sections.balanceLedgers) !== null && _h !== void 0 ? _h : current.balanceLedgers) !== null && _j !== void 0 ? _j : [],
+            addressCount: (_l = (_k = sections.addresses) === null || _k === void 0 ? void 0 : _k.length) !== null && _l !== void 0 ? _l : current.addressCount,
+            balanceLedgerCount: (_m = sections.balanceLedgerCount) !== null && _m !== void 0 ? _m : current.balanceLedgerCount
         };
         wx.setStorageSync('merchant-selected-user', merged);
         this.setData({

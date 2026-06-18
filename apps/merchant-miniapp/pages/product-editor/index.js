@@ -74,11 +74,14 @@ function normalizeAssetForDraft(asset) {
     };
 }
 function parseMoneyInput(value) {
-    const numeric = Number(value !== null && value !== void 0 ? value : 0);
-    if (!Number.isFinite(numeric) || numeric <= 0) {
+    const text = normalizeMoneyInputText(String(value !== null && value !== void 0 ? value : ''));
+    const [integerPart = '0', decimalPart = ''] = text.split('.');
+    const centsText = `${integerPart || '0'}${decimalPart.padEnd(2, '0').slice(0, 2)}`;
+    const cents = Number.parseInt(centsText, 10);
+    if (!Number.isFinite(cents) || cents <= 0) {
         return 0;
     }
-    return Math.floor(numeric * 100) / 100;
+    return cents / 100;
 }
 function normalizeMoneyInputText(value) {
     const sanitized = (value !== null && value !== void 0 ? value : '').replace(/[^\d.]/g, '');

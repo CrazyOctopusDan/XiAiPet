@@ -26,7 +26,7 @@
         <view class="contact-row">
           <view class="contact-copy">
             <text class="contact-label">微信号</text>
-            <text class="contact-value">{{storeContact.wechatId || '暂未配置'}}</text>
+            <text class="contact-value" user-select="true">{{storeContact.wechatId || '暂未配置'}}</text>
           </view>
         </view>
         <view class="contact-row">

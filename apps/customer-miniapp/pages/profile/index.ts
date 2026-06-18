@@ -119,18 +119,39 @@ Page({
       url: '/pages/balance/index'
     });
   },
+  async handleRechargeTap() {
+    if (!hasBoundPhone()) {
+      try {
+        await hydrateProfile();
+      } catch {
+        // Keep the local registration state when profile hydration is unavailable.
+      }
+    }
+
+    if (!hasBoundPhone()) {
+      const result = await wx.showModal({
+        title: '请先完善用户信息',
+        content: '绑定手机号才可以成为我们的会员，享受店内服务。',
+        confirmText: '去完善',
+        cancelText: '稍后再说',
+        confirmColor: '#40535C'
+      });
+
+      if (result?.confirm) {
+        wx.navigateTo({
+          url: getPhoneBindingRedirectUrl('/pages/recharge/index')
+        });
+      }
+      return;
+    }
+
+    wx.navigateTo({
+      url: '/pages/recharge/index'
+    });
+  },
   handleGiftsTap() {
     wx.navigateTo({
       url: '/pages/my-gifts/index'
     });
-  },
-  handleProfileFactTap(event: { currentTarget?: { dataset?: { target?: string } } }) {
-    const target = event.currentTarget?.dataset?.target;
-
-    if (target === 'birthday' || target === 'contact') {
-      wx.navigateTo({
-        url: '/pages/profile-detail/index'
-      });
-    }
   }
 });

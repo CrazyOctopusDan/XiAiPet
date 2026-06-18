@@ -9,6 +9,7 @@ import type {
   MerchantUserAddressItem,
   MerchantUserBalanceAdjustmentPayload,
   MerchantUserDetail,
+  MerchantUserPetItem,
   MerchantUserSearchInput,
   MerchantUserSearchListItem
 } from '@xiaipet/shared/types/user-admin';
@@ -56,6 +57,7 @@ export interface UserDetailViewModel {
   latestOperationNote: string;
   latestOperationMeta: string;
   basicRows: UserBasicInfoRowViewModel[];
+  petRows: UserPetViewModel[];
   addressRows: UserAddressViewModel[];
   ledgerRows: BalanceLedgerViewModel[];
   detailTabs: UserDetailTabViewModel[];
@@ -64,6 +66,14 @@ export interface UserDetailViewModel {
 export interface UserBasicInfoRowViewModel {
   label: string;
   value: string;
+}
+
+export interface UserPetViewModel {
+  id: string;
+  name: string;
+  birthdayLabel: string;
+  allergyNotesLabel: string;
+  hasAllergyNotes: boolean;
 }
 
 export interface UserAddressViewModel {
@@ -248,6 +258,19 @@ export function getAddressViewModels(addresses: MerchantUserAddressItem[] = []):
   }));
 }
 
+export function getPetViewModels(pets: MerchantUserPetItem[] = []): UserPetViewModel[] {
+  return pets.map((pet) => {
+    const allergyNotes = pet.allergyNotes.trim();
+    return {
+      id: pet.id,
+      name: pet.name,
+      birthdayLabel: pet.birthday ? `生日 ${pet.birthday}` : '生日未设置',
+      allergyNotesLabel: allergyNotes ? `过敏源：${allergyNotes}` : '过敏源：无记录',
+      hasAllergyNotes: Boolean(allergyNotes)
+    };
+  });
+}
+
 export async function queryMerchantUsers(input: MerchantUserSearchInput, request: MerchantApiRequester = merchantApiRequest) {
   const response = await request<{
     ok?: boolean;
@@ -346,8 +369,10 @@ export function getUserDetailViewModel(
 ): UserDetailViewModel {
   const detailUser = user as MerchantUserDetail;
   const addressRows = getAddressViewModels(detailUser.addresses ?? []);
+  const petRows = getPetViewModels(detailUser.pets ?? []);
   const ledgerRows = getBalanceLedgerViewModels(detailUser.balanceLedgers ?? []);
   const addressCount = detailUser.addressCount ?? addressRows.length;
+  const petCount = detailUser.petCount ?? petRows.length;
   const balanceLedgerCount = detailUser.balanceLedgerCount ?? ledgerRows.length;
   const contactPhoneLabel = getContactPhoneLabel(user);
   return {
@@ -365,10 +390,11 @@ export function getUserDetailViewModel(
       { label: '手机号', value: contactPhoneLabel },
       { label: '会员等级', value: user.membershipTierLabel }
     ],
+    petRows,
     addressRows,
     ledgerRows,
     detailTabs: [
-      { key: 'basic', label: '基本信息', countLabel: '3' },
+      { key: 'basic', label: '基本信息', countLabel: String(3 + petCount) },
       { key: 'addresses', label: '地址信息', countLabel: String(addressCount) },
       { key: 'ledger', label: '余额流水', countLabel: String(balanceLedgerCount) }
     ]

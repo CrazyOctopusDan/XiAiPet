@@ -4,6 +4,10 @@ const cart_1 = require("../../src/services/cart");
 const catalog_1 = require("../../src/services/catalog");
 const SWIPER_WIDTH_RPX = 750;
 const DEFAULT_SWIPER_HEIGHT_RPX = 670;
+const RIGHT_TOP_SHARE_OPTIONS = {
+    withShareTicket: true,
+    menus: ['shareAppMessage']
+};
 function isUsableImageSize(size) {
     return Boolean(size && Number.isFinite(size.width) && Number(size.width) > 0 && Number.isFinite(size.height) && Number(size.height) > 0);
 }
@@ -51,6 +55,10 @@ function calculateSwiperHeightRpx(sizes) {
         .map((size) => Math.round((size.height / size.width) * SWIPER_WIDTH_RPX));
     return heights.length ? Math.max(...heights) : DEFAULT_SWIPER_HEIGHT_RPX;
 }
+function enableRightTopShareMenu() {
+    var _a;
+    (_a = wx.showShareMenu) === null || _a === void 0 ? void 0 : _a.call(wx, RIGHT_TOP_SHARE_OPTIONS);
+}
 Page({
     data: {
         product: null,
@@ -65,6 +73,7 @@ Page({
         isAddToCartDisabled: true
     },
     async onLoad(query) {
+        enableRightTopShareMenu();
         const productId = query.productId;
         const fallbackProduct = productId ? (0, catalog_1.getProductById)(productId) : null;
         this.applyProduct(fallbackProduct);
@@ -186,9 +195,7 @@ Page({
         wx.showToast({ title: result.capped ? '库存不足' : '已加入购物车', icon: 'none' });
     },
     handleShareTap() {
-        wx.showShareMenu({
-            withShareTicket: true
-        });
+        enableRightTopShareMenu();
         wx.showToast({ title: '已打开分享面板', icon: 'none' });
     },
     handleCartTap() {

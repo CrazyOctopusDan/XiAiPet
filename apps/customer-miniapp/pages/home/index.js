@@ -3,6 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const catalog_1 = require("../../src/services/catalog");
 const runtime_config_1 = require("../../src/services/runtime-config");
 const HERO_BANNER_SRC = '/assets/catalog/banner.jpg';
+const RIGHT_TOP_SHARE_OPTIONS = {
+    withShareTicket: true,
+    menus: ['shareAppMessage']
+};
 function buildHomeLayout(modules) {
     var _a, _b;
     const primaryModule = (_b = (_a = modules.find((module) => module.id === 'preorder')) !== null && _a !== void 0 ? _a : modules[0]) !== null && _b !== void 0 ? _b : null;
@@ -38,6 +42,10 @@ function getNavigationMetrics() {
         contentTop: statusBarHeight + navBarHeight
     };
 }
+function enableRightTopShareMenu() {
+    var _a;
+    (_a = wx.showShareMenu) === null || _a === void 0 ? void 0 : _a.call(wx, RIGHT_TOP_SHARE_OPTIONS);
+}
 Page({
     data: {
         ...buildHomeLayout(buildHomeModulesFallback()),
@@ -52,6 +60,7 @@ Page({
     },
     onShow() {
         var _a, _b, _c;
+        enableRightTopShareMenu();
         (_c = (_b = (_a = this.getTabBar) === null || _a === void 0 ? void 0 : _a.call(this)) === null || _b === void 0 ? void 0 : _b.setSelectedKey) === null || _c === void 0 ? void 0 : _c.call(_b, 'home');
         void this.refreshHome();
     },
@@ -132,5 +141,12 @@ Page({
         wx.redirectTo({
             url: '/pages/profile/index'
         });
+    },
+    onShareAppMessage() {
+        return {
+            title: 'XiAi宠物烘焙',
+            path: '/pages/home/index',
+            imageUrl: HERO_BANNER_SRC
+        };
     }
 });

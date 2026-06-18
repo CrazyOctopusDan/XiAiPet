@@ -328,6 +328,15 @@ describe('merchant page API resilience', () => {
     expect(instance.data.draft.pricing.formulas[0].surcharge).toBe(6.66);
   });
 
+  it('does not truncate money inputs affected by binary floating point precision', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/product-editor/index.ts');
+    const instance = createPageInstance(page);
+
+    instance.handleBasePriceInput({ detail: { value: '32.80' } });
+
+    expect(instance.data.draft.pricing.basePrice).toBe(32.8);
+  });
+
   it('does not overwrite an in-progress decimal point while editing prices', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/product-editor/index.ts');
     const instance = createPageInstance(page);
@@ -469,6 +478,8 @@ describe('merchant page API resilience', () => {
     const wxml = readFileSync('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/user-detail/index.wxml', 'utf8');
 
     expect(wxml).toContain('class="field-input" type="digit" placeholder="调整金额"');
+    expect(wxml).toContain('wx:for="{{detail.petRows}}"');
+    expect(wxml).toContain('{{item.allergyNotesLabel}}');
     expect(wxml).toContain('wx:for="{{reasonOptions}}"');
     expect(wxml).not.toContain('class="field-input" type="number"');
     expect(wxml).not.toContain('data-action="set"');

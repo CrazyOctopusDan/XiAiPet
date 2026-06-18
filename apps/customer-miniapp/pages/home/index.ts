@@ -5,6 +5,10 @@ import { getHomeModules, resolveHomeModuleImageSources } from '../../src/service
 import { getCachedCustomerRuntimeConfig, hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 
 const HERO_BANNER_SRC = '/assets/catalog/banner.jpg';
+const RIGHT_TOP_SHARE_OPTIONS = {
+  withShareTicket: true,
+  menus: ['shareAppMessage']
+};
 
 interface HomeModuleViewModel {
   id: string;
@@ -75,6 +79,10 @@ function getNavigationMetrics(): NavigationMetrics {
   };
 }
 
+function enableRightTopShareMenu() {
+  wx.showShareMenu?.(RIGHT_TOP_SHARE_OPTIONS);
+}
+
 Page({
   data: {
     ...buildHomeLayout(buildHomeModulesFallback()),
@@ -88,6 +96,7 @@ Page({
     noticeModalVisible: false
   },
   onShow(this: HomePageInstance) {
+    enableRightTopShareMenu();
     this.getTabBar?.()?.setSelectedKey?.('home');
     void this.refreshHome();
   },
@@ -173,5 +182,12 @@ Page({
     wx.redirectTo({
       url: '/pages/profile/index'
     });
+  },
+  onShareAppMessage() {
+    return {
+      title: 'XiAi宠物烘焙',
+      path: '/pages/home/index',
+      imageUrl: HERO_BANNER_SRC
+    };
   }
 });
