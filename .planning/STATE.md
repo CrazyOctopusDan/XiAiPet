@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-24 | 260624-kkj Cart persistence reconciliation design | Designed same-device customer cart persistence, product-line resolve reconciliation, spec identity handling, checkout blocking, and backend final validation. |
 | 2026-06-18 | 260618-dmd Home consulting WeChat copy | Added long-press copy for the customer home consulting modal WeChat ID using `wx.setClipboardData`, following WeChat event and clipboard docs. |
 | 2026-06-18 | 260618-cv9 Profile facts removal | Removed the duplicate birthday/contact cards from the customer profile page while keeping the personal information card as the detail entry. |
 | 2026-06-18 | 260618-cq9 Profile recharge entry | Added a prominent customer profile recharge card with phone-binding prompt/redirect, and removed the recharge CTA from the balance ledger page. |
