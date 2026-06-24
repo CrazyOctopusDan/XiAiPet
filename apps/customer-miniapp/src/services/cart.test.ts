@@ -127,6 +127,11 @@ describe('cart service', () => {
     ]);
     expect(hasUnverifiedCartItems()).toBe(true);
     expect(getCartCount()).toBe(2);
+    expect(getCartSummary()).toMatchObject({
+      selectedCount: 2,
+      selectedFulfillmentModes: ['delivery', 'pickup'],
+      canCheckoutSelectedItems: true
+    });
   });
 
   it('clears unsupported or expired persisted carts', () => {

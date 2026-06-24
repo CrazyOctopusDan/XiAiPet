@@ -274,8 +274,7 @@ function getCartSummary() {
         isAllSelected: cartItems.length > 0 && cartItems.every((item) => item.selected),
         selectedFulfillmentModes,
         canCheckoutSelectedItems: selectedItems.length > 0 &&
-            selectedFulfillmentModes.length > 0 &&
-            !hasUnverifiedCartItems()
+            selectedFulfillmentModes.length > 0
     };
 }
 function hasUnverifiedCartItems() {

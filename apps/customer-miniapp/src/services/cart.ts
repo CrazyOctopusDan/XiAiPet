@@ -383,8 +383,7 @@ export function getCartSummary() {
     selectedFulfillmentModes,
     canCheckoutSelectedItems:
       selectedItems.length > 0 &&
-      selectedFulfillmentModes.length > 0 &&
-      !hasUnverifiedCartItems()
+      selectedFulfillmentModes.length > 0
   };
 }
 
