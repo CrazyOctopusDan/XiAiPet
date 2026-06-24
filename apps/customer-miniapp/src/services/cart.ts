@@ -590,8 +590,7 @@ function hasItemDisplayChanged(item: CartItem, line: ResolvedCartLine) {
         (item.specId !== line.resolvedSpecId ||
           item.specLabel !== line.spec.label ||
           item.price !== line.spec.price) ||
-      item.quantity !== line.resolvedQuantity ||
-      item.validationStatus !== 'available'
+      item.quantity !== line.resolvedQuantity
   );
 }
 
@@ -683,8 +682,8 @@ export async function reconcileCartWithCatalog(
     if (line.status === 'available' || line.status === 'quantity_adjusted') {
       const lineChanged = hasItemDisplayChanged(item, line);
       applyResolvedAvailableLine(item, line);
-      changed = changed || lineChanged || line.status === 'quantity_adjusted' || line.changes.length > 0;
-      hasBlockingChanges = hasBlockingChanges || (wasSelected && (lineChanged || line.status === 'quantity_adjusted' || line.changes.length > 0));
+      changed = changed || lineChanged;
+      hasBlockingChanges = hasBlockingChanges || (wasSelected && lineChanged);
       return;
     }
 

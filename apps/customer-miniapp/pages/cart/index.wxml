@@ -84,7 +84,7 @@
       <text class="bottom-warning" wx:if="{{fulfillmentWarning}}">{{fulfillmentWarning}}</text>
     </view>
     <view class="bottom-actions">
-      <button class="checkout-button {{selectedCount && canCheckoutSelectedItems ? '' : 'disabled'}}" disabled="{{!selectedCount || !canCheckoutSelectedItems}}" bindtap="handleCheckout">结算</button>
+      <button class="checkout-button {{selectedCount && canCheckoutSelectedItems && !isCheckoutPending ? '' : 'disabled'}}" disabled="{{!selectedCount || !canCheckoutSelectedItems || isCheckoutPending}}" bindtap="handleCheckout">结算</button>
     </view>
   </view>
 

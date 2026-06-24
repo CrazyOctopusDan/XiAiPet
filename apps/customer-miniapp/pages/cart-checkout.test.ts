@@ -407,6 +407,66 @@ describe('cart checkout flow', () => {
     });
   });
 
+  it('locks checkout while cart reconciliation is pending to avoid duplicate navigation', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { updateProfile } = await import('../src/services/profile');
+    const defaultRequest = createDefaultRequestMock();
+    let pendingResolveRequest: Parameters<typeof respondApi>[0] | null = null;
+
+    clearCart();
+    updateProfile({ contactPhoneMasked: '138****1234' });
+    wx.request.mockImplementation((options) => {
+      if (getRequestPath(options) === '/api/v1/customer/catalog/cart/resolve') {
+        pendingResolveRequest = options;
+        return;
+      }
+
+      defaultRequest(options);
+    });
+
+    const product = getProductById('ocean-party');
+
+    if (!product) {
+      throw new Error('missing product fixture');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    const firstCheckout = instance.handleCheckout();
+    const secondCheckout = instance.handleCheckout();
+
+    expect(instance.data.isCheckoutPending).toBe(true);
+    expect(wx.request.mock.calls.filter(([options]) =>
+      getRequestPath(options) === '/api/v1/customer/catalog/cart/resolve'
+    )).toHaveLength(1);
+
+    if (!pendingResolveRequest) {
+      throw new Error('missing pending resolve request');
+    }
+
+    respondApi(pendingResolveRequest, {
+      ok: true,
+      lines: [
+        createResolvedCartLine({
+          productId: product.id,
+          specId: product.specs[0]?.id,
+          quantity: 1
+        })
+      ]
+    });
+    await Promise.all([firstCheckout, secondCheckout]);
+
+    expect(wx.navigateTo).toHaveBeenCalledTimes(1);
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/checkout/index?source=cart'
+    });
+  });
+
   it('blocks checkout when cart reconciliation changes a selected line', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
     const { getProductById } = await import('../src/services/catalog');
@@ -580,7 +640,7 @@ describe('cart checkout flow', () => {
       'utf8'
     );
 
-    expect(cartTemplate).toContain('disabled="{{!selectedCount || !canCheckoutSelectedItems}}"');
+    expect(cartTemplate).toContain('disabled="{{!selectedCount || !canCheckoutSelectedItems || isCheckoutPending}}"');
 
     instance.handleCheckout();
 

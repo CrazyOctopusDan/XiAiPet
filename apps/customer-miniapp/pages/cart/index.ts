@@ -30,6 +30,7 @@ interface CartPageData {
   isAllSelected: boolean;
   canCheckoutSelectedItems: boolean;
   fulfillmentWarning: string;
+  isCheckoutPending: boolean;
   swipedItemId: string;
   showSpecModal: boolean;
   editingItem: CartItem | null;
@@ -54,12 +55,14 @@ Page({
     isAllSelected: false,
     canCheckoutSelectedItems: false,
     fulfillmentWarning: '',
+    isCheckoutPending: false,
     swipedItemId: '',
     showSpecModal: false,
     editingItem: null,
     editingSpecId: ''
   },
   onShow(this: CartPageInstance) {
+    this.setData({ isCheckoutPending: false });
     this.refreshCart();
   },
   reconcileItems(this: CartPageInstance, nextItems: CartItem[], previousItems: CartItem[]) {
@@ -286,6 +289,10 @@ Page({
     wx.navigateTo({ url: '/pages/catalog/index' });
   },
   async handleCheckout(this: CartPageInstance) {
+    if (this.data.isCheckoutPending) {
+      return;
+    }
+
     if (!this.data.selectedCount) {
       wx.showToast({ title: '请选择商品', icon: 'none' });
       return;
@@ -296,49 +303,60 @@ Page({
       return;
     }
 
-    const reconciliation = await reconcileCartWithCatalog();
-    this.refreshCart();
+    this.setData({ isCheckoutPending: true });
+    let shouldUnlock = true;
 
-    if (!reconciliation.ok) {
-      wx.showToast({ title: '商品信息刷新失败，请稍后再试', icon: 'none' });
-      return;
-    }
+    try {
+      const reconciliation = await reconcileCartWithCatalog();
+      this.refreshCart();
 
-    if (reconciliation.hasBlockingChanges) {
-      wx.showToast({ title: '购物车商品已更新，请确认后再结算', icon: 'none' });
-      return;
-    }
-
-    if (!this.data.canCheckoutSelectedItems) {
-      wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
-      return;
-    }
-
-    if (!hasBoundPhone()) {
-      try {
-        await hydrateProfile();
-      } catch {
-        // Keep the local registration state when profile hydration is unavailable.
+      if (!reconciliation.ok) {
+        wx.showToast({ title: '商品信息刷新失败，请稍后再试', icon: 'none' });
+        return;
       }
-    }
 
-    if (!hasBoundPhone()) {
-      const result = await wx.showModal({
-        title: '请先完善用户信息',
-        content: '绑定手机号才可以成为我们的会员，享受店内服务。',
-        confirmText: '去完善',
-        cancelText: '稍后再说',
-        confirmColor: '#40535C'
-      });
+      if (reconciliation.hasBlockingChanges) {
+        wx.showToast({ title: '购物车商品已更新，请确认后再结算', icon: 'none' });
+        return;
+      }
 
-      if (result?.confirm) {
-        wx.navigateTo({
-          url: `/pages/profile-detail/index?redirect=${encodeURIComponent('/pages/cart/index')}`
+      if (!this.data.canCheckoutSelectedItems) {
+        wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
+        return;
+      }
+
+      if (!hasBoundPhone()) {
+        try {
+          await hydrateProfile();
+        } catch {
+          // Keep the local registration state when profile hydration is unavailable.
+        }
+      }
+
+      if (!hasBoundPhone()) {
+        const result = await wx.showModal({
+          title: '请先完善用户信息',
+          content: '绑定手机号才可以成为我们的会员，享受店内服务。',
+          confirmText: '去完善',
+          cancelText: '稍后再说',
+          confirmColor: '#40535C'
         });
-      }
-      return;
-    }
 
-    wx.navigateTo({ url: '/pages/checkout/index?source=cart' });
+        if (result?.confirm) {
+          shouldUnlock = false;
+          wx.navigateTo({
+            url: `/pages/profile-detail/index?redirect=${encodeURIComponent('/pages/cart/index')}`
+          });
+        }
+        return;
+      }
+
+      shouldUnlock = false;
+      wx.navigateTo({ url: '/pages/checkout/index?source=cart' });
+    } finally {
+      if (shouldUnlock) {
+        this.setData({ isCheckoutPending: false });
+      }
+    }
   }
 });
