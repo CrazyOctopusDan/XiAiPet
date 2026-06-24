@@ -857,6 +857,89 @@ describe('cart checkout flow', () => {
     expect(instance.data.selectedTotalPrice).toBe(specProduct.specs[0]?.price * 2);
   });
 
+  it('shows express shipping fee as 6 yuan only while express goods are below 100 yuan', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
+    const { createAddress, resetAddresses, selectAddress } = await import('../src/services/address');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { setFulfillmentMode } = await import('../src/services/checkout');
+
+    clearCart();
+    resetAddresses();
+
+    const product = getProductById('sea-sponge');
+    const expressAddress = createAddress({
+      type: 'express',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '浙江省 杭州市',
+      detailAddress: '文三路 90 号',
+      tag: '家'
+    });
+
+    if (!product || !expressAddress) {
+      throw new Error('missing express checkout fee fixtures');
+    }
+
+    setFulfillmentMode('express');
+    selectAddress(expressAddress.id);
+    addCartItem(
+      {
+        ...product,
+        price: 99.99,
+        stock: 5,
+        deliveryModes: ['express'],
+        specs: []
+      },
+      '',
+      1
+    );
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    expect(instance.data.activeFulfillmentMode).toBe('express');
+    expect(instance.data.deliveryFeeTitle).toBe('快递费');
+    expect(instance.data.deliveryFee).toBe(6);
+    expect(instance.data.payableTotal).toBe(105.99);
+
+    clearCart();
+    addCartItem(
+      {
+        ...product,
+        price: 100,
+        stock: 5,
+        deliveryModes: ['express'],
+        specs: []
+      },
+      '',
+      1
+    );
+    instance.refreshCheckout();
+
+    expect(instance.data.deliveryFeeTitle).toBe('快递费');
+    expect(instance.data.deliveryFee).toBe(0);
+    expect(instance.data.payableTotal).toBe(100);
+
+    clearCart();
+    addCartItem(
+      {
+        ...product,
+        price: 50.01,
+        stock: 5,
+        deliveryModes: ['express'],
+        specs: []
+      },
+      '',
+      2
+    );
+    instance.refreshCheckout();
+
+    expect(instance.data.deliveryFeeTitle).toBe('快递费');
+    expect(instance.data.deliveryFee).toBe(0);
+    expect(instance.data.payableTotal).toBe(100.02);
+  });
+
   it('starts each checkout page entry with a fresh draft while keeping selected cart rows', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
     const { getProductById } = await import('../src/services/catalog');

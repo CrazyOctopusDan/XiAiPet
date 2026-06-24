@@ -68,6 +68,7 @@ interface CheckoutPageData {
   deliveryRuleRows: string[];
   paymentMethods: PaymentMethodOption[];
   activePaymentMethod: PaymentMethod;
+  deliveryFeeTitle: string;
   deliveryFee: number;
   payableTotal: number;
   deliveryFeeLabel: string;
@@ -126,6 +127,22 @@ function findReservationSelection(options: ReservationDayOption[], dateValue: st
   };
 }
 
+function getFeeTitle(mode: FulfillmentMode) {
+  return mode === 'express' ? '快递费' : '配送费';
+}
+
+function getFeeSummaryLabel(mode: FulfillmentMode, deliveryFee: number, deliveryRuleLabel: string) {
+  if (mode === 'delivery') {
+    return deliveryRuleLabel;
+  }
+
+  if (mode === 'express') {
+    return deliveryFee > 0 ? '快递费 6 元，满 100 元减免' : '快递费已减免';
+  }
+
+  return '当前模式免配送费';
+}
+
 const PAYMENT_METHODS: PaymentMethodOption[] = [
   {
     value: 'balance',
@@ -174,6 +191,7 @@ Page({
     deliveryRuleRows: [],
     paymentMethods: PAYMENT_METHODS,
     activePaymentMethod: 'balance',
+    deliveryFeeTitle: '配送费',
     deliveryFee: 0,
     payableTotal: 0,
     deliveryFeeLabel: '待确认',
@@ -261,12 +279,10 @@ Page({
       deliveryRuleRows: view.deliveryRuleExplainers,
       paymentMethods: PAYMENT_METHODS,
       activePaymentMethod,
+      deliveryFeeTitle: getFeeTitle(view.mode),
       deliveryFee: pricing.deliveryFee,
       payableTotal: pricing.payableTotal,
-      deliveryFeeLabel:
-        view.mode === 'delivery'
-          ? deliveryFeePreview.ruleLabel
-          : '当前模式免配送费'
+      deliveryFeeLabel: getFeeSummaryLabel(view.mode, pricing.deliveryFee, deliveryFeePreview.ruleLabel)
     });
   },
   handleFulfillmentModeTap(this: CheckoutPageInstance, event: { currentTarget?: { dataset?: { mode?: FulfillmentMode } } }) {

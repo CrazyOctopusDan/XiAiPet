@@ -43,6 +43,18 @@ function findReservationSelection(options, dateValue, timeValue) {
         timeValue: slot.value
     };
 }
+function getFeeTitle(mode) {
+    return mode === 'express' ? '快递费' : '配送费';
+}
+function getFeeSummaryLabel(mode, deliveryFee, deliveryRuleLabel) {
+    if (mode === 'delivery') {
+        return deliveryRuleLabel;
+    }
+    if (mode === 'express') {
+        return deliveryFee > 0 ? '快递费 6 元，满 100 元减免' : '快递费已减免';
+    }
+    return '当前模式免配送费';
+}
 const PAYMENT_METHODS = [
     {
         value: 'balance',
@@ -89,6 +101,7 @@ Page({
         deliveryRuleRows: [],
         paymentMethods: PAYMENT_METHODS,
         activePaymentMethod: 'balance',
+        deliveryFeeTitle: '配送费',
         deliveryFee: 0,
         payableTotal: 0,
         deliveryFeeLabel: '待确认',
@@ -177,11 +190,10 @@ Page({
             deliveryRuleRows: view.deliveryRuleExplainers,
             paymentMethods: PAYMENT_METHODS,
             activePaymentMethod,
+            deliveryFeeTitle: getFeeTitle(view.mode),
             deliveryFee: pricing.deliveryFee,
             payableTotal: pricing.payableTotal,
-            deliveryFeeLabel: view.mode === 'delivery'
-                ? deliveryFeePreview.ruleLabel
-                : '当前模式免配送费'
+            deliveryFeeLabel: getFeeSummaryLabel(view.mode, pricing.deliveryFee, deliveryFeePreview.ruleLabel)
         });
     },
     handleFulfillmentModeTap(event) {

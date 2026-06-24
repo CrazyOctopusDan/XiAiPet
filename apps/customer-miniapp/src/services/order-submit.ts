@@ -18,6 +18,9 @@ import { getCachedCustomerRuntimeConfig } from './runtime-config';
 
 declare const wx: any;
 
+const EXPRESS_SHIPPING_FEE = 6;
+const EXPRESS_SHIPPING_FREE_THRESHOLD = 100;
+
 function buildAddressSnapshot(address: ReturnType<typeof getSelectedAddress>): OrderAddressSnapshot | undefined {
   if (!address) {
     return undefined;
@@ -39,6 +42,14 @@ function createIdempotencyKey() {
   return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function resolveExpressShippingFee(itemsSubtotal: number) {
+  if (itemsSubtotal <= 0 || itemsSubtotal >= EXPRESS_SHIPPING_FREE_THRESHOLD) {
+    return 0;
+  }
+
+  return EXPRESS_SHIPPING_FEE;
+}
+
 export function getCheckoutPricingPreview(): OrderPricingBreakdown {
   const checkout = getCheckoutViewModel();
   const selectedItems = getCartItems().filter((item) => item.selected);
@@ -46,7 +57,11 @@ export function getCheckoutPricingPreview(): OrderPricingBreakdown {
     selectedItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)
   );
   const address = checkout.addressType ? getSelectedAddress(checkout.addressType) : null;
-  const deliveryFee = checkout.mode === 'delivery' ? getDeliveryFeePreview(address).fee : 0;
+  const deliveryFee = checkout.mode === 'delivery'
+    ? getDeliveryFeePreview(address).fee
+    : checkout.mode === 'express'
+      ? resolveExpressShippingFee(itemsSubtotal)
+      : 0;
 
   return buildOrderPricingBreakdown({
     itemsSubtotal,

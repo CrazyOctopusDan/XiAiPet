@@ -147,7 +147,7 @@
         <text class="fee-value">￥{{selectedTotalPrice}}</text>
       </view>
       <view class="fee-row delivery-fee-row" bindtap="handleDeliveryFeeTap">
-        <text class="fee-label">配送费</text>
+        <text class="fee-label">{{deliveryFeeTitle}}</text>
         <view class="fee-value-with-arrow">
           <text class="fee-value">￥{{deliveryFee}}</text>
           <text class="fee-arrow" wx:if="{{activeFulfillmentMode === 'delivery' && deliveryRuleRows.length}}">›</text>

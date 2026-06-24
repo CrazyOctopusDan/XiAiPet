@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.resolveExpressShippingFee = resolveExpressShippingFee;
 exports.getCheckoutPricingPreview = getCheckoutPricingPreview;
 exports.getDeliveryFeePreview = getDeliveryFeePreview;
 exports.buildCreateOrderPayload = buildCreateOrderPayload;
@@ -12,6 +13,8 @@ const checkout_1 = require("./checkout");
 const delivery_rules_1 = require("./delivery-rules");
 const gifts_1 = require("./gifts");
 const runtime_config_1 = require("./runtime-config");
+const EXPRESS_SHIPPING_FEE = 6;
+const EXPRESS_SHIPPING_FREE_THRESHOLD = 100;
 function buildAddressSnapshot(address) {
     if (!address) {
         return undefined;
@@ -30,12 +33,22 @@ function buildAddressSnapshot(address) {
 function createIdempotencyKey() {
     return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+function resolveExpressShippingFee(itemsSubtotal) {
+    if (itemsSubtotal <= 0 || itemsSubtotal >= EXPRESS_SHIPPING_FREE_THRESHOLD) {
+        return 0;
+    }
+    return EXPRESS_SHIPPING_FEE;
+}
 function getCheckoutPricingPreview() {
     const checkout = (0, checkout_1.getCheckoutViewModel)();
     const selectedItems = (0, cart_1.getCartItems)().filter((item) => item.selected);
     const itemsSubtotal = Number(selectedItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2));
     const address = checkout.addressType ? (0, address_1.getSelectedAddress)(checkout.addressType) : null;
-    const deliveryFee = checkout.mode === 'delivery' ? getDeliveryFeePreview(address).fee : 0;
+    const deliveryFee = checkout.mode === 'delivery'
+        ? getDeliveryFeePreview(address).fee
+        : checkout.mode === 'express'
+            ? resolveExpressShippingFee(itemsSubtotal)
+            : 0;
     return (0, order_runtime_1.buildOrderPricingBreakdown)({
         itemsSubtotal,
         deliveryFee

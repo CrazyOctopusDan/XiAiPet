@@ -9,6 +9,7 @@ import {
   resetCheckoutDraft,
   setCheckoutRemark,
   setCustomNoticeAcknowledged,
+  setFulfillmentMode,
   setReservationSelection,
   toggleSelectedPet
 } from './checkout';
@@ -69,6 +70,17 @@ function createCityAddressFixture() {
     regionLabel: '上海市 黄浦区',
     detailAddress: '外滩 18 号 201',
     tag: '公司'
+  });
+}
+
+function createExpressAddressFixture() {
+  return createAddress({
+    type: 'express',
+    recipientName: '奶油',
+    phoneNumber: '13900001111',
+    regionLabel: '浙江省 杭州市',
+    detailAddress: '文三路 90 号',
+    tag: '家'
   });
 }
 
@@ -146,6 +158,103 @@ describe('order submit service', () => {
     ]);
     expect(payload.idempotencyKey).toBe('checkout-20260417-001');
     expect(payload).not.toHaveProperty('openid');
+  });
+
+  it('charges express shipping only when the selected express subtotal is below 100 yuan', () => {
+    const product = getProductById('sea-sponge');
+    const address = createExpressAddressFixture();
+
+    if (!product || !address) {
+      throw new Error('missing express fee fixtures');
+    }
+
+    setFulfillmentMode('express');
+    selectAddress(address.id);
+    addCartItem(
+      {
+        ...product,
+        price: 99.99,
+        stock: 5,
+        deliveryModes: ['express'],
+        specs: []
+      },
+      '',
+      1
+    );
+
+    expect(getCheckoutPricingPreview()).toMatchObject({
+      itemsSubtotal: 99.99,
+      deliveryFee: 6,
+      payableTotal: 105.99
+    });
+
+    const belowThresholdPayload = buildCreateOrderPayload('wechat', 'checkout-express-below-100');
+    expect(belowThresholdPayload).toMatchObject({
+      fulfillment: {
+        mode: 'express',
+        address: expect.objectContaining({
+          id: address.id,
+          recipientName: address.recipientName
+        })
+      },
+      pricing: {
+        itemsSubtotal: 99.99,
+        deliveryFee: 6,
+        payableTotal: 105.99
+      }
+    });
+
+    clearCart();
+    addCartItem(
+      {
+        ...product,
+        price: 100,
+        stock: 5,
+        deliveryModes: ['express'],
+        specs: []
+      },
+      '',
+      1
+    );
+
+    const exactThresholdPayload = buildCreateOrderPayload('wechat', 'checkout-express-100');
+
+    expect(getCheckoutPricingPreview()).toMatchObject({
+      itemsSubtotal: 100,
+      deliveryFee: 0,
+      payableTotal: 100
+    });
+    expect(exactThresholdPayload.pricing).toMatchObject({
+      itemsSubtotal: 100,
+      deliveryFee: 0,
+      payableTotal: 100
+    });
+
+    clearCart();
+    addCartItem(
+      {
+        ...product,
+        price: 50.01,
+        stock: 5,
+        deliveryModes: ['express'],
+        specs: []
+      },
+      '',
+      2
+    );
+
+    const overThresholdPayload = buildCreateOrderPayload('wechat', 'checkout-express-over-100');
+
+    expect(getCheckoutPricingPreview()).toMatchObject({
+      itemsSubtotal: 100.02,
+      deliveryFee: 0,
+      payableTotal: 100.02
+    });
+    expect(overThresholdPayload.pricing).toMatchObject({
+      itemsSubtotal: 100.02,
+      deliveryFee: 0,
+      payableTotal: 100.02
+    });
   });
 
   it('rejects order payload creation when selected cart items have no shared fulfillment mode', () => {
