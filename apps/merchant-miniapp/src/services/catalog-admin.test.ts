@@ -313,6 +313,29 @@ describe('catalog admin service', () => {
     );
   });
 
+  it('keeps products without merchant list images visible', () => {
+    const product = createProductRecord({
+      id: 'product-without-image',
+      name: '果蔬能量棒'
+    });
+    delete (product as Partial<CatalogProductAdminRecord>).imageFileId;
+    delete (product as Partial<CatalogProductAdminRecord>).imagePreviewUrl;
+
+    const view = getProductPageViewModel(
+      [product],
+      [{ ...createCategory(), linkedProductCount: 1, canDelete: false }],
+      '',
+      ''
+    );
+
+    expect(view.isEmpty).toBe(false);
+    expect(view.cards[0]).toMatchObject({
+      id: 'product-without-image',
+      name: '果蔬能量棒',
+      imagePreviewUrl: ''
+    });
+  });
+
   it('falls back to the legacy single cover while editing old products', () => {
     const view = getProductEditorViewModel(
       createProductPayload({

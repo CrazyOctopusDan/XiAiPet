@@ -288,7 +288,11 @@ function getDraftProductId() {
   return `product-${Date.now()}`;
 }
 
-function normalizeImageUrlForDisplay(value: string): string {
+function normalizeImageUrlForDisplay(value?: string | null): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
   const trimmed = value.trim();
 
   if (!trimmed) {
