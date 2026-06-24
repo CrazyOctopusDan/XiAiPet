@@ -212,6 +212,20 @@ Page({
             wx.showToast({ title: '请选择商品', icon: 'none' });
             return;
         }
+        if (!this.data.canCheckoutSelectedItems && !(0, cart_1.hasUnverifiedCartItems)()) {
+            wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
+            return;
+        }
+        const reconciliation = await (0, cart_1.reconcileCartWithCatalog)();
+        this.refreshCart();
+        if (!reconciliation.ok) {
+            wx.showToast({ title: '商品信息刷新失败，请稍后再试', icon: 'none' });
+            return;
+        }
+        if (reconciliation.hasBlockingChanges) {
+            wx.showToast({ title: '购物车商品已更新，请确认后再结算', icon: 'none' });
+            return;
+        }
         if (!this.data.canCheckoutSelectedItems) {
             wx.showToast({ title: '请选择同一履约方式的商品', icon: 'none' });
             return;

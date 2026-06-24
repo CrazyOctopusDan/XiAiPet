@@ -148,4 +148,75 @@ describe('customer catalog and runtime config routes', () => {
       cursor: undefined
     });
   });
+
+  it('routes customer cart line resolution to the catalog service', async () => {
+    const resolveCustomerCartLines = vi.fn(async () => ({
+      ok: true,
+      lines: [
+        {
+          productId: 'ocean-party',
+          requestedSpecId: '6-inch__salmon',
+          resolvedSpecId: '6-inch__salmon',
+          status: 'available',
+          requestedQuantity: 2,
+          resolvedQuantity: 2,
+          changes: []
+        }
+      ]
+    }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        catalogService: {
+          queryCustomerCategories: async () => ({ ok: true }),
+          queryCustomerProducts: async () => ({ ok: true }),
+          queryCustomerCategoryProducts: async () => ({ ok: true }),
+          getCustomerProductDetail: async () => ({ ok: true }),
+          searchCustomerProducts: async () => ({ ok: true }),
+          resolveCustomerCartLines,
+          queryMerchantCategories: async () => ({ ok: true }),
+          upsertMerchantCategory: async () => ({ ok: true }),
+          deleteMerchantCategory: async () => ({ ok: true }),
+          queryMerchantProducts: async () => ({ ok: true }),
+          getMerchantProductDetail: async () => ({ ok: true }),
+          upsertMerchantProduct: async () => ({ ok: true }),
+          deleteMerchantProduct: async () => ({ ok: true })
+        } as any
+      }
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/customer/catalog/cart/resolve',
+      payload: {
+        lines: [
+          {
+            productId: 'ocean-party',
+            specId: '6-inch__salmon',
+            quantity: 2
+          }
+        ]
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      ok: true,
+      lines: [
+        {
+          productId: 'ocean-party',
+          status: 'available'
+        }
+      ]
+    });
+    expect(resolveCustomerCartLines).toHaveBeenCalledWith({
+      lines: [
+        {
+          productId: 'ocean-party',
+          specId: '6-inch__salmon',
+          quantity: 2
+        }
+      ]
+    });
+  });
 });

@@ -5,6 +5,13 @@ import type { ApiRouteDependencies } from '../dependencies';
 type CustomerDeliveryMode = 'pickup' | 'delivery' | 'express';
 type CatalogAvailability = 'available' | 'soldOut';
 type CatalogSort = 'latest';
+type ResolveCartLinesBody = {
+  lines?: Array<{
+    productId?: unknown;
+    specId?: unknown;
+    quantity?: unknown;
+  }>;
+};
 
 function parseDeliveryMode(value: unknown): CustomerDeliveryMode | undefined {
   return value === 'pickup' || value === 'delivery' || value === 'express' ? value : undefined;
@@ -66,6 +73,10 @@ export async function customerCatalogRoutes(
       limit: parsePositiveInteger(query.limit),
       cursor: parseString(query.cursor)
     });
+  });
+
+  app.post('/catalog/cart/resolve', async (request) => {
+    return dependencies.catalogService.resolveCustomerCartLines(request.body as ResolveCartLinesBody);
   });
 
   app.get('/catalog/products/:productId', async (request) => {

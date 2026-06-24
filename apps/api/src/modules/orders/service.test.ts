@@ -44,6 +44,41 @@ function createGiftSnapshotOrder(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function createProductRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'ocean-party',
+    legacyId: null,
+    name: '海洋派对蛋糕',
+    description: '生日蛋糕',
+    categoryId: 'cakes',
+    imageFileId: '',
+    imageAsset: null,
+    imagePreviewUrl: 'https://assets.example.test/ocean-party.jpg',
+    introductionImageAssets: [],
+    detailImageAssets: [],
+    memberLevelId: null,
+    status: 'PUBLISHED',
+    stock: 12,
+    trackInventory: true,
+    fulfillmentModes: ['delivery', 'pickup'],
+    basePrice: decimal(168),
+    specs: [
+      { id: '4-inch', label: '4 寸', surcharge: 0 },
+      { id: '6-inch', label: '6 寸', surcharge: 60 }
+    ],
+    formulas: [
+      { id: 'chicken', label: '鸡肉南瓜', surcharge: 0 },
+      { id: 'salmon', label: '三文鱼土豆', surcharge: 30 }
+    ],
+    priceOverrides: [{ specId: '6-inch', formulaId: 'salmon', price: 258 }],
+    purchaseLimit: { enabled: false, maxQuantity: null },
+    detailContent: '需提前预约',
+    createdAt: new Date('2026-06-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-06-01T10:00:00.000Z'),
+    ...overrides
+  };
+}
+
 describe('order service', () => {
   it('creates customer orders from the nested checkout payload used by the miniapp', async () => {
     const tx = {
@@ -289,6 +324,206 @@ describe('order service', () => {
     expect(result.order.snapshot).not.toMatchObject({
       gifts: expect.any(Array)
     });
+  });
+
+  it('rebuilds customer order items and totals from current product specs', async () => {
+    const tx = {
+      order: {
+        findUnique: vi.fn(async () => null),
+        create: vi.fn(async ({ data }) =>
+          createOrderRow({
+            id: data.id,
+            openid: data.openid,
+            idempotencyKey: data.idempotencyKey,
+            paymentMethod: data.paymentMethod,
+            fulfillmentMode: data.fulfillmentMode,
+            itemsSubtotal: decimal(Number(data.itemsSubtotal)),
+            deliveryFee: decimal(Number(data.deliveryFee)),
+            payableTotal: decimal(Number(data.payableTotal)),
+            snapshot: data.snapshot
+          })
+        )
+      },
+      product: {
+        update: vi.fn()
+      },
+      userGift: {
+        updateMany: vi.fn()
+      }
+    };
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      product: {
+        findUnique: vi.fn(async () => createProductRow())
+      },
+      $transaction: vi.fn(async (callback) => callback(tx))
+    };
+    const service = createOrderService(client as any);
+
+    await service.createCustomerOrder('openid-1', {
+      id: 'order-1',
+      idempotencyKey: 'checkout-reprice',
+      paymentMethod: 'balance',
+      fulfillment: {
+        mode: 'pickup'
+      },
+      pricing: {
+        itemsSubtotal: 2,
+        deliveryFee: 0,
+        payableTotal: 2
+      },
+      items: [
+        {
+          productId: 'ocean-party',
+          name: '客户端旧名称',
+          quantity: 2,
+          unitPrice: 1,
+          specId: '6-inch__salmon',
+          specLabel: '客户端旧规格',
+          lineTotal: 2
+        }
+      ]
+    });
+
+    expect(tx.order.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        itemsSubtotal: 516,
+        deliveryFee: 0,
+        payableTotal: 516,
+        snapshot: expect.objectContaining({
+          items: [
+            {
+              productId: 'ocean-party',
+              name: '海洋派对蛋糕',
+              quantity: 2,
+              unitPrice: 258,
+              specId: '6-inch__salmon',
+              specLabel: '6 寸 三文鱼土豆',
+              lineTotal: 516
+            }
+          ],
+          pricing: {
+            itemsSubtotal: 516,
+            deliveryFee: 0,
+            payableTotal: 516
+          }
+        }),
+        items: {
+          create: [
+            {
+              product: {
+                connect: {
+                  id: 'ocean-party'
+                }
+              },
+              name: '海洋派对蛋糕',
+              quantity: 2,
+              unitPrice: 258,
+              specId: '6-inch__salmon',
+              specLabel: '6 寸 三文鱼土豆',
+              lineTotal: 516,
+              snapshot: expect.objectContaining({
+                unitPrice: 258,
+                lineTotal: 516
+              })
+            }
+          ]
+        }
+      })
+    }));
+  });
+
+  it('rejects customer order creation when product or spec cannot be resolved', async () => {
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      product: {
+        findUnique: vi.fn(async () => createProductRow())
+      },
+      $transaction: vi.fn()
+    };
+    const service = createOrderService(client as any);
+
+    await expect(service.createCustomerOrder('openid-1', {
+      idempotencyKey: 'checkout-missing-spec',
+      paymentMethod: 'balance',
+      fulfillment: { mode: 'pickup' },
+      pricing: { itemsSubtotal: 168, deliveryFee: 0, payableTotal: 168 },
+      items: [
+        {
+          productId: 'ocean-party',
+          name: '海洋派对蛋糕',
+          quantity: 1,
+          unitPrice: 168,
+          specId: 'missing-spec',
+          specLabel: '旧规格',
+          lineTotal: 168
+        }
+      ]
+    })).rejects.toMatchObject({
+      code: 'ORDER_SPEC_UNAVAILABLE',
+      statusCode: 409
+    });
+    expect(client.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects customer order creation when stock or fulfillment mode is invalid', async () => {
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      product: {
+        findUnique: vi.fn(async () => createProductRow({ stock: 1, fulfillmentModes: ['pickup'] }))
+      },
+      $transaction: vi.fn()
+    };
+    const service = createOrderService(client as any);
+
+    await expect(service.createCustomerOrder('openid-1', {
+      idempotencyKey: 'checkout-low-stock',
+      paymentMethod: 'balance',
+      fulfillment: { mode: 'pickup' },
+      pricing: { itemsSubtotal: 516, deliveryFee: 0, payableTotal: 516 },
+      items: [
+        {
+          productId: 'ocean-party',
+          name: '海洋派对蛋糕',
+          quantity: 2,
+          unitPrice: 258,
+          specId: '6-inch__salmon',
+          specLabel: '6 寸 三文鱼土豆',
+          lineTotal: 516
+        }
+      ]
+    })).rejects.toMatchObject({
+      code: 'ORDER_STOCK_UNAVAILABLE',
+      statusCode: 409
+    });
+
+    await expect(service.createCustomerOrder('openid-1', {
+      idempotencyKey: 'checkout-bad-fulfillment',
+      paymentMethod: 'balance',
+      fulfillment: { mode: 'delivery' },
+      pricing: { itemsSubtotal: 258, deliveryFee: 0, payableTotal: 258 },
+      items: [
+        {
+          productId: 'ocean-party',
+          name: '海洋派对蛋糕',
+          quantity: 1,
+          unitPrice: 258,
+          specId: '6-inch__salmon',
+          specLabel: '6 寸 三文鱼土豆',
+          lineTotal: 258
+        }
+      ]
+    })).rejects.toMatchObject({
+      code: 'INCOMPATIBLE_FULFILLMENT',
+      statusCode: 409
+    });
+    expect(client.$transaction).not.toHaveBeenCalled();
   });
 
   it('rejects customer order creation before phone registration', async () => {

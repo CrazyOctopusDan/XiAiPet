@@ -80,6 +80,40 @@ interface CustomerProductListItem {
   updatedAt: string;
 }
 
+type ResolvedCartLineStatus =
+  | 'available'
+  | 'quantity_adjusted'
+  | 'product_unavailable'
+  | 'spec_unavailable'
+  | 'sold_out';
+
+interface ResolveCartLineInput {
+  productId?: unknown;
+  specId?: unknown;
+  quantity?: unknown;
+}
+
+interface ResolvedCartLine {
+  productId: string;
+  requestedSpecId: string;
+  resolvedSpecId: string;
+  status: ResolvedCartLineStatus;
+  product?: {
+    id: string;
+    name: string;
+    summary: string;
+    thumbnail: string;
+    stock: number;
+    soldOut: boolean;
+    deliveryModes: CustomerDeliveryMode[];
+    updatedAt: string;
+  };
+  spec?: CustomerProductSpecOption;
+  requestedQuantity: number;
+  resolvedQuantity: number;
+  changes: Array<'price' | 'stock' | 'label' | 'deliveryModes' | 'availability'>;
+}
+
 interface MerchantProductListItem {
   id: string;
   name: string;
@@ -364,6 +398,108 @@ function getCustomerSpecs(product: CustomerProductPricingSource): CustomerProduc
     label: option.label,
     price: roundCurrency(product.basePrice + (option.surcharge ?? 0))
   }));
+}
+
+function normalizeCartLineInput(line: ResolveCartLineInput) {
+  const quantity = typeof line.quantity === 'number' && Number.isFinite(line.quantity)
+    ? Math.max(0, Math.trunc(line.quantity))
+    : 0;
+
+  return {
+    productId: typeof line.productId === 'string' ? line.productId.trim() : '',
+    specId: typeof line.specId === 'string' ? line.specId.trim() : '',
+    quantity
+  };
+}
+
+function mapResolvedCartProduct(product: CatalogProductRecord) {
+  const normalizedProduct = normalizeProductSummaryImageUrls(pickProductSummary(product));
+  const thumbnail =
+    getAssetUrl(normalizedProduct.imageAsset, 'thumbnail') ??
+    normalizedProduct.imagePreviewUrl ??
+    normalizedProduct.imageAsset?.url ??
+    normalizedProduct.imageFileId;
+
+  return {
+    id: normalizedProduct.id,
+    name: normalizedProduct.name,
+    summary: normalizedProduct.description,
+    thumbnail,
+    stock: normalizedProduct.stock,
+    soldOut: isCustomerProductSoldOut(normalizedProduct),
+    deliveryModes: getCustomerDeliveryModes(product),
+    updatedAt: normalizedProduct.updatedAt
+  };
+}
+
+function createUnavailableCartLine(
+  line: ReturnType<typeof normalizeCartLineInput>,
+  status: Extract<ResolvedCartLineStatus, 'product_unavailable' | 'spec_unavailable'>
+): ResolvedCartLine {
+  return {
+    productId: line.productId,
+    requestedSpecId: line.specId,
+    resolvedSpecId: '',
+    status,
+    requestedQuantity: line.quantity,
+    resolvedQuantity: 0,
+    changes: ['availability']
+  };
+}
+
+function resolveCartLine(product: CatalogProductRecord | null, line: ReturnType<typeof normalizeCartLineInput>): ResolvedCartLine {
+  if (!product || product.status !== 'published') {
+    return createUnavailableCartLine(line, 'product_unavailable');
+  }
+
+  const specs = getCustomerSpecs(product);
+  const productSnapshot = mapResolvedCartProduct(product);
+  const spec = specs.length
+    ? specs.find((item) => item.id === line.specId)
+    : line.specId
+      ? undefined
+      : {
+          id: '',
+          label: '',
+          price: roundCurrency(product.basePrice)
+        };
+
+  if (!spec) {
+    return {
+      ...createUnavailableCartLine(line, 'spec_unavailable'),
+      product: productSnapshot
+    };
+  }
+
+  if (productSnapshot.soldOut) {
+    return {
+      productId: line.productId,
+      requestedSpecId: line.specId,
+      resolvedSpecId: spec.id,
+      status: 'sold_out',
+      product: productSnapshot,
+      spec,
+      requestedQuantity: line.quantity,
+      resolvedQuantity: 0,
+      changes: ['availability']
+    };
+  }
+
+  const stockLimitedQuantity = product.trackInventory ? Math.min(line.quantity, product.stock) : line.quantity;
+  const resolvedQuantity = Math.max(0, stockLimitedQuantity);
+  const quantityAdjusted = resolvedQuantity !== line.quantity;
+
+  return {
+    productId: line.productId,
+    requestedSpecId: line.specId,
+    resolvedSpecId: spec.id,
+    status: quantityAdjusted ? 'quantity_adjusted' : 'available',
+    product: productSnapshot,
+    spec,
+    requestedQuantity: line.quantity,
+    resolvedQuantity,
+    changes: quantityAdjusted ? ['stock'] : []
+  };
 }
 
 function isCustomerProductSoldOut(product: Pick<CatalogProductSummaryRecord, 'trackInventory' | 'stock'>) {
@@ -729,6 +865,21 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
         items: page.items.map(mapCustomerProductSummary),
         pageInfo,
         snapshotKey
+      };
+    },
+
+    async resolveCustomerCartLines(input: { lines?: ResolveCartLineInput[] } = {}) {
+      const lines = Array.isArray(input.lines) ? input.lines.map(normalizeCartLineInput) : [];
+      const resolvedLines = await Promise.all(
+        lines.map(async (line) => {
+          const product = line.productId ? await catalogRepository.getProductById(line.productId) : null;
+          return resolveCartLine(product, line);
+        })
+      );
+
+      return {
+        ok: true as const,
+        lines: resolvedLines
       };
     },
 

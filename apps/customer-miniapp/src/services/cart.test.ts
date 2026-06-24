@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getProductById } from './catalog';
 import type { CatalogProduct } from '../types/catalog';
 import {
   addCartItem,
+  CUSTOMER_CART_STORAGE_KEY,
   clearCart,
   getCartItemGroups,
   getCartCount,
@@ -12,6 +13,9 @@ import {
   getCartProductTotalQuantity,
   getCartSummary,
   getSelectedCartFulfillmentModes,
+  hasUnverifiedCartItems,
+  hydrateCartFromStorage,
+  reconcileCartWithCatalog,
   removeCartItem,
   toggleAllCartItems,
   updateCartItemSpec,
@@ -41,7 +45,15 @@ function createFulfillmentProduct(id: string, deliveryModes: CatalogProduct['del
 }
 
 describe('cart service', () => {
+  let storage: Map<string, unknown>;
+
   beforeEach(() => {
+    storage = new Map<string, unknown>();
+    vi.stubGlobal('wx', {
+      getStorageSync: vi.fn((key: string) => storage.get(key)),
+      setStorageSync: vi.fn((key: string, value: unknown) => storage.set(key, value)),
+      removeStorageSync: vi.fn((key: string) => storage.delete(key))
+    });
     clearCart();
   });
 
@@ -58,6 +70,226 @@ describe('cart service', () => {
     expect(getCartItems()).toHaveLength(1);
     expect(getCartItems()[0]?.quantity).toBe(3);
     expect(getCartCount()).toBe(3);
+    expect(storage.get(CUSTOMER_CART_STORAGE_KEY)).toMatchObject({
+      schemaVersion: 1,
+      items: [
+        expect.objectContaining({
+          productId: product.id,
+          specId: product.specs[0]?.id ?? '',
+          quantity: 3,
+          selected: true,
+          snapshot: expect.objectContaining({
+            name: product.name,
+            specLabel: product.specs[0]?.label ?? '',
+            unitPrice: product.specs[0]?.price ?? product.price
+          })
+        })
+      ]
+    });
+  });
+
+  it('hydrates a persisted cart snapshot as unverified same-device state', () => {
+    storage.set(CUSTOMER_CART_STORAGE_KEY, {
+      schemaVersion: 1,
+      updatedAt: '2026-06-24T00:00:00.000Z',
+      items: [
+        {
+          productId: 'ocean-party',
+          specId: 'ocean-party-4-chicken',
+          quantity: 2,
+          selected: true,
+          snapshot: {
+            name: '海洋奇遇',
+            summary: '旧简介',
+            thumbnail: 'https://assets.example.test/ocean.jpg',
+            specLabel: '4寸 鸡肉',
+            unitPrice: 168,
+            stock: 5,
+            deliveryModes: ['delivery', 'pickup']
+          },
+          updatedAt: '2026-06-24T00:00:00.000Z'
+        }
+      ]
+    });
+
+    hydrateCartFromStorage({ now: Date.parse('2026-06-25T00:00:00.000Z') });
+
+    expect(getCartItems()).toEqual([
+      expect.objectContaining({
+        productId: 'ocean-party',
+        specId: 'ocean-party-4-chicken',
+        name: '海洋奇遇',
+        specLabel: '4寸 鸡肉',
+        quantity: 2,
+        selected: true,
+        validationStatus: 'unverified'
+      })
+    ]);
+    expect(hasUnverifiedCartItems()).toBe(true);
+    expect(getCartCount()).toBe(2);
+  });
+
+  it('clears unsupported or expired persisted carts', () => {
+    storage.set(CUSTOMER_CART_STORAGE_KEY, {
+      schemaVersion: 99,
+      updatedAt: '2026-06-24T00:00:00.000Z',
+      items: []
+    });
+    hydrateCartFromStorage({ now: Date.parse('2026-06-25T00:00:00.000Z') });
+    expect(getCartItems()).toEqual([]);
+    expect(storage.has(CUSTOMER_CART_STORAGE_KEY)).toBe(false);
+
+    storage.set(CUSTOMER_CART_STORAGE_KEY, {
+      schemaVersion: 1,
+      updatedAt: '2026-05-01T00:00:00.000Z',
+      items: [
+        {
+          productId: 'sea-sponge',
+          specId: '',
+          quantity: 1,
+          selected: true,
+          snapshot: {
+            name: '海绵宝宝',
+            summary: '',
+            thumbnail: '',
+            specLabel: '',
+            unitPrice: 36,
+            stock: 3,
+            deliveryModes: ['delivery']
+          },
+          updatedAt: '2026-05-01T00:00:00.000Z'
+        }
+      ]
+    });
+
+    hydrateCartFromStorage({ now: Date.parse('2026-06-24T00:00:00.000Z') });
+
+    expect(getCartItems()).toEqual([]);
+    expect(storage.has(CUSTOMER_CART_STORAGE_KEY)).toBe(false);
+  });
+
+  it('reconciles persisted cart rows with current product facts', async () => {
+    storage.set(CUSTOMER_CART_STORAGE_KEY, {
+      schemaVersion: 1,
+      updatedAt: '2026-06-24T00:00:00.000Z',
+      items: [
+        {
+          productId: 'ocean-party',
+          specId: 'ocean-party-4-chicken',
+          quantity: 5,
+          selected: true,
+          snapshot: {
+            name: '旧名称',
+            summary: '旧简介',
+            thumbnail: 'old.jpg',
+            specLabel: '旧规格',
+            unitPrice: 168,
+            stock: 8,
+            deliveryModes: ['delivery']
+          },
+          updatedAt: '2026-06-24T00:00:00.000Z'
+        },
+        {
+          productId: 'removed-spec',
+          specId: 'missing-spec',
+          quantity: 1,
+          selected: true,
+          snapshot: {
+            name: '旧商品',
+            summary: '',
+            thumbnail: '',
+            specLabel: '旧规格',
+            unitPrice: 88,
+            stock: 1,
+            deliveryModes: ['delivery']
+          },
+          updatedAt: '2026-06-24T00:00:00.000Z'
+        }
+      ]
+    });
+    hydrateCartFromStorage({ now: Date.parse('2026-06-25T00:00:00.000Z') });
+
+    const result = await reconcileCartWithCatalog(async () => ({
+      ok: true,
+      lines: [
+        {
+          productId: 'ocean-party',
+          requestedSpecId: 'ocean-party-4-chicken',
+          resolvedSpecId: 'ocean-party-4-chicken',
+          status: 'quantity_adjusted',
+          product: {
+            id: 'ocean-party',
+            name: '海洋奇遇',
+            summary: '新简介',
+            thumbnail: 'new.jpg',
+            stock: 2,
+            soldOut: false,
+            deliveryModes: ['delivery', 'pickup'],
+            updatedAt: '2026-06-25T00:00:00.000Z'
+          },
+          spec: {
+            id: 'ocean-party-4-chicken',
+            label: '4寸 鸡肉',
+            price: 188
+          },
+          requestedQuantity: 5,
+          resolvedQuantity: 2,
+          changes: ['stock', 'price', 'label']
+        },
+        {
+          productId: 'removed-spec',
+          requestedSpecId: 'missing-spec',
+          resolvedSpecId: '',
+          status: 'spec_unavailable',
+          requestedQuantity: 1,
+          resolvedQuantity: 0,
+          changes: ['availability']
+        }
+      ]
+    }));
+
+    expect(result).toMatchObject({ ok: true, changed: true, hasBlockingChanges: true });
+    expect(getCartItems()).toEqual([
+      expect.objectContaining({
+        productId: 'ocean-party',
+        name: '海洋奇遇',
+        specLabel: '4寸 鸡肉',
+        price: 188,
+        stock: 2,
+        quantity: 2,
+        selected: true,
+        validationStatus: 'available'
+      }),
+      expect.objectContaining({
+        productId: 'removed-spec',
+        selected: false,
+        validationStatus: 'spec_unavailable'
+      })
+    ]);
+    expect(getCartCount()).toBe(2);
+    expect(getCartSummary().selectedCount).toBe(2);
+  });
+
+  it('keeps unverified cart rows when reconciliation fails', async () => {
+    const product = getProductById('sea-sponge');
+
+    if (!product) {
+      throw new Error('missing product fixture');
+    }
+
+    addCartItem(product, '', 1);
+    hydrateCartFromStorage({ now: Date.parse('2026-06-25T00:00:00.000Z') });
+
+    const result = await reconcileCartWithCatalog(async () => {
+      throw new Error('network failed');
+    });
+
+    expect(result).toMatchObject({ ok: false, changed: false, hasBlockingChanges: true });
+    expect(getCartItems()[0]).toMatchObject({
+      productId: product.id,
+      validationStatus: 'unverified'
+    });
+    expect(hasUnverifiedCartItems()).toBe(true);
   });
 
   it('does not let quantity exceed stock', () => {

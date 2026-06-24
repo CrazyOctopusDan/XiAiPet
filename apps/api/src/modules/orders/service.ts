@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 
 import { createCatalogRepository } from '../catalog/repository';
+import { createCatalogService } from '../catalog/service';
 import {
   createOrderRepository,
   type CustomerOrderListFilters,
@@ -302,6 +303,105 @@ function normalizeCreateOrderPayload(openid: string, payload: unknown): CreateOr
   };
 }
 
+function roundCurrency(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function withServerOrderSnapshot(
+  snapshot: unknown,
+  items: CreateOrderInput['items'],
+  pricing: {
+    itemsSubtotal: number;
+    deliveryFee: number;
+    payableTotal: number;
+  }
+) {
+  const base = isObject(snapshot) ? snapshot : {};
+  return {
+    ...base,
+    items,
+    pricing
+  };
+}
+
+function toOrderItemValidationError(status: string) {
+  if (status === 'product_unavailable') {
+    return new ApiError('ORDER_PRODUCT_UNAVAILABLE', 'Order product is unavailable', 409);
+  }
+
+  if (status === 'spec_unavailable') {
+    return new ApiError('ORDER_SPEC_UNAVAILABLE', 'Order product spec is unavailable', 409);
+  }
+
+  if (status === 'sold_out' || status === 'quantity_adjusted') {
+    return new ApiError('ORDER_STOCK_UNAVAILABLE', 'Order product stock is unavailable', 409);
+  }
+
+  return new ApiError('INVALID_ORDER_ITEM', 'Invalid order item', 400);
+}
+
+async function resolveCustomerOrderItems(client: PrismaClient, input: CreateOrderInput): Promise<CreateOrderInput> {
+  if (!input.items.length) {
+    return input;
+  }
+
+  const catalogService = createCatalogService(createCatalogRepository(client as never) as never);
+  const resolved = await catalogService.resolveCustomerCartLines({
+    lines: input.items.map((item) => ({
+      productId: item.productId,
+      specId: item.specId,
+      quantity: item.quantity
+    }))
+  });
+  const nextItems: CreateOrderInput['items'] = [];
+
+  for (const line of resolved.lines) {
+    if (line.status !== 'available') {
+      throw toOrderItemValidationError(line.status);
+    }
+
+    if (!line.product) {
+      throw new ApiError('ORDER_PRODUCT_UNAVAILABLE', 'Order product is unavailable', 409);
+    }
+
+    if (!line.spec) {
+      throw new ApiError('ORDER_SPEC_UNAVAILABLE', 'Order product spec is unavailable', 409);
+    }
+
+    if (!line.product.deliveryModes.includes(input.fulfillmentMode)) {
+      throw new ApiError('INCOMPATIBLE_FULFILLMENT', 'Order items do not support the selected fulfillment mode', 409);
+    }
+
+    const unitPrice = roundCurrency(line.spec.price);
+    const quantity = line.resolvedQuantity;
+    const lineTotal = roundCurrency(unitPrice * quantity);
+
+    nextItems.push({
+      productId: line.productId,
+      name: line.product.name,
+      quantity,
+      unitPrice,
+      specId: line.resolvedSpecId,
+      specLabel: line.spec.label,
+      lineTotal
+    });
+  }
+
+  const itemsSubtotal = roundCurrency(nextItems.reduce((total, item) => total + item.lineTotal, 0));
+  const pricing = {
+    itemsSubtotal,
+    deliveryFee: input.deliveryFee,
+    payableTotal: roundCurrency(itemsSubtotal + input.deliveryFee)
+  };
+
+  return {
+    ...input,
+    ...pricing,
+    items: nextItems,
+    snapshot: withServerOrderSnapshot(input.snapshot, nextItems, pricing)
+  };
+}
+
 function getFirstString(value: unknown) {
   if (Array.isArray(value)) {
     return typeof value[0] === 'string' ? value[0] : undefined;
@@ -424,8 +524,9 @@ export function createOrderService(
         throw new ApiError('CUSTOMER_NOT_REGISTERED', 'Customer must bind phone before ordering', 403);
       }
       const input = normalizeCreateOrderPayload(openid, payload);
-      await assertDeliveryRulesAllowOrder(client, input, payload);
-      const order = await this.createPendingOrder(input);
+      const resolvedInput = await resolveCustomerOrderItems(client, input);
+      await assertDeliveryRulesAllowOrder(client, resolvedInput, payload);
+      const order = await this.createPendingOrder(resolvedInput);
       return { ok: true, order };
     },
 

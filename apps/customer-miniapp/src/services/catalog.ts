@@ -56,6 +56,45 @@ interface CustomerProductDetailResponse {
   product?: unknown;
 }
 
+export type ResolveCartLineStatus =
+  | 'available'
+  | 'quantity_adjusted'
+  | 'product_unavailable'
+  | 'spec_unavailable'
+  | 'sold_out';
+
+export interface ResolveCartLinesRequestLine {
+  productId: string;
+  specId: string;
+  quantity: number;
+}
+
+export interface ResolvedCartLine {
+  productId: string;
+  requestedSpecId: string;
+  resolvedSpecId: string;
+  status: ResolveCartLineStatus;
+  product?: {
+    id: string;
+    name: string;
+    summary: string;
+    thumbnail: string;
+    stock: number;
+    soldOut: boolean;
+    deliveryModes: DeliveryMode[];
+    updatedAt: string;
+  };
+  spec?: ProductSpecOption;
+  requestedQuantity: number;
+  resolvedQuantity: number;
+  changes: Array<'price' | 'stock' | 'label' | 'deliveryModes' | 'availability'>;
+}
+
+interface ResolveCartLinesResponse {
+  ok?: boolean;
+  lines?: unknown[];
+}
+
 const DEFAULT_PRODUCT_DETAIL_IMAGES: string[] = [];
 const CATEGORY_PRODUCTS_PAGE_SIZE = 20;
 const OSS_DISPLAY_RULES: Partial<Record<OssAssetVariantName, string>> = {
@@ -506,6 +545,68 @@ function normalizeProductSummary(product: unknown): CatalogProductSummary | null
   };
 }
 
+function isResolveCartLineStatus(value: unknown): value is ResolveCartLineStatus {
+  return (
+    value === 'available' ||
+    value === 'quantity_adjusted' ||
+    value === 'product_unavailable' ||
+    value === 'spec_unavailable' ||
+    value === 'sold_out'
+  );
+}
+
+function normalizeResolvedCartLine(line: unknown): ResolvedCartLine | null {
+  if (!isObject(line)) {
+    return null;
+  }
+
+  const productId = asString(line.productId);
+  const status = isResolveCartLineStatus(line.status) ? line.status : null;
+
+  if (!productId || !status) {
+    return null;
+  }
+
+  const product = isObject(line.product)
+    ? {
+        id: asString(line.product.id, productId),
+        name: asString(line.product.name),
+        summary: asString(line.product.summary),
+        thumbnail: imageUrl(asString(line.product.thumbnail)) ?? '',
+        stock: asNumber(line.product.stock),
+        soldOut: Boolean(line.product.soldOut),
+        deliveryModes: getArray(line.product.deliveryModes).filter(isDeliveryMode),
+        updatedAt: asString(line.product.updatedAt)
+      }
+    : undefined;
+  const spec = isObject(line.spec)
+    ? {
+        id: asString(line.spec.id),
+        label: asString(line.spec.label),
+        price: asNumber(line.spec.price)
+      }
+    : undefined;
+
+  return {
+    productId,
+    requestedSpecId: asString(line.requestedSpecId),
+    resolvedSpecId: asString(line.resolvedSpecId),
+    status,
+    product,
+    spec,
+    requestedQuantity: asNumber(line.requestedQuantity),
+    resolvedQuantity: asNumber(line.resolvedQuantity),
+    changes: getArray(line.changes).filter(
+      (change): change is ResolvedCartLine['changes'][number] =>
+        change === 'price' ||
+        change === 'stock' ||
+        change === 'label' ||
+        change === 'deliveryModes' ||
+        change === 'availability'
+    )
+  };
+}
+
 function cloneCategories<T extends CatalogCategory>(categories: T[]): T[] {
   return categories.map((category) => ({ ...category }));
 }
@@ -854,6 +955,26 @@ export async function searchCatalogProducts(
       : [],
     pageInfo: normalizePageInfo(response.pageInfo),
     snapshotKey: asString(response.snapshotKey)
+  };
+}
+
+export async function resolveCartLines(
+  lines: ResolveCartLinesRequestLine[],
+  request: CatalogApiRequester = customerApiRequest
+) {
+  const response = await request<ResolveCartLinesResponse>('/api/v1/customer/catalog/cart/resolve', {
+    method: 'POST',
+    auth: 'none',
+    body: {
+      lines
+    }
+  });
+
+  return {
+    ok: response.ok !== false,
+    lines: Array.isArray(response.lines)
+      ? (response.lines.map(normalizeResolvedCartLine).filter(Boolean) as ResolvedCartLine[])
+      : []
   };
 }
 

@@ -14,6 +14,7 @@ import {
   hydrateCatalogCategories,
   loadCategoryProducts,
   resetCatalogCache,
+  resolveCartLines,
   resolveCatalogProductAssetUrls,
   resolveHomeModuleImageSources,
   resolveProductSpec,
@@ -72,22 +73,22 @@ describe('catalog service', () => {
     expect(resolvedModules[0]).toMatchObject({
       title: '浏览商品',
       imageSrc:
-        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E6%B5%8F%E8%A7%88%E5%95%86%E5%93%81_v3.png'
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E6%B5%8F%E8%A7%88%E5%95%86%E5%93%81.png'
     });
     expect(resolvedModules[1]).toMatchObject({
       title: '购前须知',
       imageSrc:
-        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E8%B4%AD%E5%89%8D%E9%A1%BB%E7%9F%A5_3.png'
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E8%B4%AD%E5%89%8D%E9%A1%BB%E7%9F%A5.png'
     });
     expect(resolvedModules[2]).toMatchObject({
       title: '售前咨询',
       imageSrc:
-        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E5%94%AE%E5%89%8D%E5%92%A8%E8%AF%A2_v3.png'
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E5%94%AE%E5%89%8D%E5%92%A8%E8%AF%A2.png'
     });
     expect(resolvedModules[3]).toMatchObject({
       title: '会员权益',
       imageSrc:
-        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E4%BC%9A%E5%91%98%E6%9D%83%E7%9B%8A_v3.png'
+        'https://tmp.example.com/%2Fassets%2Fcatalog%2F%E4%BC%9A%E5%91%98%E6%9D%83%E7%9B%8A.png'
     });
   });
 
@@ -101,6 +102,59 @@ describe('catalog service', () => {
     expect(resolveProductSpec(product, 'missing-spec')?.id).toBe(product.specs[0]?.id);
     expect(getProductDisplayPrice(product, 'ocean-party-4-duck')).toBe(168);
     expect(getProductSelectedSpecLabel(product, 'ocean-party-4-dog-heart')).toBe('4寸 狗狗夹心坯');
+  });
+
+  it('resolves persisted cart lines through the non-paginated cart API', async () => {
+    const apiRequest = vi.fn(async () => ({
+      ok: true,
+      lines: [
+        {
+          productId: 'ocean-party',
+          requestedSpecId: '6-inch__salmon',
+          resolvedSpecId: '6-inch__salmon',
+          status: 'available',
+          product: {
+            id: 'ocean-party',
+            name: '海洋奇遇',
+            summary: '生日蛋糕',
+            thumbnail: 'https://assets.example.test/ocean.jpg',
+            stock: 12,
+            soldOut: false,
+            deliveryModes: ['delivery', 'pickup'],
+            updatedAt: '2026-06-24T00:00:00.000Z'
+          },
+          spec: {
+            id: '6-inch__salmon',
+            label: '6寸 三文鱼',
+            price: 258
+          },
+          requestedQuantity: 2,
+          resolvedQuantity: 2,
+          changes: []
+        }
+      ]
+    }));
+
+    const response = await resolveCartLines(
+      [{ productId: 'ocean-party', specId: '6-inch__salmon', quantity: 2 }],
+      apiRequest as Parameters<typeof resolveCartLines>[1]
+    );
+
+    expect(apiRequest).toHaveBeenCalledWith('/api/v1/customer/catalog/cart/resolve', {
+      method: 'POST',
+      auth: 'none',
+      body: {
+        lines: [{ productId: 'ocean-party', specId: '6-inch__salmon', quantity: 2 }]
+      }
+    });
+    expect(response.lines[0]).toMatchObject({
+      productId: 'ocean-party',
+      status: 'available',
+      spec: {
+        id: '6-inch__salmon',
+        price: 258
+      }
+    });
   });
 
   it('hydrates categories without requesting all products and initializes empty section state', async () => {

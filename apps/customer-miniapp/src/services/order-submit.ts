@@ -10,7 +10,7 @@ import { buildOrderLineSnapshot, buildOrderPricingBreakdown } from '../shared/or
 
 import { getSelectedAddress } from './address';
 import { customerApiRequest, CustomerApiError, type CustomerApiRequester } from './api-client';
-import { getCartItems, getSelectedCartFulfillmentModes } from './cart';
+import { getCartItems, getSelectedCartFulfillmentModes, removeSelectedCartItems } from './cart';
 import { ensureContactPhoneFromProfile, getCheckoutViewModel } from './checkout';
 import { getDeliveryRuleViolation, resolveDeliveryFeePreview, type DeliveryFeePreview } from './delivery-rules';
 import { getSelectedCheckoutGiftIds, resetCheckoutGiftSelection } from './gifts';
@@ -240,6 +240,7 @@ export async function submitOrder(
       }
 
       resetCheckoutGiftSelection();
+      removeSelectedCartItems();
 
       return {
         order: syncOrderPaymentResponse.order,
@@ -248,6 +249,7 @@ export async function submitOrder(
     }
 
     resetCheckoutGiftSelection();
+    removeSelectedCartItems();
 
     return {
       order: payOrderResponse.order,

@@ -18,6 +18,7 @@ exports.loadCategoryProducts = loadCategoryProducts;
 exports.getCatalogSectionState = getCatalogSectionState;
 exports.getCatalogSectionStates = getCatalogSectionStates;
 exports.searchCatalogProducts = searchCatalogProducts;
+exports.resolveCartLines = resolveCartLines;
 exports.getProductDetail = getProductDetail;
 exports.hydrateCatalog = hydrateCatalog;
 const catalog_1 = require("../data/catalog");
@@ -394,6 +395,58 @@ function normalizeProductSummary(product) {
         updatedAt: asString(product.updatedAt)
     };
 }
+function isResolveCartLineStatus(value) {
+    return (value === 'available' ||
+        value === 'quantity_adjusted' ||
+        value === 'product_unavailable' ||
+        value === 'spec_unavailable' ||
+        value === 'sold_out');
+}
+function normalizeResolvedCartLine(line) {
+    var _a;
+    if (!isObject(line)) {
+        return null;
+    }
+    const productId = asString(line.productId);
+    const status = isResolveCartLineStatus(line.status) ? line.status : null;
+    if (!productId || !status) {
+        return null;
+    }
+    const product = isObject(line.product)
+        ? {
+            id: asString(line.product.id, productId),
+            name: asString(line.product.name),
+            summary: asString(line.product.summary),
+            thumbnail: (_a = imageUrl(asString(line.product.thumbnail))) !== null && _a !== void 0 ? _a : '',
+            stock: asNumber(line.product.stock),
+            soldOut: Boolean(line.product.soldOut),
+            deliveryModes: getArray(line.product.deliveryModes).filter(isDeliveryMode),
+            updatedAt: asString(line.product.updatedAt)
+        }
+        : undefined;
+    const spec = isObject(line.spec)
+        ? {
+            id: asString(line.spec.id),
+            label: asString(line.spec.label),
+            price: asNumber(line.spec.price)
+        }
+        : undefined;
+    return {
+        productId,
+        requestedSpecId: asString(line.requestedSpecId),
+        resolvedSpecId: asString(line.resolvedSpecId),
+        status,
+        product,
+        spec,
+        requestedQuantity: asNumber(line.requestedQuantity),
+        resolvedQuantity: asNumber(line.resolvedQuantity),
+        changes: getArray(line.changes).filter((change) => change === 'price' ||
+            change === 'stock' ||
+            change === 'label' ||
+            change === 'deliveryModes' ||
+            change === 'availability')
+    };
+}
 function cloneCategories(categories) {
     return categories.map((category) => ({ ...category }));
 }
@@ -679,6 +732,21 @@ async function searchCatalogProducts(input, request = api_client_1.customerApiRe
             : [],
         pageInfo: normalizePageInfo(response.pageInfo),
         snapshotKey: asString(response.snapshotKey)
+    };
+}
+async function resolveCartLines(lines, request = api_client_1.customerApiRequest) {
+    const response = await request('/api/v1/customer/catalog/cart/resolve', {
+        method: 'POST',
+        auth: 'none',
+        body: {
+            lines
+        }
+    });
+    return {
+        ok: response.ok !== false,
+        lines: Array.isArray(response.lines)
+            ? response.lines.map(normalizeResolvedCartLine).filter(Boolean)
+            : []
     };
 }
 async function getProductDetail(productId, request = api_client_1.customerApiRequest) {

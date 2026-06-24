@@ -59,6 +59,60 @@ function createCheckoutApiOrder(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function createResolvedCartLine(line: { productId?: string; specId?: string; quantity?: number }) {
+  const productId = typeof line.productId === 'string' ? line.productId : '';
+  const specId = typeof line.specId === 'string' ? line.specId : '';
+  const quantity = typeof line.quantity === 'number' ? line.quantity : 1;
+
+  if (productId === 'ocean-party') {
+    const spec = specId === 'ocean-party-3-duck'
+      ? { id: 'ocean-party-3-duck', label: '3寸鸭肉', price: 138 }
+      : { id: 'ocean-party-3-chicken', label: '3寸鸡肉', price: 138 };
+
+    return {
+      productId,
+      requestedSpecId: specId,
+      resolvedSpecId: spec.id,
+      status: 'available',
+      product: {
+        id: productId,
+        name: '海洋奇遇',
+        summary: '下单备注宠物姓名 3寸/4寸 规格可选，展示图为3寸效果。',
+        thumbnail: '',
+        stock: 9,
+        soldOut: false,
+        deliveryModes: ['pickup', 'delivery', 'express'],
+        updatedAt: '2026-06-24T00:00:00.000Z'
+      },
+      spec,
+      requestedQuantity: quantity,
+      resolvedQuantity: quantity,
+      changes: []
+    };
+  }
+
+  return {
+    productId,
+    requestedSpecId: specId,
+    resolvedSpecId: '',
+    status: 'available',
+    product: {
+      id: productId,
+      name: '海绵宝宝',
+      summary: '一份3枚，表情压模饼干，适合轻量加购。',
+      thumbnail: '',
+      stock: 2,
+      soldOut: false,
+      deliveryModes: ['pickup', 'delivery', 'express'],
+      updatedAt: '2026-06-24T00:00:00.000Z'
+    },
+    spec: { id: '', label: '', price: 12.9 },
+    requestedQuantity: quantity,
+    resolvedQuantity: quantity,
+    changes: []
+  };
+}
+
 function createDefaultRequestMock() {
   return vi.fn((options) => {
     const path = getRequestPath(options);
@@ -88,6 +142,14 @@ function createDefaultRequestMock() {
         update: {
           contactPhoneMasked: '138****1234'
         }
+      });
+      return;
+    }
+    if (path === '/api/v1/customer/catalog/cart/resolve' && options.method === 'POST') {
+      const lines = Array.isArray(options.data?.lines) ? options.data.lines : [];
+      respondApi(options, {
+        ok: true,
+        lines: lines.map(createResolvedCartLine)
       });
       return;
     }
@@ -299,6 +361,108 @@ describe('cart checkout flow', () => {
     await instance.handleCheckout();
 
     expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/checkout/index?source=cart'
+    });
+  });
+
+  it('refreshes cart lines through the cart resolve API before checkout navigation', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+    const { updateProfile } = await import('../src/services/profile');
+
+    clearCart();
+    updateProfile({ contactPhoneMasked: '138****1234' });
+
+    const product = getProductById('ocean-party');
+
+    if (!product) {
+      throw new Error('missing product fixture');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+    await instance.handleCheckout();
+
+    const resolveRequest = wx.request.mock.calls.find(([options]) =>
+      getRequestPath(options) === '/api/v1/customer/catalog/cart/resolve'
+    );
+
+    expect(resolveRequest?.[0]).toEqual(expect.objectContaining({
+      method: 'POST',
+      data: {
+        lines: [
+          {
+            productId: product.id,
+            specId: product.specs[0]?.id,
+            quantity: 1
+          }
+        ]
+      }
+    }));
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/checkout/index?source=cart'
+    });
+  });
+
+  it('blocks checkout when cart reconciliation changes a selected line', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
+    const { updateProfile } = await import('../src/services/profile');
+
+    clearCart();
+    updateProfile({ contactPhoneMasked: '138****1234' });
+
+    const defaultRequest = createDefaultRequestMock();
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/catalog/cart/resolve') {
+        respondApi(options, {
+          ok: true,
+          lines: [
+            {
+              ...createResolvedCartLine({
+                productId: 'ocean-party',
+                specId: 'ocean-party-3-chicken',
+                quantity: 3
+              }),
+              status: 'quantity_adjusted',
+              resolvedQuantity: 1,
+              changes: ['stock']
+            }
+          ]
+        });
+        return;
+      }
+
+      defaultRequest(options);
+    });
+
+    const product = getProductById('ocean-party');
+
+    if (!product) {
+      throw new Error('missing product fixture');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 3);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+    await instance.handleCheckout();
+
+    expect(getCartItems()[0]).toMatchObject({
+      quantity: 1,
+      validationStatus: 'available'
+    });
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '购物车商品已更新，请确认后再结算',
+      icon: 'none'
+    });
+    expect(wx.navigateTo).not.toHaveBeenCalledWith({
       url: '/pages/checkout/index?source=cart'
     });
   });

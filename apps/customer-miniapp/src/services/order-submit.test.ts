@@ -4,7 +4,7 @@ import type { OrderRecord } from '@xiaipet/shared';
 
 import { createAddress, resetAddresses, selectAddress } from './address';
 import { CustomerApiError, type CustomerApiRequester, type CustomerApiRequestOptions } from './api-client';
-import { addCartItem, clearCart } from './cart';
+import { addCartItem, clearCart, getCartItems } from './cart';
 import {
   resetCheckoutDraft,
   setCheckoutRemark,
@@ -316,6 +316,7 @@ describe('order submit service', () => {
       },
       auth: 'customer'
     });
+    expect(getCartItems()).toEqual([]);
   });
 
   it('includes selected checkout gift ids when creating an order', async () => {
@@ -508,6 +509,7 @@ describe('order submit service', () => {
       paySign: 'pay-sign-1'
     }));
     expect(getSelectedCheckoutGiftIds()).toEqual([]);
+    expect(getCartItems()).toEqual([]);
   });
 
   it('cancels an unpaid WeChat order to release locked gifts when payment is cancelled', async () => {
@@ -597,6 +599,11 @@ describe('order submit service', () => {
       auth: 'customer'
     });
     expect(getSelectedCheckoutGiftIds()).toEqual([]);
+    expect(getCartItems()).toHaveLength(1);
+    expect(getCartItems()[0]).toMatchObject({
+      productId: product.id,
+      selected: true
+    });
   });
 
   it('does not cancel a WeChat order after payment succeeds but settlement sync fails', async () => {

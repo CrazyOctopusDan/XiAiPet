@@ -174,12 +174,14 @@ async function submitOrder(paymentMethod, request = api_client_1.customerApiRequ
                 throw new Error(String((_c = syncOrderPaymentResponse.code) !== null && _c !== void 0 ? _c : 'sync_payment_failed'));
             }
             (0, gifts_1.resetCheckoutGiftSelection)();
+            (0, cart_1.removeSelectedCartItems)();
             return {
                 order: syncOrderPaymentResponse.order,
                 payment: payOrderResponse
             };
         }
         (0, gifts_1.resetCheckoutGiftSelection)();
+        (0, cart_1.removeSelectedCartItems)();
         return {
             order: payOrderResponse.order,
             payment: payOrderResponse

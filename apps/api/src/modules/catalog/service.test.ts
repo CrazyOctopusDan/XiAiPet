@@ -74,6 +74,40 @@ describe('catalog service', () => {
     };
   }
 
+  function createCatalogProductRecord(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'ocean-party',
+      name: '海洋派对蛋糕',
+      description: '生日蛋糕',
+      categoryId: 'cakes',
+      imageFileId: '',
+      imageAsset: undefined,
+      imagePreviewUrl: 'https://assets.example.test/ocean-party.jpg',
+      introductionImageAssets: [],
+      detailImageAssets: [],
+      memberLevelId: null,
+      status: 'published',
+      stock: 12,
+      trackInventory: true,
+      fulfillmentModes: ['delivery', 'pickup'],
+      basePrice: 168,
+      specs: [
+        { id: '4-inch', label: '4 寸', surcharge: 0 },
+        { id: '6-inch', label: '6 寸', surcharge: 60 }
+      ],
+      formulas: [
+        { id: 'chicken', label: '鸡肉南瓜', surcharge: 0 },
+        { id: 'salmon', label: '三文鱼土豆', surcharge: 30 }
+      ],
+      priceOverrides: [{ specId: '6-inch', formulaId: 'salmon', price: 258 }],
+      purchaseLimit: { enabled: false, maxQuantity: null },
+      detailContent: '需提前预约',
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T10:00:00.000Z',
+      ...overrides
+    };
+  }
+
   it('returns merchant category product counts from saved product records', async () => {
     const countProductsByCategory = vi.fn(async (categoryId: string) => {
       if (categoryId === 'cakes') {
@@ -260,6 +294,117 @@ describe('catalog service', () => {
         }
       ]
     });
+  });
+
+  it('resolves customer cart lines by product and combined spec id without relying on catalog pagination', async () => {
+    const getProductById = vi.fn(async () => createCatalogProductRecord());
+    const service = createCatalogService(createCatalogRepositoryStub({ getProductById }) as never);
+
+    const response = await (service as any).resolveCustomerCartLines({
+      lines: [
+        {
+          productId: 'ocean-party',
+          specId: '6-inch__salmon',
+          quantity: 3
+        }
+      ]
+    });
+
+    expect(getProductById).toHaveBeenCalledWith('ocean-party');
+    expect(response).toMatchObject({
+      ok: true,
+      lines: [
+        {
+          productId: 'ocean-party',
+          requestedSpecId: '6-inch__salmon',
+          resolvedSpecId: '6-inch__salmon',
+          status: 'available',
+          requestedQuantity: 3,
+          resolvedQuantity: 3,
+          changes: [],
+          product: expect.objectContaining({
+            id: 'ocean-party',
+            name: '海洋派对蛋糕',
+            stock: 12,
+            soldOut: false,
+            deliveryModes: ['delivery', 'pickup']
+          }),
+          spec: {
+            id: '6-inch__salmon',
+            label: '6 寸 三文鱼土豆',
+            price: 258
+          }
+        }
+      ]
+    });
+  });
+
+  it('marks customer cart lines when quantity is capped or the selected spec is gone', async () => {
+    const getProductById = vi.fn(async () => createCatalogProductRecord({ stock: 2 }));
+    const service = createCatalogService(createCatalogRepositoryStub({ getProductById }) as never);
+
+    const response = await (service as any).resolveCustomerCartLines({
+      lines: [
+        { productId: 'ocean-party', specId: '4-inch__chicken', quantity: 5 },
+        { productId: 'ocean-party', specId: 'missing-spec', quantity: 1 }
+      ]
+    });
+
+    expect(response.lines).toEqual([
+      expect.objectContaining({
+        productId: 'ocean-party',
+        requestedSpecId: '4-inch__chicken',
+        resolvedSpecId: '4-inch__chicken',
+        status: 'quantity_adjusted',
+        requestedQuantity: 5,
+        resolvedQuantity: 2,
+        changes: ['stock']
+      }),
+      expect.objectContaining({
+        productId: 'ocean-party',
+        requestedSpecId: 'missing-spec',
+        resolvedSpecId: '',
+        status: 'spec_unavailable',
+        requestedQuantity: 1,
+        resolvedQuantity: 0,
+        changes: ['availability']
+      })
+    ]);
+  });
+
+  it('returns product unavailable statuses for missing or unpublished cart products', async () => {
+    const getProductById = vi.fn(async (productId: string) => {
+      if (productId === 'archived-cake') {
+        return createCatalogProductRecord({
+          id: 'archived-cake',
+          status: 'archived'
+        });
+      }
+      return null;
+    });
+    const service = createCatalogService(createCatalogRepositoryStub({ getProductById }) as never);
+
+    const response = await (service as any).resolveCustomerCartLines({
+      lines: [
+        { productId: 'archived-cake', specId: '', quantity: 1 },
+        { productId: 'missing-cake', specId: '', quantity: 1 }
+      ]
+    });
+
+    expect(response.lines).toEqual([
+      expect.objectContaining({
+        productId: 'archived-cake',
+        status: 'product_unavailable',
+        resolvedQuantity: 0,
+        changes: ['availability']
+      }),
+      expect.objectContaining({
+        productId: 'missing-cake',
+        status: 'product_unavailable',
+        resolvedQuantity: 0,
+        changes: ['availability']
+      })
+    ]);
   });
 
   it('returns customer category product summaries without heavy detail fields', async () => {

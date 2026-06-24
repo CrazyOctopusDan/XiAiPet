@@ -64,6 +64,13 @@ export interface ApiRouteServices {
       limit?: number;
       cursor?: string;
     }): AsyncResult;
+    resolveCustomerCartLines(input: {
+      lines?: Array<{
+        productId?: unknown;
+        specId?: unknown;
+        quantity?: unknown;
+      }>;
+    }): AsyncResult;
     queryMerchantCategories(filters?: Record<string, unknown>): AsyncResult;
     upsertMerchantCategory(merchantContext: unknown, categoryId: string, payload: unknown): AsyncResult;
     deleteMerchantCategory(merchantContext: unknown, categoryId: string): AsyncResult;
