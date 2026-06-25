@@ -44,6 +44,30 @@ function createGiftSnapshotOrder(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function createOrderSnapshotWithItems() {
+  return {
+    items: [
+      {
+        productId: 'ocean-party',
+        name: '海洋派对蛋糕',
+        quantity: 2,
+        unitPrice: 168,
+        specId: '4-inch__chicken',
+        specLabel: '4 寸 鸡肉',
+        lineTotal: 336
+      }
+    ],
+    gifts: [
+      {
+        id: 'gift-1',
+        name: '周年蛋糕',
+        description: '一年内可兑换',
+        validDays: 365
+      }
+    ]
+  };
+}
+
 function createProductRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'ocean-party',
@@ -1234,6 +1258,7 @@ describe('order service', () => {
 
   it('releases locked gifts when merchant cancels an unpaid order', async () => {
     const current = createGiftSnapshotOrder({
+      snapshot: createOrderSnapshotWithItems(),
       paymentStatus: 'PENDING',
       status: 'PENDING_PAYMENT'
     });
@@ -1253,6 +1278,9 @@ describe('order service', () => {
         upsert: vi.fn()
       },
       userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
+      },
+      product: {
         updateMany: vi.fn(async () => ({ count: 1 }))
       }
     };
@@ -1307,10 +1335,19 @@ describe('order service', () => {
         lockedOrderId: null
       })
     }));
+    expect(tx.product.updateMany).toHaveBeenCalledWith({
+      where: { id: 'ocean-party', trackInventory: true },
+      data: {
+        stock: {
+          increment: 2
+        }
+      }
+    });
   });
 
   it('lets the customer cancel an unpaid WeChat order and releases locked gifts', async () => {
     const current = createGiftSnapshotOrder({
+      snapshot: createOrderSnapshotWithItems(),
       paymentMethod: 'WECHAT',
       paymentStatus: 'PROCESSING',
       status: 'PAYMENT_PROCESSING'
@@ -1330,6 +1367,9 @@ describe('order service', () => {
         upsert: vi.fn()
       },
       userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
+      },
+      product: {
         updateMany: vi.fn(async () => ({ count: 1 }))
       }
     };
@@ -1375,5 +1415,13 @@ describe('order service', () => {
         lockedAt: null
       })
     }));
+    expect(tx.product.updateMany).toHaveBeenCalledWith({
+      where: { id: 'ocean-party', trackInventory: true },
+      data: {
+        stock: {
+          increment: 2
+        }
+      }
+    });
   });
 });

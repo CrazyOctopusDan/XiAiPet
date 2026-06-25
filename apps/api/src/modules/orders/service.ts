@@ -275,6 +275,33 @@ function appendGiftSnapshots(snapshot: unknown, gifts: LockedGiftSnapshot[]) {
   };
 }
 
+function getSnapshotStockItems(snapshot: unknown): Array<{ productId: string; quantity: number }> {
+  if (!isObject(snapshot) || !Array.isArray(snapshot.items)) {
+    return [];
+  }
+
+  return snapshot.items
+    .filter(isObject)
+    .map((item) => ({
+      productId: typeof item.productId === 'string' ? item.productId : '',
+      quantity: Math.max(0, Math.trunc(toNumber(item.quantity)))
+    }))
+    .filter((item) => item.productId && item.quantity > 0);
+}
+
+async function releaseReservedOrderStock(client: PrismaClient, order: Pick<OrderRecord, 'snapshot'>) {
+  const items = getSnapshotStockItems(order.snapshot);
+
+  if (!items.length) {
+    return;
+  }
+
+  const catalogRepository = createCatalogRepository(client as never);
+  for (const item of items) {
+    await catalogRepository.incrementStock(item.productId, item.quantity);
+  }
+}
+
 function normalizeCreateOrderPayload(openid: string, payload: unknown): CreateOrderInput {
   const candidate = payload as CustomerOrderPayload;
   if (candidate.id && RESERVED_ORDER_ID_PREFIXES.some((prefix) => candidate.id?.startsWith(prefix))) {
@@ -733,6 +760,7 @@ export function createOrderService(
           }
         });
         await createGiftService(tx as never).releaseGiftsForOrder(orderId, tx as never);
+        await releaseReservedOrderStock(tx as never, current);
         return cancelled;
       });
 
@@ -788,6 +816,7 @@ export function createOrderService(
         ? await runOrderSettlementTransaction(client as never, async (tx) => {
           const cancelled = await createOrderRepository(tx as never).updateStatus(orderId, updateInput);
           await createGiftService(tx as never).releaseGiftsForOrder(orderId, tx as never);
+          await releaseReservedOrderStock(tx as never, current);
           return cancelled;
         })
         : await createOrderRepository(client).updateStatus(orderId, updateInput);

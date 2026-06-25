@@ -882,6 +882,17 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       });
     },
 
+    async incrementStock(productId: string, quantity: number): Promise<void> {
+      await client.product.updateMany({
+        where: { id: productId, trackInventory: true },
+        data: {
+          stock: {
+            increment: quantity
+          }
+        }
+      });
+    },
+
     async upsertCategory(input: { id: string; name: string; iconToken: string; sortOrder?: number }): Promise<CatalogCategoryRecord> {
       const category = await client.category.upsert({
         where: { id: input.id },
