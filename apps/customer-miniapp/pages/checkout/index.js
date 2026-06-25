@@ -9,6 +9,7 @@ const gifts_1 = require("../../src/services/gifts");
 const order_submit_1 = require("../../src/services/order-submit");
 const runtime_config_1 = require("../../src/services/runtime-config");
 const tab_navigation_1 = require("../../src/services/tab-navigation");
+const api_client_1 = require("../../src/services/api-client");
 function resolvePendingReservation(options, selectedValue) {
     for (const day of options) {
         for (const slot of day.slots) {
@@ -68,6 +69,12 @@ const PAYMENT_METHODS = [
     }
 ];
 let checkoutSubmissionLocked = false;
+function getCheckoutSubmitErrorMessage(error) {
+    if (error instanceof Error) {
+        return (0, api_client_1.getCustomerApiErrorMessage)(error.message, error.message, '下单失败，请稍后重试');
+    }
+    return '下单失败，请稍后重试';
+}
 Page({
     data: {
         items: [],
@@ -377,17 +384,7 @@ Page({
             checkoutSubmissionLocked = false;
             this.setData({ submitting: false });
             wx.showToast({
-                title: error instanceof Error && error.message === 'WECHAT_PAY_NOT_CONFIGURED'
-                    ? '微信支付暂未配置'
-                    : error instanceof Error && error.message === 'INSUFFICIENT_BALANCE'
-                        ? '余额不足'
-                        : error instanceof Error && error.message === 'DELIVERY_MINIMUM_NOT_MET'
-                            ? '未达到配送起送金额'
-                            : error instanceof Error && error.message === 'DELIVERY_OUT_OF_RANGE'
-                                ? '超出配送范围'
-                                : error instanceof Error
-                                    ? error.message
-                                    : '下单失败',
+                title: getCheckoutSubmitErrorMessage(error),
                 icon: 'none'
             });
         }

@@ -25,6 +25,7 @@ import { getSelectedCheckoutGiftSummary, resetCheckoutGiftSelection } from '../.
 import { getCheckoutPricingPreview, getDeliveryFeePreview, submitOrder } from '../../src/services/order-submit';
 import { hydrateCustomerRuntimeConfig } from '../../src/services/runtime-config';
 import { setPendingOrdersHighlight } from '../../src/services/tab-navigation';
+import { getCustomerApiErrorMessage } from '../../src/services/api-client';
 
 interface PaymentMethodOption {
   value: PaymentMethod;
@@ -157,6 +158,14 @@ const PAYMENT_METHODS: PaymentMethodOption[] = [
 ];
 
 let checkoutSubmissionLocked = false;
+
+function getCheckoutSubmitErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return getCustomerApiErrorMessage(error.message, error.message, '下单失败，请稍后重试');
+  }
+
+  return '下单失败，请稍后重试';
+}
 
 Page({
   data: {
@@ -488,18 +497,7 @@ Page({
       checkoutSubmissionLocked = false;
       this.setData({ submitting: false });
       wx.showToast({
-        title:
-          error instanceof Error && error.message === 'WECHAT_PAY_NOT_CONFIGURED'
-            ? '微信支付暂未配置'
-            : error instanceof Error && error.message === 'INSUFFICIENT_BALANCE'
-              ? '余额不足'
-            : error instanceof Error && error.message === 'DELIVERY_MINIMUM_NOT_MET'
-              ? '未达到配送起送金额'
-            : error instanceof Error && error.message === 'DELIVERY_OUT_OF_RANGE'
-              ? '超出配送范围'
-            : error instanceof Error
-              ? error.message
-              : '下单失败',
+        title: getCheckoutSubmitErrorMessage(error),
         icon: 'none'
       });
     }

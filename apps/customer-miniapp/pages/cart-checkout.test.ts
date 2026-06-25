@@ -2436,6 +2436,69 @@ describe('cart checkout flow', () => {
     }));
   });
 
+  it('shows a Chinese message when checkout stock is unavailable', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart, getCartItems } = await import('../src/services/cart');
+    const { createAddress, resetAddresses, selectAddress } = await import('../src/services/address');
+    const { resetCheckoutDraft, setCustomNoticeAcknowledged, setReservationSelection } = await import('../src/services/checkout');
+    const { updateProfile } = await import('../src/services/profile');
+
+    clearCart();
+    resetAddresses();
+    resetCheckoutDraft();
+
+    const product = getProductById('ocean-party');
+    updateProfile({ contactPhoneMasked: '138****1234' });
+    const address = createAddress({
+      type: 'city',
+      recipientName: '奶油',
+      phoneNumber: '13900001111',
+      regionLabel: '上海市 黄浦区',
+      detailAddress: '外滩 18 号 201',
+      tag: '公司'
+    });
+
+    if (!product || !address) {
+      throw new Error('missing checkout stock failure fixtures');
+    }
+
+    addCartItem(product, product.specs[0]?.id ?? '', 1);
+    selectAddress(address.id);
+    setCustomNoticeAcknowledged(true);
+    setReservationSelection({
+      dateValue: '2026-04-17',
+      dateLabel: '今天 04-17',
+      timeValue: '11:00',
+      timeLabel: '11:00'
+    });
+
+    const defaultRequest = createDefaultRequestMock();
+    wx.request.mockImplementation((options) => {
+      const path = getRequestPath(options);
+
+      if (path === '/api/v1/customer/orders') {
+        respondApi(options, {
+          ok: false,
+          code: 'ORDER_STOCK_UNAVAILABLE'
+        }, 409);
+        return;
+      }
+
+      defaultRequest(options);
+    });
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+    await instance.handleSubmit();
+
+    expect(instance.data.submitting).toBe(false);
+    expect(getCartItems()).toHaveLength(1);
+    expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({
+      title: '商品库存不足，请调整数量后重试'
+    }));
+  });
+
   it('ignores repeated submit taps while the checkout request is still in flight', async () => {
     const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/checkout/index.ts');
     const { getProductById } = await import('../src/services/catalog');

@@ -46,6 +46,26 @@ interface ApiErrorBody {
 export const CUSTOMER_SESSION_STORAGE_KEY = 'xiaipet.customer.apiSession';
 const CUSTOMER_AUTH_LOGIN_PATH = '/api/v1/customer/auth/login';
 const SESSION_EXPIRY_SKEW_MS = 30_000;
+const CUSTOMER_API_ERROR_MESSAGES: Record<string, string> = {
+  REQUEST_FAILED: '网络请求失败，请检查网络后重试',
+  CUSTOMER_NOT_REGISTERED: '请先绑定手机号后再下单',
+  INCOMPATIBLE_FULFILLMENT: '所选商品不支持当前履约方式，请重新选择',
+  DELIVERY_MINIMUM_NOT_MET: '未达到配送起送金额',
+  DELIVERY_OUT_OF_RANGE: '超出配送范围',
+  ORDER_PRODUCT_UNAVAILABLE: '商品已下架，请重新选择',
+  ORDER_SPEC_UNAVAILABLE: '商品规格已调整，请重新选择',
+  ORDER_STOCK_UNAVAILABLE: '商品库存不足，请调整数量后重试',
+  ORDER_GIFT_UNAVAILABLE: '赠品状态已变化，请重新选择',
+  INSUFFICIENT_BALANCE: '余额不足',
+  WECHAT_PAY_NOT_CONFIGURED: '微信支付暂未配置',
+  WECHAT_PAY_UNAVAILABLE: '当前环境暂不支持微信支付',
+  WECHAT_PAY_CANCELLED: '支付已取消',
+  CREATE_ORDER_FAILED: '下单失败，请稍后重试',
+  PAY_ORDER_FAILED: '支付发起失败，请稍后重试',
+  SUBMIT_ORDER_FAILED: '下单失败，请稍后重试',
+  MISSING_PAID_ORDER: '支付结果异常，请稍后查看订单',
+  SYNC_PAYMENT_FAILED: '支付结果同步失败，请稍后查看订单'
+};
 
 export class CustomerApiError extends Error {
   constructor(
@@ -56,6 +76,39 @@ export class CustomerApiError extends Error {
   ) {
     super(message);
   }
+}
+
+function normalizeApiErrorCode(value?: string) {
+  return value?.trim().replace(/\s+/g, '_').toUpperCase() ?? '';
+}
+
+function isMachineReadableMessage(value: string) {
+  const message = value.trim();
+  return /^[A-Z0-9_ ]+$/.test(message) || (message.includes('_') && /^[A-Za-z0-9_]+$/.test(message));
+}
+
+export function getCustomerApiErrorMessage(
+  code?: string,
+  message?: string,
+  fallback = '请求失败，请稍后重试'
+) {
+  const knownMessage = CUSTOMER_API_ERROR_MESSAGES[normalizeApiErrorCode(code)]
+    ?? CUSTOMER_API_ERROR_MESSAGES[normalizeApiErrorCode(message)];
+  if (knownMessage) {
+    return knownMessage;
+  }
+
+  const trimmedMessage = message?.trim();
+  if (trimmedMessage && !isMachineReadableMessage(trimmedMessage)) {
+    return trimmedMessage;
+  }
+
+  const trimmedCode = code?.trim();
+  if (trimmedCode && !isMachineReadableMessage(trimmedCode)) {
+    return trimmedCode;
+  }
+
+  return fallback;
 }
 
 function getWxApi() {
@@ -184,9 +237,10 @@ async function sendCustomerApiRequest<T>(
   const data = response.data;
   if (response.statusCode >= 200 && response.statusCode < 300) {
     if (data && typeof data === 'object' && (data as ApiErrorBody).ok === false) {
+      const errorBody = data as ApiErrorBody;
       throw new CustomerApiError(
-        (data as ApiErrorBody).code ?? 'API_ERROR',
-        (data as ApiErrorBody).message ?? 'API request failed',
+        errorBody.code ?? 'API_ERROR',
+        getCustomerApiErrorMessage(errorBody.code, errorBody.message),
         response.statusCode,
         data
       );
@@ -197,7 +251,7 @@ async function sendCustomerApiRequest<T>(
   const errorBody = data as ApiErrorBody | undefined;
   throw new CustomerApiError(
     errorBody?.code ?? `HTTP_${response.statusCode}`,
-    errorBody?.message ?? 'API request failed',
+    getCustomerApiErrorMessage(errorBody?.code, errorBody?.message),
     response.statusCode,
     data
   );

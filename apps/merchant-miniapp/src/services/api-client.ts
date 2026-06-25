@@ -59,6 +59,20 @@ interface ApiErrorBody {
 export const MERCHANT_SESSION_STORAGE_KEY = 'xiaipet.merchant.apiSession';
 const MERCHANT_AUTH_LOGIN_PATH = '/api/v1/merchant/auth/login';
 const SESSION_EXPIRY_SKEW_MS = 30_000;
+const MERCHANT_API_ERROR_MESSAGES: Record<string, string> = {
+  REQUEST_FAILED: '网络请求失败，请检查网络后重试',
+  UNAUTHORIZED: '登录已过期，请重新登录',
+  MERCHANT_FORBIDDEN: '当前账号没有商户权限',
+  MERCHANT_LOGIN_REQUIRED: '请先登录商户账号',
+  INCOMPATIBLE_FULFILLMENT: '所选商品不支持当前履约方式，请重新选择',
+  DELIVERY_MINIMUM_NOT_MET: '未达到配送起送金额',
+  DELIVERY_OUT_OF_RANGE: '超出配送范围',
+  ORDER_PRODUCT_UNAVAILABLE: '商品已下架，请重新选择',
+  ORDER_SPEC_UNAVAILABLE: '商品规格已调整，请重新选择',
+  ORDER_STOCK_UNAVAILABLE: '商品库存不足，请调整数量后重试',
+  ORDER_GIFT_UNAVAILABLE: '赠品状态已变化，请重新选择',
+  INSUFFICIENT_BALANCE: '余额不足'
+};
 
 export class MerchantApiError extends Error {
   constructor(
@@ -69,6 +83,35 @@ export class MerchantApiError extends Error {
   ) {
     super(message);
   }
+}
+
+function normalizeApiErrorCode(value?: string) {
+  return value?.trim().replace(/\s+/g, '_').toUpperCase() ?? '';
+}
+
+function isMachineReadableMessage(value: string) {
+  const message = value.trim();
+  return /^[A-Z0-9_ ]+$/.test(message) || (message.includes('_') && /^[A-Za-z0-9_]+$/.test(message));
+}
+
+function getMerchantApiErrorMessage(code?: string, message?: string, fallback = '请求失败，请稍后重试') {
+  const knownMessage = MERCHANT_API_ERROR_MESSAGES[normalizeApiErrorCode(code)]
+    ?? MERCHANT_API_ERROR_MESSAGES[normalizeApiErrorCode(message)];
+  if (knownMessage) {
+    return knownMessage;
+  }
+
+  const trimmedMessage = message?.trim();
+  if (trimmedMessage && !isMachineReadableMessage(trimmedMessage)) {
+    return trimmedMessage;
+  }
+
+  const trimmedCode = code?.trim();
+  if (trimmedCode && !isMachineReadableMessage(trimmedCode)) {
+    return trimmedCode;
+  }
+
+  return fallback;
 }
 
 function getWxApi() {
@@ -197,9 +240,10 @@ async function sendMerchantApiRequest<T>(
   const data = response.data;
   if (response.statusCode >= 200 && response.statusCode < 300) {
     if (data && typeof data === 'object' && (data as ApiErrorBody).ok === false) {
+      const errorBody = data as ApiErrorBody;
       throw new MerchantApiError(
-        (data as ApiErrorBody).code ?? 'API_ERROR',
-        (data as ApiErrorBody).message ?? 'API request failed',
+        errorBody.code ?? 'API_ERROR',
+        getMerchantApiErrorMessage(errorBody.code, errorBody.message),
         response.statusCode,
         data
       );
@@ -210,7 +254,7 @@ async function sendMerchantApiRequest<T>(
   const errorBody = data as ApiErrorBody | undefined;
   throw new MerchantApiError(
     errorBody?.code ?? `HTTP_${response.statusCode}`,
-    errorBody?.message ?? 'API request failed',
+    getMerchantApiErrorMessage(errorBody?.code, errorBody?.message),
     response.statusCode,
     data
   );

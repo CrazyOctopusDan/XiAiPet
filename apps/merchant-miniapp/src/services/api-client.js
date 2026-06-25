@@ -12,6 +12,20 @@ const api_config_1 = require("./api-config");
 exports.MERCHANT_SESSION_STORAGE_KEY = 'xiaipet.merchant.apiSession';
 const MERCHANT_AUTH_LOGIN_PATH = '/api/v1/merchant/auth/login';
 const SESSION_EXPIRY_SKEW_MS = 30000;
+const MERCHANT_API_ERROR_MESSAGES = {
+    REQUEST_FAILED: '网络请求失败，请检查网络后重试',
+    UNAUTHORIZED: '登录已过期，请重新登录',
+    MERCHANT_FORBIDDEN: '当前账号没有商户权限',
+    MERCHANT_LOGIN_REQUIRED: '请先登录商户账号',
+    INCOMPATIBLE_FULFILLMENT: '所选商品不支持当前履约方式，请重新选择',
+    DELIVERY_MINIMUM_NOT_MET: '未达到配送起送金额',
+    DELIVERY_OUT_OF_RANGE: '超出配送范围',
+    ORDER_PRODUCT_UNAVAILABLE: '商品已下架，请重新选择',
+    ORDER_SPEC_UNAVAILABLE: '商品规格已调整，请重新选择',
+    ORDER_STOCK_UNAVAILABLE: '商品库存不足，请调整数量后重试',
+    ORDER_GIFT_UNAVAILABLE: '赠品状态已变化，请重新选择',
+    INSUFFICIENT_BALANCE: '余额不足'
+};
 class MerchantApiError extends Error {
     constructor(code, message, statusCode = 0, details) {
         super(message);
@@ -21,6 +35,30 @@ class MerchantApiError extends Error {
     }
 }
 exports.MerchantApiError = MerchantApiError;
+function normalizeApiErrorCode(value) {
+    var _a;
+    return (_a = value === null || value === void 0 ? void 0 : value.trim().replace(/\s+/g, '_').toUpperCase()) !== null && _a !== void 0 ? _a : '';
+}
+function isMachineReadableMessage(value) {
+    const message = value.trim();
+    return /^[A-Z0-9_ ]+$/.test(message) || (message.includes('_') && /^[A-Za-z0-9_]+$/.test(message));
+}
+function getMerchantApiErrorMessage(code, message, fallback = '请求失败，请稍后重试') {
+    var _a;
+    const knownMessage = (_a = MERCHANT_API_ERROR_MESSAGES[normalizeApiErrorCode(code)]) !== null && _a !== void 0 ? _a : MERCHANT_API_ERROR_MESSAGES[normalizeApiErrorCode(message)];
+    if (knownMessage) {
+        return knownMessage;
+    }
+    const trimmedMessage = message === null || message === void 0 ? void 0 : message.trim();
+    if (trimmedMessage && !isMachineReadableMessage(trimmedMessage)) {
+        return trimmedMessage;
+    }
+    const trimmedCode = code === null || code === void 0 ? void 0 : code.trim();
+    if (trimmedCode && !isMachineReadableMessage(trimmedCode)) {
+        return trimmedCode;
+    }
+    return fallback;
+}
 function getWxApi() {
     if (typeof wx === 'undefined') {
         throw new MerchantApiError('WX_UNAVAILABLE', 'WeChat API is unavailable');
@@ -101,7 +139,7 @@ function normalizeRequestFailure(error) {
     return new MerchantApiError('REQUEST_FAILED', message, 0, error);
 }
 async function sendMerchantApiRequest(path, options, token) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d;
     const method = (_a = options.method) !== null && _a !== void 0 ? _a : 'GET';
     const body = options.body === undefined && method !== 'GET' ? {} : options.body;
     const headers = {
@@ -128,12 +166,13 @@ async function sendMerchantApiRequest(path, options, token) {
     const data = response.data;
     if (response.statusCode >= 200 && response.statusCode < 300) {
         if (data && typeof data === 'object' && data.ok === false) {
-            throw new MerchantApiError((_c = data.code) !== null && _c !== void 0 ? _c : 'API_ERROR', (_d = data.message) !== null && _d !== void 0 ? _d : 'API request failed', response.statusCode, data);
+            const errorBody = data;
+            throw new MerchantApiError((_c = errorBody.code) !== null && _c !== void 0 ? _c : 'API_ERROR', getMerchantApiErrorMessage(errorBody.code, errorBody.message), response.statusCode, data);
         }
         return data;
     }
     const errorBody = data;
-    throw new MerchantApiError((_e = errorBody === null || errorBody === void 0 ? void 0 : errorBody.code) !== null && _e !== void 0 ? _e : `HTTP_${response.statusCode}`, (_f = errorBody === null || errorBody === void 0 ? void 0 : errorBody.message) !== null && _f !== void 0 ? _f : 'API request failed', response.statusCode, data);
+    throw new MerchantApiError((_d = errorBody === null || errorBody === void 0 ? void 0 : errorBody.code) !== null && _d !== void 0 ? _d : `HTTP_${response.statusCode}`, getMerchantApiErrorMessage(errorBody === null || errorBody === void 0 ? void 0 : errorBody.code, errorBody === null || errorBody === void 0 ? void 0 : errorBody.message), response.statusCode, data);
 }
 async function merchantLogin(credentials) {
     var _a;

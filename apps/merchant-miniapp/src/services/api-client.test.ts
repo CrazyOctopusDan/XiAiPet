@@ -174,6 +174,29 @@ describe('merchant API client', () => {
     } satisfies Partial<MerchantApiError>);
   });
 
+  it('localizes known order stock API errors for merchant users', async () => {
+    requestMock.mockImplementationOnce((options) =>
+      options.success({
+        statusCode: 409,
+        data: {
+          ok: false,
+          code: 'ORDER_STOCK_UNAVAILABLE',
+          message: 'ORDER_STOCK_UNAVAILABLE'
+        }
+      })
+    );
+
+    await expect(
+      merchantApiRequest('/api/v1/merchant/orders', {
+        auth: 'none'
+      })
+    ).rejects.toMatchObject({
+      code: 'ORDER_STOCK_UNAVAILABLE',
+      message: '商品库存不足，请调整数量后重试',
+      statusCode: 409
+    } satisfies Partial<MerchantApiError>);
+  });
+
   it('rejects unsupported auth modes', async () => {
     await expect(
       merchantApiRequest('/api/v1/merchant/access', {

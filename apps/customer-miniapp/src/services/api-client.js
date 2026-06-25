@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomerApiError = exports.CUSTOMER_SESSION_STORAGE_KEY = void 0;
+exports.getCustomerApiErrorMessage = getCustomerApiErrorMessage;
 exports.clearCustomerSession = clearCustomerSession;
 exports.getCustomerSession = getCustomerSession;
 exports.customerLogin = customerLogin;
@@ -9,6 +10,26 @@ const api_config_1 = require("./api-config");
 exports.CUSTOMER_SESSION_STORAGE_KEY = 'xiaipet.customer.apiSession';
 const CUSTOMER_AUTH_LOGIN_PATH = '/api/v1/customer/auth/login';
 const SESSION_EXPIRY_SKEW_MS = 30000;
+const CUSTOMER_API_ERROR_MESSAGES = {
+    REQUEST_FAILED: '网络请求失败，请检查网络后重试',
+    CUSTOMER_NOT_REGISTERED: '请先绑定手机号后再下单',
+    INCOMPATIBLE_FULFILLMENT: '所选商品不支持当前履约方式，请重新选择',
+    DELIVERY_MINIMUM_NOT_MET: '未达到配送起送金额',
+    DELIVERY_OUT_OF_RANGE: '超出配送范围',
+    ORDER_PRODUCT_UNAVAILABLE: '商品已下架，请重新选择',
+    ORDER_SPEC_UNAVAILABLE: '商品规格已调整，请重新选择',
+    ORDER_STOCK_UNAVAILABLE: '商品库存不足，请调整数量后重试',
+    ORDER_GIFT_UNAVAILABLE: '赠品状态已变化，请重新选择',
+    INSUFFICIENT_BALANCE: '余额不足',
+    WECHAT_PAY_NOT_CONFIGURED: '微信支付暂未配置',
+    WECHAT_PAY_UNAVAILABLE: '当前环境暂不支持微信支付',
+    WECHAT_PAY_CANCELLED: '支付已取消',
+    CREATE_ORDER_FAILED: '下单失败，请稍后重试',
+    PAY_ORDER_FAILED: '支付发起失败，请稍后重试',
+    SUBMIT_ORDER_FAILED: '下单失败，请稍后重试',
+    MISSING_PAID_ORDER: '支付结果异常，请稍后查看订单',
+    SYNC_PAYMENT_FAILED: '支付结果同步失败，请稍后查看订单'
+};
 class CustomerApiError extends Error {
     constructor(code, message, statusCode = 0, details) {
         super(message);
@@ -18,6 +39,30 @@ class CustomerApiError extends Error {
     }
 }
 exports.CustomerApiError = CustomerApiError;
+function normalizeApiErrorCode(value) {
+    var _a;
+    return (_a = value === null || value === void 0 ? void 0 : value.trim().replace(/\s+/g, '_').toUpperCase()) !== null && _a !== void 0 ? _a : '';
+}
+function isMachineReadableMessage(value) {
+    const message = value.trim();
+    return /^[A-Z0-9_ ]+$/.test(message) || (message.includes('_') && /^[A-Za-z0-9_]+$/.test(message));
+}
+function getCustomerApiErrorMessage(code, message, fallback = '请求失败，请稍后重试') {
+    var _a;
+    const knownMessage = (_a = CUSTOMER_API_ERROR_MESSAGES[normalizeApiErrorCode(code)]) !== null && _a !== void 0 ? _a : CUSTOMER_API_ERROR_MESSAGES[normalizeApiErrorCode(message)];
+    if (knownMessage) {
+        return knownMessage;
+    }
+    const trimmedMessage = message === null || message === void 0 ? void 0 : message.trim();
+    if (trimmedMessage && !isMachineReadableMessage(trimmedMessage)) {
+        return trimmedMessage;
+    }
+    const trimmedCode = code === null || code === void 0 ? void 0 : code.trim();
+    if (trimmedCode && !isMachineReadableMessage(trimmedCode)) {
+        return trimmedCode;
+    }
+    return fallback;
+}
 function getWxApi() {
     if (typeof wx === 'undefined') {
         throw new CustomerApiError('WX_UNAVAILABLE', 'WeChat API is unavailable');
@@ -98,7 +143,7 @@ function normalizeRequestFailure(error) {
     return new CustomerApiError('REQUEST_FAILED', message, 0, error);
 }
 async function sendCustomerApiRequest(path, options, token) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d;
     const method = (_a = options.method) !== null && _a !== void 0 ? _a : 'GET';
     const body = options.body === undefined && method !== 'GET' ? {} : options.body;
     const headers = {
@@ -125,12 +170,13 @@ async function sendCustomerApiRequest(path, options, token) {
     const data = response.data;
     if (response.statusCode >= 200 && response.statusCode < 300) {
         if (data && typeof data === 'object' && data.ok === false) {
-            throw new CustomerApiError((_c = data.code) !== null && _c !== void 0 ? _c : 'API_ERROR', (_d = data.message) !== null && _d !== void 0 ? _d : 'API request failed', response.statusCode, data);
+            const errorBody = data;
+            throw new CustomerApiError((_c = errorBody.code) !== null && _c !== void 0 ? _c : 'API_ERROR', getCustomerApiErrorMessage(errorBody.code, errorBody.message), response.statusCode, data);
         }
         return data;
     }
     const errorBody = data;
-    throw new CustomerApiError((_e = errorBody === null || errorBody === void 0 ? void 0 : errorBody.code) !== null && _e !== void 0 ? _e : `HTTP_${response.statusCode}`, (_f = errorBody === null || errorBody === void 0 ? void 0 : errorBody.message) !== null && _f !== void 0 ? _f : 'API request failed', response.statusCode, data);
+    throw new CustomerApiError((_d = errorBody === null || errorBody === void 0 ? void 0 : errorBody.code) !== null && _d !== void 0 ? _d : `HTTP_${response.statusCode}`, getCustomerApiErrorMessage(errorBody === null || errorBody === void 0 ? void 0 : errorBody.code, errorBody === null || errorBody === void 0 ? void 0 : errorBody.message), response.statusCode, data);
 }
 async function customerLogin() {
     const loginResult = await getWxApi().login();
