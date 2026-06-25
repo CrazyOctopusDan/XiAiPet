@@ -337,6 +337,70 @@ describe('cart service', () => {
     });
   });
 
+  it('updates available stock without blocking checkout when selected quantity remains valid', async () => {
+    storage.set(CUSTOMER_CART_STORAGE_KEY, {
+      schemaVersion: 1,
+      updatedAt: '2026-06-24T00:00:00.000Z',
+      items: [
+        {
+          productId: 'ocean-party',
+          specId: 'ocean-party-3-chicken',
+          quantity: 1,
+          selected: true,
+          snapshot: {
+            name: '海洋奇遇',
+            summary: '下单备注宠物姓名 3寸/4寸 规格可选，展示图为3寸效果。',
+            thumbnail: '',
+            specLabel: '3寸鸡肉',
+            unitPrice: 138,
+            stock: 9,
+            deliveryModes: ['delivery', 'pickup', 'express']
+          },
+          updatedAt: '2026-06-24T00:00:00.000Z'
+        }
+      ]
+    });
+    hydrateCartFromStorage({ now: Date.parse('2026-06-25T00:00:00.000Z') });
+
+    const result = await reconcileCartWithCatalog(async () => ({
+      ok: true,
+      lines: [
+        {
+          productId: 'ocean-party',
+          requestedSpecId: 'ocean-party-3-chicken',
+          resolvedSpecId: 'ocean-party-3-chicken',
+          status: 'available',
+          product: {
+            id: 'ocean-party',
+            name: '海洋奇遇',
+            summary: '下单备注宠物姓名 3寸/4寸 规格可选，展示图为3寸效果。',
+            thumbnail: '',
+            stock: 7,
+            soldOut: false,
+            deliveryModes: ['delivery', 'pickup', 'express'],
+            updatedAt: '2026-06-25T00:00:00.000Z'
+          },
+          spec: {
+            id: 'ocean-party-3-chicken',
+            label: '3寸鸡肉',
+            price: 138
+          },
+          requestedQuantity: 1,
+          resolvedQuantity: 1,
+          changes: []
+        }
+      ]
+    }));
+
+    expect(result).toMatchObject({ ok: true, changed: true, hasBlockingChanges: false });
+    expect(getCartItems()[0]).toMatchObject({
+      selected: true,
+      stock: 7,
+      quantity: 1,
+      validationStatus: 'available'
+    });
+  });
+
   it('keeps unverified cart rows when reconciliation fails', async () => {
     const product = getProductById('sea-sponge');
 

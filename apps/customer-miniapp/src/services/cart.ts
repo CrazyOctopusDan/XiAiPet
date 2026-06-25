@@ -594,6 +594,21 @@ function hasItemDisplayChanged(item: CartItem, line: ResolvedCartLine) {
   );
 }
 
+function hasItemBlockingChange(item: CartItem, line: ResolvedCartLine) {
+  return Boolean(
+    line.product &&
+      (item.name !== line.product.name ||
+        item.summary !== line.product.summary ||
+        item.thumbnail !== line.product.thumbnail ||
+        item.deliveryModes.join('|') !== normalizeDeliveryModes(line.product.deliveryModes).join('|')) ||
+      line.spec &&
+        (item.specId !== line.resolvedSpecId ||
+          item.specLabel !== line.spec.label ||
+          item.price !== line.spec.price) ||
+      item.quantity !== line.resolvedQuantity
+  );
+}
+
 function applyResolvedAvailableLine(item: CartItem, line: ResolvedCartLine) {
   if (line.product) {
     item.name = line.product.name;
@@ -681,9 +696,10 @@ export async function reconcileCartWithCatalog(
 
     if (line.status === 'available' || line.status === 'quantity_adjusted') {
       const lineChanged = hasItemDisplayChanged(item, line);
+      const blockingChanged = hasItemBlockingChange(item, line);
       applyResolvedAvailableLine(item, line);
       changed = changed || lineChanged;
-      hasBlockingChanges = hasBlockingChanges || (wasSelected && lineChanged);
+      hasBlockingChanges = hasBlockingChanges || (wasSelected && blockingChanged);
       return;
     }
 
