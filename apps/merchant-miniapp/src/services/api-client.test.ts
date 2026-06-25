@@ -192,7 +192,7 @@ describe('merchant API client', () => {
       })
     ).rejects.toMatchObject({
       code: 'ORDER_STOCK_UNAVAILABLE',
-      message: '商品库存不足，请调整数量后重试',
+      message: '商品库存不足，去看看别的商品吧',
       statusCode: 409
     } satisfies Partial<MerchantApiError>);
   });

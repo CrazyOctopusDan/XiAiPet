@@ -69,7 +69,7 @@ const MERCHANT_API_ERROR_MESSAGES: Record<string, string> = {
   DELIVERY_OUT_OF_RANGE: '超出配送范围',
   ORDER_PRODUCT_UNAVAILABLE: '商品已下架，请重新选择',
   ORDER_SPEC_UNAVAILABLE: '商品规格已调整，请重新选择',
-  ORDER_STOCK_UNAVAILABLE: '商品库存不足，请调整数量后重试',
+  ORDER_STOCK_UNAVAILABLE: '商品库存不足，去看看别的商品吧',
   ORDER_GIFT_UNAVAILABLE: '赠品状态已变化，请重新选择',
   INSUFFICIENT_BALANCE: '余额不足'
 };

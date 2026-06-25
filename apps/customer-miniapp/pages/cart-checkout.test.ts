@@ -2495,7 +2495,7 @@ describe('cart checkout flow', () => {
     expect(instance.data.submitting).toBe(false);
     expect(getCartItems()).toHaveLength(1);
     expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({
-      title: '商品库存不足，请调整数量后重试'
+      title: '商品库存不足，去看看别的商品吧'
     }));
   });
 
