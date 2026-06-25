@@ -181,7 +181,7 @@ Page({
         });
     },
     async handleSubmitStatus() {
-        if (!this.currentOrder || !this.data.detail) {
+        if (!this.currentOrder || !this.data.detail || this.data.submitting) {
             return;
         }
         const selected = findStatusOption(this.data.detail, this.data.selectedStatusValue);

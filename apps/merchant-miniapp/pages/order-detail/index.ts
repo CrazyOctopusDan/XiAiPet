@@ -232,7 +232,7 @@ Page({
     });
   },
   async handleSubmitStatus(this: OrderDetailPageInstance) {
-    if (!this.currentOrder || !this.data.detail) {
+    if (!this.currentOrder || !this.data.detail || this.data.submitting) {
       return;
     }
 

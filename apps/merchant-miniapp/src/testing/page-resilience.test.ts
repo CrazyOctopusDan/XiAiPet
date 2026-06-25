@@ -9,6 +9,7 @@ type PageOptions = Record<string, any> & {
 
 interface WxRequestOptions {
   url?: string;
+  method?: string;
   success?: (response: unknown) => void;
   fail?: (error: unknown) => void;
 }
@@ -85,6 +86,67 @@ function createPageInstance(page: PageOptions) {
   });
 
   return instance;
+}
+
+function createOrderDetailFixture() {
+  return {
+    id: 'order-001',
+    openid: 'customer-openid',
+    status: 'paid',
+    paymentMethod: 'balance',
+    payment: {
+      method: 'balance',
+      status: 'paid'
+    },
+    fulfillmentState: {
+      mode: 'delivery',
+      status: 'pending',
+      updatedAt: '2026-06-25T03:20:00.000Z'
+    },
+    pricing: {
+      itemsSubtotal: 96,
+      deliveryFee: 60,
+      payableTotal: 156
+    },
+    snapshot: {
+      fulfillment: {
+        mode: 'delivery',
+        address: {
+          id: 'address-001',
+          recipientName: 'Cookie大爹',
+          phoneNumber: '18811736099',
+          regionLabel: '浙江省嘉兴市南湖区',
+          detailAddress: '留香名苑17幢805',
+          tag: '家'
+        },
+        reservation: {
+          dateValue: '2026-06-25',
+          dateLabel: '今天 06-25',
+          timeValue: '13:30',
+          timeLabel: '13:30'
+        },
+        store: {
+          name: '喜爱宠物烘焙',
+          address: '嘉兴'
+        }
+      },
+      items: [
+        {
+          productId: 'product-001',
+          name: '香烘新西兰猪蛋蛋',
+          quantity: 6,
+          unitPrice: 16,
+          specId: '',
+          specLabel: '',
+          lineTotal: 96
+        }
+      ],
+      pets: [],
+      remark: ''
+    },
+    createdAt: '2026-06-25T03:20:00.000Z',
+    updatedAt: '2026-06-25T03:20:00.000Z'
+  };
 }
 
 describe('merchant page API resilience', () => {
@@ -204,6 +266,85 @@ describe('merchant page API resilience', () => {
       title: '用户加载失败',
       icon: 'none'
     });
+  });
+
+  it('ignores repeated order status submissions while the first update is pending', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/order-detail/index.ts');
+    const order = createOrderDetailFixture();
+    const statusRequests: WxRequestOptions[] = [];
+
+    wx.request.mockImplementation((options: WxRequestOptions) => {
+      if (options.url?.includes('/api/v1/merchant/orders/order-001/status')) {
+        statusRequests.push(options);
+        if (statusRequests.length === 1) {
+          return;
+        }
+        options.success?.({
+          statusCode: 409,
+          data: {
+            ok: false,
+            code: 'ORDER_TERMINAL',
+            message: 'Terminal order cannot be updated'
+          }
+        });
+        return;
+      }
+
+      if (options.url?.includes('/api/v1/merchant/orders/order-001')) {
+        options.success?.({
+          statusCode: 200,
+          data: {
+            ok: true,
+            order,
+            timeline: []
+          }
+        });
+        return;
+      }
+
+      options.fail?.({ errMsg: 'request:fail unexpected request' });
+    });
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ orderId: 'order-001' });
+    await instance.refreshDetail();
+    instance.handleOpenStatusDrawer();
+    instance.handleStatusOptionTap({
+      currentTarget: {
+        dataset: {
+          value: 'cancelled'
+        }
+      }
+    });
+
+    const firstSubmit = instance.handleSubmitStatus();
+    const secondSubmit = instance.handleSubmitStatus();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(statusRequests).toHaveLength(1);
+    const firstStatusRequest = statusRequests[0];
+    if (!firstStatusRequest) {
+      throw new Error('missing first status request');
+    }
+    firstStatusRequest.success?.({
+      statusCode: 200,
+      data: {
+        ok: true,
+        order: {
+          ...order,
+          status: 'cancelled',
+          fulfillmentState: {
+            ...order.fulfillmentState,
+            status: 'cancelled'
+          },
+          updatedAt: '2026-06-25T03:21:00.000Z'
+        }
+      }
+    });
+
+    await Promise.all([firstSubmit, secondSubmit]);
   });
 
   it('unblocks staff disable when the account request fails', async () => {

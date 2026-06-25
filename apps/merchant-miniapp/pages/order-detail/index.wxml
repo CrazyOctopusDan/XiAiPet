@@ -223,7 +223,12 @@
 
     <view class="drawer-actions">
       <button class="secondary-button" bindtap="handleCloseStatusDrawer">取消</button>
-      <button class="primary-button" loading="{{submitting}}" bindtap="handleSubmitStatus">确认提交</button>
+      <button
+        class="primary-button"
+        loading="{{submitting}}"
+        disabled="{{submitting}}"
+        bindtap="handleSubmitStatus"
+      >确认提交</button>
     </view>
   </view>
 </view>
