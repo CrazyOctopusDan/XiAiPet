@@ -197,9 +197,9 @@ model MerchantOrderNotificationSubscriber {
 
   merchantAccount MerchantAccount @relation(fields: [merchantAccountId], references: [id], onDelete: Cascade)
 
-  @@unique([merchantAccountId, openid, templateId])
-  @@index([templateId, enabled])
-  @@index([openid])
+  @@unique([merchantAccountId, openid, templateId], map: "order_notify_subscriber_unique")
+  @@index([templateId, enabled], map: "order_notify_template_enabled_idx")
+  @@index([openid], map: "order_notify_openid_idx")
   @@map("merchant_order_notification_subscribers")
 }
 

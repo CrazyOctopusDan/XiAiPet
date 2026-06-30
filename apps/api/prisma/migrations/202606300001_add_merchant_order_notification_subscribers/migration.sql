@@ -10,9 +10,9 @@ CREATE TABLE `merchant_order_notification_subscribers` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    UNIQUE INDEX `merchant_order_notification_subscribers_merchantAccountId_openid_templateId_key`(`merchantAccountId`, `openid`, `templateId`),
-    INDEX `merchant_order_notification_subscribers_templateId_enabled_idx`(`templateId`, `enabled`),
-    INDEX `merchant_order_notification_subscribers_openid_idx`(`openid`),
+    UNIQUE INDEX `order_notify_subscriber_unique`(`merchantAccountId`, `openid`, `templateId`),
+    INDEX `order_notify_template_enabled_idx`(`templateId`, `enabled`),
+    INDEX `order_notify_openid_idx`(`openid`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
