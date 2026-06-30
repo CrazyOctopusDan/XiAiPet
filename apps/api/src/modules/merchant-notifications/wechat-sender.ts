@@ -46,6 +46,10 @@ function truncate(value: string, maxLength: number) {
   return value.length > maxLength ? value.slice(0, maxLength) : value;
 }
 
+function formatItemQuantity(value: number) {
+  return `${Math.max(0, Math.trunc(value))}件`;
+}
+
 export function createWechatSubscriptionMessageSender(
   config?: Pick<ApiConfig, 'merchantWechatAppId' | 'merchantWechatAppSecret'>,
   fetchImpl: typeof fetch = fetch
@@ -96,9 +100,9 @@ export function createWechatSubscriptionMessageSender(
           data: {
             character_string1: { value: truncate(message.orderId, 32) },
             thing2: { value: truncate(message.customerName, 20) },
-            number3: { value: String(message.itemQuantity) },
-            amount4: { value: `￥${message.payableTotal.toFixed(2)}` },
-            time5: { value: formatWechatTime(message.paidAt) }
+            thing6: { value: formatItemQuantity(message.itemQuantity) },
+            amount7: { value: `￥${message.payableTotal.toFixed(2)}` },
+            time21: { value: formatWechatTime(message.paidAt) }
           }
         })
       });
