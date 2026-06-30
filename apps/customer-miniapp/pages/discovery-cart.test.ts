@@ -108,6 +108,9 @@ describe('discovery cart pages', () => {
     expect(catalogTemplate).toContain('bindtap="handleLoadMoreAvailable"');
     expect(catalogTemplate).toContain('bindtap="handleLoadMoreSoldOut"');
     expect(catalogTemplate).toContain('bindtap="handleToggleSoldOut"');
+    expect(catalogTemplate).toContain('refresher-enabled="{{!showQuickBuy}}"');
+    expect(catalogTemplate).toContain('refresher-triggered="{{isProductRefreshing}}"');
+    expect(catalogTemplate).toContain('bindrefresherrefresh="handleProductRefresh"');
     expect(catalogTemplate).toMatch(/class="product-card soldout"[\s\S]*?class="product-price"/);
     expect(catalogSource).toContain('loadCategoryProducts');
     expect(catalogSource).not.toContain('hydrateCatalog()');
@@ -124,6 +127,97 @@ describe('discovery cart pages', () => {
     expect(catalogStyles).toContain('align-items: center');
     expect(catalogStyles).toContain('padding: calc(96rpx + env(safe-area-inset-top)) 24rpx calc(96rpx + env(safe-area-inset-bottom))');
     expect(catalogStyles).toContain('.quick-buy-submit::after');
+  });
+
+  it('focuses the next category once its product section title reaches the top activation zone', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.ts');
+    const instance = createPageInstance(page);
+    const sections = [
+      {
+        id: 'cakes',
+        category: {
+          id: 'cakes',
+          name: '蛋糕',
+          shortName: '蛋糕',
+          iconText: '糕',
+          sectionTitle: '蛋糕',
+          availableCount: 2,
+          soldOutCount: 0
+        },
+        isSoldOutExpanded: false,
+        availableProducts: [],
+        soldOutProducts: [],
+        availablePageInfo: { hasMore: false, nextCursor: null },
+        soldOutPageInfo: { hasMore: false, nextCursor: null },
+        isAvailableLoading: false,
+        isSoldOutLoading: false
+      },
+      {
+        id: 'fresh',
+        category: {
+          id: 'fresh',
+          name: '鲜食',
+          shortName: '鲜食',
+          iconText: '鲜',
+          sectionTitle: '鲜食',
+          availableCount: 4,
+          soldOutCount: 0
+        },
+        isSoldOutExpanded: false,
+        availableProducts: [],
+        soldOutProducts: [],
+        availablePageInfo: { hasMore: false, nextCursor: null },
+        soldOutPageInfo: { hasMore: false, nextCursor: null },
+        isAvailableLoading: false,
+        isSoldOutLoading: false
+      }
+    ];
+
+    instance.setData({
+      sections,
+      activeCategoryId: 'cakes',
+      activeSectionSubtitle: '蛋糕'
+    });
+    instance._sectionMetrics = [
+      { categoryId: 'cakes', top: 0 },
+      { categoryId: 'fresh', top: 450 }
+    ];
+
+    instance.syncActiveCategory(300);
+
+    expect(instance.data.activeCategoryId).toBe('fresh');
+    expect(instance.data.activeSectionSubtitle).toBe('鲜食');
+  });
+
+  it('preserves the current product scroll offset when recalculating sections after load more expands a category', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.ts');
+    const instance = createPageInstance(page);
+
+    wx.createSelectorQuery = () => {
+      const query = {
+        select: vi.fn(() => query),
+        selectAll: vi.fn(() => query),
+        boundingClientRect: vi.fn(() => query),
+        exec: vi.fn((callback?: (result: unknown[]) => void) => {
+          callback?.([
+            { top: 80 },
+            [
+              { top: -260 },
+              { top: 220 }
+            ]
+          ]);
+        })
+      };
+      return query;
+    };
+
+    instance._currentScrollTop = 360;
+
+    instance.refreshSections('delivery', []);
+
+    expect(instance._currentScrollTop).toBe(360);
+    expect(instance._sectionMetrics?.[0]?.top).toBe(20);
+    expect(instance._sectionMetrics?.[1]?.top).toBe(500);
   });
 
   it('hydrates the catalog page with the first available page for every customer category on load', async () => {
@@ -271,6 +365,71 @@ describe('discovery cart pages', () => {
       'merchant-cakes'
     ]);
     expect(instance.data.sections[1]?.availableProducts[0]?.name).toBe('生日蛋糕');
+  });
+
+  it('refreshes the first product page from the right-side product scroll view', async () => {
+    let productRequestCount = 0;
+    const apiRequest = vi.fn(async (path: string) => {
+      if (path === '/api/v1/customer/catalog/categories?deliveryMode=delivery') {
+        return {
+          ok: true,
+          categories: [
+            {
+              id: 'merchant-fresh',
+              name: '鲜食',
+              iconToken: '鲜',
+              availableCount: 1,
+              soldOutCount: 0
+            }
+          ]
+        };
+      }
+
+      if (path === '/api/v1/customer/catalog/categories/merchant-fresh/products?deliveryMode=delivery&availability=available&limit=20') {
+        productRequestCount += 1;
+        return {
+          ok: true,
+          categoryId: 'merchant-fresh',
+          availability: 'available',
+          items: [
+            {
+              id: 'fresh-roll',
+              name: productRequestCount === 1 ? '肉肉夹心猪皮卷' : '刷新后的猪皮卷',
+              summary: '右侧滚动区刷新商品',
+              categoryId: 'merchant-fresh',
+              minPrice: 28,
+              stock: 7,
+              soldOut: false,
+              cartActionLabel: '直接加购',
+              memberLevelLabel: '普通会员可购',
+              thumbnail: '',
+              specs: [],
+              fulfillmentModes: ['delivery'],
+              updatedAt: '2026-06-25T00:00:00.000Z'
+            }
+          ],
+          pageInfo: { hasMore: false, nextCursor: null }
+        };
+      }
+
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    vi.doMock('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/src/services/api-client.ts', () => ({
+      customerApiRequest: apiRequest
+    }));
+
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/catalog/index.ts');
+    const instance = createPageInstance(page);
+
+    await instance.onLoad();
+    expect(instance.data.sections[0]?.availableProducts[0]?.name).toBe('肉肉夹心猪皮卷');
+
+    await instance.handleProductRefresh();
+
+    expect(productRequestCount).toBe(2);
+    expect(instance.data.isProductRefreshing).toBe(false);
+    expect(instance.data.sections[0]?.availableProducts[0]?.name).toBe('刷新后的猪皮卷');
   });
 
   it('rebuilds hydrated catalog sections when returning from product detail', async () => {

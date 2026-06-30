@@ -140,7 +140,7 @@ function isInvalidCartStatus(status: CartValidationStatus) {
 }
 
 function isCheckoutEligible(item: CartItem) {
-  return !isInvalidCartStatus(item.validationStatus);
+  return !isInvalidCartStatus(item.validationStatus) && item.stock > 0 && item.quantity > 0;
 }
 
 function getCartValidationMessage(status: CartValidationStatus) {
@@ -373,13 +373,14 @@ export function getCartCount() {
 
 export function getCartSummary() {
   const selectedItems = getSelectedCartItems();
+  const selectableItems = cartItems.filter(isCheckoutEligible);
   const selectedFulfillmentModes = getSelectedCartFulfillmentModes();
   return {
     selectedCount: selectedItems.reduce((total, item) => total + item.quantity, 0),
     selectedTotalPrice: Number(
       selectedItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)
     ),
-    isAllSelected: cartItems.length > 0 && cartItems.every((item) => item.selected),
+    isAllSelected: selectableItems.length > 0 && selectableItems.every((item) => item.selected),
     selectedFulfillmentModes,
     canCheckoutSelectedItems:
       selectedItems.length > 0 &&
@@ -492,7 +493,7 @@ export function updateCartItemSelection(itemId: string, selected: boolean) {
   const item = cartItems.find((entry) => entry.id === itemId) ?? null;
 
   if (item) {
-    item.selected = selected;
+    item.selected = selected && isCheckoutEligible(item);
     persistCart();
   }
 
@@ -502,9 +503,25 @@ export function updateCartItemSelection(itemId: string, selected: boolean) {
 export function toggleAllCartItems(selected: boolean) {
   cartItems = cartItems.map((item) => ({
     ...item,
-    selected
+    selected: selected && isCheckoutEligible(item)
   }));
   persistCart();
+  return cartItems;
+}
+
+export function normalizeCartSelection() {
+  let changed = false;
+  cartItems.forEach((item) => {
+    if (item.selected && !isCheckoutEligible(item)) {
+      item.selected = false;
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    persistCart();
+  }
+
   return cartItems;
 }
 

@@ -19,6 +19,7 @@ exports.addCartItem = addCartItem;
 exports.updateCartItemQuantity = updateCartItemQuantity;
 exports.updateCartItemSelection = updateCartItemSelection;
 exports.toggleAllCartItems = toggleAllCartItems;
+exports.normalizeCartSelection = normalizeCartSelection;
 exports.updateCartItemSpec = updateCartItemSpec;
 exports.removeCartItem = removeCartItem;
 exports.removeSelectedCartItems = removeSelectedCartItems;
@@ -67,7 +68,7 @@ function isInvalidCartStatus(status) {
     return status === 'product_unavailable' || status === 'spec_unavailable' || status === 'sold_out';
 }
 function isCheckoutEligible(item) {
-    return !isInvalidCartStatus(item.validationStatus);
+    return !isInvalidCartStatus(item.validationStatus) && item.stock > 0 && item.quantity > 0;
 }
 function getCartValidationMessage(status) {
     if (status === 'product_unavailable') {
@@ -267,11 +268,12 @@ function getCartCount() {
 }
 function getCartSummary() {
     const selectedItems = getSelectedCartItems();
+    const selectableItems = cartItems.filter(isCheckoutEligible);
     const selectedFulfillmentModes = getSelectedCartFulfillmentModes();
     return {
         selectedCount: selectedItems.reduce((total, item) => total + item.quantity, 0),
         selectedTotalPrice: Number(selectedItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)),
-        isAllSelected: cartItems.length > 0 && cartItems.every((item) => item.selected),
+        isAllSelected: selectableItems.length > 0 && selectableItems.every((item) => item.selected),
         selectedFulfillmentModes,
         canCheckoutSelectedItems: selectedItems.length > 0 &&
             selectedFulfillmentModes.length > 0
@@ -365,7 +367,7 @@ function updateCartItemSelection(itemId, selected) {
     var _a;
     const item = (_a = cartItems.find((entry) => entry.id === itemId)) !== null && _a !== void 0 ? _a : null;
     if (item) {
-        item.selected = selected;
+        item.selected = selected && isCheckoutEligible(item);
         persistCart();
     }
     return item;
@@ -373,9 +375,22 @@ function updateCartItemSelection(itemId, selected) {
 function toggleAllCartItems(selected) {
     cartItems = cartItems.map((item) => ({
         ...item,
-        selected
+        selected: selected && isCheckoutEligible(item)
     }));
     persistCart();
+    return cartItems;
+}
+function normalizeCartSelection() {
+    let changed = false;
+    cartItems.forEach((item) => {
+        if (item.selected && !isCheckoutEligible(item)) {
+            item.selected = false;
+            changed = true;
+        }
+    });
+    if (changed) {
+        persistCart();
+    }
     return cartItems;
 }
 function updateCartItemSpec(itemId, product, specId) {

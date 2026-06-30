@@ -109,6 +109,11 @@
   display: block;
 }
 
+.notification-title,
+.notification-subtitle {
+  display: block;
+}
+
 .page-title {
   font-size: 42rpx;
   font-weight: 800;
@@ -125,6 +130,53 @@
 .summary-metrics {
   display: flex;
   margin-top: 24rpx;
+}
+
+.notification-row {
+  display: flex;
+  align-items: center;
+  margin-top: 22rpx;
+  padding: 18rpx;
+  border-radius: 20rpx;
+  background: #FBF6EE;
+}
+
+.notification-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.notification-title {
+  color: #26333D;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.notification-subtitle {
+  margin-top: 6rpx;
+  color: #756756;
+  font-size: 20rpx;
+  line-height: 1.35;
+}
+
+.notification-button {
+  box-sizing: border-box;
+  min-width: 140rpx;
+  height: 60rpx;
+  margin: 0 0 0 18rpx;
+  padding: 0 22rpx;
+  border: none;
+  border-radius: 16rpx;
+  background: #2E5B73;
+  color: #FFFFFF;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 60rpx;
+}
+
+.notification-button::after {
+  border: none;
 }
 
 .metric-chip {

@@ -29,6 +29,8 @@ interface AddressFormPageData {
   form: AddressFormValue;
   showSyncExpressAddress: boolean;
   syncExpressAddress: boolean;
+  recognitionModalVisible: boolean;
+  recognitionInput: string;
   locationPrivacyAuthorizationRequired: boolean;
   privacyContractName: string;
 }
@@ -39,11 +41,30 @@ interface AddressFormPageInstance {
   handleChooseLocation(): void;
   handleRequestLocationPrivacy(): void;
   handleAgreeLocationPrivacyAuthorization(): void;
+  handleRecognitionButtonTap(): void;
+  handleRecognitionInput(event: { detail?: { value?: string } }): void;
+  handleCloseRecognitionModal(): void;
+  handleRecognitionModalTap(): void;
+  handleApplyRecognition(): void;
   applyLocationSelection(result: { name?: string; address?: string; latitude: number; longitude: number }): void;
   pendingLocationPrivacyResolve?: (result: { event: string; buttonId?: string }) => void;
   resolvingLocationPrivacyAuthorization?: boolean;
   lastLocationPrivacyAuthorizationAt?: number;
 }
+
+interface AddressRecognitionResult {
+  recipientName?: string;
+  phoneNumber?: string;
+  regionLabel?: string;
+  detailAddress?: string;
+}
+
+const NAME_LABEL_PATTERN = /^(?:收件人|收货人|联系人|姓名|名字)\s*[:：]?\s*(.+)$/;
+const PHONE_LABEL_PATTERN = /^(?:手机号码|手机号|手机|联系电话|电话|联系方式)\s*[:：]?\s*(.+)$/;
+const REGION_LABEL_PATTERN = /^(?:所在地区|地区|省市区|省市县|省市|区域)\s*[:：]?\s*(.+)$/;
+const DETAIL_LABEL_PATTERN = /^(?:详细地址|地址详情|门牌号|街道地址|收货地址|地址)\s*[:：]?\s*(.+)$/;
+const PHONE_PATTERN = /(?:^|[^\d])((?:\+?86[-\s]?)?1[3-9]\d(?:[-\s]?\d{4}){2})(?!\d)/;
+const ADMIN_SUFFIX_PATTERN = /(特别行政区|自治区|自治州|自治县|地区|街道|省|市|区|县|旗|镇|乡)/g;
 
 function createEmptyForm(type: AddressType): AddressFormValue {
   return {
@@ -74,6 +95,151 @@ function isLocationScopeConfigurationFailure(error: { errMsg?: string; errno?: n
   return error.errno === 112 || (error.errMsg ?? '').includes('api scope is not declared');
 }
 
+function normalizeRecognitionLine(value: string) {
+  return value
+    .replace(/\u3000/g, ' ')
+    .replace(/[，,；;]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeRecognitionInput(value: string) {
+  return value
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(normalizeRecognitionLine)
+    .filter(Boolean);
+}
+
+function normalizePhoneNumber(value: string) {
+  const match = value.match(PHONE_PATTERN);
+
+  if (!match?.[1]) {
+    return '';
+  }
+
+  const digits = match[1].replace(/\D/g, '');
+  return digits.length > 11 && digits.startsWith('86') ? digits.slice(-11) : digits;
+}
+
+function removePhoneNumber(value: string, phoneNumber: string) {
+  if (!phoneNumber) {
+    return value;
+  }
+
+  const spacedPhone = phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1\\s*[- ]?\\s*$2\\s*[- ]?\\s*$3');
+  return value
+    .replace(new RegExp(`(?:\\+?86\\s*[- ]?\\s*)?${spacedPhone}`), ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function splitRegionAndDetail(value: string) {
+  const normalized = normalizeRecognitionLine(value);
+
+  if (!normalized) {
+    return {};
+  }
+
+  let lastAdminEnd = 0;
+  let match: RegExpExecArray | null;
+  ADMIN_SUFFIX_PATTERN.lastIndex = 0;
+
+  while ((match = ADMIN_SUFFIX_PATTERN.exec(normalized))) {
+    const nextEnd = match.index + match[0].length;
+
+    if (nextEnd <= 32) {
+      lastAdminEnd = nextEnd;
+    }
+  }
+
+  if (lastAdminEnd > 0 && lastAdminEnd < normalized.length) {
+    return {
+      regionLabel: normalized.slice(0, lastAdminEnd).trim(),
+      detailAddress: normalized.slice(lastAdminEnd).trim()
+    };
+  }
+
+  return {
+    detailAddress: normalized
+  };
+}
+
+function parseAddressRecognitionInput(value: string): AddressRecognitionResult {
+  const lines = normalizeRecognitionInput(value);
+  const result: AddressRecognitionResult = {};
+  const unstructuredLines: string[] = [];
+
+  for (const line of lines) {
+    const nameMatch = line.match(NAME_LABEL_PATTERN);
+    const phoneMatch = line.match(PHONE_LABEL_PATTERN);
+    const regionMatch = line.match(REGION_LABEL_PATTERN);
+    const detailMatch = line.match(DETAIL_LABEL_PATTERN);
+
+    if (nameMatch?.[1]) {
+      result.recipientName = normalizeRecognitionLine(nameMatch[1]);
+      continue;
+    }
+
+    if (phoneMatch?.[1]) {
+      result.phoneNumber = normalizePhoneNumber(phoneMatch[1]) || normalizeRecognitionLine(phoneMatch[1]);
+      continue;
+    }
+
+    if (regionMatch?.[1]) {
+      result.regionLabel = normalizeRecognitionLine(regionMatch[1]);
+      continue;
+    }
+
+    if (detailMatch?.[1]) {
+      result.detailAddress = normalizeRecognitionLine(detailMatch[1]);
+      continue;
+    }
+
+    unstructuredLines.push(line);
+  }
+
+  const combined = unstructuredLines.join(' ');
+  const phoneNumber = result.phoneNumber || normalizePhoneNumber(combined);
+
+  if (phoneNumber) {
+    result.phoneNumber = phoneNumber;
+  }
+
+  let addressText = removePhoneNumber(combined, result.phoneNumber ?? '');
+  const segments = addressText.split(/\s+/).map(normalizeRecognitionLine).filter(Boolean);
+  const firstAddressSegmentIndex = segments.findIndex((segment) => /[省市区县镇乡街道路号幢栋单元室]/.test(segment));
+
+  if (!result.recipientName && firstAddressSegmentIndex > 0) {
+    result.recipientName = segments.slice(0, firstAddressSegmentIndex).join(' ');
+    addressText = segments.slice(firstAddressSegmentIndex).join('');
+  } else if (result.recipientName) {
+    addressText = addressText.replace(result.recipientName, '').trim();
+  } else {
+    addressText = segments.join('');
+  }
+
+  if (!result.regionLabel || !result.detailAddress) {
+    const split = splitRegionAndDetail(addressText);
+
+    result.regionLabel = result.regionLabel || split.regionLabel;
+    result.detailAddress = result.detailAddress || split.detailAddress;
+  }
+
+  if (!result.regionLabel && result.detailAddress) {
+    const split = splitRegionAndDetail(result.detailAddress);
+
+    if (split.regionLabel && split.detailAddress) {
+      result.regionLabel = split.regionLabel;
+      result.detailAddress = split.detailAddress;
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(result).filter(([, entryValue]) => Boolean(entryValue?.trim()))
+  ) as AddressRecognitionResult;
+}
+
 Page({
   data: {
     mode: 'create',
@@ -81,6 +247,8 @@ Page({
     form: createEmptyForm('city'),
     showSyncExpressAddress: true,
     syncExpressAddress: false,
+    recognitionModalVisible: false,
+    recognitionInput: '',
     locationPrivacyAuthorizationRequired: false,
     privacyContractName: '隐私保护指引'
   },
@@ -102,6 +270,8 @@ Page({
       form: editingAddress ? { ...editingAddress } : createEmptyForm(type),
       showSyncExpressAddress,
       syncExpressAddress: false,
+      recognitionModalVisible: false,
+      recognitionInput: '',
       locationPrivacyAuthorizationRequired: false
     });
   },
@@ -163,6 +333,51 @@ Page({
     this.setData({
       syncExpressAddress: !this.data.syncExpressAddress
     });
+  },
+  handleRecognitionButtonTap(this: AddressFormPageInstance) {
+    this.setData({
+      recognitionModalVisible: true,
+      recognitionInput: ''
+    });
+  },
+  handleRecognitionInput(this: AddressFormPageInstance, event: { detail?: { value?: string } }) {
+    this.setData({
+      recognitionInput: event.detail?.value ?? ''
+    });
+  },
+  handleCloseRecognitionModal(this: AddressFormPageInstance) {
+    this.setData({
+      recognitionModalVisible: false,
+      recognitionInput: ''
+    });
+  },
+  handleRecognitionModalTap() {
+    // Stops overlay taps from closing the modal content in the miniapp event model.
+  },
+  handleApplyRecognition(this: AddressFormPageInstance) {
+    const parsed = parseAddressRecognitionInput(this.data.recognitionInput);
+
+    if (!parsed.recipientName && !parsed.phoneNumber && !parsed.regionLabel && !parsed.detailAddress) {
+      wx.showToast({ title: '未识别到地址信息', icon: 'none' });
+      return;
+    }
+
+    const nextForm: AddressFormValue = {
+      ...this.data.form,
+      ...parsed
+    };
+
+    if (nextForm.type === 'city') {
+      delete nextForm.latitude;
+      delete nextForm.longitude;
+    }
+
+    this.setData({
+      form: nextForm,
+      recognitionModalVisible: false,
+      recognitionInput: ''
+    });
+    wx.showToast({ title: '已填入地址信息', icon: 'none' });
   },
   handleLocationButtonTap(this: AddressFormPageInstance) {
     this.handleRequestLocationPrivacy();

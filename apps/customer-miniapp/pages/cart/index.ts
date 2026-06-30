@@ -10,6 +10,7 @@ import {
   getCartItems,
   getCartSummary,
   hasUnverifiedCartItems,
+  normalizeCartSelection,
   removeCartItem,
   reconcileCartWithCatalog,
   toggleAllCartItems,
@@ -30,6 +31,7 @@ interface CartPageData {
   isAllSelected: boolean;
   canCheckoutSelectedItems: boolean;
   fulfillmentWarning: string;
+  isCartRefreshing: boolean;
   isCheckoutPending: boolean;
   swipedItemId: string;
   showSpecModal: boolean;
@@ -43,6 +45,7 @@ interface CartPageInstance {
   setData(data: Record<string, unknown>): void;
   refreshCart(previousItems?: CartItem[]): void;
   reconcileItems(nextItems: CartItem[], previousItems: CartItem[]): CartItem[];
+  handleCartRefresh(): Promise<void>;
 }
 
 Page({
@@ -55,6 +58,7 @@ Page({
     isAllSelected: false,
     canCheckoutSelectedItems: false,
     fulfillmentWarning: '',
+    isCartRefreshing: false,
     isCheckoutPending: false,
     swipedItemId: '',
     showSpecModal: false,
@@ -76,6 +80,7 @@ Page({
     return [...orderedExistingItems, ...appendedItems];
   },
   refreshCart(this: CartPageInstance, previousItems?: CartItem[]) {
+    normalizeCartSelection();
     const summary = getCartSummary();
     const nextItems = [...getCartItems()];
     const displayItems = previousItems ? this.reconcileItems(nextItems, previousItems) : nextItems;
@@ -109,8 +114,33 @@ Page({
       return;
     }
 
+    if (item.stock <= 0) {
+      updateCartItemSelection(itemId, false);
+      this.refreshCart();
+      wx.showToast({ title: '库存不足，无法选择', icon: 'none' });
+      return;
+    }
+
     updateCartItemSelection(itemId, !item.selected);
     this.refreshCart();
+  },
+  async handleCartRefresh(this: CartPageInstance) {
+    if (this.data.isCartRefreshing) {
+      return;
+    }
+
+    this.setData({ isCartRefreshing: true });
+
+    try {
+      const result = await reconcileCartWithCatalog();
+      this.refreshCart();
+
+      if (!result.ok) {
+        wx.showToast({ title: '商品信息刷新失败，请稍后再试', icon: 'none' });
+      }
+    } finally {
+      this.setData({ isCartRefreshing: false });
+    }
   },
   handleClearCart(this: CartPageInstance) {
     clearCart();

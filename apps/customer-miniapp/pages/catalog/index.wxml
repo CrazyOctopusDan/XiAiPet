@@ -24,7 +24,15 @@
       </view>
     </scroll-view>
 
-    <scroll-view class="product-column" scroll-y="{{!showQuickBuy}}" scroll-into-view="{{scrollIntoViewTarget}}" bindscroll="handleProductScroll">
+    <scroll-view
+      class="product-column"
+      scroll-y="{{!showQuickBuy}}"
+      scroll-into-view="{{scrollIntoViewTarget}}"
+      refresher-enabled="{{!showQuickBuy}}"
+      refresher-triggered="{{isProductRefreshing}}"
+      bindscroll="handleProductScroll"
+      bindrefresherrefresh="handleProductRefresh"
+    >
       <view class="catalog-empty" wx:if="{{!sections.length}}">
         <text class="catalog-empty-title">商品暂未上架</text>
         <text class="catalog-empty-copy">店主配置商品后，这里会展示可预约的商品。</text>

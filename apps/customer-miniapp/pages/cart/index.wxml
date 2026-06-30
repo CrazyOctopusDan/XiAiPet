@@ -11,7 +11,14 @@
     </view>
 
     <view class="cart-list">
-      <scroll-view class="cart-list-scroll" scroll-y enable-flex>
+      <scroll-view
+        class="cart-list-scroll"
+        scroll-y
+        enable-flex
+        refresher-enabled="true"
+        refresher-triggered="{{isCartRefreshing}}"
+        bindrefresherrefresh="handleCartRefresh"
+      >
         <view class="cart-fulfillment-group" wx:for="{{itemGroups}}" wx:for-item="group" wx:key="key">
           <view class="cart-fulfillment-head">
             <text class="cart-fulfillment-title">{{group.label}}</text>
@@ -36,12 +43,17 @@
               bindtouchend="handleRowSwipeEnd"
               bindtouchcancel="handleRowSwipeEnd"
             >
-              <view class="row-check" bindtap="handleToggleItem" data-item-id="{{item.id}}">
-                <view class="checkbox {{item.selected ? 'active' : ''}}"></view>
+              <view class="row-check {{item.stock <= 0 ? 'disabled' : ''}}" bindtap="handleToggleItem" data-item-id="{{item.id}}">
+                <view class="checkbox {{item.selected && item.stock > 0 ? 'active' : ''}} {{item.stock <= 0 ? 'disabled' : ''}}"></view>
               </view>
 
-              <image wx:if="{{item.thumbnail}}" class="row-image" mode="aspectFill" src="{{item.thumbnail}}" />
-              <view wx:else class="row-image row-image-placeholder"><text>{{item.name}}</text></view>
+              <view class="row-image-wrap">
+                <image wx:if="{{item.thumbnail}}" class="row-image" mode="aspectFill" src="{{item.thumbnail}}" />
+                <view wx:else class="row-image row-image-placeholder"><text>{{item.name}}</text></view>
+                <view class="row-soldout-mask" wx:if="{{item.stock <= 0}}">
+                  <text class="row-soldout-stamp">售罄</text>
+                </view>
+              </view>
 
               <view class="row-main">
                 <text class="row-name">{{item.name}}</text>

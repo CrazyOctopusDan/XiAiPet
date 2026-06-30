@@ -40,6 +40,7 @@ type PageSection = {
   isSoldOutLoading: boolean;
 };
 type SectionMetric = { categoryId: string; top: number };
+const ACTIVE_SECTION_TOP_OFFSET = 180;
 
 interface CatalogPageData {
   deliveryModes: Array<{ id: DeliveryMode; label: string }>;
@@ -56,6 +57,7 @@ interface CatalogPageData {
   quantity: number;
   expandedSoldOutCategoryIds: string[];
   scrollIntoViewTarget: string;
+  isProductRefreshing: boolean;
 }
 
 interface CatalogPageInstance {
@@ -63,11 +65,12 @@ interface CatalogPageInstance {
   _currentScrollTop?: number;
   _sectionMetrics?: SectionMetric[];
   setData(data: Record<string, unknown>, callback?: () => void): void;
-  refreshSections(mode: DeliveryMode, expandedCategoryIds?: string[]): void;
-  loadInitialCategoryProducts(mode: DeliveryMode): Promise<void>;
+  refreshSections(mode: DeliveryMode, expandedCategoryIds?: string[], options?: { resetScroll?: boolean }): void;
+  loadInitialCategoryProducts(mode: DeliveryMode, options?: { force?: boolean }): Promise<void>;
   syncCartState(): void;
   updateSectionMetrics(): void;
   syncActiveCategory(scrollTop: number): void;
+  handleProductRefresh(): Promise<void>;
 }
 
 function withCartQuantity(product: CatalogProductSummary | CatalogProduct): PageProduct {
@@ -144,7 +147,8 @@ Page({
     selectedSpecPrice: 0,
     quantity: 1,
     expandedSoldOutCategoryIds: [],
-    scrollIntoViewTarget: ''
+    scrollIntoViewTarget: '',
+    isProductRefreshing: false
   },
   async onLoad(this: CatalogPageInstance) {
     try {
@@ -162,7 +166,12 @@ Page({
   onShow(this: CatalogPageInstance) {
     this.syncCartState();
   },
-  refreshSections(this: CatalogPageInstance, mode: DeliveryMode, expandedCategoryIds: string[] = []) {
+  refreshSections(
+    this: CatalogPageInstance,
+    mode: DeliveryMode,
+    expandedCategoryIds: string[] = [],
+    options: { resetScroll?: boolean } = {}
+  ) {
     const sections = toPageSections(mode, expandedCategoryIds);
     const activeCategoryId = sections.some((section) => section.category.id === this.data.activeCategoryId)
       ? this.data.activeCategoryId
@@ -178,14 +187,16 @@ Page({
         '',
       scrollIntoViewTarget: ''
     }, () => {
-      this._currentScrollTop = 0;
+      if (options.resetScroll) {
+        this._currentScrollTop = 0;
+      }
       this.updateSectionMetrics();
     });
   },
-  async loadInitialCategoryProducts(this: CatalogPageInstance, mode: DeliveryMode) {
+  async loadInitialCategoryProducts(this: CatalogPageInstance, mode: DeliveryMode, options: { force?: boolean } = {}) {
     const sectionsToLoad = getVisibleCategories(mode)
       .map((category) => getCatalogSectionState(mode, category.id))
-      .filter((section) => section.category.availableCount > 0 && !section.availableProducts.length);
+      .filter((section) => section.category.availableCount > 0 && (options.force || !section.availableProducts.length));
 
     await Promise.all(
       sectionsToLoad.map((section) =>
@@ -244,7 +255,7 @@ Page({
     let nextCategoryId = this._sectionMetrics[0]?.categoryId ?? this.data.activeCategoryId;
 
     this._sectionMetrics.forEach((metric) => {
-      if (scrollTop + 120 >= metric.top) {
+      if (scrollTop + ACTIVE_SECTION_TOP_OFFSET >= metric.top) {
         nextCategoryId = metric.categoryId;
       }
     });
@@ -268,9 +279,9 @@ Page({
 
     try {
       await hydrateCatalogCategories(nextMode);
-      this.refreshSections(nextMode);
+      this.refreshSections(nextMode, [], { resetScroll: true });
       await this.loadInitialCategoryProducts(nextMode);
-      this.refreshSections(nextMode);
+      this.refreshSections(nextMode, [], { resetScroll: true });
     } catch {
       await showCatalogLoadError();
     }
@@ -304,6 +315,25 @@ Page({
   },
   handleProductScroll(this: CatalogPageInstance, event: { detail?: { scrollTop?: number } }) {
     this.syncActiveCategory(event.detail?.scrollTop ?? 0);
+  },
+  async handleProductRefresh(this: CatalogPageInstance) {
+    if (this.data.isProductRefreshing) {
+      return;
+    }
+
+    const mode = this.data.activeDeliveryMode;
+    const expandedCategoryIds = this.data.expandedSoldOutCategoryIds;
+    this.setData({ isProductRefreshing: true });
+
+    try {
+      await hydrateCatalogCategories(mode);
+      await this.loadInitialCategoryProducts(mode, { force: true });
+      this.refreshSections(mode, expandedCategoryIds);
+    } catch {
+      await showCatalogLoadError();
+    } finally {
+      this.setData({ isProductRefreshing: false });
+    }
   },
   async handleLoadMoreAvailable(this: CatalogPageInstance, event: { currentTarget?: { dataset?: { categoryId?: string } } }) {
     const categoryId = event.currentTarget?.dataset?.categoryId;

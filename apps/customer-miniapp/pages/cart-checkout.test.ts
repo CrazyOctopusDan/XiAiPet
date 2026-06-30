@@ -294,10 +294,19 @@ describe('cart checkout flow', () => {
     );
 
     expect(cartTemplate).toContain('class="checkbox {{isAllSelected ? \'active\' : \'\'}}"');
+    expect(cartTemplate).toContain('refresher-enabled="true"');
+    expect(cartTemplate).toContain('refresher-triggered="{{isCartRefreshing}}"');
+    expect(cartTemplate).toContain('bindrefresherrefresh="handleCartRefresh"');
+    expect(cartTemplate).toContain("item.stock <= 0 ? 'disabled' : ''");
+    expect(cartTemplate).toContain('class="row-soldout-mask" wx:if="{{item.stock <= 0}}"');
+    expect(cartTemplate).toContain('class="row-soldout-stamp">售罄</text>');
     expect(cartTemplate).toContain('尺寸和口味选择');
     expect(cartTemplate).not.toContain('row-spec-arrow');
     expect(cartStyles).toContain('linear-gradient(180deg, #FFFDF5 0%, #FFF9DF 58%, #F6E396 100%)');
     expect(cartStyles).toContain('.checkbox.active::after');
+    expect(cartStyles).toContain('.checkbox.disabled');
+    expect(cartStyles).toContain('.row-soldout-mask');
+    expect(cartStyles).toContain('.row-soldout-stamp');
     expect(cartStyles).toMatch(/\.cart-row \{[\s\S]*?background: #FFFFFF/);
     expect(cartStyles).toContain('.stepper-btn::before');
     expect(cartStyles).toContain('.stepper-btn.plus::after');
@@ -337,6 +346,104 @@ describe('cart checkout flow', () => {
     expect(instance.data.selectedCount).toBe(0);
     expect(instance.data.selectedTotalPrice).toBe(0);
     expect(instance.data.cartCount).toBe(0);
+  });
+
+  it('keeps stock-zero cart items unselected and skips them during select all', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const {
+      addCartItem,
+      clearCart,
+      getCartItems,
+      updateCartItemSelection
+    } = await import('../src/services/cart');
+
+    clearCart();
+
+    const soldOutProduct = getProductById('sea-sponge');
+    const availableProduct = getProductById('ocean-party');
+
+    if (!soldOutProduct || !availableProduct) {
+      throw new Error('missing stock selection fixtures');
+    }
+
+    addCartItem(soldOutProduct, '', 1);
+    addCartItem(availableProduct, availableProduct.specs[0]?.id ?? '', 1);
+
+    const soldOutItem = getCartItems().find((item) => item.productId === soldOutProduct.id);
+    const availableItem = getCartItems().find((item) => item.productId === availableProduct.id);
+
+    if (!soldOutItem || !availableItem) {
+      throw new Error('missing stock selection cart rows');
+    }
+
+    soldOutItem.stock = 0;
+    soldOutItem.selected = false;
+    updateCartItemSelection(availableItem.id, false);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+
+    instance.handleToggleItem({
+      currentTarget: {
+        dataset: {
+          itemId: soldOutItem.id
+        }
+      }
+    });
+
+    expect(instance.data.items.find((item: { id: string }) => item.id === soldOutItem.id)?.selected).toBe(false);
+    expect(instance.data.selectedCount).toBe(0);
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '库存不足，无法选择',
+      icon: 'none'
+    });
+
+    instance.handleToggleAll();
+
+    expect(instance.data.items.find((item: { id: string }) => item.id === soldOutItem.id)?.selected).toBe(false);
+    expect(instance.data.items.find((item: { id: string }) => item.id === availableItem.id)?.selected).toBe(true);
+    expect(instance.data.selectedCount).toBe(1);
+    expect(instance.data.isAllSelected).toBe(true);
+  });
+
+  it('refreshes cart lines from the full-screen cart list pull-down refresh', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/cart/index.ts');
+    const { getProductById } = await import('../src/services/catalog');
+    const { addCartItem, clearCart } = await import('../src/services/cart');
+
+    clearCart();
+
+    const product = getProductById('sea-sponge');
+
+    if (!product) {
+      throw new Error('missing cart refresh fixture');
+    }
+
+    addCartItem(product, '', 1);
+
+    const instance = createPageInstance(page);
+    instance.onShow();
+    await instance.handleCartRefresh();
+
+    const resolveRequest = wx.request.mock.calls.find(([options]) =>
+      getRequestPath(options) === '/api/v1/customer/catalog/cart/resolve'
+    );
+
+    expect(resolveRequest?.[0]).toEqual(expect.objectContaining({
+      method: 'POST',
+      data: {
+        lines: [
+          {
+            productId: product.id,
+            specId: '',
+            quantity: 1
+          }
+        ]
+      }
+    }));
+    expect(instance.data.isCartRefreshing).toBe(false);
+    expect(instance.data.items[0]?.validationStatus).toBe('available');
   });
 
   it('navigates from cart checkout into the checkout handoff page', async () => {
@@ -1253,6 +1360,10 @@ describe('cart checkout flow', () => {
     expect(formTemplate).not.toContain('class="address-form-hero"');
     expect(formTemplate).not.toContain('class="address-form-subtitle"');
     expect(formTemplate).toContain('class="address-form-context"');
+    expect(formTemplate).toContain('class="recognition-button" bindtap="handleRecognitionButtonTap"');
+    expect(formTemplate).toContain('class="recognition-mask"');
+    expect(formTemplate).toContain('bindinput="handleRecognitionInput"');
+    expect(formTemplate).toContain('bindtap="handleApplyRecognition"');
     expect(formTemplate).toContain('class="address-form-fixed-action"');
     expect(formTemplate).toContain('class="location-button" bindtap="handleLocationButtonTap"');
     expect(formTemplate).toContain('location-privacy-card');
@@ -1262,6 +1373,9 @@ describe('cart checkout flow', () => {
     expect(formTemplate).not.toContain('bindtap="handleAgreeLocationPrivacyAuthorization"');
     expect(formTemplate).toContain('同城配送需要用地图位置计算配送费，请一定选择一个地址。');
     expect(formTemplate).toContain('cursor-spacing="120"');
+    expect(formStyles).toContain('.recognition-button');
+    expect(formStyles).toContain('.recognition-mask');
+    expect(formStyles).toContain('.recognition-modal');
     expect(formStyles).toContain('.location-button::after');
     expect(formStyles).toMatch(/\.location-button \{[\s\S]*?margin-left: auto/);
     expect(formStyles).toContain('padding: 32rpx 24rpx 0');
@@ -1302,6 +1416,93 @@ describe('cart checkout flow', () => {
       detailAddress: '银泰百货',
       latitude: 30.2767,
       longitude: 120.1258
+    });
+  });
+
+  it('fills address fields from a pasted ecommerce address without setting city coordinates', async () => {
+    const { page, wx } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'city' });
+
+    instance.handleRecognitionButtonTap();
+    expect(instance.data.recognitionModalVisible).toBe(true);
+
+    instance.handleRecognitionInput({
+      detail: {
+        value: [
+          '收件人: 一张',
+          '手机号码: 18811736099',
+          '所在地区: 浙江省嘉兴市南湖区长水街道',
+          '详细地址: 长水路留香名苑17幢3单元805'
+        ].join('\n')
+      }
+    });
+    instance.handleApplyRecognition();
+
+    expect(instance.data.recognitionModalVisible).toBe(false);
+    expect(instance.data.recognitionInput).toBe('');
+    expect(instance.data.form).toMatchObject({
+      recipientName: '一张',
+      phoneNumber: '18811736099',
+      regionLabel: '浙江省嘉兴市南湖区长水街道',
+      detailAddress: '长水路留香名苑17幢3单元805'
+    });
+    expect(instance.data.form.latitude).toBeUndefined();
+    expect(instance.data.form.longitude).toBeUndefined();
+
+    await instance.handleSubmit();
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '请选择地图地址，用于计算配送费',
+      icon: 'none'
+    });
+  });
+
+  it('recognizes an unlabeled one-line pasted address with a spaced phone number', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'express' });
+
+    instance.handleRecognitionButtonTap();
+    instance.handleRecognitionInput({
+      detail: {
+        value: '张三 188 1173 6099 浙江省嘉兴市南湖区长水街道长水路留香名苑17幢3单元805'
+      }
+    });
+    instance.handleApplyRecognition();
+
+    expect(instance.data.form).toMatchObject({
+      recipientName: '张三',
+      phoneNumber: '18811736099',
+      regionLabel: '浙江省嘉兴市南湖区长水街道',
+      detailAddress: '长水路留香名苑17幢3单元805'
+    });
+  });
+
+  it('splits a labeled full shipping address into region and detail fields', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/address-form/index.ts');
+
+    const instance = createPageInstance(page);
+    instance.onLoad({ type: 'express' });
+
+    instance.handleRecognitionButtonTap();
+    instance.handleRecognitionInput({
+      detail: {
+        value: [
+          '收货人：李四',
+          '电话：188-1173-6099',
+          '收货地址：浙江省嘉兴市南湖区长水街道长水路留香名苑17幢3单元805'
+        ].join('\n')
+      }
+    });
+    instance.handleApplyRecognition();
+
+    expect(instance.data.form).toMatchObject({
+      recipientName: '李四',
+      phoneNumber: '18811736099',
+      regionLabel: '浙江省嘉兴市南湖区长水街道',
+      detailAddress: '长水路留香名苑17幢3单元805'
     });
   });
 

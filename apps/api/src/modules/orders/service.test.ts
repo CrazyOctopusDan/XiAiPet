@@ -179,6 +179,63 @@ describe('order service', () => {
     });
   });
 
+  it('notifies merchants after creating an order without blocking the checkout response', async () => {
+    const tx = {
+      order: {
+        findUnique: vi.fn(async () => null),
+        create: vi.fn(async ({ data }) =>
+          createOrderRow({
+            id: data.id,
+            openid: data.openid,
+            idempotencyKey: data.idempotencyKey,
+            paymentMethod: data.paymentMethod,
+            fulfillmentMode: data.fulfillmentMode,
+            itemsSubtotal: decimal(Number(data.itemsSubtotal)),
+            deliveryFee: decimal(Number(data.deliveryFee)),
+            payableTotal: decimal(Number(data.payableTotal)),
+            snapshot: data.snapshot
+          })
+        )
+      },
+      product: {
+        update: vi.fn()
+      }
+    };
+    const client = {
+      user: {
+        findUnique: vi.fn(async () => ({ phoneBindingState: 'BOUND' }))
+      },
+      $transaction: vi.fn(async (callback) => callback(tx))
+    };
+    const notifications = {
+      notifyNewOrder: vi.fn(async () => {
+        throw new Error('wechat unavailable');
+      })
+    };
+    const service = createOrderService(client as any, undefined, notifications);
+
+    const result = await service.createCustomerOrder('openid-1', {
+      id: 'order-notify-1',
+      idempotencyKey: 'checkout-key-notify-1',
+      paymentMethod: 'balance',
+      fulfillment: { mode: 'pickup' },
+      pricing: {
+        itemsSubtotal: 88,
+        deliveryFee: 0,
+        payableTotal: 88
+      },
+      items: []
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      order: { id: 'order-notify-1' }
+    });
+    expect(notifications.notifyNewOrder).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'order-notify-1'
+    }));
+  });
+
   it('locks selected gifts and stores gift snapshots when creating an order', async () => {
     const updateMany = vi.fn(async () => ({ count: 1 }));
     const tx = {

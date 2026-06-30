@@ -4,7 +4,10 @@
   <view class="address-form-shell">
     <view class="address-form-context">
       <text class="address-form-context-label">{{typeLabel}}</text>
-      <text class="address-form-context-badge">{{mode === 'edit' ? '编辑' : '新增'}}</text>
+      <view class="address-form-context-actions">
+        <button class="recognition-button" bindtap="handleRecognitionButtonTap">智能识别</button>
+        <text class="address-form-context-badge">{{mode === 'edit' ? '编辑' : '新增'}}</text>
+      </view>
     </view>
 
     <view class="address-form-card">
@@ -68,5 +71,26 @@
     <button class="save-button" bindtap="handleSubmit">
       {{mode === 'edit' ? '保存地址' : '新增地址'}}
     </button>
+  </view>
+
+  <view class="recognition-mask" wx:if="{{recognitionModalVisible}}" catchtap="handleCloseRecognitionModal">
+    <view class="recognition-modal" catchtap="handleRecognitionModalTap">
+      <view class="recognition-modal-header">
+        <text class="recognition-modal-title">智能识别地址</text>
+        <button class="recognition-close-button" bindtap="handleCloseRecognitionModal">×</button>
+      </view>
+      <textarea
+        class="recognition-textarea"
+        value="{{recognitionInput}}"
+        bindinput="handleRecognitionInput"
+        placeholder="粘贴淘宝、微信或快递地址信息"
+        cursor-spacing="120"
+      />
+      <text class="recognition-tip" wx:if="{{form.type === 'city'}}">同城地址识别后仍需手动选择地图位置。</text>
+      <view class="recognition-actions">
+        <button class="recognition-action secondary" bindtap="handleCloseRecognitionModal">取消</button>
+        <button class="recognition-action primary" bindtap="handleApplyRecognition">识别并填入</button>
+      </view>
+    </view>
   </view>
 </view>

@@ -29,6 +29,14 @@
   display: block;
 }
 
+.address-form-context-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
 .address-form-context-label {
   font-size: 34rpx;
   line-height: 1.2;
@@ -45,6 +53,27 @@
   line-height: 1.2;
   font-weight: 900;
   color: #40535C;
+}
+
+.recognition-button {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  min-width: 142rpx;
+  height: 56rpx;
+  padding: 0 20rpx;
+  border-radius: 999rpx;
+  background: #D8F0F4;
+  color: #40535C;
+  font-size: 23rpx;
+  line-height: 56rpx;
+  font-weight: 900;
+}
+
+.recognition-button::after {
+  border: 0;
 }
 
 .address-form-card {
@@ -327,4 +356,123 @@
 
 .save-button::after {
   border: 0;
+}
+
+.recognition-mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: rgba(31, 45, 50, 0.42);
+  box-sizing: border-box;
+}
+
+.recognition-modal {
+  width: 100%;
+  max-height: 78vh;
+  padding: 30rpx 28rpx 28rpx;
+  border-radius: 32rpx;
+  background: #FFFFFF;
+  box-shadow: 0 24rpx 56rpx rgba(31, 45, 50, 0.22);
+  box-sizing: border-box;
+}
+
+.recognition-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.recognition-modal-title {
+  display: block;
+  font-size: 30rpx;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #40535C;
+}
+
+.recognition-close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 58rpx;
+  height: 58rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: #F3F6F3;
+  color: #7B8B92;
+  font-size: 34rpx;
+  line-height: 58rpx;
+  font-weight: 800;
+}
+
+.recognition-close-button::after {
+  border: 0;
+}
+
+.recognition-textarea {
+  width: 100%;
+  min-height: 280rpx;
+  margin-top: 26rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  border: 2rpx solid rgba(80, 104, 105, 0.08);
+  background: #FFFDF5;
+  color: #40535C;
+  font-size: 25rpx;
+  line-height: 1.55;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+
+.recognition-tip {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 23rpx;
+  line-height: 1.45;
+  font-weight: 800;
+  color: #7B8B92;
+}
+
+.recognition-actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 28rpx;
+}
+
+.recognition-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 82rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  line-height: 82rpx;
+  font-weight: 900;
+  color: #40535C;
+}
+
+.recognition-action::after {
+  border: 0;
+}
+
+.recognition-action.secondary {
+  background: #F3F6F3;
+}
+
+.recognition-action.primary {
+  background: #F6E396;
 }

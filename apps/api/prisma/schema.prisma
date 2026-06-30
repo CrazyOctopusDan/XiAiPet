@@ -178,8 +178,29 @@ model MerchantAccount {
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
 
+  notificationSubscribers MerchantOrderNotificationSubscriber[]
+
   @@index([role, status])
   @@map("merchant_accounts")
+}
+
+model MerchantOrderNotificationSubscriber {
+  id                String   @id @default(cuid())
+  merchantAccountId String   @db.VarChar(191)
+  openid            String   @db.VarChar(191)
+  templateId        String   @db.VarChar(191)
+  enabled           Boolean  @default(true)
+  lastSubscribedAt  DateTime
+  lastNotifiedAt    DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  merchantAccount MerchantAccount @relation(fields: [merchantAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantAccountId, openid, templateId])
+  @@index([templateId, enabled])
+  @@index([openid])
+  @@map("merchant_order_notification_subscribers")
 }
 
 model RuntimeConfigSection {

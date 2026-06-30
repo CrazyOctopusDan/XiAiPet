@@ -49,6 +49,10 @@ interface CustomerOrderPayload {
   selectedGiftIds?: unknown;
 }
 
+interface MerchantOrderNotificationService {
+  notifyNewOrder(order: OrderRecord): Promise<unknown>;
+}
+
 interface StoreCoordinateSnapshot {
   latitude: number;
   longitude: number;
@@ -510,7 +514,8 @@ function assertSyncedPaymentAmountMatchesOrder(order: OrderRecord, paidAmountCen
 
 export function createOrderService(
   client: PrismaClient = getPrismaClient(),
-  paymentProvider: PaymentProvider = createMockPaymentProvider()
+  paymentProvider: PaymentProvider = createMockPaymentProvider(),
+  merchantNotifications?: MerchantOrderNotificationService
 ) {
   return {
     async createPendingOrder(input: CreateOrderInput): Promise<OrderRecord> {
@@ -554,6 +559,9 @@ export function createOrderService(
       const resolvedInput = await resolveCustomerOrderItems(client, input);
       await assertDeliveryRulesAllowOrder(client, resolvedInput, payload);
       const order = await this.createPendingOrder(resolvedInput);
+      if (merchantNotifications) {
+        await merchantNotifications.notifyNewOrder(order).catch(() => undefined);
+      }
       return { ok: true, order };
     },
 

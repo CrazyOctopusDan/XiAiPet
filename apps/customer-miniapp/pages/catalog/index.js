@@ -3,6 +3,7 @@ var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", { value: true });
 const catalog_1 = require("../../src/services/catalog");
 const cart_1 = require("../../src/services/cart");
+const ACTIVE_SECTION_TOP_OFFSET = 180;
 function withCartQuantity(product) {
     return {
         ...product,
@@ -68,7 +69,8 @@ Page({
         selectedSpecPrice: 0,
         quantity: 1,
         expandedSoldOutCategoryIds: [],
-        scrollIntoViewTarget: ''
+        scrollIntoViewTarget: '',
+        isProductRefreshing: false
     },
     async onLoad() {
         try {
@@ -87,7 +89,7 @@ Page({
     onShow() {
         this.syncCartState();
     },
-    refreshSections(mode, expandedCategoryIds = []) {
+    refreshSections(mode, expandedCategoryIds = [], options = {}) {
         var _a, _b, _c, _d, _e, _f;
         const sections = toPageSections(mode, expandedCategoryIds);
         const activeCategoryId = sections.some((section) => section.category.id === this.data.activeCategoryId)
@@ -101,14 +103,16 @@ Page({
             activeSectionSubtitle: (_f = (_d = (_c = sections.find((section) => section.category.id === activeCategoryId)) === null || _c === void 0 ? void 0 : _c.category.sectionTitle) !== null && _d !== void 0 ? _d : (_e = sections[0]) === null || _e === void 0 ? void 0 : _e.category.sectionTitle) !== null && _f !== void 0 ? _f : '',
             scrollIntoViewTarget: ''
         }, () => {
-            this._currentScrollTop = 0;
+            if (options.resetScroll) {
+                this._currentScrollTop = 0;
+            }
             this.updateSectionMetrics();
         });
     },
-    async loadInitialCategoryProducts(mode) {
+    async loadInitialCategoryProducts(mode, options = {}) {
         const sectionsToLoad = getVisibleCategories(mode)
             .map((category) => (0, catalog_1.getCatalogSectionState)(mode, category.id))
-            .filter((section) => section.category.availableCount > 0 && !section.availableProducts.length);
+            .filter((section) => section.category.availableCount > 0 && (options.force || !section.availableProducts.length));
         await Promise.all(sectionsToLoad.map((section) => (0, catalog_1.loadCategoryProducts)({
             deliveryMode: mode,
             categoryId: section.category.id,
@@ -160,7 +164,7 @@ Page({
         }
         let nextCategoryId = (_c = (_b = this._sectionMetrics[0]) === null || _b === void 0 ? void 0 : _b.categoryId) !== null && _c !== void 0 ? _c : this.data.activeCategoryId;
         this._sectionMetrics.forEach((metric) => {
-            if (scrollTop + 120 >= metric.top) {
+            if (scrollTop + ACTIVE_SECTION_TOP_OFFSET >= metric.top) {
                 nextCategoryId = metric.categoryId;
             }
         });
@@ -181,9 +185,9 @@ Page({
         }
         try {
             await (0, catalog_1.hydrateCatalogCategories)(nextMode);
-            this.refreshSections(nextMode);
+            this.refreshSections(nextMode, [], { resetScroll: true });
             await this.loadInitialCategoryProducts(nextMode);
-            this.refreshSections(nextMode);
+            this.refreshSections(nextMode, [], { resetScroll: true });
         }
         catch (_c) {
             await showCatalogLoadError();
@@ -218,6 +222,25 @@ Page({
     handleProductScroll(event) {
         var _a, _b;
         this.syncActiveCategory((_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.scrollTop) !== null && _b !== void 0 ? _b : 0);
+    },
+    async handleProductRefresh() {
+        if (this.data.isProductRefreshing) {
+            return;
+        }
+        const mode = this.data.activeDeliveryMode;
+        const expandedCategoryIds = this.data.expandedSoldOutCategoryIds;
+        this.setData({ isProductRefreshing: true });
+        try {
+            await (0, catalog_1.hydrateCatalogCategories)(mode);
+            await this.loadInitialCategoryProducts(mode, { force: true });
+            this.refreshSections(mode, expandedCategoryIds);
+        }
+        catch (_a) {
+            await showCatalogLoadError();
+        }
+        finally {
+            this.setData({ isProductRefreshing: false });
+        }
     },
     async handleLoadMoreAvailable(event) {
         var _a, _b, _c;

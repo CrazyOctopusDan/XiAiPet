@@ -13,6 +13,7 @@ import { merchantAuthRoutes } from './merchant/auth';
 import { merchantAssetRoutes } from './merchant/assets';
 import { merchantCatalogRoutes } from './merchant/catalog';
 import { merchantOrderRoutes } from './merchant/orders';
+import { merchantNotificationRoutes } from './merchant/notifications';
 import { merchantPrintingRoutes } from './merchant/printing';
 import { merchantRechargeRoutes } from './merchant/recharge';
 import { merchantRuntimeConfigRoutes } from './merchant/runtime-config';
@@ -36,6 +37,7 @@ export async function apiV1Routes(
   await app.register(merchantAccountRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantAssetRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantOrderRoutes, { prefix: '/api/v1/merchant', dependencies });
+  await app.register(merchantNotificationRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantCatalogRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantUserRoutes, { prefix: '/api/v1/merchant', dependencies });
   await app.register(merchantRuntimeConfigRoutes, { prefix: '/api/v1/merchant', dependencies });

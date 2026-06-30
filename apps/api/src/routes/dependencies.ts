@@ -7,6 +7,8 @@ import { createIdentityService } from '../modules/users/bootstrap-service';
 import { createMerchantUserService } from '../modules/users/admin-service';
 import { createMerchantAccountService } from '../modules/merchant-accounts/service';
 import type { MerchantAccountRecord } from '../modules/merchant-accounts/service';
+import { createMerchantNotificationService } from '../modules/merchant-notifications/service';
+import { createWechatSubscriptionMessageSender } from '../modules/merchant-notifications/wechat-sender';
 import { createOrderService } from '../modules/orders/service';
 import {
   createMockPaymentProvider,
@@ -110,6 +112,16 @@ export interface ApiRouteServices {
     disableStaffAccount(actor: MerchantAccountRecord, accountId: string): AsyncResult;
     resetStaffPassword(actor: MerchantAccountRecord, accountId: string): AsyncResult;
   };
+  merchantNotificationService: {
+    enableNewOrderSubscription(account: MerchantAccountRecord, payload: { code?: string; templateId?: string }): AsyncResult;
+    notifyNewOrder(order: {
+      id: string;
+      snapshot: unknown;
+      pricing: { payableTotal: number };
+      createdAt: string;
+      paidAt?: string;
+    }): AsyncResult;
+  };
   orderService: {
     createCustomerOrder(openid: string, payload: unknown): AsyncResult;
     startCustomerPayment(openid: string, orderId: string, payload?: unknown): AsyncResult;
@@ -174,6 +186,14 @@ export function createApiRouteDependencies(
   );
   const identityService = overrides.identityService ?? createIdentityService();
   const merchantAccountService = overrides.merchantAccountService ?? createMerchantAccountService();
+  const merchantWechatLoginProvider = overrides.merchantWechatLoginProvider ?? createWechatLoginProvider({
+    appId: config.merchantWechatAppId,
+    appSecret: config.merchantWechatAppSecret
+  });
+  const merchantNotificationService = overrides.merchantNotificationService ?? createMerchantNotificationService({
+    merchantWechatLoginProvider,
+    sender: createWechatSubscriptionMessageSender(config)
+  });
 
   return {
     config,
@@ -181,10 +201,7 @@ export function createApiRouteDependencies(
       appId: config.customerWechatAppId,
       appSecret: config.customerWechatAppSecret
     }),
-    merchantWechatLoginProvider: overrides.merchantWechatLoginProvider ?? createWechatLoginProvider({
-      appId: config.merchantWechatAppId,
-      appSecret: config.merchantWechatAppSecret
-    }),
+    merchantWechatLoginProvider,
     paymentProvider,
     identityService,
     customerAccountService: overrides.customerAccountService ?? createCustomerAccountService(),
@@ -193,7 +210,8 @@ export function createApiRouteDependencies(
     runtimeConfigService: overrides.runtimeConfigService ?? createRuntimeConfigService(),
     merchantUserService: overrides.merchantUserService ?? createMerchantUserService(),
     merchantAccountService,
-    orderService: overrides.orderService ?? createOrderService(undefined, paymentProvider),
+    merchantNotificationService,
+    orderService: overrides.orderService ?? createOrderService(undefined, paymentProvider, merchantNotificationService),
     rechargeService: overrides.rechargeService ?? createRechargeService(undefined, paymentProvider),
     paymentNotifyService: overrides.paymentNotifyService ?? createPaymentNotifyService(config.wechatPay),
     printingService: overrides.printingService ?? createPrintingService(),

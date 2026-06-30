@@ -29,6 +29,21 @@
         <text class="metric-label">余额审计</text>
       </view>
     </view>
+
+    <view class="notification-row">
+      <view class="notification-copy">
+        <text class="notification-title">新订单服务通知</text>
+        <text class="notification-subtitle">开启后，微信会在新订单进入后端时提醒当前微信号。</text>
+      </view>
+      <button
+        class="notification-button"
+        loading="{{notificationSubmitting}}"
+        disabled="{{notificationSubmitting}}"
+        bindtap="handleEnableNotificationTap"
+      >
+        开启提醒
+      </button>
+    </view>
   </view>
 
   <view class="section-head">

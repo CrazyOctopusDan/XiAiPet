@@ -13,6 +13,7 @@ Page({
         isAllSelected: false,
         canCheckoutSelectedItems: false,
         fulfillmentWarning: '',
+        isCartRefreshing: false,
         isCheckoutPending: false,
         swipedItemId: '',
         showSpecModal: false,
@@ -33,6 +34,7 @@ Page({
         return [...orderedExistingItems, ...appendedItems];
     },
     refreshCart(previousItems) {
+        (0, cart_1.normalizeCartSelection)();
         const summary = (0, cart_1.getCartSummary)();
         const nextItems = [...(0, cart_1.getCartItems)()];
         const displayItems = previousItems ? this.reconcileItems(nextItems, previousItems) : nextItems;
@@ -63,8 +65,30 @@ Page({
         if (!item) {
             return;
         }
+        if (item.stock <= 0) {
+            (0, cart_1.updateCartItemSelection)(itemId, false);
+            this.refreshCart();
+            wx.showToast({ title: '库存不足，无法选择', icon: 'none' });
+            return;
+        }
         (0, cart_1.updateCartItemSelection)(itemId, !item.selected);
         this.refreshCart();
+    },
+    async handleCartRefresh() {
+        if (this.data.isCartRefreshing) {
+            return;
+        }
+        this.setData({ isCartRefreshing: true });
+        try {
+            const result = await (0, cart_1.reconcileCartWithCatalog)();
+            this.refreshCart();
+            if (!result.ok) {
+                wx.showToast({ title: '商品信息刷新失败，请稍后再试', icon: 'none' });
+            }
+        }
+        finally {
+            this.setData({ isCartRefreshing: false });
+        }
     },
     handleClearCart() {
         (0, cart_1.clearCart)();

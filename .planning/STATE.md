@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-06-24 -- Quick task 260624-t1k completed: express shipping fee threshold
+last_activity: 2026-06-30 -- Quick task 260630-rfd completed: merchant new order subscription push
 progress:
   total_phases: 8
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-06-24 -- Quick task 260624-t1k completed: express shipping fee threshold
+Last activity: 2026-06-30 -- Quick task 260630-rfd completed: merchant new order subscription push
 
 Progress: [████████░░] 83%
 
@@ -75,6 +75,8 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-06-30 | 260630-rfd Merchant new order subscription push | Added merchant-side WeChat subscription-message opt-in and backend new-order notifications for all enabled receivers under active merchant accounts. |
+| 2026-06-25 | 260625-spn Address recognition modal | Added a local smart-recognition modal to customer city/express address forms, including labeled ecommerce formats, unlabeled one-line formats, and city map-coordinate enforcement. |
 | 2026-06-24 | 260624-t1k Express shipping fee threshold | Added client-side express checkout pricing so selected express goods below 100 yuan charge 6 yuan, while amounts at or above 100 yuan show 0 yuan express shipping fee. |
 | 2026-06-24 | 260624-kkj Cart persistence reconciliation design | Designed same-device customer cart persistence, product-line resolve reconciliation, spec identity handling, checkout blocking, and backend final validation. |
 | 2026-06-18 | 260618-dmd Home consulting WeChat copy | Added long-press copy for the customer home consulting modal WeChat ID using `wx.setClipboardData`, following WeChat event and clipboard docs. |

@@ -436,6 +436,38 @@ describe('cart service', () => {
     expect(updateCartItemQuantity(getCartItems()[0]!.id, product.stock + 1).capped).toBe(true);
   });
 
+  it('keeps stock-zero rows unselected during item and all selection', () => {
+    const soldOutProduct = createFulfillmentProduct('sold-out-cart-row', ['delivery']);
+    const availableProduct = createFulfillmentProduct('available-cart-row', ['delivery']);
+
+    addCartItem(soldOutProduct, '', 1);
+    addCartItem(availableProduct, '', 1);
+
+    const soldOutItem = getCartItems().find((item) => item.productId === soldOutProduct.id);
+    const availableItem = getCartItems().find((item) => item.productId === availableProduct.id);
+
+    if (!soldOutItem || !availableItem) {
+      throw new Error('missing cart selection fixtures');
+    }
+
+    soldOutItem.stock = 0;
+    soldOutItem.selected = false;
+    availableItem.selected = false;
+
+    updateCartItemSelection(soldOutItem.id, true);
+    expect(getCartItems().find((item) => item.id === soldOutItem.id)?.selected).toBe(false);
+
+    toggleAllCartItems(true);
+
+    expect(getCartItems().find((item) => item.id === soldOutItem.id)?.selected).toBe(false);
+    expect(getCartItems().find((item) => item.id === availableItem.id)?.selected).toBe(true);
+    expect(getCartSummary()).toMatchObject({
+      selectedCount: 1,
+      isAllSelected: true,
+      canCheckoutSelectedItems: true
+    });
+  });
+
   it('supports select all, deselect, remove, and summary totals', () => {
     const a = getProductById('sea-sponge');
     const b = getProductById('ocean-party');
