@@ -1,6 +1,7 @@
 import type { ApiConfig } from '../../config/env';
 
 const ACCESS_TOKEN_TTL_SKEW_MS = 60_000;
+const WECHAT_MESSAGE_TIME_ZONE = 'Asia/Shanghai';
 
 export interface NewOrderSubscriptionMessage {
   touser: string;
@@ -33,11 +34,21 @@ function formatWechatTime(value: string) {
     return value;
   }
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const parts = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: WECHAT_MESSAGE_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const year = values.year;
+  const month = values.month;
+  const day = values.day;
+  const hours = values.hour;
+  const minutes = values.minute;
 
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
