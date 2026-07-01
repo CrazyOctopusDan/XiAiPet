@@ -18,6 +18,7 @@ import {
   getProductEditorViewModel,
   queryCategories,
   queryProducts,
+  reorderCategories,
   saveCategory,
   saveProduct,
   uploadProductImage
@@ -28,6 +29,7 @@ function createCategory(overrides: Partial<CatalogCategoryRecord> = {}): Catalog
     id: 'cakes',
     name: '生日蛋糕',
     iconToken: '🎂',
+    sortOrder: 1,
     createdAt: '2026-04-18T10:00:00.000Z',
     updatedAt: '2026-04-18T10:00:00.000Z',
     ...overrides
@@ -194,6 +196,39 @@ describe('catalog admin service', () => {
       method: 'DELETE',
       auth: 'merchant'
     });
+  });
+
+  it('persists category order through the merchant reorder endpoint', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      categories: [
+        { ...createCategory({ id: 'snacks', sortOrder: 1 }), linkedProductCount: 0, canDelete: true },
+        { ...createCategory({ id: 'cakes', sortOrder: 2 }), linkedProductCount: 3, canDelete: false }
+      ]
+    });
+
+    const categories = await reorderCategories(
+      [
+        { ...createCategory({ id: 'snacks' }), linkedProductCount: 0, canDelete: true },
+        { ...createCategory({ id: 'cakes' }), linkedProductCount: 3, canDelete: false }
+      ],
+      request
+    );
+
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/categories/reorder', {
+      method: 'POST',
+      body: {
+        items: [
+          { id: 'snacks', sortOrder: 1 },
+          { id: 'cakes', sortOrder: 2 }
+        ]
+      },
+      auth: 'merchant'
+    });
+    expect(categories.map((category) => [category.id, category.sortOrder])).toEqual([
+      ['snacks', 1],
+      ['cakes', 2]
+    ]);
   });
 
   it('builds a three-step editor model with price summary, override badge, and step CTAs', () => {

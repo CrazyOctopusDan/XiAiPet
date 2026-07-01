@@ -75,6 +75,7 @@ export interface ApiRouteServices {
     }): AsyncResult;
     queryMerchantCategories(filters?: Record<string, unknown>): AsyncResult;
     upsertMerchantCategory(merchantContext: unknown, categoryId: string, payload: unknown): AsyncResult;
+    reorderMerchantCategories(merchantContext: unknown, payload: unknown): AsyncResult;
     deleteMerchantCategory(merchantContext: unknown, categoryId: string): AsyncResult;
     queryMerchantProducts(filters?: {
       categoryId?: string;

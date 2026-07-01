@@ -45,6 +45,10 @@
             <text class="tag {{item.deleteActionLabel === '先迁移商品' ? 'warning' : 'ready'}}">{{item.deleteActionLabel}}</text>
           </view>
         </view>
+        <view class="move-actions">
+          <button class="move-button" disabled="{{!item.canMoveUp || isReordering}}" data-id="{{item.id}}" data-direction="up" bindtap="handleMoveCategoryTap">上</button>
+          <button class="move-button" disabled="{{!item.canMoveDown || isReordering}}" data-id="{{item.id}}" data-direction="down" bindtap="handleMoveCategoryTap">下</button>
+        </view>
       </view>
 
       <text class="helper-copy">{{item.helperText}}</text>

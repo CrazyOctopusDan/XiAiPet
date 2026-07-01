@@ -911,6 +911,26 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       return mapCategory(category);
     },
 
+    async reorderCategories(items: Array<{ id: string; sortOrder: number }>): Promise<CatalogCategoryRecord[]> {
+      await Promise.all(
+        items.map((item) =>
+          client.category.updateMany({
+            where: {
+              id: item.id,
+              NOT: {
+                id: INTERNAL_ARCHIVED_PRODUCTS_CATEGORY_ID
+              }
+            },
+            data: {
+              sortOrder: item.sortOrder
+            }
+          })
+        )
+      );
+
+      return this.listCategories();
+    },
+
     async deleteCategory(categoryId: string): Promise<void> {
       await client.category.upsert({
         where: {

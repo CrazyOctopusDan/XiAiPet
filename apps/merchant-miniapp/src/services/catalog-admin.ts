@@ -26,6 +26,9 @@ export interface CategoryCardViewModel {
   id: string;
   name: string;
   iconToken: string;
+  sortOrder: number;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   linkedProductCountLabel: string;
   deleteActionLabel: string;
   helperText: string;
@@ -376,10 +379,11 @@ export async function queryCategories(request: MerchantApiRequester = merchantAp
     auth: 'merchant'
   });
 
-  return (response.categories ?? []).map((category) => {
+  return (response.categories ?? []).map((category, index) => {
     const linkedProductCount = category.linkedProductCount ?? 0;
     return {
       ...category,
+      sortOrder: category.sortOrder ?? index + 1,
       linkedProductCount,
       canDelete: category.canDelete ?? linkedProductCount === 0
     };
@@ -399,6 +403,35 @@ export async function saveCategory(category: CatalogCategoryRecord, request: Mer
   return response.category;
 }
 
+export async function reorderCategories(
+  categories: MerchantCategoryListItem[],
+  request: MerchantApiRequester = merchantApiRequest
+) {
+  const response = await request<{
+    ok?: boolean;
+    categories?: MerchantCategoryListItem[];
+  }>('/api/v1/merchant/categories/reorder', {
+    method: 'POST',
+    body: {
+      items: categories.map((category, index) => ({
+        id: category.id,
+        sortOrder: index + 1
+      }))
+    },
+    auth: 'merchant'
+  });
+
+  return (response.categories ?? categories).map((category, index) => {
+    const linkedProductCount = category.linkedProductCount ?? 0;
+    return {
+      ...category,
+      sortOrder: category.sortOrder ?? index + 1,
+      linkedProductCount,
+      canDelete: category.canDelete ?? linkedProductCount === 0
+    };
+  });
+}
+
 export async function deleteCategory(categoryId: string, request: MerchantApiRequester = merchantApiRequest) {
   await request<{ ok?: boolean }>(`/api/v1/merchant/categories/${categoryId}`, {
     method: 'DELETE',
@@ -416,10 +449,13 @@ export function getCategoryPageViewModel(categories: MerchantCategoryListItem[])
       linkedProducts: categories.reduce((sum, category) => sum + category.linkedProductCount, 0),
       lockedCategories: categories.filter((category) => !category.canDelete).length
     },
-    cards: categories.map((category) => ({
+    cards: categories.map((category, index) => ({
       id: category.id,
       name: category.name,
       iconToken: category.iconToken,
+      sortOrder: category.sortOrder,
+      canMoveUp: index > 0,
+      canMoveDown: index < categories.length - 1,
       linkedProductCountLabel: `${category.linkedProductCount} 个商品`,
       deleteActionLabel: category.canDelete ? '删除品类' : '先迁移商品',
       helperText: category.canDelete ? '当前可以直接删除' : '删除前请先迁移该品类下商品'

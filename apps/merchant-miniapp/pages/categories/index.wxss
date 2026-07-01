@@ -41,6 +41,7 @@
 .list-head,
 .category-head,
 .category-tags,
+.move-actions,
 .card-actions {
   display: flex;
 }
@@ -52,6 +53,7 @@
 .list-head,
 .category-head,
 .category-tags,
+.move-actions,
 .card-actions {
   align-items: center;
 }
@@ -263,6 +265,35 @@
   margin-left: 18rpx;
 }
 
+.move-actions {
+  flex: 0 0 auto;
+  margin-left: 12rpx;
+}
+
+.move-button {
+  box-sizing: border-box;
+  width: 56rpx;
+  height: 56rpx;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 16rpx;
+  background: #EEF5F7;
+  color: #2E5B73;
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 56rpx;
+}
+
+.move-button + .move-button {
+  margin-left: 8rpx;
+}
+
+.move-button[disabled] {
+  background: #F4EFE8;
+  color: #B9AA98;
+}
+
 .category-name {
   color: #26333D;
   font-size: 30rpx;
@@ -338,6 +369,7 @@
 .secondary-button::after,
 .ghost-button::after,
 .danger-button::after,
+.move-button::after,
 .category-fab::after {
   border: none;
 }

@@ -9,6 +9,7 @@ export interface CatalogCategoryRecord {
   id: string;
   name: string;
   iconToken: CatalogCategoryIconToken;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }

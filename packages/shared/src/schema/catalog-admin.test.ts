@@ -46,6 +46,7 @@ describe('catalog admin schema', () => {
       id: 'cakes',
       name: '生日蛋糕',
       iconToken: '🎂',
+      sortOrder: 10,
       createdAt: '2026-04-17T00:00:00.000Z',
       updatedAt: '2026-04-17T00:00:00.000Z'
     };
@@ -63,6 +64,12 @@ describe('catalog admin schema', () => {
       isCatalogCategoryRecord({
         ...category,
         iconToken: '生日蛋糕图标'
+      })
+    ).toBe(false);
+    expect(
+      isCatalogCategoryRecord({
+        ...category,
+        sortOrder: -1
       })
     ).toBe(false);
   });

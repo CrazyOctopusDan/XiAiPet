@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.queryCategories = queryCategories;
 exports.saveCategory = saveCategory;
+exports.reorderCategories = reorderCategories;
 exports.deleteCategory = deleteCategory;
 exports.getCategoryPageViewModel = getCategoryPageViewModel;
 exports.queryProducts = queryProducts;
@@ -201,13 +202,14 @@ async function queryCategories(request = api_client_1.merchantApiRequest) {
         method: 'GET',
         auth: 'merchant'
     });
-    return ((_a = response.categories) !== null && _a !== void 0 ? _a : []).map((category) => {
-        var _a, _b;
+    return ((_a = response.categories) !== null && _a !== void 0 ? _a : []).map((category, index) => {
+        var _a, _b, _c;
         const linkedProductCount = (_a = category.linkedProductCount) !== null && _a !== void 0 ? _a : 0;
         return {
             ...category,
+            sortOrder: (_b = category.sortOrder) !== null && _b !== void 0 ? _b : index + 1,
             linkedProductCount,
-            canDelete: (_b = category.canDelete) !== null && _b !== void 0 ? _b : linkedProductCount === 0
+            canDelete: (_c = category.canDelete) !== null && _c !== void 0 ? _c : linkedProductCount === 0
         };
     });
 }
@@ -218,6 +220,29 @@ async function saveCategory(category, request = api_client_1.merchantApiRequest)
         auth: 'merchant'
     });
     return response.category;
+}
+async function reorderCategories(categories, request = api_client_1.merchantApiRequest) {
+    var _a;
+    const response = await request('/api/v1/merchant/categories/reorder', {
+        method: 'POST',
+        body: {
+            items: categories.map((category, index) => ({
+                id: category.id,
+                sortOrder: index + 1
+            }))
+        },
+        auth: 'merchant'
+    });
+    return ((_a = response.categories) !== null && _a !== void 0 ? _a : categories).map((category, index) => {
+        var _a, _b, _c;
+        const linkedProductCount = (_a = category.linkedProductCount) !== null && _a !== void 0 ? _a : 0;
+        return {
+            ...category,
+            sortOrder: (_b = category.sortOrder) !== null && _b !== void 0 ? _b : index + 1,
+            linkedProductCount,
+            canDelete: (_c = category.canDelete) !== null && _c !== void 0 ? _c : linkedProductCount === 0
+        };
+    });
 }
 async function deleteCategory(categoryId, request = api_client_1.merchantApiRequest) {
     await request(`/api/v1/merchant/categories/${categoryId}`, {
@@ -234,10 +259,13 @@ function getCategoryPageViewModel(categories) {
             linkedProducts: categories.reduce((sum, category) => sum + category.linkedProductCount, 0),
             lockedCategories: categories.filter((category) => !category.canDelete).length
         },
-        cards: categories.map((category) => ({
+        cards: categories.map((category, index) => ({
             id: category.id,
             name: category.name,
             iconToken: category.iconToken,
+            sortOrder: category.sortOrder,
+            canMoveUp: index > 0,
+            canMoveDown: index < categories.length - 1,
             linkedProductCountLabel: `${category.linkedProductCount} 个商品`,
             deleteActionLabel: category.canDelete ? '删除品类' : '先迁移商品',
             helperText: category.canDelete ? '当前可以直接删除' : '删除前请先迁移该品类下商品'

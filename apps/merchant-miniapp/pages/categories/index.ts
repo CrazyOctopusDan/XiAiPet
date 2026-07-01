@@ -6,13 +6,17 @@ import type { CatalogCategoryRecord } from '@xiaipet/shared/types/catalog-admin'
 import {
   deleteCategory,
   getCategoryPageViewModel,
+  type MerchantCategoryListItem,
   queryCategories,
+  reorderCategories,
   saveCategory
 } from '../../src/services/catalog-admin';
 
 interface CategoryPageData {
   loading: boolean;
+  isReordering: boolean;
   isEmpty: boolean;
+  categories: MerchantCategoryListItem[];
   cards: ReturnType<typeof getCategoryPageViewModel>['cards'];
   summary: ReturnType<typeof getCategoryPageViewModel>['summary'];
   draftId: string;
@@ -38,7 +42,9 @@ function createDraftId() {
 Page({
   data: {
     loading: true,
+    isReordering: false,
     isEmpty: true,
+    categories: [],
     cards: [],
     summary: {
       totalCategories: 0,
@@ -63,6 +69,7 @@ Page({
       this.setData({
         loading: false,
         isEmpty: view.isEmpty,
+        categories,
         cards: view.cards,
         summary: view.summary
       });
@@ -124,11 +131,13 @@ Page({
     }
 
     const now = new Date().toISOString();
-    const existing = this.data.cards.find((item) => item.id === this.data.draftId);
+    const existing = this.data.categories.find((item) => item.id === this.data.draftId);
+    const maxSortOrder = this.data.categories.reduce((max, item) => Math.max(max, item.sortOrder), 0);
     const category: CatalogCategoryRecord = {
       id: this.data.draftId,
       name: this.data.draftName.trim(),
       iconToken: this.data.draftIconToken.trim(),
+      sortOrder: existing?.sortOrder ?? maxSortOrder + 1,
       createdAt: existing ? now : now,
       updatedAt: now
     };
@@ -193,6 +202,51 @@ Page({
         }
       }
     });
+  },
+  async handleMoveCategoryTap(
+    this: CategoryPageInstance,
+    event: { currentTarget?: { dataset?: { id?: string; direction?: 'up' | 'down' } } }
+  ) {
+    if (this.data.isReordering) {
+      return;
+    }
+
+    const categoryId = event.currentTarget?.dataset?.id;
+    const direction = event.currentTarget?.dataset?.direction;
+    const currentIndex = this.data.categories.findIndex((category) => category.id === categoryId);
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (!categoryId || currentIndex < 0 || targetIndex < 0 || targetIndex >= this.data.categories.length) {
+      return;
+    }
+
+    const nextCategories = [...this.data.categories];
+    const [movedCategory] = nextCategories.splice(currentIndex, 1);
+    nextCategories.splice(targetIndex, 0, movedCategory);
+
+    this.setData({ isReordering: true });
+    try {
+      const categories = await reorderCategories(nextCategories);
+      const view = getCategoryPageViewModel(categories);
+      this.setData({
+        isReordering: false,
+        categories,
+        isEmpty: view.isEmpty,
+        cards: view.cards,
+        summary: view.summary
+      });
+      wx.showToast({
+        title: '排序已保存',
+        icon: 'success'
+      });
+    } catch {
+      this.setData({ isReordering: false });
+      wx.showToast({
+        title: '排序保存失败',
+        icon: 'none'
+      });
+      await this.refreshCategories();
+    }
   },
   handleOpenProducts(event: { currentTarget?: { dataset?: { id?: string } } }) {
     const categoryId = event.currentTarget?.dataset?.id ?? '';

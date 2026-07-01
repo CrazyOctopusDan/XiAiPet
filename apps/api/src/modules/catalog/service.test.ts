@@ -8,6 +8,15 @@ describe('catalog service', () => {
       listCategories: async () => [],
       listProducts: async () => [],
       countProductsByCategory: async () => 0,
+      reorderCategories: async (items: Array<{ id: string; sortOrder: number }>) =>
+        items.map((item) => ({
+          id: item.id,
+          name: item.id,
+          iconToken: item.id.slice(0, 1),
+          sortOrder: item.sortOrder,
+          createdAt: '2026-05-16T00:00:00.000Z',
+          updatedAt: '2026-05-16T00:00:00.000Z'
+        })),
       upsertCategory: async (category: { id: string; name: string; iconToken: string; sortOrder?: number }) => ({
         id: category.id,
         name: category.name,
@@ -174,6 +183,45 @@ describe('catalog service', () => {
     expect(countProductsByCategory).toHaveBeenCalledTimes(2);
     expect(countProductsByCategory).toHaveBeenCalledWith('cakes');
     expect(countProductsByCategory).toHaveBeenCalledWith('snacks');
+  });
+
+  it('reorders merchant categories by assigning positive sequential sort orders', async () => {
+    const reorderCategories = vi.fn(async (items: Array<{ id: string; sortOrder: number }>) =>
+      items.map((item) => ({
+        id: item.id,
+        name: item.id,
+        iconToken: item.id.slice(0, 1),
+        sortOrder: item.sortOrder,
+        createdAt: '2026-05-16T00:00:00.000Z',
+        updatedAt: '2026-05-16T00:00:00.000Z'
+      }))
+    );
+    const service = createCatalogService({
+      ...createCatalogRepositoryStub({ reorderCategories }),
+      countProductsByCategory: async (categoryId: string) => (categoryId === 'cakes' ? 2 : 0)
+    });
+
+    await expect(
+      service.reorderMerchantCategories(
+        { accountId: 'acct-admin' } as never,
+        {
+          items: [
+            { id: 'snacks', sortOrder: 9 },
+            { id: 'cakes', sortOrder: 3 }
+          ]
+        }
+      )
+    ).resolves.toMatchObject({
+      categories: [
+        { id: 'snacks', sortOrder: 1, linkedProductCount: 0, canDelete: true },
+        { id: 'cakes', sortOrder: 2, linkedProductCount: 2, canDelete: false }
+      ]
+    });
+
+    expect(reorderCategories).toHaveBeenCalledWith([
+      { id: 'snacks', sortOrder: 1 },
+      { id: 'cakes', sortOrder: 2 }
+    ]);
   });
 
   it('maps merchant catalog records into customer-facing category and product contracts', async () => {

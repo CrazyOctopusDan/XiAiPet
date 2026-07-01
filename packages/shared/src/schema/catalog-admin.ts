@@ -141,6 +141,7 @@ export function isCatalogCategoryRecord(value: unknown): value is CatalogCategor
     isNonEmptyString(value.id) &&
     isNonEmptyString(value.name) &&
     isShortIconToken(value.iconToken) &&
+    isNonNegativeInteger(value.sortOrder) &&
     isNonEmptyString(value.createdAt) &&
     isNonEmptyString(value.updatedAt)
   );

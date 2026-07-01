@@ -7,7 +7,9 @@ function createDraftId() {
 Page({
     data: {
         loading: true,
+        isReordering: false,
         isEmpty: true,
+        categories: [],
         cards: [],
         summary: {
             totalCategories: 0,
@@ -32,6 +34,7 @@ Page({
             this.setData({
                 loading: false,
                 isEmpty: view.isEmpty,
+                categories,
                 cards: view.cards,
                 summary: view.summary
             });
@@ -85,6 +88,7 @@ Page({
     },
     handleEditorPanelTap() { },
     async handleSaveTap() {
+        var _a;
         if (!this.data.draftName.trim() || !this.data.draftIconToken.trim()) {
             wx.showToast({
                 title: '请填写名称和 icon',
@@ -93,11 +97,13 @@ Page({
             return;
         }
         const now = new Date().toISOString();
-        const existing = this.data.cards.find((item) => item.id === this.data.draftId);
+        const existing = this.data.categories.find((item) => item.id === this.data.draftId);
+        const maxSortOrder = this.data.categories.reduce((max, item) => Math.max(max, item.sortOrder), 0);
         const category = {
             id: this.data.draftId,
             name: this.data.draftName.trim(),
             iconToken: this.data.draftIconToken.trim(),
+            sortOrder: (_a = existing === null || existing === void 0 ? void 0 : existing.sortOrder) !== null && _a !== void 0 ? _a : maxSortOrder + 1,
             createdAt: existing ? now : now,
             updatedAt: now
         };
@@ -110,7 +116,7 @@ Page({
             this.closeEditor();
             await this.refreshCategories();
         }
-        catch (_a) {
+        catch (_b) {
             wx.showToast({
                 title: '保存失败',
                 icon: 'none'
@@ -156,6 +162,46 @@ Page({
                 }
             }
         });
+    },
+    async handleMoveCategoryTap(event) {
+        var _a, _b, _c, _d;
+        if (this.data.isReordering) {
+            return;
+        }
+        const categoryId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.id;
+        const direction = (_d = (_c = event.currentTarget) === null || _c === void 0 ? void 0 : _c.dataset) === null || _d === void 0 ? void 0 : _d.direction;
+        const currentIndex = this.data.categories.findIndex((category) => category.id === categoryId);
+        const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+        if (!categoryId || currentIndex < 0 || targetIndex < 0 || targetIndex >= this.data.categories.length) {
+            return;
+        }
+        const nextCategories = [...this.data.categories];
+        const [movedCategory] = nextCategories.splice(currentIndex, 1);
+        nextCategories.splice(targetIndex, 0, movedCategory);
+        this.setData({ isReordering: true });
+        try {
+            const categories = await (0, catalog_admin_1.reorderCategories)(nextCategories);
+            const view = (0, catalog_admin_1.getCategoryPageViewModel)(categories);
+            this.setData({
+                isReordering: false,
+                categories,
+                isEmpty: view.isEmpty,
+                cards: view.cards,
+                summary: view.summary
+            });
+            wx.showToast({
+                title: '排序已保存',
+                icon: 'success'
+            });
+        }
+        catch (_e) {
+            this.setData({ isReordering: false });
+            wx.showToast({
+                title: '排序保存失败',
+                icon: 'none'
+            });
+            await this.refreshCategories();
+        }
     },
     handleOpenProducts(event) {
         var _a, _b, _c;

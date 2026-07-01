@@ -16,6 +16,9 @@ describe('category management page layout', () => {
     expect(template).toContain('class="category-fab"');
     expect(template).toContain('class="category-editor-mask"');
     expect(template).toContain('wx:if="{{isEditorOpen}}"');
+    expect(template).toContain('bindtap="handleMoveCategoryTap"');
+    expect(template).toContain('data-direction="up"');
+    expect(template).toContain('data-direction="down"');
     expect(template).toContain('bindtap="closeEditor"');
     expect(template).toContain('catchtap="handleEditorPanelTap"');
 
@@ -29,5 +32,7 @@ describe('category management page layout', () => {
     expect(pageSource).toContain("editorTitle: '新建品类'");
     expect(pageSource).toContain("editorTitle: '编辑品类'");
     expect(pageSource).toContain('closeEditor(this: CategoryPageInstance)');
+    expect(pageSource).toContain('handleMoveCategoryTap');
+    expect(pageSource).toContain('isReordering: false');
   });
 });

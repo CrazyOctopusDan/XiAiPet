@@ -196,6 +196,7 @@ interface CatalogSummaryRepositoryMethods {
   }): Promise<MerchantProductSummaryPage>;
   getCustomerProductDetail(productId: string): Promise<CatalogProductRecord | null>;
   getMerchantProductDetail(productId: string): Promise<CatalogProductRecord | null>;
+  reorderCategories?(items: Array<{ id: string; sortOrder: number }>): Promise<CatalogCategoryRecord[]>;
 }
 
 type CatalogRepository = Omit<ReturnType<typeof createCatalogRepository>, keyof CatalogSummaryRepositoryMethods>;
@@ -203,6 +204,10 @@ type CatalogRepositoryContract = CatalogRepository & Partial<CatalogSummaryRepos
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isCategoryReorderItem(value: unknown): value is { id: string; sortOrder?: unknown } {
+  return isObject(value) && typeof value.id === 'string' && value.id.trim().length > 0;
 }
 
 function isCustomerDeliveryMode(value: unknown): value is CustomerDeliveryMode {
@@ -914,6 +919,40 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
         sortOrder: typeof candidate.sortOrder === 'number' ? candidate.sortOrder : 0
       });
       return { ok: true as const, category };
+    },
+
+    async reorderMerchantCategories(
+      _merchantContext: MerchantContext,
+      payload: unknown
+    ) {
+      if (!isObject(payload) || !Array.isArray(payload.items) || !payload.items.every(isCategoryReorderItem)) {
+        throw new ApiError('INVALID_CATEGORY_REORDER', 'Invalid category reorder payload', 400);
+      }
+
+      const items = payload.items.map((item, index) => ({
+        id: item.id.trim(),
+        sortOrder: index + 1
+      }));
+      const uniqueIds = new Set(items.map((item) => item.id));
+
+      if (uniqueIds.size !== items.length) {
+        throw new ApiError('INVALID_CATEGORY_REORDER', 'Invalid category reorder payload', 400);
+      }
+
+      if (!catalogRepository.reorderCategories) {
+        throw new ApiError('CATEGORY_REORDER_UNAVAILABLE', 'Category reorder is unavailable', 500);
+      }
+
+      const categories = await catalogRepository.reorderCategories(items);
+
+      return {
+        ok: true as const,
+        categories: await Promise.all(
+          categories.map((category) =>
+            mapMerchantCategory(category, catalogRepository.countProductsByCategory)
+          )
+        )
+      };
     },
 
     async deleteMerchantCategory(_merchantContext: MerchantContext, categoryId: string) {
