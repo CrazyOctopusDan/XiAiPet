@@ -41,6 +41,7 @@ function createCatalogServiceStub(overrides: Record<string, unknown> = {}) {
     reorderMerchantCategories: async () => ({ ok: true }),
     deleteMerchantCategory: async () => ({ ok: true }),
     queryMerchantProducts: async () => ({ ok: true }),
+    reorderMerchantProducts: async () => ({ ok: true }),
     getMerchantProductDetail: async () => ({ ok: true }),
     upsertMerchantProduct: async () => ({ ok: true }),
     deleteMerchantProduct: async () => ({ ok: true }),
@@ -94,6 +95,44 @@ describe('merchant catalog routes', () => {
 
     expect(response.statusCode).toBe(200);
     expect(getMerchantProductDetail).toHaveBeenCalledWith('pumpkin-cake');
+  });
+
+  it('routes merchant product reorder under merchant auth', async () => {
+    const reorderMerchantProducts = vi.fn(async () => ({ ok: true, items: [] }));
+    const app = buildApp({
+      config: testConfig,
+      dependencies: {
+        merchantAccountService: merchantAccountService(),
+        catalogService: createCatalogServiceStub({ reorderMerchantProducts })
+      }
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/merchant/products/reorder',
+      headers: merchantAccountAuthHeader({ accountId: 'acct-admin' }),
+      payload: {
+        items: [
+          { id: 'salmon-cookie', sortOrder: 1 },
+          { id: 'pumpkin-cake', sortOrder: 2 }
+        ]
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(reorderMerchantProducts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: merchantAccount.id,
+        username: merchantAccount.username,
+        role: merchantAccount.role
+      }),
+      {
+        items: [
+          { id: 'salmon-cookie', sortOrder: 1 },
+          { id: 'pumpkin-cake', sortOrder: 2 }
+        ]
+      }
+    );
   });
 
   it('routes merchant category reorder under merchant auth', async () => {

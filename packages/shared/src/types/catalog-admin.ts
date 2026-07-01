@@ -90,6 +90,7 @@ export interface CatalogProductAdminRecord {
   detailImageAssets?: OssAssetReference[];
   memberLevelId: string | null;
   status: CatalogProductStatus;
+  sortOrder: number;
   stock: number;
   trackInventory: boolean;
   fulfillmentModes: OrderFulfillmentMode[];
@@ -114,6 +115,7 @@ export interface CatalogProductAdminListItem {
   description: string;
   categoryId: string;
   status: CatalogProductStatus;
+  sortOrder: number;
   stock: number;
   trackInventory: boolean;
   minPrice: number;

@@ -13,6 +13,7 @@ function createProductRow(id: string, fulfillmentModes: string[], updatedAt: str
     imagePreviewUrl: null,
     memberLevelId: null,
     status: 'PUBLISHED',
+    sortOrder: Number(id.match(/\d+$/)?.[0] ?? 1),
     stock: 5,
     trackInventory: true,
     fulfillmentModes,
@@ -221,9 +222,40 @@ describe('catalog repository', () => {
       stockWarnings: 1
     });
     expect(findMany).toHaveBeenCalledTimes(1);
-    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 3 }));
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      take: 3
+    }));
     expect(count).toHaveBeenCalledTimes(5);
     expect(aggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates product sort orders in bulk and returns the manual-order list', async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    const findMany = vi.fn(async () => [
+      createProductRow('salmon-cookie', ['delivery'], '2026-06-01T10:00:00.000Z'),
+      createProductRow('pumpkin-cake', ['delivery'], '2026-06-01T09:00:00.000Z')
+    ]);
+    const repository = createCatalogRepository({
+      product: { updateMany, findMany }
+    } as never);
+
+    await repository.reorderProducts([
+      { id: 'salmon-cookie', sortOrder: 1 },
+      { id: 'pumpkin-cake', sortOrder: 2 }
+    ]);
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'salmon-cookie' },
+      data: { sortOrder: 1 }
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'pumpkin-cake' },
+      data: { sortOrder: 2 }
+    });
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }]
+    }));
   });
 
   it('counts only non-archived products as category-linked products', async () => {

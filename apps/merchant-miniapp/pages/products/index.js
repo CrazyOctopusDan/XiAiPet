@@ -1,22 +1,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const catalog_admin_1 = require("../../src/services/catalog-admin");
+const PRODUCT_PAGE_LIMIT = 100;
 function defaultPageInfo() {
     return { hasMore: false, nextCursor: null };
 }
 Page({
     data: {
         loading: true,
+        isReordering: false,
         isEmpty: true,
         activeCategoryId: '',
         statusFilter: '',
-        sort: 'latest',
+        sort: '',
         draftKeyword: '',
         keyword: '',
         swipedProductId: '',
         pageInfo: defaultPageInfo(),
         snapshotKey: '',
         isLoadingMore: false,
+        products: [],
         categoryFilters: [],
         cards: [],
         summary: {
@@ -44,13 +47,14 @@ Page({
                     status: this.data.statusFilter,
                     keyword: this.data.keyword,
                     sort: this.data.sort,
-                    limit: 20
+                    limit: PRODUCT_PAGE_LIMIT
                 })
             ]);
             const view = (0, catalog_admin_1.getProductPageViewModel)(productsResponse.items, categories, this.data.activeCategoryId, '', productsResponse.summary);
             this.setData({
                 loading: false,
                 isEmpty: view.isEmpty,
+                products: productsResponse.items,
                 summary: view.summary,
                 categoryFilters: view.categoryFilters,
                 cards: view.cards,
@@ -119,13 +123,14 @@ Page({
                 status: this.data.statusFilter,
                 keyword: this.data.keyword,
                 sort: this.data.sort,
-                limit: 20,
+                limit: PRODUCT_PAGE_LIMIT,
                 cursor: (_a = this.data.pageInfo.nextCursor) !== null && _a !== void 0 ? _a : undefined
             });
             const view = (0, catalog_admin_1.getProductPageViewModel)(productsResponse.items, [], this.data.activeCategoryId, '', productsResponse.summary);
             this.setData({
                 isLoadingMore: false,
                 isEmpty: false,
+                products: [...this.data.products, ...productsResponse.items],
                 summary: view.summary,
                 cards: [...this.data.cards, ...view.cards],
                 pageInfo: productsResponse.pageInfo,
@@ -169,6 +174,53 @@ Page({
         this.setData({
             swipedProductId: deltaX < 0 ? productId : ''
         });
+    },
+    async handleMoveProductTap(event) {
+        var _a, _b, _c, _d;
+        if (this.data.isReordering) {
+            return;
+        }
+        if (this.data.pageInfo.hasMore) {
+            wx.showToast({
+                title: '请先加载全部商品',
+                icon: 'none'
+            });
+            return;
+        }
+        const productId = (_b = (_a = event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.id;
+        const direction = (_d = (_c = event.currentTarget) === null || _c === void 0 ? void 0 : _c.dataset) === null || _d === void 0 ? void 0 : _d.direction;
+        const currentIndex = this.data.products.findIndex((product) => product.id === productId);
+        const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+        if (!productId || currentIndex < 0 || targetIndex < 0 || targetIndex >= this.data.products.length) {
+            return;
+        }
+        const nextProducts = [...this.data.products];
+        const [movedProduct] = nextProducts.splice(currentIndex, 1);
+        nextProducts.splice(targetIndex, 0, movedProduct);
+        this.setData({ isReordering: true, swipedProductId: '' });
+        try {
+            const products = await (0, catalog_admin_1.reorderProducts)(nextProducts);
+            const view = (0, catalog_admin_1.getProductPageViewModel)(products, [], this.data.activeCategoryId, this.data.keyword);
+            this.setData({
+                isReordering: false,
+                products,
+                isEmpty: view.isEmpty,
+                cards: view.cards,
+                summary: view.summary
+            });
+            wx.showToast({
+                title: '排序已保存',
+                icon: 'success'
+            });
+        }
+        catch (_e) {
+            this.setData({ isReordering: false });
+            wx.showToast({
+                title: '排序保存失败',
+                icon: 'none'
+            });
+            await this.refreshProducts();
+        }
     },
     handleDeleteTap(event) {
         var _a, _b, _c, _d, _e, _f;

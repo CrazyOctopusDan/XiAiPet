@@ -6,6 +6,7 @@ exports.reorderCategories = reorderCategories;
 exports.deleteCategory = deleteCategory;
 exports.getCategoryPageViewModel = getCategoryPageViewModel;
 exports.queryProducts = queryProducts;
+exports.reorderProducts = reorderProducts;
 exports.getProductDetail = getProductDetail;
 exports.applyProductCountsToCategories = applyProductCountsToCategories;
 exports.getProductPageViewModel = getProductPageViewModel;
@@ -295,13 +296,39 @@ async function queryProducts(filters = {}, request = api_client_1.merchantApiReq
         query,
         auth: 'merchant'
     });
-    const items = (_b = (_a = response.items) !== null && _a !== void 0 ? _a : response.products) !== null && _b !== void 0 ? _b : [];
+    const items = ((_b = (_a = response.items) !== null && _a !== void 0 ? _a : response.products) !== null && _b !== void 0 ? _b : []).map((product, index) => {
+        var _a;
+        return ({
+            ...product,
+            sortOrder: (_a = product.sortOrder) !== null && _a !== void 0 ? _a : index + 1
+        });
+    });
     return {
         items,
         summary: (_c = response.summary) !== null && _c !== void 0 ? _c : defaultProductListSummary(),
         pageInfo: (_d = response.pageInfo) !== null && _d !== void 0 ? _d : defaultPageInfo(),
         snapshotKey: (_e = response.snapshotKey) !== null && _e !== void 0 ? _e : ''
     };
+}
+async function reorderProducts(products, request = api_client_1.merchantApiRequest) {
+    var _a, _b;
+    const response = await request('/api/v1/merchant/products/reorder', {
+        method: 'POST',
+        body: {
+            items: products.map((product, index) => ({
+                id: product.id,
+                sortOrder: index + 1
+            }))
+        },
+        auth: 'merchant'
+    });
+    return ((_b = (_a = response.items) !== null && _a !== void 0 ? _a : response.products) !== null && _b !== void 0 ? _b : products).map((product, index) => {
+        var _a;
+        return ({
+            ...product,
+            sortOrder: (_a = product.sortOrder) !== null && _a !== void 0 ? _a : index + 1
+        });
+    });
 }
 async function getProductDetail(productId, request = api_client_1.merchantApiRequest) {
     const response = await request(`/api/v1/merchant/products/${productId}`, {
@@ -356,9 +383,12 @@ function getProductPageViewModel(products, categories, activeCategoryId, keyword
             label: category.name,
             isActive: category.id === activeCategoryId
         })),
-        cards: filteredProducts.map((product) => ({
+        cards: filteredProducts.map((product, index) => ({
             id: product.id,
             name: product.name,
+            sortOrder: product.sortOrder,
+            canMoveUp: index > 0,
+            canMoveDown: index < filteredProducts.length - 1,
             statusLabel: getStatusLabel(product.status),
             stockLabel: product.trackInventory ? `库存 ${product.stock}` : '库存不跟踪',
             priceRangeLabel: getPriceRangeLabel(product),

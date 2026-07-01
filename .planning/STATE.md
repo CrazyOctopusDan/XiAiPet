@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 12 context gathered
 last_updated: "2026-05-13T07:57:00.000Z"
-last_activity: 2026-07-01 -- Quick task 260701-kop completed: merchant category sort order controls
+last_activity: 2026-07-01 -- Quick task 260701-l3v completed: merchant product sort order controls
 progress:
   total_phases: 8
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-07-01 -- Quick task 260701-kop completed: merchant category sort order controls
+Last activity: 2026-07-01 -- Quick task 260701-l3v completed: merchant product sort order controls
 
 Progress: [████████░░] 83%
 
@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-07-01 | 260701-l3v Merchant product sort order controls | Added merchant product up/down controls backed by a persisted `Product.sortOrder` reorder endpoint and migration, with default manual product ordering. |
 | 2026-07-01 | 260701-kop Merchant category sort order controls | Added merchant category up/down controls backed by a persisted `sortOrder` reorder endpoint, including shared contract updates and regression coverage. |
 | 2026-06-30 | 260630-rfd Merchant new order subscription push | Added merchant-side WeChat subscription-message opt-in and backend new-order notifications for all enabled receivers under active merchant accounts. |
 | 2026-06-25 | 260625-spn Address recognition modal | Added a local smart-recognition modal to customer city/express address forms, including labeled ecommerce formats, unlabeled one-line formats, and city map-coordinate enforcement. |

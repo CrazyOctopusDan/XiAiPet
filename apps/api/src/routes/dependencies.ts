@@ -55,7 +55,7 @@ export interface ApiRouteServices {
       deliveryMode?: 'pickup' | 'delivery' | 'express';
       availability: 'available' | 'soldOut';
       keyword?: string;
-      sort?: 'latest';
+      sort?: 'manual' | 'latest';
       limit?: number;
       cursor?: string;
     }): AsyncResult;
@@ -81,10 +81,11 @@ export interface ApiRouteServices {
       categoryId?: string;
       status?: 'draft' | 'published' | 'archived';
       keyword?: string;
-      sort?: 'latest';
+      sort?: 'manual' | 'latest';
       limit?: number;
       cursor?: string;
     }): AsyncResult;
+    reorderMerchantProducts(merchantContext: unknown, payload: unknown): AsyncResult;
     getMerchantProductDetail(productId: string): AsyncResult;
     upsertMerchantProduct(merchantContext: unknown, productId: string, payload: unknown): AsyncResult;
     deleteMerchantProduct(merchantContext: unknown, productId: string): AsyncResult;

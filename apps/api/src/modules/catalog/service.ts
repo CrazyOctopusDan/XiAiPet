@@ -120,6 +120,7 @@ interface MerchantProductListItem {
   description: string;
   categoryId: string;
   status: MerchantProductStatusFilter;
+  sortOrder: number;
   stock: number;
   trackInventory: boolean;
   minPrice: number;
@@ -197,6 +198,7 @@ interface CatalogSummaryRepositoryMethods {
   getCustomerProductDetail(productId: string): Promise<CatalogProductRecord | null>;
   getMerchantProductDetail(productId: string): Promise<CatalogProductRecord | null>;
   reorderCategories?(items: Array<{ id: string; sortOrder: number }>): Promise<CatalogCategoryRecord[]>;
+  reorderProducts?(items: Array<{ id: string; sortOrder: number }>): Promise<MerchantProductSummaryRecord[]>;
 }
 
 type CatalogRepository = Omit<ReturnType<typeof createCatalogRepository>, keyof CatalogSummaryRepositoryMethods>;
@@ -535,6 +537,7 @@ function pickProductSummary(product: CatalogProductRecord): CatalogProductSummar
     imageAsset: product.imageAsset,
     imagePreviewUrl: product.imagePreviewUrl,
     memberLevelId: product.memberLevelId,
+    sortOrder: product.sortOrder,
     stock: product.stock,
     trackInventory: product.trackInventory,
     fulfillmentModes: product.fulfillmentModes,
@@ -678,6 +681,7 @@ function mapMerchantProductSummary(product: MerchantProductSummaryRecord): Merch
     description: normalizedProduct.description,
     categoryId: normalizedProduct.categoryId,
     status: product.status,
+    sortOrder: normalizedProduct.sortOrder,
     stock: normalizedProduct.stock,
     trackInventory: normalizedProduct.trackInventory,
     minPrice: roundCurrency(prices.length ? Math.min(...prices) : normalizedProduct.basePrice),
@@ -991,6 +995,38 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
       return { ok: true as const, products: products.map(normalizeProductImageUrls) };
     },
 
+    async reorderMerchantProducts(
+      _merchantContext: MerchantContext,
+      payload: unknown
+    ) {
+      if (!isObject(payload) || !Array.isArray(payload.items) || !payload.items.every(isCategoryReorderItem)) {
+        throw new ApiError('INVALID_PRODUCT_REORDER', 'Invalid product reorder payload', 400);
+      }
+
+      const items = payload.items.map((item, index) => ({
+        id: item.id.trim(),
+        sortOrder: index + 1
+      }));
+      const uniqueIds = new Set(items.map((item) => item.id));
+
+      if (uniqueIds.size !== items.length) {
+        throw new ApiError('INVALID_PRODUCT_REORDER', 'Invalid product reorder payload', 400);
+      }
+
+      if (!catalogRepository.reorderProducts) {
+        throw new ApiError('PRODUCT_REORDER_UNAVAILABLE', 'Product reorder is unavailable', 500);
+      }
+
+      const products = await catalogRepository.reorderProducts(items);
+
+      return {
+        ok: true as const,
+        items: products.map(mapMerchantProductSummary),
+        pageInfo: { hasMore: false, nextCursor: null },
+        snapshotKey: `merchant-products-reorder:${items.map((item) => `${item.id}:${item.sortOrder}`).join(',')}`
+      };
+    },
+
     async getMerchantProductDetail(productId: string) {
       const product = catalogRepository.getMerchantProductDetail
         ? await catalogRepository.getMerchantProductDetail(productId)
@@ -1021,6 +1057,7 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
       if (!isCatalogProductEditorPayload(payload)) {
         throw new ApiError('INVALID_PRODUCT', 'Invalid product payload', 400);
       }
+      const existingProduct = await catalogRepository.getProductById(productId);
       const product: CatalogProductRecord = {
         id: productId,
         name: payload.basicInfo.name,
@@ -1033,6 +1070,7 @@ export function createCatalogService(catalogRepository: CatalogRepositoryContrac
         detailImageAssets: payload.basicInfo.detailImageAssets,
         memberLevelId: payload.basicInfo.memberLevelId,
         status: payload.publishSettings.status,
+        sortOrder: existingProduct?.sortOrder ?? 9999,
         stock: payload.basicInfo.stock,
         trackInventory: payload.publishSettings.trackInventory,
         fulfillmentModes: payload.publishSettings.fulfillmentModes,

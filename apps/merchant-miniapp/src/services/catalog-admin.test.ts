@@ -19,6 +19,7 @@ import {
   queryCategories,
   queryProducts,
   reorderCategories,
+  reorderProducts,
   saveCategory,
   saveProduct,
   uploadProductImage
@@ -46,6 +47,7 @@ function createProductRecord(overrides: Partial<CatalogProductAdminRecord> = {})
     imagePreviewUrl: 'cloud://xiaipet-dev.123/products/product-001/cover.png',
     memberLevelId: null,
     status: 'published',
+    sortOrder: 1,
     stock: 8,
     trackInventory: true,
     fulfillmentModes: ['delivery', 'pickup'],
@@ -513,6 +515,39 @@ describe('catalog admin service', () => {
     expect(result.summary.totalProducts).toBe(30);
     expect(result.pageInfo.hasMore).toBe(true);
     expect(result.items[0]?.id).toBe('cake-1');
+  });
+
+  it('persists product order through the merchant reorder endpoint', async () => {
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      items: [
+        createProductRecord({ id: 'salmon-cookie', sortOrder: 1 }),
+        createProductRecord({ id: 'pumpkin-cake', sortOrder: 2 })
+      ]
+    });
+
+    const products = await reorderProducts(
+      [
+        createProductRecord({ id: 'salmon-cookie', sortOrder: 8 }),
+        createProductRecord({ id: 'pumpkin-cake', sortOrder: 4 })
+      ],
+      request
+    );
+
+    expect(request).toHaveBeenCalledWith('/api/v1/merchant/products/reorder', {
+      method: 'POST',
+      body: {
+        items: [
+          { id: 'salmon-cookie', sortOrder: 1 },
+          { id: 'pumpkin-cake', sortOrder: 2 }
+        ]
+      },
+      auth: 'merchant'
+    });
+    expect(products.map((product) => [product.id, product.sortOrder])).toEqual([
+      ['salmon-cookie', 1],
+      ['pumpkin-cake', 2]
+    ]);
   });
 
   it('fetches a complete merchant product before editing', async () => {

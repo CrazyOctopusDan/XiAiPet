@@ -4,7 +4,7 @@ import type { ApiRouteDependencies } from '../dependencies';
 
 type CustomerDeliveryMode = 'pickup' | 'delivery' | 'express';
 type CatalogAvailability = 'available' | 'soldOut';
-type CatalogSort = 'latest';
+type CatalogSort = 'manual' | 'latest';
 type ResolveCartLinesBody = {
   lines?: Array<{
     productId?: unknown;
@@ -22,7 +22,7 @@ function parseAvailability(value: unknown): CatalogAvailability {
 }
 
 function parseSort(value: unknown): CatalogSort | undefined {
-  return value === 'latest' ? 'latest' : undefined;
+  return value === 'manual' || value === 'latest' ? value : undefined;
 }
 
 function parsePositiveInteger(value: unknown): number | undefined {

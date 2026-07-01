@@ -19,10 +19,15 @@ describe('product management page layout', () => {
     expect(template).toContain('catchtap="handleDeleteTap"');
     expect(template).toContain('class="product-load-more"');
     expect(template).toContain('bindtap="handleLoadMoreProducts"');
+    expect(template).toContain('catchtap="handleMoveProductTap"');
+    expect(template).toContain('data-direction="up"');
+    expect(template).toContain('data-direction="down"');
 
     expect(styles).toContain('.product-swipe-row');
     expect(styles).toContain('.product-delete-action');
     expect(styles).toContain('.product-load-more');
+    expect(styles).toContain('.product-move-actions');
+    expect(styles).toContain('.product-move-button');
     expect(styles).toContain('transform: translateX(-');
 
     expect(pageSource).toContain('swipedProductId');
@@ -30,5 +35,7 @@ describe('product management page layout', () => {
     expect(pageSource).toContain('handleProductTouchEnd');
     expect(pageSource).toContain('handleDeleteTap');
     expect(pageSource).toContain('handleLoadMoreProducts');
+    expect(pageSource).toContain('handleMoveProductTap');
+    expect(pageSource).toContain('isReordering: false');
   });
 });

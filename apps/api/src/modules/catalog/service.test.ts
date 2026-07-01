@@ -27,6 +27,8 @@ describe('catalog service', () => {
       }),
       deleteCategory: async () => undefined,
       deleteProduct: async () => undefined,
+      reorderProducts: async (items: Array<{ id: string; sortOrder: number }>) =>
+        items.map((item) => createCatalogProductRecord({ id: item.id, sortOrder: item.sortOrder })),
       upsertProduct: async (product: unknown) => product,
       listPublishedProducts: async () => [],
       getProductById: async () => null,
@@ -96,6 +98,7 @@ describe('catalog service', () => {
       detailImageAssets: [],
       memberLevelId: null,
       status: 'published',
+      sortOrder: 1,
       stock: 12,
       trackInventory: true,
       fulfillmentModes: ['delivery', 'pickup'],
@@ -221,6 +224,35 @@ describe('catalog service', () => {
     expect(reorderCategories).toHaveBeenCalledWith([
       { id: 'snacks', sortOrder: 1 },
       { id: 'cakes', sortOrder: 2 }
+    ]);
+  });
+
+  it('reorders merchant products by assigning positive sequential sort orders', async () => {
+    const reorderProducts = vi.fn(async (items: Array<{ id: string; sortOrder: number }>) =>
+      items.map((item) => createCatalogProductRecord({ id: item.id, sortOrder: item.sortOrder }))
+    );
+    const service = createCatalogService(createCatalogRepositoryStub({ reorderProducts }));
+
+    await expect(
+      service.reorderMerchantProducts(
+        { accountId: 'acct-admin' } as never,
+        {
+          items: [
+            { id: 'salmon-cookie', sortOrder: 8 },
+            { id: 'pumpkin-cake', sortOrder: 4 }
+          ]
+        }
+      )
+    ).resolves.toMatchObject({
+      items: [
+        { id: 'salmon-cookie', sortOrder: 1 },
+        { id: 'pumpkin-cake', sortOrder: 2 }
+      ]
+    });
+
+    expect(reorderProducts).toHaveBeenCalledWith([
+      { id: 'salmon-cookie', sortOrder: 1 },
+      { id: 'pumpkin-cake', sortOrder: 2 }
     ]);
   });
 

@@ -55,6 +55,9 @@ export interface ProductCategoryFilterViewModel {
 export interface ProductCardViewModel {
   id: string;
   name: string;
+  sortOrder: number;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   statusLabel: string;
   stockLabel: string;
   priceRangeLabel: string;
@@ -137,7 +140,7 @@ function formatMoney(value: number) {
   return `￥${value.toFixed(2)}`;
 }
 
-type ProductListSource = CatalogProductAdminRecord | CatalogProductAdminListItem;
+export type ProductListSource = CatalogProductAdminRecord | CatalogProductAdminListItem;
 
 function getStatusLabel(status: ProductListSource['status']) {
   if (status === 'published') {
@@ -496,7 +499,10 @@ export async function queryProducts(
     auth: 'merchant'
   });
 
-  const items = response.items ?? response.products ?? [];
+  const items = (response.items ?? response.products ?? []).map((product, index) => ({
+    ...product,
+    sortOrder: product.sortOrder ?? index + 1
+  }));
 
   return {
     items,
@@ -504,6 +510,31 @@ export async function queryProducts(
     pageInfo: response.pageInfo ?? defaultPageInfo(),
     snapshotKey: response.snapshotKey ?? ''
   };
+}
+
+export async function reorderProducts(
+  products: ProductListSource[],
+  request: MerchantApiRequester = merchantApiRequest
+) {
+  const response = await request<{
+    ok?: boolean;
+    items?: ProductListSource[];
+    products?: ProductListSource[];
+  }>('/api/v1/merchant/products/reorder', {
+    method: 'POST',
+    body: {
+      items: products.map((product, index) => ({
+        id: product.id,
+        sortOrder: index + 1
+      }))
+    },
+    auth: 'merchant'
+  });
+
+  return (response.items ?? response.products ?? products).map((product, index) => ({
+    ...product,
+    sortOrder: product.sortOrder ?? index + 1
+  }));
 }
 
 export async function getProductDetail(productId: string, request: MerchantApiRequester = merchantApiRequest) {
@@ -577,9 +608,12 @@ export function getProductPageViewModel(
       label: category.name,
       isActive: category.id === activeCategoryId
     })),
-    cards: filteredProducts.map((product) => ({
+    cards: filteredProducts.map((product, index) => ({
       id: product.id,
       name: product.name,
+      sortOrder: product.sortOrder,
+      canMoveUp: index > 0,
+      canMoveDown: index < filteredProducts.length - 1,
       statusLabel: getStatusLabel(product.status),
       stockLabel: product.trackInventory ? `库存 ${product.stock}` : '库存不跟踪',
       priceRangeLabel: getPriceRangeLabel(product),

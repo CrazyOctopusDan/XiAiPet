@@ -4,13 +4,18 @@ declare function Page(options: Record<string, unknown>): void;
 import {
   deleteProduct,
   getProductPageViewModel,
+  type ProductListSource,
   queryCategories,
-  queryProducts
+  queryProducts,
+  reorderProducts
 } from '../../src/services/catalog-admin';
 import type { CatalogPageInfo } from '@xiaipet/shared/types/catalog-admin';
 
+const PRODUCT_PAGE_LIMIT = 100;
+
 interface ProductsPageData {
   loading: boolean;
+  isReordering: boolean;
   isEmpty: boolean;
   activeCategoryId: string;
   statusFilter: string;
@@ -21,6 +26,7 @@ interface ProductsPageData {
   pageInfo: CatalogPageInfo;
   snapshotKey: string;
   isLoadingMore: boolean;
+  products: ProductListSource[];
   categoryFilters: ReturnType<typeof getProductPageViewModel>['categoryFilters'];
   cards: ReturnType<typeof getProductPageViewModel>['cards'];
   summary: ReturnType<typeof getProductPageViewModel>['summary'];
@@ -41,16 +47,18 @@ function defaultPageInfo(): CatalogPageInfo {
 Page({
   data: {
     loading: true,
+    isReordering: false,
     isEmpty: true,
     activeCategoryId: '',
     statusFilter: '',
-    sort: 'latest',
+    sort: '',
     draftKeyword: '',
     keyword: '',
     swipedProductId: '',
     pageInfo: defaultPageInfo(),
     snapshotKey: '',
     isLoadingMore: false,
+    products: [],
     categoryFilters: [],
     cards: [],
     summary: {
@@ -78,7 +86,7 @@ Page({
           status: this.data.statusFilter,
           keyword: this.data.keyword,
           sort: this.data.sort,
-          limit: 20
+          limit: PRODUCT_PAGE_LIMIT
         })
       ]);
       const view = getProductPageViewModel(
@@ -92,6 +100,7 @@ Page({
       this.setData({
         loading: false,
         isEmpty: view.isEmpty,
+        products: productsResponse.items,
         summary: view.summary,
         categoryFilters: view.categoryFilters,
         cards: view.cards,
@@ -156,7 +165,7 @@ Page({
         status: this.data.statusFilter,
         keyword: this.data.keyword,
         sort: this.data.sort,
-        limit: 20,
+        limit: PRODUCT_PAGE_LIMIT,
         cursor: this.data.pageInfo.nextCursor ?? undefined
       });
       const view = getProductPageViewModel(
@@ -170,6 +179,7 @@ Page({
       this.setData({
         isLoadingMore: false,
         isEmpty: false,
+        products: [...this.data.products, ...productsResponse.items],
         summary: view.summary,
         cards: [...this.data.cards, ...view.cards],
         pageInfo: productsResponse.pageInfo,
@@ -217,6 +227,59 @@ Page({
     this.setData({
       swipedProductId: deltaX < 0 ? productId : ''
     });
+  },
+  async handleMoveProductTap(
+    this: ProductsPageInstance,
+    event: { currentTarget?: { dataset?: { id?: string; direction?: 'up' | 'down' } } }
+  ) {
+    if (this.data.isReordering) {
+      return;
+    }
+
+    if (this.data.pageInfo.hasMore) {
+      wx.showToast({
+        title: '请先加载全部商品',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const productId = event.currentTarget?.dataset?.id;
+    const direction = event.currentTarget?.dataset?.direction;
+    const currentIndex = this.data.products.findIndex((product) => product.id === productId);
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (!productId || currentIndex < 0 || targetIndex < 0 || targetIndex >= this.data.products.length) {
+      return;
+    }
+
+    const nextProducts = [...this.data.products];
+    const [movedProduct] = nextProducts.splice(currentIndex, 1);
+    nextProducts.splice(targetIndex, 0, movedProduct);
+
+    this.setData({ isReordering: true, swipedProductId: '' });
+    try {
+      const products = await reorderProducts(nextProducts);
+      const view = getProductPageViewModel(products, [], this.data.activeCategoryId, this.data.keyword);
+      this.setData({
+        isReordering: false,
+        products,
+        isEmpty: view.isEmpty,
+        cards: view.cards,
+        summary: view.summary
+      });
+      wx.showToast({
+        title: '排序已保存',
+        icon: 'success'
+      });
+    } catch {
+      this.setData({ isReordering: false });
+      wx.showToast({
+        title: '排序保存失败',
+        icon: 'none'
+      });
+      await this.refreshProducts();
+    }
   },
   handleDeleteTap(
     this: ProductsPageInstance,

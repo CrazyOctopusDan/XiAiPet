@@ -59,6 +59,7 @@ export interface CatalogProductRecord {
   detailImageAssets?: CatalogOssAssetReference[];
   memberLevelId: string | null;
   status: 'draft' | 'published' | 'archived';
+  sortOrder: number;
   stock: number;
   trackInventory: boolean;
   fulfillmentModes: unknown[];
@@ -82,6 +83,7 @@ export type CatalogProductSummaryRecord = Pick<
   | 'imageAsset'
   | 'imagePreviewUrl'
   | 'memberLevelId'
+  | 'sortOrder'
   | 'stock'
   | 'trackInventory'
   | 'fulfillmentModes'
@@ -93,7 +95,7 @@ export type CatalogProductSummaryRecord = Pick<
 >;
 
 export type MerchantProductStatusFilter = 'draft' | 'published' | 'archived';
-export type CatalogProductSort = 'latest';
+export type CatalogProductSort = 'manual' | 'latest';
 
 export type MerchantProductSummaryRecord = CatalogProductSummaryRecord & Pick<CatalogProductRecord, 'status'>;
 
@@ -131,6 +133,7 @@ interface ProductRow {
   detailImageAssets: unknown | null;
   memberLevelId: string | null;
   status: string;
+  sortOrder: number;
   stock: number;
   trackInventory: boolean;
   fulfillmentModes: unknown;
@@ -154,6 +157,7 @@ interface ProductSummaryRow {
   imagePreviewUrl: string | null;
   memberLevelId: string | null;
   status: string;
+  sortOrder: number;
   stock: number;
   trackInventory: boolean;
   fulfillmentModes: unknown;
@@ -167,6 +171,7 @@ interface ProductSummaryRow {
 interface CatalogCursor {
   updatedAt: string;
   id: string;
+  sortOrder?: number;
 }
 
 const DEFAULT_PAGE_LIMIT = 20;
@@ -207,6 +212,7 @@ const productSummarySelect = {
   imagePreviewUrl: true,
   memberLevelId: true,
   status: true,
+  sortOrder: true,
   stock: true,
   trackInventory: true,
   fulfillmentModes: true,
@@ -246,6 +252,7 @@ export function mapProduct(row: ProductRow): CatalogProductRecord {
     detailImageAssets: toAssetArray(row.detailImageAssets),
     memberLevelId: row.memberLevelId,
     status: toSharedEnum(row.status, PRODUCT_STATUS),
+    sortOrder: row.sortOrder,
     stock: row.stock,
     trackInventory: row.trackInventory,
     fulfillmentModes: toArray(row.fulfillmentModes),
@@ -282,6 +289,7 @@ function mapProductSummary(row: ProductSummaryRow): MerchantProductSummaryRecord
     imagePreviewUrl: row.imagePreviewUrl ?? undefined,
     memberLevelId: row.memberLevelId,
     status: toSharedEnum(row.status, PRODUCT_STATUS),
+    sortOrder: row.sortOrder,
     stock: row.stock,
     trackInventory: row.trackInventory,
     fulfillmentModes: toArray(row.fulfillmentModes),
@@ -301,8 +309,18 @@ function clampPageLimit(limit: number | undefined) {
   return Math.min(limit, MAX_PAGE_LIMIT);
 }
 
-function encodeCatalogCursor(item: Pick<CatalogProductSummaryRecord, 'updatedAt' | 'id'>): string {
-  return Buffer.from(JSON.stringify({ updatedAt: item.updatedAt, id: item.id }), 'utf8').toString('base64url');
+function getProductOrderBy(sort: CatalogProductSort | undefined): Prisma.ProductOrderByWithRelationInput[] {
+  return sort === 'latest' ? [{ updatedAt: 'desc' }, { id: 'asc' }] : [{ sortOrder: 'asc' }, { id: 'asc' }];
+}
+
+function encodeCatalogCursor(
+  item: Pick<CatalogProductSummaryRecord, 'updatedAt' | 'id' | 'sortOrder'>,
+  sort: CatalogProductSort | undefined
+): string {
+  const payload = sort === 'latest'
+    ? { updatedAt: item.updatedAt, id: item.id }
+    : { sortOrder: item.sortOrder, id: item.id };
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
 }
 
 function decodeCatalogCursor(cursor: string | undefined): CatalogCursor | null {
@@ -313,7 +331,10 @@ function decodeCatalogCursor(cursor: string | undefined): CatalogCursor | null {
   try {
     const decoded = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as Partial<CatalogCursor>;
     if (typeof decoded.updatedAt === 'string' && typeof decoded.id === 'string') {
-      return { updatedAt: decoded.updatedAt, id: decoded.id };
+      return { updatedAt: decoded.updatedAt, id: decoded.id, sortOrder: decoded.sortOrder };
+    }
+    if (typeof decoded.sortOrder === 'number' && typeof decoded.id === 'string') {
+      return { updatedAt: '', id: decoded.id, sortOrder: decoded.sortOrder };
     }
   } catch {
     return null;
@@ -322,10 +343,27 @@ function decodeCatalogCursor(cursor: string | undefined): CatalogCursor | null {
   return null;
 }
 
-function createCursorWhere(cursor: string | undefined): Prisma.ProductWhereInput | undefined {
+function createCursorWhere(cursor: string | undefined, sort: CatalogProductSort | undefined = 'manual'): Prisma.ProductWhereInput | undefined {
   const decoded = decodeCatalogCursor(cursor);
   if (!decoded) {
     return undefined;
+  }
+
+  if (sort !== 'latest') {
+    const sortOrder = decoded.sortOrder;
+    if (!Number.isInteger(sortOrder) || sortOrder === undefined || sortOrder < 0) {
+      return undefined;
+    }
+
+    return {
+      OR: [
+        { sortOrder: { gt: sortOrder } },
+        {
+          sortOrder,
+          id: { gt: decoded.id }
+        }
+      ]
+    };
   }
 
   const updatedAt = new Date(decoded.updatedAt);
@@ -415,7 +453,11 @@ function matchesAvailability(product: Pick<CatalogProductSummaryRecord, 'trackIn
   return availability === 'soldOut' ? soldOut : !soldOut;
 }
 
-function createPage<T extends Pick<CatalogProductSummaryRecord, 'id' | 'updatedAt'>>(items: T[], limit: number): CatalogProductPage<T> {
+function createPage<T extends Pick<CatalogProductSummaryRecord, 'id' | 'updatedAt' | 'sortOrder'>>(
+  items: T[],
+  limit: number,
+  sort: CatalogProductSort | undefined = 'manual'
+): CatalogProductPage<T> {
   const pageItems = items.slice(0, limit);
   const hasMore = items.length > limit;
   const lastItem = pageItems.at(-1);
@@ -423,7 +465,7 @@ function createPage<T extends Pick<CatalogProductSummaryRecord, 'id' | 'updatedA
   return {
     items: pageItems,
     hasMore,
-    nextCursor: hasMore && lastItem ? encodeCatalogCursor(lastItem) : null
+    nextCursor: hasMore && lastItem ? encodeCatalogCursor(lastItem, sort) : null
   };
 }
 
@@ -431,6 +473,7 @@ async function createBoundedFilteredSummaryPage(
   client: DbClient,
   input: {
     where: Prisma.ProductWhereInput;
+    sort?: CatalogProductSort;
     limit: number;
     cursor?: string;
     filter(product: MerchantProductSummaryRecord): boolean;
@@ -450,11 +493,11 @@ async function createBoundedFilteredSummaryPage(
         ...input.where,
         AND: [
           ...(Array.isArray(input.where.AND) ? input.where.AND : []),
-          createCursorWhere(currentCursor)
+          createCursorWhere(currentCursor, input.sort)
         ].filter(Boolean) as Prisma.ProductWhereInput[]
       },
       select: productSummarySelect,
-      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+      orderBy: getProductOrderBy(input.sort),
       take
     });
 
@@ -475,7 +518,7 @@ async function createBoundedFilteredSummaryPage(
       break;
     }
 
-    currentCursor = encodeCatalogCursor(scannedLastProduct);
+    currentCursor = encodeCatalogCursor(scannedLastProduct, input.sort);
     stoppedAtScanCap = scannedCount >= MAX_FILTER_SCAN_ROWS;
   }
 
@@ -483,11 +526,11 @@ async function createBoundedFilteredSummaryPage(
     return {
       items: collected,
       hasMore: true,
-      nextCursor: encodeCatalogCursor(lastScannedProduct)
+      nextCursor: encodeCatalogCursor(lastScannedProduct, input.sort)
     };
   }
 
-  return createPage(collected, input.limit);
+  return createPage(collected, input.limit, input.sort);
 }
 
 function createSnapshotKey(parts: unknown[]) {
@@ -608,7 +651,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
     async listPublishedProducts(): Promise<CatalogProductRecord[]> {
       const products = await client.product.findMany({
         where: { status: PRODUCT_STATUS.published },
-        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+        orderBy: getProductOrderBy('manual')
       });
       return products.map(mapProduct);
     },
@@ -619,7 +662,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           categoryId: filters.categoryId,
           status: filters.status ? PRODUCT_STATUS[filters.status] : { not: PRODUCT_STATUS.archived }
         },
-        orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }]
+        orderBy: getProductOrderBy('manual')
       });
       return products.map(mapProduct);
     },
@@ -680,6 +723,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           ...createAvailabilityWhere(input.availability),
           AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
         },
+        sort: input.sort,
         limit,
         cursor: input.cursor,
         filter: (product) => matchesDeliveryMode(product, input.deliveryMode)
@@ -698,6 +742,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           status: PRODUCT_STATUS.published,
           AND: [createKeywordWhere(input.keyword)].filter(Boolean) as Prisma.ProductWhereInput[]
         },
+        sort: 'latest',
         limit,
         cursor: input.cursor,
         filter: (product) => matchesDeliveryMode(product, input.deliveryMode)
@@ -789,7 +834,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
         status: input.status ? PRODUCT_STATUS[input.status] : { not: PRODUCT_STATUS.archived },
         AND: [
           ...(Array.isArray(baseWhere.AND) ? baseWhere.AND : []),
-          createCursorWhere(input.cursor)
+          createCursorWhere(input.cursor, input.sort)
         ].filter(Boolean) as Prisma.ProductWhereInput[]
       };
       const [
@@ -819,11 +864,11 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
         client.product.findMany({
           where: pageWhere,
           select: productSummarySelect,
-          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+          orderBy: getProductOrderBy(input.sort),
           take: limit + 1
         })
       ]);
-      const page = createPage(pageProducts.map(mapProductSummary), limit);
+      const page = createPage(pageProducts.map(mapProductSummary), limit, input.sort);
       const summary: MerchantProductSummaryCounts = {
         totalProducts,
         publishedProducts,
@@ -840,7 +885,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           input.categoryId ?? 'all',
           input.status ?? 'all',
           input.keyword?.trim() ?? '',
-          input.sort ?? 'latest',
+          input.sort ?? 'manual',
           totalProducts,
           latestProduct._max.updatedAt?.toISOString() ?? null
         ])
@@ -982,6 +1027,33 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
       }
     },
 
+    async reorderProducts(items: Array<{ id: string; sortOrder: number }>): Promise<MerchantProductSummaryRecord[]> {
+      await Promise.all(
+        items.map((item) =>
+          client.product.updateMany({
+            where: {
+              id: item.id
+            },
+            data: {
+              sortOrder: item.sortOrder
+            }
+          })
+        )
+      );
+
+      const products = await client.product.findMany({
+        where: {
+          id: {
+            in: items.map((item) => item.id)
+          }
+        },
+        select: productSummarySelect,
+        orderBy: getProductOrderBy('manual')
+      });
+
+      return products.map(mapProductSummary);
+    },
+
     async upsertProduct(input: CatalogProductRecord): Promise<CatalogProductRecord> {
       const product = await client.product.upsert({
         where: { id: input.id },
@@ -996,6 +1068,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           detailImageAssets: asOptionalJson(input.detailImageAssets),
           memberLevelId: input.memberLevelId,
           status: PRODUCT_STATUS[input.status],
+          sortOrder: input.sortOrder,
           stock: input.stock,
           trackInventory: input.trackInventory,
           fulfillmentModes: asJson(input.fulfillmentModes),
@@ -1018,6 +1091,7 @@ export function createCatalogRepository(client: DbClient = getPrismaClient()) {
           detailImageAssets: asOptionalJson(input.detailImageAssets),
           memberLevelId: input.memberLevelId,
           status: PRODUCT_STATUS[input.status],
+          sortOrder: input.sortOrder,
           stock: input.stock,
           trackInventory: input.trackInventory,
           fulfillmentModes: asJson(input.fulfillmentModes),

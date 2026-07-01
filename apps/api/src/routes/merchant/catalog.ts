@@ -3,14 +3,14 @@ import type { FastifyInstance } from 'fastify';
 import type { ApiRouteDependencies } from '../dependencies';
 
 type MerchantProductStatus = 'draft' | 'published' | 'archived';
-type MerchantProductSort = 'latest';
+type MerchantProductSort = 'manual' | 'latest';
 
 function parseMerchantProductStatus(value: unknown): MerchantProductStatus | undefined {
   return value === 'draft' || value === 'published' || value === 'archived' ? value : undefined;
 }
 
 function parseMerchantProductSort(value: unknown): MerchantProductSort | undefined {
-  return value === 'latest' ? 'latest' : undefined;
+  return value === 'manual' || value === 'latest' ? value : undefined;
 }
 
 function parsePositiveInteger(value: unknown): number | undefined {
@@ -61,6 +61,10 @@ export async function merchantCatalogRoutes(
       limit: parsePositiveInteger(query.limit),
       cursor: parseString(query.cursor)
     });
+  });
+
+  app.post('/products/reorder', merchantGuard, async (request) => {
+    return dependencies.catalogService.reorderMerchantProducts(request.merchant, request.body);
   });
 
   app.get('/products/:productId', merchantGuard, async (request) => {

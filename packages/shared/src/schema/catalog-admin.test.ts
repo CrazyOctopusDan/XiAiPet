@@ -138,6 +138,7 @@ describe('catalog admin schema', () => {
       imagePreviewUrl: 'https://example.com/temp-preview.png',
       memberLevelId: 'vip',
       status: 'draft',
+      sortOrder: 1,
       stock: 12,
       trackInventory: true,
       fulfillmentModes: ['delivery', 'pickup'],
@@ -155,6 +156,12 @@ describe('catalog admin schema', () => {
     };
 
     expect(isCatalogProductAdminRecord(product)).toBe(true);
+    expect(
+      isCatalogProductAdminRecord({
+        ...product,
+        sortOrder: -1
+      })
+    ).toBe(false);
     expect(
       isCatalogProductAdminRecord({
         ...product,
@@ -178,6 +185,7 @@ describe('catalog admin schema', () => {
       imageFileId: 'cloud://xiaipet-prod.123/products/birthday-cake/cover.png',
       memberLevelId: 'vip',
       status: 'published',
+      sortOrder: 1,
       stock: 12,
       trackInventory: true,
       fulfillmentModes: ['delivery'],

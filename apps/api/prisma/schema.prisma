@@ -280,6 +280,7 @@ model Product {
   detailImageAssets       Json?
   memberLevelId    String?       @db.VarChar(191)
   status           ProductStatus @default(DRAFT)
+  sortOrder        Int           @default(0)
   stock            Int           @default(0)
   trackInventory   Boolean       @default(true)
   fulfillmentModes Json
@@ -296,6 +297,8 @@ model Product {
   orderItems OrderItem[]
 
   @@index([categoryId, status])
+  @@index([status, sortOrder, id])
+  @@index([categoryId, status, sortOrder, id])
   @@index([status, updatedAt])
   @@index([status, categoryId, updatedAt, id])
   @@map("products")

@@ -65,6 +65,10 @@
           <view class="product-head">
             <text class="product-name">{{item.name}}</text>
             <text class="status-badge">{{item.statusLabel}}</text>
+            <view class="product-move-actions">
+              <button class="product-move-button" disabled="{{!item.canMoveUp || isReordering}}" data-id="{{item.id}}" data-direction="up" catchtap="handleMoveProductTap">上</button>
+              <button class="product-move-button" disabled="{{!item.canMoveDown || isReordering}}" data-id="{{item.id}}" data-direction="down" catchtap="handleMoveProductTap">下</button>
+            </view>
           </view>
 
           <view class="product-meta">

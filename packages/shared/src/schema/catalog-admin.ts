@@ -216,6 +216,7 @@ export function isCatalogProductAdminRecord(value: unknown): value is CatalogPro
     isMemberLevelId(value.memberLevelId) &&
     typeof value.status === 'string' &&
     PRODUCT_STATUSES.has(value.status) &&
+    isNonNegativeInteger(value.sortOrder) &&
     isNonNegativeInteger(value.stock) &&
     typeof value.trackInventory === 'boolean' &&
     isFulfillmentModeArray(value.fulfillmentModes) &&

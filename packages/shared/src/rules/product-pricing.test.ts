@@ -15,6 +15,7 @@ function createProduct(): CatalogProductAdminRecord {
     imageFileId: 'cloud://xiaipet-prod.123/products/birthday-cake/cover.png',
     memberLevelId: 'vip',
     status: 'published',
+    sortOrder: 1,
     stock: 8,
     trackInventory: true,
     fulfillmentModes: ['delivery', 'pickup'],
