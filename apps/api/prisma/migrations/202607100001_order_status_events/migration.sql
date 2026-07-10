@@ -1,6 +1,6 @@
 CREATE TABLE `order_status_events` (
     `id` VARCHAR(191) NOT NULL,
-    `orderId` VARCHAR(191) NOT NULL,
+    `orderId` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     `type` ENUM('created', 'status_changed') NOT NULL,
     `fromOrderStatus` ENUM('pending_payment', 'payment_processing', 'paid', 'payment_failed', 'cancelled') NULL,
     `toOrderStatus` ENUM('pending_payment', 'payment_processing', 'paid', 'payment_failed', 'cancelled') NULL,
