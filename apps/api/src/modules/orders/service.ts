@@ -53,6 +53,13 @@ interface MerchantOrderNotificationService {
   notifyNewOrder(order: OrderRecord): Promise<unknown>;
 }
 
+interface MerchantOrderTimelineEntry {
+  type: 'created' | 'payment' | 'fulfillment' | 'cancelled';
+  label: string;
+  at: string;
+  toStatus?: string;
+}
+
 interface StoreCoordinateSnapshot {
   latitude: number;
   longitude: number;
@@ -369,6 +376,73 @@ function toOrderItemValidationError(status: string) {
   }
 
   return new ApiError('INVALID_ORDER_ITEM', 'Invalid order item', 400);
+}
+
+function getMerchantFulfillmentStatusLabel(
+  mode: OrderRecord['fulfillmentMode'],
+  status: NonNullable<OrderRecord['fulfillmentStatus']>
+) {
+  if (status === 'pending') {
+    return '待处理';
+  }
+  if (status === 'in_production') {
+    return '制作中';
+  }
+  if (status === 'completed') {
+    return '已完成';
+  }
+  if (status === 'cancelled') {
+    return '已取消';
+  }
+  if (status === 'out_for_delivery') {
+    return '配送中';
+  }
+  if (status === 'ready_for_pickup') {
+    return '待自取';
+  }
+  if (status === 'ready_to_ship') {
+    return mode === 'express' ? '待发货' : '待处理';
+  }
+
+  return status;
+}
+
+function buildMerchantOrderTimeline(order: OrderRecord): MerchantOrderTimelineEntry[] {
+  const timeline: MerchantOrderTimelineEntry[] = [
+    {
+      type: 'created',
+      label: '订单创建',
+      at: order.createdAt
+    }
+  ];
+
+  if (order.paidAt) {
+    timeline.push({
+      type: 'payment',
+      label: '支付完成',
+      at: order.paidAt
+    });
+  }
+
+  if (order.fulfillmentState?.updatedAt) {
+    timeline.push({
+      type: 'fulfillment',
+      label: getMerchantFulfillmentStatusLabel(order.fulfillmentState.mode, order.fulfillmentState.status),
+      at: order.fulfillmentState.updatedAt,
+      toStatus: order.fulfillmentState.status
+    });
+  }
+
+  if (order.cancelledAt) {
+    timeline.push({
+      type: 'cancelled',
+      label: '订单取消',
+      at: order.cancelledAt,
+      toStatus: 'cancelled'
+    });
+  }
+
+  return timeline.sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime());
 }
 
 async function resolveCustomerOrderItems(client: PrismaClient, input: CreateOrderInput): Promise<CreateOrderInput> {
@@ -787,7 +861,7 @@ export function createOrderService(
       if (!order) {
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
       }
-      return { ok: true as const, order };
+      return { ok: true as const, order, timeline: buildMerchantOrderTimeline(order) };
     },
 
     async updateMerchantOrderStatus(merchantContext: MerchantContext, orderId: string, payload: unknown) {

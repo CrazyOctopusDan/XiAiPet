@@ -1313,6 +1313,58 @@ describe('order service', () => {
     });
   });
 
+  it('returns merchant order detail with a timeline built from order event times', async () => {
+    const client = {
+      order: {
+        updateMany: vi.fn(),
+        findUnique: vi.fn(async () =>
+          createOrderRow({
+            id: 'order-1',
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            fulfillmentMode: 'DELIVERY',
+            fulfillmentStatus: 'IN_PRODUCTION',
+            createdAt: new Date('2026-05-21T01:00:00.000Z'),
+            updatedAt: new Date('2026-05-21T03:00:00.000Z'),
+            paidAt: new Date('2026-05-21T02:00:00.000Z')
+          })
+        )
+      }
+    };
+    const service = createOrderService(client as any);
+
+    const result = await service.getMerchantOrderDetail(
+      {
+        accountId: 'acct-admin',
+        openid: 'merchant-openid',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: false,
+        merchantId: 'merchant-1',
+        storeName: '喜爱宠物烘焙'
+      },
+      'order-1'
+    );
+
+    expect(result.timeline).toEqual([
+      expect.objectContaining({
+        type: 'fulfillment',
+        label: '制作中',
+        at: '2026-05-21T03:00:00.000Z'
+      }),
+      expect.objectContaining({
+        type: 'payment',
+        label: '支付完成',
+        at: '2026-05-21T02:00:00.000Z'
+      }),
+      expect.objectContaining({
+        type: 'created',
+        label: '订单创建',
+        at: '2026-05-21T01:00:00.000Z'
+      })
+    ]);
+  });
+
   it('releases locked gifts when merchant cancels an unpaid order', async () => {
     const current = createGiftSnapshotOrder({
       snapshot: createOrderSnapshotWithItems(),

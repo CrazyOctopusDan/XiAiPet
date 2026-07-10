@@ -45,7 +45,7 @@ export interface MerchantOrderCardViewModel {
   statusLabel: string;
   secondaryBadgeLabel: string | null;
   fulfillmentLabel: string;
-  updatedAtLabel: string;
+  createdAtLabel: string;
   scheduleLabel: string;
   customerLabel: string;
   itemSummary: string;
@@ -403,12 +403,50 @@ function toCard(order: MerchantManagedOrderRecord): MerchantOrderCardViewModel {
     statusLabel: getProgressStatusLabel(order),
     secondaryBadgeLabel: getSecondaryBadgeLabel(order),
     fulfillmentLabel: getFulfillmentModeLabel(order.snapshot.fulfillment.mode),
-    updatedAtLabel: formatDateTime(order.updatedAt),
+    createdAtLabel: formatDateTime(order.createdAt),
     scheduleLabel: getReservationLabel(order),
     customerLabel: getCustomerLabel(order),
     itemSummary: getItemSummary(order),
     payableTotalLabel: formatMoney(order.pricing.payableTotal)
   };
+}
+
+function buildFallbackTimeline(order: MerchantManagedOrderRecord): MerchantOrderTimelineEntry[] {
+  const timeline: MerchantOrderTimelineEntry[] = [
+    {
+      type: 'created',
+      label: '订单创建',
+      at: order.createdAt
+    }
+  ];
+
+  if (order.paidAt) {
+    timeline.push({
+      type: 'payment',
+      label: '支付完成',
+      at: order.paidAt
+    });
+  }
+
+  if (order.fulfillmentState?.updatedAt) {
+    timeline.push({
+      type: 'fulfillment',
+      label: getFulfillmentStatusLabel(order.fulfillmentState.mode, order.fulfillmentState.status),
+      at: order.fulfillmentState.updatedAt,
+      toStatus: order.fulfillmentState.status
+    });
+  }
+
+  if (order.cancelledAt) {
+    timeline.push({
+      type: 'cancelled',
+      label: '订单取消',
+      at: order.cancelledAt,
+      toStatus: 'cancelled'
+    });
+  }
+
+  return timeline.sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime());
 }
 
 function toDetailItems(order: MerchantManagedOrderRecord) {
@@ -629,7 +667,7 @@ export function getMerchantOrderDetailViewModel(detail: MerchantOrderDetailRespo
   }
 
   const order = normalizeMerchantOrder(detail.order);
-  const { timeline } = detail;
+  const timeline = detail.timeline.length ? detail.timeline : buildFallbackTimeline(order);
 
   return {
     id: order.id,

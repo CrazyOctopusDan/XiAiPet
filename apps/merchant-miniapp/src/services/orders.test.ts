@@ -282,6 +282,31 @@ describe('merchant orders service', () => {
     });
   });
 
+  it('keeps the order card header time anchored to the customer order creation time', () => {
+    const view = getMerchantOrdersPageViewModel([
+      {
+        groupLabel: '待处理',
+        orders: [
+          createOrder({
+            id: 'order-status-updated',
+            createdAt: '2026-04-18T09:30:00.000Z',
+            updatedAt: '2026-04-18T12:45:00.000Z',
+            fulfillmentState: {
+              mode: 'delivery',
+              status: 'in_production',
+              updatedAt: '2026-04-18T12:45:00.000Z'
+            }
+          })
+        ]
+      }
+    ]);
+
+    expect(view.groups[0]?.orders[0]).toMatchObject({
+      id: 'order-status-updated',
+      createdAtLabel: '2026-04-18 17:30'
+    });
+  });
+
   it('summarizes merchant order groups for the operations header', () => {
     const view = getMerchantOrdersPageViewModel([
       {
@@ -370,6 +395,42 @@ describe('merchant orders service', () => {
       statusLabel: '制作中'
     });
     expect(detail?.statusOptions.map((item) => item.label)).toEqual(['待处理', '配送中', '已完成', '已取消']);
+  });
+
+  it('falls back to order event times when the detail API returns no timeline entries', () => {
+    const detail = getMerchantOrderDetailViewModel({
+      order: createOrder({
+        createdAt: '2026-04-18T09:30:00.000Z',
+        updatedAt: '2026-04-18T12:45:00.000Z',
+        fulfillmentState: {
+          mode: 'delivery',
+          status: 'in_production',
+          updatedAt: '2026-04-18T12:45:00.000Z'
+        }
+      }),
+      timeline: []
+    });
+
+    expect(detail?.auditSummary).toMatchObject({
+      latestActionLabel: '制作中',
+      latestAtLabel: '2026-04-18 20:45'
+    });
+    expect(detail?.timeline.map((item) => ({
+      label: item.label,
+      atLabel: item.atLabel,
+      transitionLabel: item.transitionLabel
+    }))).toEqual([
+      {
+        label: '制作中',
+        atLabel: '2026-04-18 20:45',
+        transitionLabel: '状态记录'
+      },
+      {
+        label: '订单创建',
+        atLabel: '2026-04-18 17:30',
+        transitionLabel: '状态记录'
+      }
+    ]);
   });
 
   it('recomputes reservation date copy against the current day instead of trusting the checkout snapshot label', () => {

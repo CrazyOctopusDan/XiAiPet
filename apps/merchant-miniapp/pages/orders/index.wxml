@@ -76,7 +76,7 @@
             <text class="order-status">{{order.statusLabel}}</text>
             <text class="payment-badge" wx:if="{{order.secondaryBadgeLabel}}">{{order.secondaryBadgeLabel}}</text>
           </view>
-          <text class="order-time">{{order.updatedAtLabel}}</text>
+          <text class="order-time">{{order.createdAtLabel}}</text>
         </view>
 
         <text class="order-summary">{{order.itemSummary}}</text>
