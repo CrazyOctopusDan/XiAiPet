@@ -93,6 +93,13 @@ enum FulfillmentStatus {
   @@map("fulfillment_status")
 }
 
+enum OrderStatusEventType {
+  CREATED        @map("created")
+  STATUS_CHANGED @map("status_changed")
+
+  @@map("order_status_event_type")
+}
+
 enum LedgerType {
   RECHARGE          @map("recharge")
   ORDER_PAYMENT     @map("order_payment")
@@ -328,6 +335,7 @@ model Order {
   user        User                @relation(fields: [openid], references: [openid], onDelete: Restrict)
   items       OrderItem[]
   payment     Payment?
+  statusEvents OrderStatusEvent[]
   ledgers     BalanceLedger[]
   printAudits ReceiptPrintAudit[]
 
@@ -336,6 +344,28 @@ model Order {
   @@index([paymentStatus, createdAt])
   @@index([fulfillmentStatus, createdAt])
   @@map("orders")
+}
+
+model OrderStatusEvent {
+  id                    String               @id @default(cuid()) @db.VarChar(191)
+  orderId               String               @db.VarChar(191)
+  type                  OrderStatusEventType
+  fromOrderStatus       OrderStatus?
+  toOrderStatus         OrderStatus?
+  fromPaymentStatus     PaymentStatus?
+  toPaymentStatus       PaymentStatus?
+  fromFulfillmentStatus FulfillmentStatus?
+  toFulfillmentStatus   FulfillmentStatus?
+  actorType             String               @db.VarChar(32)
+  actorOpenid           String?              @db.VarChar(191)
+  actorName             String?              @db.VarChar(191)
+  note                  String?              @db.Text
+  occurredAt            DateTime             @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, occurredAt, id])
+  @@map("order_status_events")
 }
 
 model OrderItem {

@@ -848,6 +848,21 @@ describe('order service', () => {
         paymentStatus: 'paid'
       }
     });
+    expect(client.order.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: 'order-1' },
+      data: expect.objectContaining({
+        status: 'PAID',
+        paymentStatus: 'PAID',
+        statusEvents: {
+          create: expect.objectContaining({
+            type: 'STATUS_CHANGED',
+            fromPaymentStatus: 'PENDING',
+            toPaymentStatus: 'PAID',
+            actorType: 'system'
+          })
+        }
+      })
+    }));
     expect(paymentProvider.syncWechatPayment).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'order-1'
@@ -1233,10 +1248,21 @@ describe('order service', () => {
   it('auto-completes active paid orders that have not moved for 15 days before customer queries', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-20T00:00:00.000Z'));
+    const staleOrder = createOrderRow({
+      status: 'PAID',
+      paymentStatus: 'PAID',
+      fulfillmentStatus: 'OUT_FOR_DELIVERY',
+      updatedAt: new Date('2026-06-01T00:00:00.000Z')
+    });
     const client = {
       order: {
-        updateMany: vi.fn(async () => ({ count: 2 })),
-        findMany: vi.fn(async () => [])
+        findMany: vi.fn(async () => [staleOrder]),
+        update: vi.fn(async ({ data }) =>
+          createOrderRow({
+            ...staleOrder,
+            fulfillmentStatus: data.fulfillmentStatus
+          })
+        )
       }
     };
     const service = createOrderService(client as any);
@@ -1247,15 +1273,9 @@ describe('order service', () => {
       vi.useRealTimers();
     }
 
-    expect(client.order.updateMany).toHaveBeenCalledWith({
+    expect(client.order.update).toHaveBeenCalledWith({
       where: {
-        status: 'PAID',
-        fulfillmentStatus: {
-          in: ['IN_PRODUCTION', 'OUT_FOR_DELIVERY', 'READY_FOR_PICKUP', 'READY_TO_SHIP']
-        },
-        updatedAt: {
-          lte: new Date('2026-06-05T00:00:00.000Z')
-        }
+        id: 'order-1'
       },
       data: expect.objectContaining({
         fulfillmentStatus: 'COMPLETED',
@@ -1263,7 +1283,15 @@ describe('order service', () => {
           actorType: 'system',
           action: 'auto_complete_active_order',
           thresholdDays: 15
-        })
+        }),
+        statusEvents: {
+          create: expect.objectContaining({
+            type: 'STATUS_CHANGED',
+            fromFulfillmentStatus: 'OUT_FOR_DELIVERY',
+            toFulfillmentStatus: 'COMPLETED',
+            actorType: 'system'
+          })
+        }
       })
     });
   });
@@ -1329,6 +1357,9 @@ describe('order service', () => {
             paidAt: new Date('2026-05-21T02:00:00.000Z')
           })
         )
+      },
+      orderStatusEvent: {
+        findMany: vi.fn(async () => [])
       }
     };
     const service = createOrderService(client as any);
@@ -1363,6 +1394,181 @@ describe('order service', () => {
         at: '2026-05-21T01:00:00.000Z'
       })
     ]);
+  });
+
+  it('returns every persisted fulfillment status transition in merchant order detail', async () => {
+    const client = {
+      order: {
+        updateMany: vi.fn(),
+        findUnique: vi.fn(async () =>
+          createOrderRow({
+            id: 'order-1',
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            fulfillmentMode: 'EXPRESS',
+            fulfillmentStatus: 'READY_TO_SHIP',
+            createdAt: new Date('2026-05-21T01:00:00.000Z'),
+            updatedAt: new Date('2026-05-21T04:00:00.000Z'),
+            paidAt: new Date('2026-05-21T02:00:00.000Z')
+          })
+        )
+      },
+      orderStatusEvent: {
+        findMany: vi.fn(async () => [
+          {
+            id: 'event-4',
+            type: 'STATUS_CHANGED',
+            fromOrderStatus: 'PAID',
+            toOrderStatus: 'PAID',
+            fromPaymentStatus: 'PAID',
+            toPaymentStatus: 'PAID',
+            fromFulfillmentStatus: 'IN_PRODUCTION',
+            toFulfillmentStatus: 'READY_TO_SHIP',
+            actorType: 'MERCHANT',
+            actorOpenid: 'merchant-openid',
+            actorName: '喜爱宠物烘焙',
+            note: '已交快递',
+            occurredAt: new Date('2026-05-21T04:00:00.000Z')
+          },
+          {
+            id: 'event-3',
+            type: 'STATUS_CHANGED',
+            fromOrderStatus: 'PAID',
+            toOrderStatus: 'PAID',
+            fromPaymentStatus: 'PAID',
+            toPaymentStatus: 'PAID',
+            fromFulfillmentStatus: 'PENDING',
+            toFulfillmentStatus: 'IN_PRODUCTION',
+            actorType: 'MERCHANT',
+            actorOpenid: 'merchant-openid',
+            actorName: '喜爱宠物烘焙',
+            note: null,
+            occurredAt: new Date('2026-05-21T03:00:00.000Z')
+          },
+          {
+            id: 'event-2',
+            type: 'STATUS_CHANGED',
+            fromOrderStatus: 'PENDING_PAYMENT',
+            toOrderStatus: 'PAID',
+            fromPaymentStatus: 'PENDING',
+            toPaymentStatus: 'PAID',
+            fromFulfillmentStatus: 'PENDING',
+            toFulfillmentStatus: 'PENDING',
+            actorType: 'SYSTEM',
+            actorOpenid: null,
+            actorName: null,
+            note: null,
+            occurredAt: new Date('2026-05-21T02:00:00.000Z')
+          },
+          {
+            id: 'event-1',
+            type: 'CREATED',
+            fromOrderStatus: null,
+            toOrderStatus: 'PENDING_PAYMENT',
+            fromPaymentStatus: null,
+            toPaymentStatus: 'PENDING',
+            fromFulfillmentStatus: null,
+            toFulfillmentStatus: 'PENDING',
+            actorType: 'CUSTOMER',
+            actorOpenid: 'openid-1',
+            actorName: null,
+            note: null,
+            occurredAt: new Date('2026-05-21T01:00:00.000Z')
+          }
+        ])
+      }
+    };
+    const service = createOrderService(client as any);
+
+    const result = await service.getMerchantOrderDetail(
+      {
+        accountId: 'acct-admin',
+        openid: 'merchant-openid',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: false,
+        merchantId: 'merchant-1',
+        storeName: '喜爱宠物烘焙'
+      },
+      'order-1'
+    );
+
+    expect(result.timeline).toEqual([
+      expect.objectContaining({
+        type: 'fulfillment',
+        label: '待发货',
+        fromStatus: '制作中',
+        toStatus: '待发货',
+        detail: '已交快递',
+        at: '2026-05-21T04:00:00.000Z'
+      }),
+      expect.objectContaining({
+        type: 'fulfillment',
+        label: '制作中',
+        fromStatus: '待处理',
+        toStatus: '制作中',
+        at: '2026-05-21T03:00:00.000Z'
+      }),
+      expect.objectContaining({ type: 'payment', label: '支付完成', at: '2026-05-21T02:00:00.000Z' }),
+      expect.objectContaining({ type: 'created', label: '订单创建', at: '2026-05-21T01:00:00.000Z' })
+    ]);
+  });
+
+  it('appends a merchant status event instead of overwriting the prior transition', async () => {
+    const current = createOrderRow({
+      status: 'PAID',
+      paymentStatus: 'PAID',
+      fulfillmentMode: 'DELIVERY',
+      fulfillmentStatus: 'PENDING'
+    });
+    const client = {
+      order: {
+        updateMany: vi.fn(async () => ({ count: 0 })),
+        findUnique: vi.fn(async () => current),
+        update: vi.fn(async ({ data }) =>
+          createOrderRow({
+            ...current,
+            fulfillmentStatus: data.fulfillmentStatus
+          })
+        )
+      }
+    };
+    const service = createOrderService(client as any);
+
+    await service.updateMerchantOrderStatus(
+      {
+        accountId: 'acct-admin',
+        openid: 'merchant-openid',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: false,
+        merchantId: 'merchant-1',
+        storeName: '喜爱宠物烘焙'
+      },
+      'order-1',
+      {
+        fulfillmentStatus: 'in_production',
+        reasonNote: '开始制作'
+      }
+    );
+
+    expect(client.order.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'order-1' },
+      data: expect.objectContaining({
+        fulfillmentStatus: 'IN_PRODUCTION',
+        statusEvents: {
+          create: expect.objectContaining({
+            type: 'STATUS_CHANGED',
+            fromFulfillmentStatus: 'PENDING',
+            toFulfillmentStatus: 'IN_PRODUCTION',
+            actorType: 'merchant',
+            actorOpenid: 'merchant-openid',
+            actorName: '喜爱宠物烘焙',
+            note: '开始制作'
+          })
+        }
+      })
+    }));
   });
 
   it('releases locked gifts when merchant cancels an unpaid order', async () => {

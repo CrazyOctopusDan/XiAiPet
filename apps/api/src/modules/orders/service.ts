@@ -7,7 +7,8 @@ import {
   type CustomerOrderListFilters,
   type CreateOrderInput,
   type MerchantOrderListFilters,
-  type OrderRecord
+  type OrderRecord,
+  type OrderStatusEventRecord
 } from './repository';
 import { getPrismaClient } from '../../db/prisma';
 import { ApiError } from '../../lib/errors';
@@ -57,6 +58,12 @@ interface MerchantOrderTimelineEntry {
   type: 'created' | 'payment' | 'fulfillment' | 'cancelled';
   label: string;
   at: string;
+  detail?: string;
+  operator?: {
+    id: string;
+    name: string;
+  };
+  fromStatus?: string;
   toStatus?: string;
 }
 
@@ -407,6 +414,83 @@ function getMerchantFulfillmentStatusLabel(
   return status;
 }
 
+function getPaymentStatusLabel(status: NonNullable<OrderStatusEventRecord['toPaymentStatus']>) {
+  if (status === 'pending') {
+    return '待付款';
+  }
+  if (status === 'processing') {
+    return '支付处理中';
+  }
+  if (status === 'paid') {
+    return '支付完成';
+  }
+  return '支付失败';
+}
+
+function buildMerchantOrderTimelineFromEvents(
+  order: OrderRecord,
+  events: OrderStatusEventRecord[]
+): MerchantOrderTimelineEntry[] {
+  return events.map((event) => {
+    const operator = event.actorName
+      ? { id: event.actorOpenid ?? event.actorType, name: event.actorName }
+      : undefined;
+    const detail = event.note;
+
+    if (event.type === 'created') {
+      return { type: 'created', label: '订单创建', at: event.occurredAt, detail, operator };
+    }
+
+    if (event.toOrderStatus === 'cancelled') {
+      return {
+        type: 'cancelled',
+        label: '订单取消',
+        at: event.occurredAt,
+        detail,
+        operator,
+        fromStatus: event.fromFulfillmentStatus
+          ? getMerchantFulfillmentStatusLabel(order.fulfillmentMode, event.fromFulfillmentStatus)
+          : undefined,
+        toStatus: '已取消'
+      };
+    }
+
+    if (event.toFulfillmentStatus && event.toFulfillmentStatus !== event.fromFulfillmentStatus) {
+      return {
+        type: 'fulfillment',
+        label: getMerchantFulfillmentStatusLabel(order.fulfillmentMode, event.toFulfillmentStatus),
+        at: event.occurredAt,
+        detail,
+        operator,
+        fromStatus: event.fromFulfillmentStatus
+          ? getMerchantFulfillmentStatusLabel(order.fulfillmentMode, event.fromFulfillmentStatus)
+          : undefined,
+        toStatus: getMerchantFulfillmentStatusLabel(order.fulfillmentMode, event.toFulfillmentStatus)
+      };
+    }
+
+    if (event.toPaymentStatus && event.toPaymentStatus !== event.fromPaymentStatus) {
+      return {
+        type: 'payment',
+        label: getPaymentStatusLabel(event.toPaymentStatus),
+        at: event.occurredAt,
+        detail,
+        operator,
+        fromStatus: event.fromPaymentStatus ? getPaymentStatusLabel(event.fromPaymentStatus) : undefined,
+        toStatus: getPaymentStatusLabel(event.toPaymentStatus)
+      };
+    }
+
+    return {
+      type: 'fulfillment',
+      label: event.toOrderStatus === 'paid' ? '订单已支付' : '订单状态更新',
+      at: event.occurredAt,
+      detail,
+      operator
+    };
+  });
+}
+
 function buildMerchantOrderTimeline(order: OrderRecord): MerchantOrderTimelineEntry[] {
   const timeline: MerchantOrderTimelineEntry[] = [
     {
@@ -577,6 +661,25 @@ function canCustomerCompleteOrder(order: OrderRecord) {
   return order.fulfillmentStatus ? CUSTOMER_COMPLETABLE_FULFILLMENT_STATUSES.includes(order.fulfillmentStatus) : false;
 }
 
+function getStatusEventNote(payload: Record<string, unknown>) {
+  const note = payload.reasonNote;
+  return typeof note === 'string' && note.trim() ? note.trim() : undefined;
+}
+
+function getStatusEventActor(payload: Record<string, unknown>, fallback: { type: 'customer' | 'merchant' | 'system'; openid?: string; name?: string }) {
+  const operator = payload.operator;
+  if (operator && typeof operator === 'object') {
+    const candidate = operator as { id?: unknown; name?: unknown };
+    return {
+      type: fallback.type,
+      openid: typeof candidate.id === 'string' && candidate.id ? candidate.id : fallback.openid,
+      name: typeof candidate.name === 'string' && candidate.name ? candidate.name : fallback.name
+    };
+  }
+
+  return fallback;
+}
+
 function assertSyncedPaymentAmountMatchesOrder(order: OrderRecord, paidAmountCents?: number) {
   if (paidAmountCents === undefined) {
     throw new ApiError('ORDER_PAYMENT_AMOUNT_MISSING', 'Order payment amount is required for settlement', 409);
@@ -691,7 +794,17 @@ export function createOrderService(
           balanceAfter: balance.balanceAfter
         };
       }
-      const processing = await orderRepository.markPaymentProcessing(orderId);
+      const processing = await orderRepository.markPaymentProcessing(orderId, {
+        type: 'status_changed',
+        fromOrderStatus: order.status,
+        toOrderStatus: 'payment_processing',
+        fromPaymentStatus: order.paymentStatus,
+        toPaymentStatus: 'processing',
+        fromFulfillmentStatus: order.fulfillmentStatus,
+        toFulfillmentStatus: order.fulfillmentStatus,
+        actorType: 'customer',
+        actorOpenid: openid
+      });
       const paymentStart = await paymentProvider.startWechatPayment(createOrderPaymentSubject(processing), { openid });
       await createPaymentRepository(client).upsertPayment({
         orderId,
@@ -797,6 +910,17 @@ export function createOrderService(
           actorOpenid: openid,
           action: 'customer_confirm_completed',
           operatedAt: new Date().toISOString()
+        },
+        statusEvent: {
+          type: 'status_changed',
+          fromOrderStatus: current.status,
+          toOrderStatus: current.status,
+          fromPaymentStatus: current.paymentStatus,
+          toPaymentStatus: current.paymentStatus,
+          fromFulfillmentStatus: current.fulfillmentStatus,
+          toFulfillmentStatus: 'completed',
+          actorType: 'customer',
+          actorOpenid: openid
         }
       });
 
@@ -839,6 +963,18 @@ export function createOrderService(
             actorOpenid: openid,
             action: 'customer_cancel_unpaid_order',
             operatedAt: cancelledAt.toISOString()
+          },
+          statusEvent: {
+            type: 'status_changed',
+            fromOrderStatus: current.status,
+            toOrderStatus: 'cancelled',
+            fromPaymentStatus: current.paymentStatus,
+            toPaymentStatus: 'failed',
+            fromFulfillmentStatus: current.fulfillmentStatus,
+            toFulfillmentStatus: 'cancelled',
+            actorType: 'customer',
+            actorOpenid: openid,
+            occurredAt: cancelledAt
           }
         });
         await createGiftService(tx as never).releaseGiftsForOrder(orderId, tx as never);
@@ -861,7 +997,12 @@ export function createOrderService(
       if (!order) {
         throw new ApiError('ORDER_NOT_FOUND', 'Order not found', 404);
       }
-      return { ok: true as const, order, timeline: buildMerchantOrderTimeline(order) };
+      const events = await createOrderRepository(client).listStatusEvents(orderId);
+      return {
+        ok: true as const,
+        order,
+        timeline: events.length ? buildMerchantOrderTimelineFromEvents(order, events) : buildMerchantOrderTimeline(order)
+      };
     },
 
     async updateMerchantOrderStatus(merchantContext: MerchantContext, orderId: string, payload: unknown) {
@@ -880,7 +1021,15 @@ export function createOrderService(
         status?: OrderRecord['status'];
         paymentStatus?: OrderRecord['paymentStatus'];
         fulfillmentStatus?: NonNullable<OrderRecord['fulfillmentStatus']>;
+        reasonNote?: unknown;
+        operator?: unknown;
       };
+      const occurredAt = new Date();
+      const actor = getStatusEventActor(candidate as Record<string, unknown>, {
+        type: 'merchant',
+        openid: merchantContext.openid,
+        name: merchantContext.storeName
+      });
       const updateInput = {
         status: candidate.status,
         paymentStatus: candidate.paymentStatus,
@@ -890,8 +1039,22 @@ export function createOrderService(
         merchantOverride: {
           actorOpenid: merchantContext.openid,
           actorName: merchantContext.storeName,
-          operatedAt: new Date().toISOString(),
+          operatedAt: occurredAt.toISOString(),
           payload
+        },
+        statusEvent: {
+          type: 'status_changed' as const,
+          fromOrderStatus: current.status,
+          toOrderStatus: candidate.status ?? current.status,
+          fromPaymentStatus: current.paymentStatus,
+          toPaymentStatus: candidate.paymentStatus ?? current.paymentStatus,
+          fromFulfillmentStatus: current.fulfillmentStatus,
+          toFulfillmentStatus: candidate.fulfillmentStatus ?? current.fulfillmentStatus,
+          actorType: actor.type,
+          actorOpenid: actor.openid,
+          actorName: actor.name,
+          note: getStatusEventNote(candidate as Record<string, unknown>),
+          occurredAt
         }
       };
       const order = candidate.status === 'cancelled' && current.paymentStatus !== 'paid'

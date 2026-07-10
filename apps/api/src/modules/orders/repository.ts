@@ -84,6 +84,53 @@ export interface OrderRecord {
   cancelledAt?: string;
 }
 
+export interface OrderStatusEventRecord {
+  id: string;
+  type: 'created' | 'status_changed';
+  fromOrderStatus?: OrderRecord['status'];
+  toOrderStatus?: OrderRecord['status'];
+  fromPaymentStatus?: OrderRecord['paymentStatus'];
+  toPaymentStatus?: OrderRecord['paymentStatus'];
+  fromFulfillmentStatus?: NonNullable<OrderRecord['fulfillmentStatus']>;
+  toFulfillmentStatus?: NonNullable<OrderRecord['fulfillmentStatus']>;
+  actorType: 'customer' | 'merchant' | 'system';
+  actorOpenid?: string;
+  actorName?: string;
+  note?: string;
+  occurredAt: string;
+}
+
+export interface OrderStatusEventInput {
+  type: OrderStatusEventRecord['type'];
+  fromOrderStatus?: OrderRecord['status'];
+  toOrderStatus?: OrderRecord['status'];
+  fromPaymentStatus?: OrderRecord['paymentStatus'];
+  toPaymentStatus?: OrderRecord['paymentStatus'];
+  fromFulfillmentStatus?: NonNullable<OrderRecord['fulfillmentStatus']>;
+  toFulfillmentStatus?: NonNullable<OrderRecord['fulfillmentStatus']>;
+  actorType: OrderStatusEventRecord['actorType'];
+  actorOpenid?: string;
+  actorName?: string;
+  note?: string;
+  occurredAt?: Date;
+}
+
+interface OrderStatusEventRow {
+  id: string;
+  type: 'CREATED' | 'STATUS_CHANGED';
+  fromOrderStatus: string | null;
+  toOrderStatus: string | null;
+  fromPaymentStatus: string | null;
+  toPaymentStatus: string | null;
+  fromFulfillmentStatus: string | null;
+  toFulfillmentStatus: string | null;
+  actorType: string;
+  actorOpenid: string | null;
+  actorName: string | null;
+  note: string | null;
+  occurredAt: Date;
+}
+
 interface OrderRow {
   id: string;
   openid: string;
@@ -137,8 +184,47 @@ export function mapOrder(row: OrderRow): OrderRecord {
   };
 }
 
+function mapOrderStatusEvent(row: OrderStatusEventRow): OrderStatusEventRecord {
+  return {
+    id: row.id,
+    type: row.type === 'CREATED' ? 'created' : 'status_changed',
+    fromOrderStatus: row.fromOrderStatus ? toSharedEnum(row.fromOrderStatus, ORDER_STATUS) : undefined,
+    toOrderStatus: row.toOrderStatus ? toSharedEnum(row.toOrderStatus, ORDER_STATUS) : undefined,
+    fromPaymentStatus: row.fromPaymentStatus ? toSharedEnum(row.fromPaymentStatus, PAYMENT_STATUS) : undefined,
+    toPaymentStatus: row.toPaymentStatus ? toSharedEnum(row.toPaymentStatus, PAYMENT_STATUS) : undefined,
+    fromFulfillmentStatus: row.fromFulfillmentStatus
+      ? toSharedEnum(row.fromFulfillmentStatus, FULFILLMENT_STATUS)
+      : undefined,
+    toFulfillmentStatus: row.toFulfillmentStatus
+      ? toSharedEnum(row.toFulfillmentStatus, FULFILLMENT_STATUS)
+      : undefined,
+    actorType: row.actorType === 'merchant' || row.actorType === 'customer' ? row.actorType : 'system',
+    actorOpenid: row.actorOpenid ?? undefined,
+    actorName: row.actorName ?? undefined,
+    note: row.note ?? undefined,
+    occurredAt: row.occurredAt.toISOString()
+  };
+}
+
 function asJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
+}
+
+function toStatusEventData(input: OrderStatusEventInput): Prisma.OrderStatusEventCreateWithoutOrderInput {
+  return {
+    type: input.type === 'created' ? 'CREATED' : 'STATUS_CHANGED',
+    fromOrderStatus: input.fromOrderStatus ? ORDER_STATUS[input.fromOrderStatus] : undefined,
+    toOrderStatus: input.toOrderStatus ? ORDER_STATUS[input.toOrderStatus] : undefined,
+    fromPaymentStatus: input.fromPaymentStatus ? PAYMENT_STATUS[input.fromPaymentStatus] : undefined,
+    toPaymentStatus: input.toPaymentStatus ? PAYMENT_STATUS[input.toPaymentStatus] : undefined,
+    fromFulfillmentStatus: input.fromFulfillmentStatus ? FULFILLMENT_STATUS[input.fromFulfillmentStatus] : undefined,
+    toFulfillmentStatus: input.toFulfillmentStatus ? FULFILLMENT_STATUS[input.toFulfillmentStatus] : undefined,
+    actorType: input.actorType,
+    actorOpenid: input.actorOpenid,
+    actorName: input.actorName,
+    note: input.note,
+    occurredAt: input.occurredAt
+  };
 }
 
 function clampCustomerOrderLimit(value: number | undefined) {
@@ -216,6 +302,14 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
       return order ? mapOrder(order) : null;
     },
 
+    async listStatusEvents(orderId: string): Promise<OrderStatusEventRecord[]> {
+      const events = await client.orderStatusEvent.findMany({
+        where: { orderId },
+        orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }]
+      });
+      return events.map(mapOrderStatusEvent);
+    },
+
     async listByOpenid(openid: string, filters: CustomerOrderListFilters = {}): Promise<CustomerOrderPage> {
       const limit = clampCustomerOrderLimit(filters.limit);
       const offset = parseCustomerOrderCursor(filters.cursor);
@@ -280,15 +374,12 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
     },
 
     async completeStaleActiveOrders(cutoff: Date, metadata: unknown): Promise<number> {
-      const orderModel = client.order as typeof client.order & {
-        updateMany?: unknown;
-      };
-
-      if (typeof orderModel.updateMany !== 'function') {
+      const orderModel = client.order as typeof client.order & { findMany?: unknown };
+      if (typeof orderModel.findMany !== 'function') {
         return 0;
       }
 
-      const result = await orderModel.updateMany({
+      const rows = await orderModel.findMany({
         where: {
           status: ORDER_STATUS.paid,
           fulfillmentStatus: {
@@ -297,14 +388,55 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
           updatedAt: {
             lte: cutoff
           }
-        },
-        data: {
-          fulfillmentStatus: FULFILLMENT_STATUS.completed,
-          merchantOverride: metadata as Prisma.InputJsonValue
         }
       });
+      const occurredAt = metadata && typeof metadata === 'object' && 'operatedAt' in metadata
+        && typeof metadata.operatedAt === 'string'
+        ? new Date(metadata.operatedAt)
+        : new Date();
+      const activeStatuses: Array<NonNullable<OrderRecord['fulfillmentStatus']>> = [
+        'in_production',
+        'out_for_delivery',
+        'ready_for_pickup',
+        'ready_to_ship'
+      ];
+      let completedCount = 0;
 
-      return result && typeof result.count === 'number' ? result.count : 0;
+      for (const row of rows) {
+        const current = mapOrder(row);
+        if (
+          current.status !== 'paid'
+          || !current.fulfillmentStatus
+          || !activeStatuses.includes(current.fulfillmentStatus)
+          || new Date(current.updatedAt) > cutoff
+        ) {
+          continue;
+        }
+
+        await client.order.update({
+          where: { id: current.id },
+          data: {
+            fulfillmentStatus: FULFILLMENT_STATUS.completed,
+            merchantOverride: metadata as Prisma.InputJsonValue,
+            statusEvents: {
+              create: toStatusEventData({
+                type: 'status_changed',
+                fromOrderStatus: current.status,
+                toOrderStatus: current.status,
+                fromPaymentStatus: current.paymentStatus,
+                toPaymentStatus: current.paymentStatus,
+                fromFulfillmentStatus: current.fulfillmentStatus,
+                toFulfillmentStatus: 'completed',
+                actorType: 'system',
+                occurredAt
+              })
+            }
+          }
+        });
+        completedCount += 1;
+      }
+
+      return completedCount;
     },
 
     async createPending(input: CreateOrderInput): Promise<OrderRecord> {
@@ -313,6 +445,7 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
         return existing;
       }
 
+      const createdAt = new Date();
       const order = await client.order.create({
         data: {
           id: input.id,
@@ -327,6 +460,18 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
           deliveryFee: input.deliveryFee,
           payableTotal: input.payableTotal,
           snapshot: asJson(input.snapshot),
+          createdAt,
+          statusEvents: {
+            create: toStatusEventData({
+              type: 'created',
+              toOrderStatus: 'pending_payment',
+              toPaymentStatus: 'pending',
+              toFulfillmentStatus: 'pending',
+              actorType: 'customer',
+              actorOpenid: input.openid,
+              occurredAt: createdAt
+            })
+          },
           items: {
             create: input.items.map((item) => ({
               product: {
@@ -348,12 +493,13 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
       return mapOrder(order);
     },
 
-    async markPaymentProcessing(orderId: string): Promise<OrderRecord> {
+    async markPaymentProcessing(orderId: string, statusEvent?: OrderStatusEventInput): Promise<OrderRecord> {
       const order = await client.order.update({
         where: { id: orderId },
         data: {
           status: ORDER_STATUS.payment_processing,
-          paymentStatus: PAYMENT_STATUS.processing
+          paymentStatus: PAYMENT_STATUS.processing,
+          statusEvents: statusEvent ? { create: toStatusEventData(statusEvent) } : undefined
         }
       });
       return mapOrder(order);
@@ -368,6 +514,7 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
         paidAt?: Date;
         cancelledAt?: Date;
         merchantOverride?: unknown;
+        statusEvent?: OrderStatusEventInput;
       }
     ): Promise<OrderRecord> {
       const order = await client.order.update({
@@ -378,7 +525,8 @@ export function createOrderRepository(client: DbClient = getPrismaClient()) {
           fulfillmentStatus: input.fulfillmentStatus ? FULFILLMENT_STATUS[input.fulfillmentStatus] : undefined,
           paidAt: input.paidAt,
           cancelledAt: input.cancelledAt,
-          merchantOverride: input.merchantOverride as Prisma.InputJsonValue | undefined
+          merchantOverride: input.merchantOverride as Prisma.InputJsonValue | undefined,
+          statusEvents: input.statusEvent ? { create: toStatusEventData(input.statusEvent) } : undefined
         }
       });
       return mapOrder(order);

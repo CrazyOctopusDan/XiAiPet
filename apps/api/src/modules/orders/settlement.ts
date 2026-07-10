@@ -132,7 +132,22 @@ export async function markOrderPaidAndRedeemGifts(
     }
 
     await redeemExpectedOrderGifts(tx as never, orderId, order.snapshot, paidAt);
-    return createPaymentRepository(tx as never).markOrderPaid(orderId, paidAt);
+    return createOrderRepository(tx as never).updateStatus(orderId, {
+      status: 'paid',
+      paymentStatus: 'paid',
+      paidAt,
+      statusEvent: {
+        type: 'status_changed',
+        fromOrderStatus: order.status,
+        toOrderStatus: 'paid',
+        fromPaymentStatus: order.paymentStatus,
+        toPaymentStatus: 'paid',
+        fromFulfillmentStatus: order.fulfillmentStatus,
+        toFulfillmentStatus: order.fulfillmentStatus,
+        actorType: 'system',
+        occurredAt: paidAt
+      }
+    });
   });
 }
 
