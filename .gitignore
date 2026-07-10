@@ -25,3 +25,4 @@ req/*.key
 .codex
 .planning
 .superpowers
+.worktrees
