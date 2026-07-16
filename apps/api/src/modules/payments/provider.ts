@@ -24,7 +24,8 @@ export interface WechatPaymentSyncResult {
   tradeState: string;
   transactionId?: string;
   paidAt?: Date;
-  paidAmountCents?: number;
+  orderAmountCents?: number;
+  payerAmountCents?: number;
   failureCode?: string;
   failureMessage?: string;
 }
@@ -215,11 +216,13 @@ export function createMockPaymentProvider(): PaymentProvider {
       };
     },
     async syncWechatPayment(subject: WechatPaymentSubject): Promise<WechatPaymentSyncResult> {
+      const amountCents = toCents(subject.amount);
       return {
         tradeState: 'SUCCESS',
-        transactionId: `mock-transaction-${subject.id}-${toCents(subject.amount)}`,
+        transactionId: `mock-transaction-${subject.id}-${amountCents}`,
         paidAt: new Date(),
-        paidAmountCents: toCents(subject.amount)
+        orderAmountCents: amountCents,
+        payerAmountCents: amountCents
       };
     }
   };
@@ -271,7 +274,8 @@ export function createWechatPayProvider(options: WechatPayProviderOptions): Paym
         tradeState: response.trade_state ?? 'UNKNOWN',
         transactionId: response.transaction_id,
         paidAt: response.success_time ? new Date(response.success_time) : undefined,
-        paidAmountCents: response.amount?.payer_total ?? response.amount?.total,
+        orderAmountCents: response.amount?.total,
+        payerAmountCents: response.amount?.payer_total,
         failureCode: response.trade_state && response.trade_state !== 'SUCCESS' ? response.trade_state : undefined,
         failureMessage: response.trade_state_desc
       };

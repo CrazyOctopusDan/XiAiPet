@@ -150,6 +150,56 @@ describe('createWechatPayProvider', () => {
     });
     expect(provider.supportsRechargePayments).toBe(true);
   });
+
+  it('keeps the WeChat order total separate from the post-coupon payer total', async () => {
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+
+    requestMock.mockImplementation((_, callback) => {
+      const request = new EventEmitter() as EventEmitter & {
+        write: ReturnType<typeof vi.fn>;
+        end: ReturnType<typeof vi.fn>;
+      };
+      request.write = vi.fn();
+      request.end = vi.fn(() => {
+        const response = new EventEmitter() as EventEmitter & { statusCode: number };
+        response.statusCode = 200;
+        callback(response);
+        response.emit(
+          'data',
+          Buffer.from(
+            JSON.stringify({
+              trade_state: 'SUCCESS',
+              transaction_id: 'wx-transaction-coupon',
+              success_time: '2026-07-16T09:59:05+08:00',
+              amount: { total: 50000, payer_total: 38500 }
+            })
+          )
+        );
+        response.emit('end');
+      });
+      return request;
+    });
+
+    const provider = createWechatPayProvider({
+      appId: 'wx-test-app',
+      mchId: 'test-merchant',
+      mchSerialNo: 'test-serial',
+      privateKey: privatePem,
+      notifyUrl: 'https://api.example.test/api/v1/payments/wechat/notify'
+    });
+
+    await expect(
+      provider.syncWechatPayment(
+        { id: 'recharge-coupon-case', description: 'Test recharge', amount: 500 },
+        { openid: 'openid-test' }
+      )
+    ).resolves.toMatchObject({
+      tradeState: 'SUCCESS',
+      orderAmountCents: 50000,
+      payerAmountCents: 38500
+    });
+  });
 });
 
 describe('createMockPaymentProvider', () => {
