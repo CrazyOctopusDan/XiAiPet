@@ -815,9 +815,10 @@ describe('order service', () => {
       })),
       syncWechatPayment: vi.fn(async () => ({
         tradeState: 'SUCCESS',
-        transactionId: 'wx-transaction-1',
-        paidAt: new Date('2026-05-25T08:00:00.000Z'),
-        paidAmountCents: 6800
+        transactionId: 'wx-transaction-coupon',
+        paidAt: new Date('2026-07-16T01:59:05.000Z'),
+        orderAmountCents: 6800,
+        payerAmountCents: 5300
       }))
     };
     const service = createOrderService(client as any, paymentProvider);
@@ -1067,7 +1068,7 @@ describe('order service', () => {
         tradeState: 'SUCCESS',
         transactionId: 'wx-transaction-1',
         paidAt: new Date('2026-05-25T08:00:00.000Z'),
-        paidAmountCents: 6800
+        orderAmountCents: 6800
       }))
     };
     const service = createOrderService(client as any, paymentProvider);
@@ -1167,7 +1168,8 @@ describe('order service', () => {
         tradeState: 'SUCCESS',
         transactionId: 'wx-transaction-1',
         paidAt: new Date('2026-05-25T08:00:00.000Z'),
-        paidAmountCents: 6700
+        orderAmountCents: 6700,
+        payerAmountCents: 6800
       }))
     };
     const service = createOrderService(client as any, paymentProvider);

@@ -680,11 +680,11 @@ function getStatusEventActor(payload: Record<string, unknown>, fallback: { type:
   return fallback;
 }
 
-function assertSyncedPaymentAmountMatchesOrder(order: OrderRecord, paidAmountCents?: number) {
-  if (paidAmountCents === undefined) {
+function assertSyncedPaymentAmountMatchesOrder(order: OrderRecord, orderAmountCents?: number) {
+  if (orderAmountCents === undefined) {
     throw new ApiError('ORDER_PAYMENT_AMOUNT_MISSING', 'Order payment amount is required for settlement', 409);
   }
-  if (paidAmountCents !== toCents(order.pricing.payableTotal)) {
+  if (orderAmountCents !== toCents(order.pricing.payableTotal)) {
     throw new ApiError('ORDER_PAYMENT_AMOUNT_MISMATCH', 'Order payment amount does not match order total', 409);
   }
 }
@@ -840,7 +840,7 @@ export function createOrderService(
         const syncedPayment = await paymentProvider.syncWechatPayment(createOrderPaymentSubject(order), { openid });
 
         if (syncedPayment.tradeState === 'SUCCESS') {
-          assertSyncedPaymentAmountMatchesOrder(order, syncedPayment.paidAmountCents);
+          assertSyncedPaymentAmountMatchesOrder(order, syncedPayment.orderAmountCents);
           const paidOrder = await recordOrderPaymentAndSettle(client as never, {
             orderId,
             method: 'wechat',

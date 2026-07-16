@@ -356,9 +356,10 @@ describe('createRechargeService', () => {
       startWechatPayment: vi.fn(),
       syncWechatPayment: vi.fn(async () => ({
         tradeState: 'SUCCESS',
-        transactionId: 'wx-transaction-1',
+        transactionId: 'wx-recharge-coupon',
         paidAt,
-        paidAmountCents: 10000
+        orderAmountCents: 10000,
+        payerAmountCents: 7700
       }))
     };
     const service = createRechargeService(client as never, paymentProvider as never);
@@ -687,7 +688,7 @@ describe('createRechargeService', () => {
       service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
         transactionId: 'wx-transaction-1',
         paidAt,
-        paidAmountCents: 10000
+        orderAmountCents: 10000
       })
     ).resolves.toMatchObject({
       id: 'recharge-openid-1_idem-1',
@@ -780,12 +781,12 @@ describe('createRechargeService', () => {
     await service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
       transactionId: 'wx-transaction-1',
       paidAt,
-      paidAmountCents: 10000
+      orderAmountCents: 10000
     });
     await service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
       transactionId: 'wx-transaction-1',
       paidAt,
-      paidAmountCents: 10000
+      orderAmountCents: 10000
     });
 
     expect(tx.rechargeTransaction.updateMany).toHaveBeenCalledTimes(1);
@@ -802,7 +803,7 @@ describe('createRechargeService', () => {
       service.settleWechatRechargePayment('recharge-missing', {
         transactionId: 'wx-transaction-1',
         paidAt: date('2026-06-16T10:30:00.000Z'),
-        paidAmountCents: 10000
+        orderAmountCents: 10000
       })
     ).rejects.toMatchObject(
       new ApiError('RECHARGE_TRANSACTION_NOT_FOUND', 'Recharge transaction not found', 404)
@@ -848,7 +849,7 @@ describe('createRechargeService', () => {
       service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
         transactionId: 'wx-transaction-1',
         paidAt,
-        paidAmountCents: 10000
+        orderAmountCents: 10000
       })
     ).resolves.toMatchObject({
       id: 'recharge-openid-1_idem-1',
@@ -878,7 +879,7 @@ describe('createRechargeService', () => {
       service.settleWechatRechargePayment('recharge-openid-1_idem-1', {
         transactionId: 'wx-transaction-1',
         paidAt,
-        paidAmountCents: 9900
+        orderAmountCents: 9900
       })
     ).rejects.toMatchObject(
       new ApiError('RECHARGE_PAYMENT_AMOUNT_MISMATCH', 'Recharge payment amount does not match transaction amount', 409)

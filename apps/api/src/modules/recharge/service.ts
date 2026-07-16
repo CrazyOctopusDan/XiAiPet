@@ -74,7 +74,7 @@ interface RechargeTransactionRow {
 interface WechatRechargeSettlementPayment {
   transactionId?: string;
   paidAt?: Date;
-  paidAmountCents?: number;
+  orderAmountCents?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -318,7 +318,7 @@ export function createRechargeService(
         const settled = await this.settleWechatRechargePayment((transaction as RechargeTransactionRow).outTradeNo, {
           transactionId: syncedPayment.transactionId,
           paidAt: syncedPayment.paidAt ?? new Date(),
-          paidAmountCents: syncedPayment.paidAmountCents
+          orderAmountCents: syncedPayment.orderAmountCents
         });
         return {
           ok: true as const,
@@ -341,10 +341,10 @@ export function createRechargeService(
           throw new ApiError('RECHARGE_TRANSACTION_NOT_FOUND', 'Recharge transaction not found', 404);
         }
 
-        if (payment.paidAmountCents === undefined) {
+        if (payment.orderAmountCents === undefined) {
           throw new ApiError('RECHARGE_PAYMENT_AMOUNT_MISSING', 'Recharge payment amount is required for settlement', 409);
         }
-        if (payment.paidAmountCents !== toCents(toNumber(existing.paidAmount))) {
+        if (payment.orderAmountCents !== toCents(toNumber(existing.paidAmount))) {
           throw new ApiError('RECHARGE_PAYMENT_AMOUNT_MISMATCH', 'Recharge payment amount does not match transaction amount', 409);
         }
         if (existing.settledAt) {
