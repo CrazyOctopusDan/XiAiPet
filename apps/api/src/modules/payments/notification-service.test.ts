@@ -156,6 +156,60 @@ describe('createPaymentNotifyService', () => {
     expect(rechargeSettlementMock).not.toHaveBeenCalled();
   });
 
+  it('settles coupon-funded order notifications against the order total', async () => {
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+    const publicPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    const orderUpdate = vi.fn(async ({ where }: { where: { id: string } }) => createOrderRow(where.id));
+    const client = {
+      payment: { upsert: vi.fn(async () => ({})) },
+      order: {
+        findUnique: vi.fn(async () => createOrderRow('order-coupon', {
+          paymentStatus: 'PROCESSING',
+          status: 'PAYMENT_PROCESSING',
+          payableTotal: { toNumber: () => 100 }
+        })),
+        update: orderUpdate
+      },
+      userGift: { updateMany: vi.fn(async () => ({ count: 0 })) }
+    } as unknown as DbClient;
+    const rawBody = JSON.stringify({
+      id: 'notice-coupon',
+      resource: encryptResource({
+        out_trade_no: 'order-coupon',
+        transaction_id: 'wx-order-coupon',
+        trade_state: 'SUCCESS',
+        success_time: '2026-07-16T09:59:05+08:00',
+        amount: { total: 10000, payer_total: 7700 }
+      })
+    });
+    const timestamp = '1700000000';
+    const nonce = randomBytes(12).toString('hex');
+    const service = createPaymentNotifyService({
+      mchId: '1113847744',
+      mchSerialNo: 'merchant-serial',
+      privateKey: privatePem,
+      notifyUrl: 'https://api.example.test/api/v1/payments/wechat/notify',
+      apiV3Key: API_V3_KEY,
+      platformPublicKey: publicPem
+    }, client);
+
+    await expect(service.handleWechatPayNotification({
+      rawBody,
+      headers: {
+        timestamp,
+        nonce,
+        serial: 'platform-serial',
+        signature: signBody(privatePem, timestamp, nonce, rawBody)
+      }
+    })).resolves.toEqual({ ok: true });
+
+    expect(orderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'order-coupon' },
+      data: expect.objectContaining({ status: 'PAID', paymentStatus: 'PAID' })
+    }));
+  });
+
   it('does not mark notification-settled orders paid when promised gifts are unavailable', async () => {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
@@ -309,7 +363,10 @@ describe('createPaymentNotifyService', () => {
         out_trade_no: 'order-1',
         transaction_id: 'wx-transaction-1',
         trade_state: 'SUCCESS',
-        success_time: '2026-06-11T01:02:03+08:00'
+        success_time: '2026-06-11T01:02:03+08:00',
+        amount: {
+          payer_total: 38500
+        }
       })
     });
     const timestamp = '1700000000';
@@ -352,13 +409,13 @@ describe('createPaymentNotifyService', () => {
     const rawBody = JSON.stringify({
       id: 'notice-1',
       resource: encryptResource({
-        out_trade_no: 'recharge-openid-1_idem-1',
+        out_trade_no: 'recharge-coupon-case',
         transaction_id: 'wx-recharge-transaction-1',
         trade_state: 'SUCCESS',
         success_time: '2026-06-11T01:02:03+08:00',
         amount: {
-          total: 10000,
-          payer_total: 10000
+          total: 50000,
+          payer_total: 38500
         }
       })
     });
@@ -383,10 +440,10 @@ describe('createPaymentNotifyService', () => {
       }
     })).resolves.toEqual({ ok: true });
 
-    expect(rechargeSettlementMock).toHaveBeenCalledWith('recharge-openid-1_idem-1', {
+    expect(rechargeSettlementMock).toHaveBeenCalledWith('recharge-coupon-case', {
       transactionId: 'wx-recharge-transaction-1',
       paidAt: new Date('2026-06-10T17:02:03.000Z'),
-      paidAmountCents: 10000
+      orderAmountCents: 50000
     });
     expect(paymentUpsert).not.toHaveBeenCalled();
     expect(orderUpdate).not.toHaveBeenCalled();
@@ -440,7 +497,7 @@ describe('createPaymentNotifyService', () => {
       statusCode: 409
     });
     expect(rechargeSettlementMock).toHaveBeenCalledWith('recharge-openid-1_idem-1', expect.objectContaining({
-      paidAmountCents: 9900
+      orderAmountCents: 9900
     }));
   });
 
