@@ -89,7 +89,7 @@ async function assertOrderGiftsRedeemedForSettlement(
   assertGiftCountMatches(giftIds.length, gifts.length);
 }
 
-async function redeemExpectedOrderGifts(
+export async function redeemOrderGiftsForSettlement(
   client: DbClient,
   orderId: string,
   snapshot: unknown,
@@ -131,7 +131,7 @@ export async function markOrderPaidAndRedeemGifts(
       return order;
     }
 
-    await redeemExpectedOrderGifts(tx as never, orderId, order.snapshot, paidAt);
+    await redeemOrderGiftsForSettlement(tx as never, orderId, order.snapshot, paidAt);
     return createOrderRepository(tx as never).updateStatus(orderId, {
       status: 'paid',
       paymentStatus: 'paid',

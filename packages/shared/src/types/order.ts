@@ -65,6 +65,13 @@ export interface OrderPetSnapshot {
   allergyNotes?: string;
 }
 
+export interface OrderGiftSnapshot {
+  id: string;
+  name: string;
+  description: string;
+  validDays: number;
+}
+
 export interface OrderPricingBreakdown {
   itemsSubtotal: number;
   deliveryFee: number;
@@ -88,6 +95,7 @@ export interface OrderSnapshot {
   items: OrderItemSnapshot[];
   pets: OrderPetSnapshot[];
   remark: string;
+  gifts?: OrderGiftSnapshot[];
 }
 
 export interface OrderPaymentRecord {

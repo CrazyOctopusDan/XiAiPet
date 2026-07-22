@@ -173,11 +173,26 @@ describe('merchant orders service', () => {
   });
 
   it('accepts flat merchant orders from the API and sends backend list filters', async () => {
+    const baseOrder = createOrder();
     const request = vi.fn().mockResolvedValue({
       ok: true,
       orders: [
         {
-          ...createOrder({ id: 'order-completed', fulfillmentState: undefined }),
+          ...createOrder({
+            id: 'order-completed',
+            fulfillmentState: undefined,
+            snapshot: {
+              ...baseOrder.snapshot,
+              gifts: [
+                {
+                  id: 'gift-history-cake',
+                  name: '历史订单周年蛋糕',
+                  description: '随历史订单保留的赠品快照',
+                  validDays: 365
+                }
+              ]
+            }
+          }),
           fulfillmentStatus: 'completed'
         }
       ]
@@ -202,7 +217,9 @@ describe('merchant orders service', () => {
     });
     expect(view.groups[0]?.orders[0]).toMatchObject({
       id: 'order-completed',
-      statusLabel: '已完成'
+      statusLabel: '已完成',
+      hasGifts: true,
+      giftSummaryLabel: '赠品 1 件：历史订单周年蛋糕'
     });
   });
 
@@ -378,6 +395,51 @@ describe('merchant orders service', () => {
       latestActionLabel: '订单创建'
     });
     expect(detail?.statusOptions.map((item) => item.label)).toEqual(['待处理', '制作中', '配送中', '已完成', '已取消']);
+  });
+
+  it('surfaces promised gifts on active merchant order cards and packing details', () => {
+    const baseOrder = createOrder();
+    const order = createOrder({
+      snapshot: {
+        ...baseOrder.snapshot,
+        gifts: [
+          {
+            id: 'gift-cake-year',
+            name: '周年蛋糕',
+            description: '一年内可兑换',
+            validDays: 365
+          },
+          {
+            id: 'gift-cookie',
+            name: '宠物饼干',
+            description: '',
+            validDays: 30
+          }
+        ]
+      }
+    });
+
+    const listView = getMerchantOrdersPageViewModel([
+      {
+        groupLabel: '待处理',
+        orders: [order]
+      }
+    ]);
+    const detail = getMerchantOrderDetailViewModel({ order, timeline: [] });
+
+    expect(listView.groups[0]?.orders[0]).toMatchObject({
+      hasGifts: true,
+      giftSummaryLabel: '赠品 2 件：周年蛋糕、宠物饼干'
+    });
+    expect(detail).toMatchObject({
+      hasGifts: true,
+      giftCountLabel: '共 2 件，务必随单发出',
+      giftSettlementLabel: '赠品权益已核销，请备货时逐项确认，避免漏发。',
+      gifts: [
+        { id: 'gift-cake-year', name: '周年蛋糕', description: '一年内可兑换' },
+        { id: 'gift-cookie', name: '宠物饼干', description: '无补充说明' }
+      ]
+    });
   });
 
   it('normalizes backend order detail fulfillmentStatus before rendering the status pill', () => {

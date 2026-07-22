@@ -1306,7 +1306,17 @@ describe('order service', () => {
             id: 'order-history',
             status: 'PAID',
             fulfillmentMode: 'DELIVERY',
-            fulfillmentStatus: 'COMPLETED'
+            fulfillmentStatus: 'COMPLETED',
+            snapshot: {
+              gifts: [
+                {
+                  id: 'gift-history-cake',
+                  name: '历史订单周年蛋糕',
+                  description: '随订单保留的赠品快照',
+                  validDays: 365
+                }
+              ]
+            }
           })
         ])
       }
@@ -1339,7 +1349,15 @@ describe('order service', () => {
     expect(result.orders).toHaveLength(1);
     expect(result.orders[0]).toMatchObject({
       id: 'order-history',
-      fulfillmentStatus: 'completed'
+      fulfillmentStatus: 'completed',
+      snapshot: {
+        gifts: [
+          expect.objectContaining({
+            id: 'gift-history-cake',
+            name: '历史订单周年蛋糕'
+          })
+        ]
+      }
     });
   });
 
@@ -1569,6 +1587,90 @@ describe('order service', () => {
             note: '开始制作'
           })
         }
+      })
+    }));
+  });
+
+  it('redeems locked gifts atomically when a merchant manually marks an unpaid order paid', async () => {
+    const current = createGiftSnapshotOrder({
+      paymentStatus: 'PENDING',
+      status: 'PENDING_PAYMENT',
+      fulfillmentMode: 'DELIVERY',
+      fulfillmentStatus: 'PENDING'
+    });
+    const tx = {
+      order: {
+        update: vi.fn(async ({ data }) =>
+          createGiftSnapshotOrder({
+            ...current,
+            status: data.status ?? current.status,
+            paymentStatus: data.paymentStatus ?? current.paymentStatus,
+            fulfillmentStatus: data.fulfillmentStatus ?? current.fulfillmentStatus,
+            paidAt: data.paidAt ?? current.paidAt
+          })
+        )
+      },
+      userGift: {
+        updateMany: vi.fn(async () => ({ count: 1 }))
+      }
+    };
+    const client = {
+      order: {
+        updateMany: vi.fn(async () => ({ count: 0 })),
+        findUnique: vi.fn(async () => current),
+        update: vi.fn()
+      },
+      userGift: {
+        updateMany: vi.fn()
+      },
+      $transaction: vi.fn(async (callback) => callback(tx))
+    };
+    const service = createOrderService(client as any);
+
+    const result = await service.updateMerchantOrderStatus(
+      {
+        accountId: 'acct-admin',
+        openid: 'merchant-openid',
+        username: 'admin',
+        role: 'admin',
+        mustChangePassword: false,
+        merchantId: 'merchant-1',
+        storeName: '喜爱宠物烘焙'
+      },
+      'order-1',
+      {
+        status: 'paid',
+        paymentStatus: 'paid',
+        fulfillmentStatus: 'in_production',
+        adjustmentMethod: 'offline_collection',
+        reasonNote: '门店线下收款'
+      }
+    );
+
+    expect(result.order).toMatchObject({
+      status: 'paid',
+      paymentStatus: 'paid',
+      fulfillmentStatus: 'in_production'
+    });
+    expect(client.$transaction).toHaveBeenCalledOnce();
+    expect(client.order.update).not.toHaveBeenCalled();
+    expect(tx.userGift.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        id: { in: ['gift-1'] },
+        lockedOrderId: 'order-1',
+        status: 'LOCKED'
+      },
+      data: expect.objectContaining({
+        status: 'REDEEMED',
+        redeemedOrderId: 'order-1'
+      })
+    }));
+    expect(tx.order.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'order-1' },
+      data: expect.objectContaining({
+        status: 'PAID',
+        paymentStatus: 'PAID',
+        fulfillmentStatus: 'IN_PRODUCTION'
       })
     }));
   });

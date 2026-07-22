@@ -28,7 +28,7 @@ function filterGroups(groups, keyword, mode) {
         .map((group) => ({
         ...group,
         orders: group.orders.filter((order) => {
-            var _a;
+            var _a, _b;
             if (!normalizedKeyword) {
                 return true;
             }
@@ -38,7 +38,8 @@ function filterGroups(groups, keyword, mode) {
                 order.customerLabel,
                 order.scheduleLabel,
                 order.statusLabel,
-                (_a = order.secondaryBadgeLabel) !== null && _a !== void 0 ? _a : ''
+                (_a = order.giftSummaryLabel) !== null && _a !== void 0 ? _a : '',
+                (_b = order.secondaryBadgeLabel) !== null && _b !== void 0 ? _b : ''
             ].some((value) => value.includes(normalizedKeyword));
         })
     }))

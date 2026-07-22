@@ -126,6 +126,16 @@ function getItemSummary(order) {
     }
     return `${firstItem.name} 等 ${totalQuantity} 件商品`;
 }
+function getOrderGifts(order) {
+    return Array.isArray(order.snapshot.gifts) ? order.snapshot.gifts : [];
+}
+function getGiftSummaryLabel(order) {
+    const gifts = getOrderGifts(order);
+    if (!gifts.length) {
+        return null;
+    }
+    return `赠品 ${gifts.length} 件：${gifts.map((gift) => gift.name).join('、')}`;
+}
 function getProgressStatus(order) {
     var _a, _b;
     if (order.status === 'cancelled') {
@@ -208,7 +218,9 @@ function toCard(order) {
         scheduleLabel: getReservationLabel(order),
         customerLabel: getCustomerLabel(order),
         itemSummary: getItemSummary(order),
-        payableTotalLabel: formatMoney(order.pricing.payableTotal)
+        payableTotalLabel: formatMoney(order.pricing.payableTotal),
+        hasGifts: getOrderGifts(order).length > 0,
+        giftSummaryLabel: getGiftSummaryLabel(order)
     };
 }
 function buildFallbackTimeline(order) {
@@ -251,6 +263,13 @@ function toDetailItems(order) {
         specLabel: item.specLabel,
         quantityLabel: `x${item.quantity}`,
         lineTotalLabel: formatMoney(item.lineTotal)
+    }));
+}
+function toDetailGifts(order) {
+    return getOrderGifts(order).map((gift) => ({
+        id: gift.id,
+        name: gift.name,
+        description: gift.description.trim() || '无补充说明'
     }));
 }
 function getPetGenderLabel(gender) {
@@ -439,6 +458,12 @@ function getMerchantOrderDetailViewModel(detail) {
         deliveryFeeLabel: formatMoney(order.pricing.deliveryFee),
         payableTotalLabel: formatMoney(order.pricing.payableTotal),
         items: toDetailItems(order),
+        gifts: toDetailGifts(order),
+        hasGifts: getOrderGifts(order).length > 0,
+        giftCountLabel: `共 ${getOrderGifts(order).length} 件，务必随单发出`,
+        giftSettlementLabel: order.status === 'paid'
+            ? '赠品权益已核销，请备货时逐项确认，避免漏发。'
+            : '赠品权益已锁定，支付成功后自动核销；请在确认收款后备货。',
         pets: toDetailPets(order),
         hasPets: order.snapshot.pets.length > 0,
         auditSummary: getAuditSummary(timeline),

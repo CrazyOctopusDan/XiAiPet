@@ -383,3 +383,37 @@
   font-size: 24rpx;
   line-height: 1.4;
 }
+
+.gift-alert {
+  display: flex;
+  align-items: center;
+  margin-top: 16rpx;
+  padding: 16rpx 18rpx;
+  border: 2rpx solid #F3B56F;
+  border-radius: 18rpx;
+  background: #FFF4E4;
+}
+
+.gift-alert-mark {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 12rpx;
+  background: #B85D48;
+  color: #FFFFFF;
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 42rpx;
+  text-align: center;
+}
+
+.gift-alert-copy {
+  display: block;
+  min-width: 0;
+  margin-left: 14rpx;
+  color: #8A4E2D;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 1.4;
+}

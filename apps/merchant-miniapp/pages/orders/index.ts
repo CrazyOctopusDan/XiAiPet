@@ -80,6 +80,7 @@ function filterGroups(groups: MerchantOrderGroupViewModel[], keyword: string, mo
           order.customerLabel,
           order.scheduleLabel,
           order.statusLabel,
+          order.giftSummaryLabel ?? '',
           order.secondaryBadgeLabel ?? ''
         ].some((value) => value.includes(normalizedKeyword));
       })

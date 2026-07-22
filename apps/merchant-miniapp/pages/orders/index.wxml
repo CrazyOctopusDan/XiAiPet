@@ -28,7 +28,7 @@
     <view class="search-row">
       <input
         class="search-input"
-        placeholder="订单号、用户、商品"
+        placeholder="订单号、用户、商品或赠品"
         value="{{draftKeyword}}"
         bindinput="handleKeywordInput"
         confirm-type="search"
@@ -81,6 +81,11 @@
 
         <text class="order-summary">{{order.itemSummary}}</text>
         <text class="order-id">{{order.orderIdLabel}}</text>
+
+        <view class="gift-alert" wx:if="{{order.hasGifts}}">
+          <text class="gift-alert-mark">赠</text>
+          <text class="gift-alert-copy">{{order.giftSummaryLabel}}</text>
+        </view>
 
         <view class="order-meta-grid">
           <view class="meta-chip">

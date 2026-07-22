@@ -1,6 +1,7 @@
 .DS_Store
 *~imageoptim.*
 node_modules
+/.pnpm-store/
 pnpm-lock.yaml
 .env
 .env.*

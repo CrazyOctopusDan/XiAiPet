@@ -23,6 +23,7 @@ import {
   assertOrderGiftsLockedForSettlement,
   markOrderPaidAndRedeemGifts,
   recordOrderPaymentAndSettle,
+  redeemOrderGiftsForSettlement,
   runOrderSettlementTransaction
 } from './settlement';
 
@@ -1034,8 +1035,8 @@ export function createOrderService(
         status: candidate.status,
         paymentStatus: candidate.paymentStatus,
         fulfillmentStatus: candidate.fulfillmentStatus,
-        paidAt: candidate.status === 'paid' ? new Date() : undefined,
-        cancelledAt: candidate.status === 'cancelled' ? new Date() : undefined,
+        paidAt: candidate.status === 'paid' ? occurredAt : undefined,
+        cancelledAt: candidate.status === 'cancelled' ? occurredAt : undefined,
         merchantOverride: {
           actorOpenid: merchantContext.openid,
           actorName: merchantContext.storeName,
@@ -1057,14 +1058,23 @@ export function createOrderService(
           occurredAt
         }
       };
-      const order = candidate.status === 'cancelled' && current.paymentStatus !== 'paid'
-        ? await runOrderSettlementTransaction(client as never, async (tx) => {
+      let order: OrderRecord;
+      if (candidate.status === 'cancelled' && current.paymentStatus !== 'paid') {
+        order = await runOrderSettlementTransaction(client as never, async (tx) => {
           const cancelled = await createOrderRepository(tx as never).updateStatus(orderId, updateInput);
           await createGiftService(tx as never).releaseGiftsForOrder(orderId, tx as never);
           await releaseReservedOrderStock(tx as never, current);
           return cancelled;
-        })
-        : await createOrderRepository(client).updateStatus(orderId, updateInput);
+        });
+      } else if (candidate.status === 'paid' && candidate.paymentStatus === 'paid' && current.paymentStatus !== 'paid') {
+        order = await runOrderSettlementTransaction(client as never, async (tx) => {
+          await redeemOrderGiftsForSettlement(tx as never, orderId, current.snapshot, occurredAt);
+          return createOrderRepository(tx as never).updateStatus(orderId, updateInput);
+        });
+      } else {
+        order = await createOrderRepository(client).updateStatus(orderId, updateInput);
+      }
+
       return { ok: true as const, order };
     }
   };

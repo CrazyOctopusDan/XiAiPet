@@ -130,6 +130,21 @@
       </view>
     </view>
 
+    <view class="content-card gift-section" wx:if="{{detail.hasGifts}}">
+      <view class="section-head">
+        <text class="section-title">随单赠品</text>
+        <text class="gift-count">{{detail.giftCountLabel}}</text>
+      </view>
+      <view class="gift-reminder">{{detail.giftSettlementLabel}}</view>
+      <view class="gift-detail-card" wx:for="{{detail.gifts}}" wx:key="id">
+        <view class="gift-detail-head">
+          <text class="gift-mark">赠</text>
+          <text class="gift-name">{{item.name}}</text>
+        </view>
+        <text class="gift-description">{{item.description}}</text>
+      </view>
+    </view>
+
     <view class="content-card">
       <text class="section-title">商品清单</text>
       <view class="product-row" wx:for="{{detail.items}}" wx:key="name">

@@ -347,6 +347,31 @@ describe('merchant page API resilience', () => {
     await Promise.all([firstSubmit, secondSubmit]);
   });
 
+  it('uses the same gift rendering for active orders, packing details, and history orders', async () => {
+    const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/orders/index.ts');
+    const instance = createPageInstance(page);
+    const listTemplate = readFileSync(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/orders/index.wxml',
+      'utf8'
+    );
+    const detailTemplate = readFileSync(
+      '/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/order-detail/index.wxml',
+      'utf8'
+    );
+
+    instance.onLoad({ scope: 'history' });
+
+    expect(instance.data).toMatchObject({
+      scope: 'history',
+      pageTitle: '历史订单',
+      summaryOrderLabel: '历史订单'
+    });
+    expect(listTemplate).toContain('wx:if="{{order.hasGifts}}"');
+    expect(listTemplate).toContain('{{order.giftSummaryLabel}}');
+    expect(detailTemplate).toContain('wx:if="{{detail.hasGifts}}"');
+    expect(detailTemplate).toContain('{{detail.gifts}}');
+  });
+
   it('unblocks staff disable when the account request fails', async () => {
     const { page } = await loadPageModule('/Users/zhangyi/zhangyi/homework/xiaipet/apps/merchant-miniapp/pages/staff-accounts/index.ts');
     const instance = createPageInstance(page);
