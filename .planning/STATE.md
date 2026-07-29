@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 Phase: 12 (production-cutover-security-and-regression-verification) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 12
-Last activity: 2026-07-01 -- Quick task 260701-l3v completed: merchant product sort order controls
+Last activity: 2026-07-25 -- Quick task 260725-ma8 completed: customer home timeline sharing
 
 Progress: [████████░░] 83%
 
@@ -75,6 +75,7 @@ Resume file: .planning/phases/12-production-cutover-security-and-regression-veri
 
 | Date | Task | Summary |
 |---|---|---|
+| 2026-07-25 | 260725-ma8 Customer home timeline sharing | Enabled the customer home page right-top Moments entry with an `onShareTimeline` payload using the existing title and banner. |
 | 2026-07-01 | 260701-l3v Merchant product sort order controls | Added merchant product up/down controls backed by a persisted `Product.sortOrder` reorder endpoint and migration, with default manual product ordering. |
 | 2026-07-01 | 260701-kop Merchant category sort order controls | Added merchant category up/down controls backed by a persisted `sortOrder` reorder endpoint, including shared contract updates and regression coverage. |
 | 2026-06-30 | 260630-rfd Merchant new order subscription push | Added merchant-side WeChat subscription-message opt-in and backend new-order notifications for all enabled receivers under active merchant accounts. |

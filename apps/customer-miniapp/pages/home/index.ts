@@ -7,7 +7,7 @@ import { getCachedCustomerRuntimeConfig, hydrateCustomerRuntimeConfig } from '..
 const HERO_BANNER_SRC = '/assets/catalog/banner.jpg';
 const RIGHT_TOP_SHARE_OPTIONS = {
   withShareTicket: true,
-  menus: ['shareAppMessage']
+  menus: ['shareAppMessage', 'shareTimeline']
 };
 
 interface HomeModuleViewModel {
@@ -187,6 +187,12 @@ Page({
     return {
       title: 'XiAi宠物烘焙',
       path: '/pages/home/index',
+      imageUrl: HERO_BANNER_SRC
+    };
+  },
+  onShareTimeline() {
+    return {
+      title: 'XiAi宠物烘焙',
       imageUrl: HERO_BANNER_SRC
     };
   }

@@ -92,11 +92,13 @@ describe('home page', () => {
     expect(styles).toContain('flex: 1');
   });
 
-  it('enables right-top menu sharing with the home banner image', async () => {
+  it('enables friend and timeline sharing with the home banner image', async () => {
     const script = await readFile('/Users/zhangyi/zhangyi/homework/xiaipet/apps/customer-miniapp/pages/home/index.ts', 'utf8');
 
     expect(script).toContain('wx.showShareMenu');
+    expect(script).toContain("menus: ['shareAppMessage', 'shareTimeline']");
     expect(script).toContain('onShareAppMessage');
+    expect(script).toContain('onShareTimeline');
     expect(script).toContain("title: 'XiAi宠物烘焙'");
     expect(script).toContain("path: '/pages/home/index'");
     expect(script).toContain('imageUrl: HERO_BANNER_SRC');
